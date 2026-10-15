@@ -169,7 +169,7 @@
 
     // Master Exam & Shuffled Variants
     masterExam: {
-      id: 'master-01',
+      id: null,
       title: 'Đề Thi Gốc - Khảo Sát Toán 12 (Chuẩn 2025)',
       items: [],
     },
@@ -1829,7 +1829,7 @@
    */
   async function downloadPublishZip(format = 'all') {
     const formatName = format === 'pdf' ? 'PDF' : format === 'docx' ? 'Word (.DOCX)' : 'Trọn gói (Word + PDF)';
-    showToast(`Đang kết nối máy chủ để xuất gói đề thi ${formatName}...`, 'info');
+    showToast(`Đang đóng gói đề thi ${formatName}, vui lòng chờ trong giây lát...`, 'info');
 
     let masterId = state.masterExam?.id;
     if (!masterId) {
@@ -1850,41 +1850,112 @@
     const targetId = masterId || 'default';
     const downloadUrl = `${API_BASE_URL}/exams/${targetId}/export-zip?format=${encodeURIComponent(format)}`;
 
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.setAttribute('download', `Goi_DeThi_Quesy_TT32_${format}.zip`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast(`Đã bắt đầu tải xuống gói đề thi ${formatName} chuẩn hóa!`, 'success');
+    try {
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `Máy chủ phản hồi mã lỗi HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `Goi_DeThi_Quesy_TT32_${format}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+      showToast(`Đã tải xuống thành công gói đề thi ${formatName}!`, 'success');
+    } catch (err) {
+      console.error('Download zip failed:', err);
+      showToast(`Lỗi khi tải gói đề thi: ${err.message}`, 'error');
+    }
   }
 
-  function downloadActiveVariantPdf() {
+  async function downloadActiveVariantPdf() {
     const code = state.shuffledVariants.activeVariantCode || '101';
-    const masterId = state.masterExam?.id || 'default';
-    const url = `${API_BASE_URL}/exams/${masterId}/export-pdf?variant_code=${encodeURIComponent(code)}`;
+    let masterId = state.masterExam?.id;
+    if (!masterId) {
+      try {
+        const examsRes = await fetch(`${API_BASE_URL}/exams`);
+        if (examsRes.ok) {
+          const examsList = await examsRes.json();
+          if (examsList.length > 0) {
+            masterId = examsList[0].id;
+            state.masterExam.id = masterId;
+          }
+        }
+      } catch (e) {
+        console.warn('Cannot fetch exams list:', e);
+      }
+    }
+    const targetId = masterId || 'default';
+    const url = `${API_BASE_URL}/exams/${targetId}/export-pdf?variant_code=${encodeURIComponent(code)}`;
+    showToast(`Đang kết xuất đề thi PDF Mã đề ${code}...`, 'info');
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.setAttribute('download', `De_Thi_Toan_12_Ma_${code}.pdf`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast(`Đang tải file PDF Mã đề ${code}...`, 'info');
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `Máy chủ phản hồi mã lỗi HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `De_Thi_Toan_12_Ma_${code}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+      showToast(`Đã tải xuống thành công file PDF Mã đề ${code}!`, 'success');
+    } catch (err) {
+      console.error('Download PDF failed:', err);
+      showToast(`Lỗi khi tải PDF: ${err.message}`, 'error');
+    }
   }
 
-  function downloadActiveVariantDocx() {
+  async function downloadActiveVariantDocx() {
     const code = state.shuffledVariants.activeVariantCode || '101';
-    const masterId = state.masterExam?.id || 'default';
-    const url = `${API_BASE_URL}/exams/${masterId}/export-docx?variant_code=${encodeURIComponent(code)}`;
+    let masterId = state.masterExam?.id;
+    if (!masterId) {
+      try {
+        const examsRes = await fetch(`${API_BASE_URL}/exams`);
+        if (examsRes.ok) {
+          const examsList = await examsRes.json();
+          if (examsList.length > 0) {
+            masterId = examsList[0].id;
+            state.masterExam.id = masterId;
+          }
+        }
+      } catch (e) {
+        console.warn('Cannot fetch exams list:', e);
+      }
+    }
+    const targetId = masterId || 'default';
+    const url = `${API_BASE_URL}/exams/${targetId}/export-docx?variant_code=${encodeURIComponent(code)}`;
+    showToast(`Đang kết xuất đề thi Word (.docx) Mã đề ${code}...`, 'info');
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.setAttribute('download', `De_Thi_Toan_12_Ma_${code}.docx`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast(`Đang tải file Word (.docx) Mã đề ${code}...`, 'info');
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `Máy chủ phản hồi mã lỗi HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `De_Thi_Toan_12_Ma_${code}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+      showToast(`Đã tải xuống thành công file Word (.docx) Mã đề ${code}!`, 'success');
+    } catch (err) {
+      console.error('Download Word failed:', err);
+      showToast(`Lỗi khi tải Word: ${err.message}`, 'error');
+    }
   }
 
   // ============================================================================

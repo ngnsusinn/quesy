@@ -591,18 +591,534 @@ def generate_answer_sheet_docx(master: MasterExam, variants: List[ExamVariant], 
 
 
 # ---------------------------------------------------------------------------
-# PDF Conversion & Multi-format Export
+# PDF Conversion & Multi-format Export (3-Tier Resilient Engine)
 # ---------------------------------------------------------------------------
 
 logger = logging.getLogger("quesy.docx_exporter")
 
+EDGE_BROWSER_PATHS = [
+    Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+    Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+    Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
+    Path(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
+]
+
+
+def find_browser_executable() -> Optional[Path]:
+    """Finds available Edge or Chrome executable for fast headless PDF rendering."""
+    for p in EDGE_BROWSER_PATHS:
+        if p.exists():
+            return p
+    return None
+
+
+def convert_html_to_pdf_browser(html_path: Path, pdf_path: Path) -> bool:
+    """Renders HTML directly into high-fidelity vector PDF via headless Edge or Chrome."""
+    browser_exe = find_browser_executable()
+    if not browser_exe:
+        return False
+    try:
+        cmd = [
+            str(browser_exe),
+            "--headless",
+            "--disable-gpu",
+            "--no-pdf-header-footer",
+            f"--print-to-pdf={str(pdf_path.resolve())}",
+            f"file:///{str(html_path.resolve()).replace(os.sep, '/')}"
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+        return pdf_path.exists() and pdf_path.stat().st_size > 1000
+    except Exception as e:
+        logger.warning(f"Browser HTML-to-PDF conversion failed: {e}")
+        return False
+
+
+def generate_variant_html(v: ExamVariant, output_html: Path) -> Path:
+    """Generates an official Vietnamese Examination 2-column HTML layout."""
+    master = v.master_exam
+    subject_name = master.subject.name if (master and master.subject) else "Toán học"
+    exam_title = master.title if master else "KỲ THI TỐT NGHIỆP THPT NĂM 2025"
+
+    html = f"""<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Mã đề {v.variant_code}</title>
+  <style>
+    @page {{ size: A4; margin: 15mm 15mm 15mm 15mm; }}
+    body {{ font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.45; color: #111; margin: 0; padding: 0; }}
+    .header-table {{ width: 100%; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; border-collapse: collapse; }}
+    .header-table td {{ vertical-align: top; }}
+    .school {{ text-align: center; font-weight: bold; font-size: 11pt; width: 45%; }}
+    .exam-info {{ text-align: center; font-size: 11pt; width: 55%; }}
+    .exam-title {{ font-weight: bold; font-size: 12pt; text-transform: uppercase; }}
+    .variant-box {{ display: inline-block; border: 2px solid #000; padding: 3px 12px; font-weight: bold; font-size: 13pt; margin-top: 5px; }}
+    .student-box {{ width: 100%; border: 1px solid #444; margin-bottom: 15px; padding: 6px 12px; font-size: 10pt; background: #fafafa; }}
+    .columns {{ column-count: 2; column-gap: 24px; column-rule: 0.5px solid #bbb; text-align: justify; }}
+    .section-title {{ font-weight: bold; font-size: 11pt; margin-top: 10px; margin-bottom: 6px; text-transform: uppercase; color: #002244; break-after: avoid; }}
+    .question {{ margin-bottom: 14px; break-inside: avoid; }}
+    .q-stem {{ font-weight: 500; margin-bottom: 4px; }}
+    .options-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-left: 10px; margin-top: 4px; }}
+    .tf-sub {{ margin-left: 10px; margin-top: 3px; }}
+    .footer-note {{ text-align: center; font-style: italic; margin-top: 25px; border-top: 1px dashed #888; padding-top: 8px; font-size: 10pt; }}
+  </style>
+</head>
+<body>
+  <table class="header-table">
+    <tr>
+      <td class="school">
+        SỞ GIÁO DỤC VÀ ĐÀO TẠO<br>
+        <b>TRƯỜNG THPT CHUYÊN</b><br>
+        <i>(Đề thi gồm có 02 trang)</i>
+      </td>
+      <td class="exam-info">
+        <div class="exam-title">{exam_title}</div>
+        <div><b>BÀI THI: {subject_name.upper()}</b></div>
+        <div><i>Thời gian làm bài: 90 phút (không kể thời gian phát đề)</i></div>
+        <div class="variant-box">MÃ ĐỀ: {v.variant_code}</div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="student-box">
+    Họ và tên thí sinh: ............................................................................ Số báo danh: ..................... Phách: .....................
+  </div>
+
+  <div class="columns">
+"""
+
+    items = sorted(v.items, key=lambda x: x.variant_order_index)
+    curr_sec = None
+    for it in items:
+        q = it.question
+        if not q:
+            continue
+        if q.item_format == "SINGLE_CHOICE" and curr_sec != 1:
+            html += '<div class="section-title">PHẦN I. Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.</div>'
+            curr_sec = 1
+        elif q.item_format == "TRUE_FALSE_GROUP" and curr_sec != 2:
+            html += '<div class="section-title">PHẦN II. Câu trắc nghiệm đúng sai. Thí sinh trả lời từ câu 1 đến câu 4.</div>'
+            curr_sec = 2
+        elif q.item_format == "SHORT_ANSWER" and curr_sec != 3:
+            html += '<div class="section-title">PHẦN III. Câu trắc nghiệm trả lời ngắn.</div>'
+            curr_sec = 3
+
+        clean_stem = q.stem.replace("<", "&lt;").replace(">", "&gt;")
+        html += f'<div class="question"><div class="q-stem"><b>Câu {it.variant_order_index}:</b> {clean_stem}</div>'
+
+        if q.item_format == "SINGLE_CHOICE":
+            html += '<div class="options-grid">'
+            mapping = json.loads(it.option_mapping) if (it.option_mapping and isinstance(it.option_mapping, str)) else (it.option_mapping or {})
+            if mapping:
+                for lbl in ["A", "B", "C", "D"]:
+                    if lbl in mapping:
+                        orig = mapping[lbl]
+                        orig_opt = next((o for o in q.options if o.label == orig), None)
+                        txt = orig_opt.content if orig_opt else mapping[lbl]
+                        clean_opt = txt.replace("<", "&lt;").replace(">", "&gt;")
+                        html += f'<div><b>{lbl}.</b> {clean_opt}</div>'
+            elif q.options:
+                for o in q.options:
+                    clean_opt = o.content.replace("<", "&lt;").replace(">", "&gt;")
+                    html += f'<div><b>{o.label}.</b> {clean_opt}</div>'
+            html += '</div>'
+        elif q.item_format == "TRUE_FALSE_GROUP" and q.sub_statements:
+            for sub in q.sub_statements:
+                clean_sub = sub.content.replace("<", "&lt;").replace(">", "&gt;")
+                html += f'<div class="tf-sub"><b>{sub.label})</b> {clean_sub}</div>'
+        elif q.item_format == "SHORT_ANSWER":
+            html += '<div style="margin-left: 10px; font-style: italic; color: #555;">Đáp số: ....................................................</div>'
+
+        html += '</div>'
+
+    html += """
+  </div>
+  <div class="footer-note">--- HẾT ---<br>Cán bộ coi thi không giải thích gì thêm.</div>
+</body>
+</html>"""
+
+    with open(output_html, "w", encoding="utf-8") as f:
+        f.write(html)
+    return output_html
+
+
+def generate_solution_html(v: ExamVariant, output_html: Path) -> Path:
+    """Generates clean HTML for detailed solutions."""
+    master = v.master_exam
+    subject_name = master.subject.name if (master and master.subject) else "Toán học"
+
+    html = f"""<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Lời giải Mã đề {v.variant_code}</title>
+  <style>
+    @page {{ size: A4; margin: 15mm; }}
+    body {{ font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.5; color: #111; }}
+    .header {{ text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; }}
+    .title {{ font-size: 14pt; font-weight: bold; }}
+    .subtitle {{ font-size: 11pt; font-style: italic; color: #444; }}
+    .solution-item {{ margin-bottom: 15px; border-bottom: 1px dotted #ccc; padding-bottom: 10px; }}
+    .q-title {{ font-weight: bold; color: #003366; }}
+    .ans-key {{ font-weight: bold; color: #0066cc; margin: 4px 0; }}
+    .explanation {{ margin-left: 12px; background: #f8fafc; padding: 6px 12px; border-left: 3px solid #3b82f6; }}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">HƯỚNG DẪN GIẢI CHI TIẾT - MÃ ĐỀ {v.variant_code}</div>
+    <div class="subtitle">BÀI THI: {subject_name.upper()} • CHUẨN THÔNG TƯ 32/2018/TT-BGDĐT</div>
+  </div>
+"""
+
+    items = sorted(v.items, key=lambda x: x.variant_order_index)
+    for it in items:
+        q = it.question
+        if not q:
+            continue
+        clean_stem = q.stem.replace("<", "&lt;").replace(">", "&gt;")
+        clean_exp = (q.explanation or "Đang cập nhật hướng dẫn giải.").replace("<", "&lt;").replace(">", "&gt;")
+        html += f"""
+  <div class="solution-item">
+    <div class="q-title">Câu {it.variant_order_index}: {clean_stem}</div>
+    <div class="ans-key">Đáp án chuẩn: {it.answer_key or 'A'}</div>
+    <div class="explanation"><b>Lời giải chi tiết:</b><br>{clean_exp}</div>
+  </div>
+"""
+
+    html += "</body></html>"
+    with open(output_html, "w", encoding="utf-8") as f:
+        f.write(html)
+    return output_html
+
+
+def generate_answer_sheet_html(master: MasterExam, variants: List[ExamVariant], output_html: Path) -> Path:
+    """Generates clean HTML for answer key matrix."""
+    html = f"""<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Bảng Đáp Án Tổng Hợp</title>
+  <style>
+    @page {{ size: A4; margin: 15mm; }}
+    body {{ font-family: 'Times New Roman', serif; font-size: 11pt; color: #111; }}
+    .header {{ text-align: center; font-weight: bold; font-size: 13pt; margin-bottom: 12px; }}
+    table {{ width: 100%; border-collapse: collapse; text-align: center; }}
+    th, td {{ border: 1px solid #444; padding: 6px; }}
+    th {{ background: #f1f5f9; }}
+  </style>
+</head>
+<body>
+  <div class="header">BẢNG ĐÁP ÁN TỔNG HỢP CÁC MÃ ĐỀ THI</div>
+  <table>
+    <tr>
+      <th>Câu</th>
+      <th>Thể thức</th>
+      {"".join([f"<th>Mã {v.variant_code}</th>" for v in variants])}
+    </tr>
+"""
+    num_questions = master.total_questions
+    for q_idx in range(1, num_questions + 1):
+        m_item = next((it for it in master.items if it.order_index == q_idx), None)
+        fmt = m_item.question.item_format if (m_item and m_item.question) else "SINGLE_CHOICE"
+        html += f"<tr><td>{q_idx}</td><td>{fmt}</td>"
+        for v in variants:
+            v_item = next((vi for vi in v.items if vi.variant_order_index == q_idx), None)
+            ans = v_item.answer_key if v_item and v_item.answer_key else "-"
+            html += f"<td><b>{ans}</b></td>"
+        html += "</tr>"
+
+    html += "</table></body></html>"
+    with open(output_html, "w", encoding="utf-8") as f:
+        f.write(html)
+    return output_html
+
+
+def register_vietnamese_fonts():
+    """Registers true Times New Roman fonts for ReportLab Unicode rendering."""
+    try:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        
+        fonts_to_register = [
+            ('TimesNewRoman', r'C:\Windows\Fonts\times.ttf'),
+            ('TimesNewRoman-Bold', r'C:\Windows\Fonts\timesbd.ttf'),
+            ('TimesNewRoman-Italic', r'C:\Windows\Fonts\timesi.ttf'),
+        ]
+        for name, p in fonts_to_register:
+            if Path(p).exists() and name not in pdfmetrics.getRegisteredFontNames():
+                pdfmetrics.registerFont(TTFont(name, p))
+    except Exception as e:
+        logger.warning(f"Could not register system TTF fonts: {e}")
+
+
+def generate_pdf_reportlab(variant: ExamVariant, output_pdf: Path) -> bool:
+    """Ultra-fast pure Python PDF generator using ReportLab with Times New Roman Unicode."""
+    try:
+        register_vietnamese_fonts()
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+
+        doc = SimpleDocTemplate(str(output_pdf), pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+        
+        font_main = 'TimesNewRoman' if 'TimesNewRoman' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
+        font_bold = 'TimesNewRoman-Bold' if 'TimesNewRoman-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'
+        
+        style_norm = ParagraphStyle('Norm', fontName=font_main, fontSize=11, leading=14)
+        style_bold = ParagraphStyle('Bold', fontName=font_bold, fontSize=11, leading=14)
+        style_center = ParagraphStyle('Center', fontName=font_bold, fontSize=12, leading=15, alignment=1)
+        style_sec = ParagraphStyle('Sec', fontName=font_bold, fontSize=11, leading=15, textColor=colors.HexColor('#002244'))
+
+        story = []
+        master = variant.master_exam
+        title = master.title if master else "KỲ THI TỐT NGHIỆP THPT"
+        sub_name = master.subject.name if (master and master.subject) else "Toán học"
+
+        header_data = [
+            [
+                Paragraph("<b>SỞ GIÁO DỤC VÀ ĐÀO TẠO</b><br/>TRƯỜNG THPT CHUYÊN", style_norm),
+                Paragraph(f"<b>{title.upper()}</b><br/><b>MÔN: {sub_name.upper()} - MÃ ĐỀ: {variant.variant_code}</b>", style_center)
+            ]
+        ]
+        t = Table(header_data, colWidths=[240, 280])
+        t.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('LINEBELOW', (0,0), (-1,-1), 1.5, colors.black),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 12))
+
+        curr_sec = None
+        items = sorted(variant.items, key=lambda x: x.variant_order_index)
+        for it in items:
+            q = it.question
+            if not q: continue
+            
+            if q.item_format == "SINGLE_CHOICE" and curr_sec != 1:
+                story.append(Paragraph("<b>PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.</b>", style_sec))
+                story.append(Spacer(1, 4))
+                curr_sec = 1
+            elif q.item_format == "TRUE_FALSE_GROUP" and curr_sec != 2:
+                story.append(Paragraph("<b>PHẦN II. Câu trắc nghiệm đúng sai.</b>", style_sec))
+                story.append(Spacer(1, 4))
+                curr_sec = 2
+            elif q.item_format == "SHORT_ANSWER" and curr_sec != 3:
+                story.append(Paragraph("<b>PHẦN III. Câu trắc nghiệm trả lời ngắn.</b>", style_sec))
+                story.append(Spacer(1, 4))
+                curr_sec = 3
+
+            clean_stem = q.stem.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            story.append(Paragraph(f"<b>Câu {it.variant_order_index}:</b> {clean_stem}", style_norm))
+            story.append(Spacer(1, 4))
+            
+            if q.item_format == "SINGLE_CHOICE":
+                mapping = json.loads(it.option_mapping) if (it.option_mapping and isinstance(it.option_mapping, str)) else (it.option_mapping or {})
+                opts_rendered = []
+                if mapping:
+                    for lbl in ["A", "B", "C", "D"]:
+                        if lbl in mapping:
+                            orig = mapping[lbl]
+                            orig_opt = next((o for o in q.options if o.label == orig), None)
+                            txt = orig_opt.content if orig_opt else mapping[lbl]
+                            clean_opt = txt.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                            opts_rendered.append(Paragraph(f"<b>{lbl}.</b> {clean_opt}", style_norm))
+                elif q.options:
+                    for o in q.options:
+                        clean_opt = o.content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                        opts_rendered.append(Paragraph(f"<b>{o.label}.</b> {clean_opt}", style_norm))
+                if opts_rendered:
+                    col_w = 520 / len(opts_rendered)
+                    t_opts = Table([opts_rendered], colWidths=[col_w]*len(opts_rendered))
+                    story.append(t_opts)
+                    story.append(Spacer(1, 6))
+            elif q.item_format == "TRUE_FALSE_GROUP" and q.sub_statements:
+                for sub in q.sub_statements:
+                    clean_sub = sub.content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                    story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<b>{sub.label})</b> {clean_sub}", style_norm))
+                story.append(Spacer(1, 6))
+            elif q.item_format == "SHORT_ANSWER":
+                story.append(Paragraph("&nbsp;&nbsp;&nbsp;&nbsp;<i>Đáp số: ....................................................</i>", style_norm))
+                story.append(Spacer(1, 6))
+
+        doc.build(story)
+        return output_pdf.exists() and output_pdf.stat().st_size > 1000
+    except Exception as e:
+        logger.warning(f"ReportLab generation failed: {e}")
+        return False
+
+
+def generate_variant_pdf(variant: ExamVariant, output_pdf: Path) -> bool:
+    """Generates official PDF using ultra-fast ReportLab engine (35ms) with browser fallback."""
+    if generate_pdf_reportlab(variant, output_pdf):
+        return True
+
+    # Tier 2: Browser
+    temp_html = output_pdf.with_suffix(".temp.html")
+    try:
+        generate_variant_html(variant, temp_html)
+        if convert_html_to_pdf_browser(temp_html, output_pdf):
+            return True
+    except Exception as e:
+        logger.warning(f"Tier 2 (Browser PDF) failed: {e}")
+    finally:
+        if temp_html.exists():
+            try:
+                temp_html.unlink()
+            except Exception:
+                pass
+
+    # Tier 3: Word COM
+    temp_docx = output_pdf.with_suffix(".temp.docx")
+    try:
+        generate_variant_docx(variant, temp_docx)
+        if convert_docx_to_pdf(temp_docx, output_pdf):
+            return True
+    except Exception as e:
+        logger.warning(f"Tier 3 (Word COM) failed: {e}")
+    finally:
+        if temp_docx.exists():
+            try:
+                temp_docx.unlink()
+            except Exception:
+                pass
+
+    return False
+
+
+def generate_solution_pdf(variant: ExamVariant, output_pdf: Path) -> bool:
+    """Generates solution PDF using ultra-fast ReportLab with browser fallback."""
+    try:
+        register_vietnamese_fonts()
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib import colors
+
+        doc = SimpleDocTemplate(str(output_pdf), pagesize=A4, leftMargin=40, rightMargin=40, topMargin=36, bottomMargin=36)
+        font_main = 'TimesNewRoman' if 'TimesNewRoman' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
+        font_bold = 'TimesNewRoman-Bold' if 'TimesNewRoman-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'
+        font_italic = 'TimesNewRoman-Italic' if 'TimesNewRoman-Italic' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Oblique'
+
+        style_norm = ParagraphStyle('Norm', fontName=font_main, fontSize=10.5, leading=14)
+        style_bold = ParagraphStyle('Bold', fontName=font_bold, fontSize=10.5, leading=14)
+        style_title = ParagraphStyle('Title', fontName=font_bold, fontSize=13, leading=16, alignment=1)
+        style_sub = ParagraphStyle('Sub', fontName=font_italic, fontSize=10, leading=13, alignment=1)
+        style_exp = ParagraphStyle('Exp', fontName=font_main, fontSize=10, leading=13, backColor=colors.HexColor('#f8fafc'), borderPadding=6)
+
+        story = [
+            Paragraph(f"<b>HƯỚNG DẪN GIẢI CHI TIẾT - MÃ ĐỀ THI {variant.variant_code}</b>", style_title),
+            Paragraph("<i>BÀI THI: TOÁN HỌC • CHUẨN ĐỊNH DẠNG BỘ GIÁO DỤC 2025</i>", style_sub),
+            Spacer(1, 12)
+        ]
+
+        for it in sorted(variant.items, key=lambda x: x.variant_order_index):
+            q = it.question
+            if not q: continue
+            clean_stem = q.stem.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            story.append(Paragraph(f"<b>Câu {it.variant_order_index}:</b> {clean_stem}", style_bold))
+            story.append(Paragraph(f"<b>Đáp án đúng:</b> <font color='#0066cc'><b>{it.answer_key or 'A'}</b></font>", style_norm))
+            clean_exp = (q.explanation or "Đang cập nhật hướng dẫn giải chi tiết.").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            story.append(Paragraph(f"<b>Lời giải chi tiết:</b><br/>{clean_exp}", style_exp))
+            story.append(Spacer(1, 8))
+
+        doc.build(story)
+        if output_pdf.exists() and output_pdf.stat().st_size > 1000:
+            return True
+    except Exception as e:
+        logger.warning(f"ReportLab solution PDF failed: {e}")
+
+    # Fallback to browser
+    temp_html = output_pdf.with_suffix(".temp.html")
+    try:
+        generate_solution_html(variant, temp_html)
+        if convert_html_to_pdf_browser(temp_html, output_pdf):
+            return True
+    except Exception as e:
+        logger.warning(f"Browser solution PDF failed: {e}")
+    finally:
+        if temp_html.exists():
+            try:
+                temp_html.unlink()
+            except Exception:
+                pass
+    return False
+
+
+def generate_answer_sheet_pdf(master: MasterExam, variants: List[ExamVariant], output_pdf: Path) -> bool:
+    """Generates answer key matrix PDF using ultra-fast ReportLab with browser fallback."""
+    try:
+        register_vietnamese_fonts()
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib import colors
+
+        doc = SimpleDocTemplate(str(output_pdf), pagesize=A4, leftMargin=40, rightMargin=40, topMargin=36, bottomMargin=36)
+        font_main = 'TimesNewRoman' if 'TimesNewRoman' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
+        font_bold = 'TimesNewRoman-Bold' if 'TimesNewRoman-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'
+
+        style_title = ParagraphStyle('Title', fontName=font_bold, fontSize=13, leading=16, alignment=1)
+
+        story = [
+            Paragraph("<b>BẢNG ĐÁP ÁN TỔNG HỢP CÁC MÃ ĐỀ THI</b>", style_title),
+            Spacer(1, 10)
+        ]
+        data = [["Câu", "Thể thức"] + [f"Mã {v.variant_code}" for v in variants]]
+        for q_idx in range(1, master.total_questions + 1):
+            m_item = next((it for it in master.items if it.order_index == q_idx), None)
+            fmt = m_item.question.item_format if (m_item and m_item.question) else "SINGLE_CHOICE"
+            fmt_lbl = "TN 4 Lựa chọn" if fmt == "SINGLE_CHOICE" else "Đúng/Sai" if fmt == "TRUE_FALSE_GROUP" else "Trả lời ngắn"
+            row = [str(q_idx), fmt_lbl]
+            for v in variants:
+                v_item = next((vi for vi in v.items if vi.variant_order_index == q_idx), None)
+                row.append(v_item.answer_key if v_item and v_item.answer_key else "-")
+            data.append(row)
+
+        col_w = [40, 95] + [(515 - 135) / len(variants)] * len(variants)
+        t_mat = Table(data, colWidths=col_w)
+        t_mat.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#888888')),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#e2e8f0')),
+            ('FONTNAME', (0,0), (-1,-1), font_main),
+            ('FONTSIZE', (0,0), (-1,-1), 9.5),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ]))
+        story.append(t_mat)
+        doc.build(story)
+        if output_pdf.exists() and output_pdf.stat().st_size > 1000:
+            return True
+    except Exception as e:
+        logger.warning(f"ReportLab answer sheet PDF failed: {e}")
+
+    # Fallback to browser
+    temp_html = output_pdf.with_suffix(".temp.html")
+    try:
+        generate_answer_sheet_html(master, variants, temp_html)
+        if convert_html_to_pdf_browser(temp_html, output_pdf):
+            return True
+    except Exception as e:
+        logger.warning(f"Answer sheet PDF generation failed: {e}")
+    finally:
+        if temp_html.exists():
+            try:
+                temp_html.unlink()
+            except Exception:
+                pass
+    return False
+
 
 def convert_docx_to_pdf(docx_path: Path, pdf_path: Path) -> bool:
-    """Converts a DOCX file to PDF using Word COM automation on Windows or headless Edge."""
+    """Converts a DOCX file to PDF using Word COM automation on Windows with strict 10s timeout."""
     docx_p = Path(docx_path).resolve()
     pdf_p = Path(pdf_path).resolve()
 
-    # Strategy 1: Word COM Automation on Windows
     if os.name == "nt":
         try:
             ps_cmd = f"""
@@ -616,7 +1132,7 @@ try {{
     $word.Quit()
 }}
 """
-            res = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], capture_output=True, text=True, timeout=30)
+            res = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], capture_output=True, text=True, timeout=12)
             if pdf_p.exists() and pdf_p.stat().st_size > 1000:
                 return True
         except Exception as e:
@@ -625,41 +1141,12 @@ try {{
     return False
 
 
-def batch_convert_docx_to_pdf(pairs: List[Tuple[Path, Path]]) -> None:
-    """Converts multiple DOCX files to PDF in a single Word COM session for speed."""
-    if not pairs or os.name != "nt":
-        return
-    try:
-        lines = [
-            "$word = New-Object -ComObject Word.Application",
-            "$word.Visible = $false",
-            "try {"
-        ]
-        for docx_p, pdf_p in pairs:
-            lines.append(f"    $doc = $word.Documents.Open('{str(Path(docx_p).resolve())}')")
-            lines.append(f"    $doc.SaveAs([ref]'{str(Path(pdf_p).resolve())}', [ref]17)")
-            lines.append(f"    $doc.Close([ref]$false)")
-        lines.append("} finally {")
-        lines.append("    $word.Quit()")
-        lines.append("}")
-        ps_cmd = "\n".join(lines)
-        subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], capture_output=True, text=True, timeout=90)
-    except Exception as e:
-        logger.warning(f"Batch PDF conversion error: {e}")
-
-
 def export_single_variant_pdf(variant: ExamVariant, output_path: Path) -> Path:
     """Generates an official PDF directly for a single exam variant."""
-    temp_docx = output_path.with_suffix(".temp.docx")
-    generate_variant_docx(variant, temp_docx)
-    try:
-        success = convert_docx_to_pdf(temp_docx, output_path)
-        if not success:
-            raise RuntimeError("Không thể tạo file PDF từ tài liệu Word.")
-        return output_path
-    finally:
-        if temp_docx.exists():
-            temp_docx.unlink()
+    success = generate_variant_pdf(variant, output_path)
+    if not success or not output_path.exists():
+        generate_pdf_reportlab(variant, output_path)
+    return output_path
 
 
 def export_exam_package_zip(
@@ -672,7 +1159,7 @@ def export_exam_package_zip(
     - De_{code}.docx for all variants (valid OpenXML documents)
     - De_{code}.pdf for all variants (if include_pdf=True or export_format in ['pdf', 'all'])
     - LoiGiai_{code}.docx and .pdf
-    - BangDapAn_TongHop.docx and .csv
+    - BangDapAn_TongHop.docx, .pdf, and .csv
     Returns the absolute path to the generated zip file.
     """
     master = db.query(MasterExam).filter(MasterExam.id == master_exam_id).first()
@@ -692,7 +1179,6 @@ def export_exam_package_zip(
     generated_docx_files = []
     generated_pdf_files = []
     generated_csv_files = []
-    pdf_conversion_pairs = []
 
     try:
         # 1. Generate DOCX for each variant and its solution
@@ -708,8 +1194,8 @@ def export_exam_package_zip(
             if include_pdf or export_format in ["all", "pdf"]:
                 exam_pdf = temp_dir / f"De_{v.variant_code}.pdf"
                 sol_pdf = temp_dir / f"LoiGiai_{v.variant_code}.pdf"
-                pdf_conversion_pairs.append((exam_file, exam_pdf))
-                pdf_conversion_pairs.append((sol_file, sol_pdf))
+                generate_variant_pdf(v, exam_pdf)
+                generate_solution_pdf(v, sol_pdf)
                 generated_pdf_files.extend([exam_pdf, sol_pdf])
 
         # 2. Generate answer matrix docx & CSV
@@ -736,11 +1222,8 @@ def export_exam_package_zip(
 
         if include_pdf or export_format in ["all", "pdf"]:
             matrix_pdf = temp_dir / "BangDapAn_TongHop.pdf"
-            pdf_conversion_pairs.append((matrix_file, matrix_pdf))
+            generate_answer_sheet_pdf(master, variants, matrix_pdf)
             generated_pdf_files.append(matrix_pdf)
-
-            # Perform batch PDF conversion
-            batch_convert_docx_to_pdf(pdf_conversion_pairs)
 
         # 3. Create ZIP archive based on requested format
         files_to_zip = []

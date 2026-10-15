@@ -5,7 +5,8 @@ import argparse
 import subprocess
 from pathlib import Path
 
-# Ensure project root is first in sys.path
+# Clean sys.path: remove any foreign hermes venvs from sys.path
+sys.path = [p for p in sys.path if "hermes\\installs" not in p and "hermes/installs" not in p]
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 os.environ["PYTHONPATH"] = str(PROJECT_ROOT)

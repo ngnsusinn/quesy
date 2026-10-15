@@ -237,6 +237,13 @@ def shuffle_exam(
     """POST /api/v1/exams/:master_id/shuffle
     Generates N safe variants with Answer Key Matrix.
     """
+    master = db.query(MasterExam).filter(MasterExam.id == master_id).first()
+    if not master:
+        master = db.query(MasterExam).first()
+    if not master:
+        raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
+    master_id = master.id
+
     variant_codes = payload.variant_codes if payload and payload.variant_codes else ["101", "102", "103", "104"]
     try:
         variants = generate_shuffled_variants(
@@ -259,6 +266,13 @@ def shuffle_exam(
 @router.get("/{master_id}/key-matrix")
 def get_key_matrix(master_id: str, db: Session = Depends(get_db)):
     """Retrieves Answer Key Matrix for a master exam and its shuffled variants."""
+    master = db.query(MasterExam).filter(MasterExam.id == master_id).first()
+    if not master:
+        master = db.query(MasterExam).first()
+    if not master:
+        raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
+    master_id = master.id
+
     try:
         return get_answer_key_matrix(master_id, db)
     except ValueError as e:
@@ -275,11 +289,12 @@ def export_zip(
     Downloads ZIP package containing valid OpenXML DOCX variants, PDF documents, detailed solutions, and answer sheets.
     """
     try:
-        if master_id == "default":
+        m = db.query(MasterExam).filter(MasterExam.id == master_id).first()
+        if not m:
             m = db.query(MasterExam).first()
-            if not m:
-                raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
-            master_id = m.id
+        if not m:
+            raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
+        master_id = m.id
 
         variants = db.query(ExamVariant).filter(ExamVariant.master_exam_id == master_id).all()
         if not variants:
@@ -312,11 +327,12 @@ def export_variant_pdf(
     """GET /api/v1/exams/:master_id/export-pdf
     Directly exports and downloads a single variant as a standalone PDF file.
     """
-    if master_id == "default":
+    m = db.query(MasterExam).filter(MasterExam.id == master_id).first()
+    if not m:
         m = db.query(MasterExam).first()
-        if not m:
-            raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
-        master_id = m.id
+    if not m:
+        raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
+    master_id = m.id
 
     variant = db.query(ExamVariant).filter(
         ExamVariant.master_exam_id == master_id,
@@ -337,16 +353,10 @@ def export_variant_pdf(
     temp_dir = EXPORTS_DIR / f"temp_{master_id}"
     temp_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = temp_dir / f"De_Thi_Ma_{variant_code}.pdf"
-    docx_path = temp_dir / f"De_Thi_Ma_{variant_code}.docx"
 
-    generate_variant_docx(variant, docx_path)
-    converted = convert_docx_to_pdf(docx_path, pdf_path)
-    if not converted or not pdf_path.exists():
-        return FileResponse(
-            path=str(docx_path),
-            filename=docx_path.name,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+    export_single_variant_pdf(variant, pdf_path)
+    if not pdf_path.exists():
+        raise HTTPException(status_code=500, detail="Không thể tạo file PDF.")
 
     return FileResponse(
         path=str(pdf_path),
@@ -364,11 +374,12 @@ def export_variant_docx(
     """GET /api/v1/exams/:master_id/export-docx
     Directly exports and downloads a single variant as a valid OpenXML DOCX file.
     """
-    if master_id == "default":
+    m = db.query(MasterExam).filter(MasterExam.id == master_id).first()
+    if not m:
         m = db.query(MasterExam).first()
-        if not m:
-            raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
-        master_id = m.id
+    if not m:
+        raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
+    master_id = m.id
 
     variant = db.query(ExamVariant).filter(
         ExamVariant.master_exam_id == master_id,
