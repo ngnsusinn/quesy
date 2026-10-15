@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import Question, QuestionOption, SubStatement
+from backend.schemas import CognitiveLevel, ItemFormat
 from backend.services.tagging_service import check_question_duplicate, suggest_auto_tagging
 
 router = APIRouter(prefix="/api/v1/questions", tags=["Questions"])
@@ -62,8 +63,8 @@ class QuestionCreate(BaseModel):
     lesson_id: Optional[str] = None
     learning_outcome_id: Optional[str] = None
     problem_archetype_id: Optional[str] = None
-    cognitive_level: str = "RECOGNITION"  # RECOGNITION, COMPREHENSION, APPLICATION
-    item_format: str = "SINGLE_CHOICE"  # SINGLE_CHOICE, TRUE_FALSE_GROUP, SHORT_ANSWER, PASSAGE_GROUP, ESSAY
+    cognitive_level: CognitiveLevel = CognitiveLevel.RECOGNITION
+    item_format: ItemFormat = ItemFormat.SINGLE_CHOICE
     stem: str
     image_urls: Optional[List[str]] = []
     explanation: Optional[str] = None
@@ -201,15 +202,19 @@ def create_question(payload: QuestionCreate, db: Session = Depends(get_db)):
             )
 
     from backend.models import Subject, Grade, LearningOutcome, Lesson, Topic, Strand
+    sub = None
+    grd = None
     if payload.subject_id:
         sub = db.query(Subject).filter((Subject.id == payload.subject_id) | (Subject.code == payload.subject_id)).first()
         if not sub:
-            db.add(Subject(id=payload.subject_id, code=payload.subject_id, name=payload.subject_id))
+            sub = Subject(id=payload.subject_id, code=payload.subject_id, name=payload.subject_id)
+            db.add(sub)
             db.flush()
     if payload.grade_id:
         grd = db.query(Grade).filter((Grade.id == payload.grade_id) | (Grade.code == payload.grade_id)).first()
         if not grd:
-            db.add(Grade(id=payload.grade_id, code=payload.grade_id, name=payload.grade_id))
+            grd = Grade(id=payload.grade_id, code=payload.grade_id, name=payload.grade_id)
+            db.add(grd)
             db.flush()
     if payload.learning_outcome_id:
         yccd = db.query(LearningOutcome).filter((LearningOutcome.id == payload.learning_outcome_id) | (LearningOutcome.code == payload.learning_outcome_id)).first()
