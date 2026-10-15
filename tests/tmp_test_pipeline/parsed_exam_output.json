@@ -1,0 +1,222 @@
+{
+  "metadata": {
+    "title": "KỲ THI TỐT NGHIỆP THPT NĂM 2025",
+    "school": "SỞ GIÁO DỤC VÀ ĐÀO TẠO THÀNH PHỐ HỒ CHÍ MINH",
+    "subject": "TOÁN HỌC - LỚP 12",
+    "grade": "Lớp 12",
+    "exam_code": "101",
+    "duration_minutes": 90,
+    "total_questions": 4,
+    "overall_confidence": 100.0,
+    "confidence_breakdown": {
+      "green": 4,
+      "yellow": 0,
+      "red": 0,
+      "green_ratio": 100.0
+    }
+  },
+  "sections": [
+    {
+      "part": "PART_I",
+      "title": "PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn",
+      "item_format": "SINGLE_CHOICE",
+      "count": 2
+    },
+    {
+      "part": "PART_II",
+      "title": "PHẦN II. Câu trắc nghiệm đúng sai",
+      "item_format": "TRUE_FALSE_GROUP",
+      "count": 1
+    },
+    {
+      "part": "PART_III",
+      "title": "PHẦN III. Câu trắc nghiệm trả lời ngắn",
+      "item_format": "SHORT_ANSWER",
+      "count": 1
+    }
+  ],
+  "questions": [
+    {
+      "question_number": 1,
+      "section": "PART_I",
+      "item_format": "SINGLE_CHOICE",
+      "stem": "Cho hàm số $ y = f(x)$ xác định và liên tục trên $\\mathbb{R}$ có đồ thị như hình vẽ bên. Điểm cực tiểu của đồ thị hàm số đã cho là:\n\n[IMAGE:/assets/job_full_test/img_3ca986545fe6.webp]",
+      "options": [
+        {
+          "label": "A",
+          "content": "$(1; -2)$.",
+          "is_correct": true,
+          "is_fixed": false
+        },
+        {
+          "label": "B",
+          "content": "$(-1; 2)$.",
+          "is_correct": false,
+          "is_fixed": false
+        },
+        {
+          "label": "C",
+          "content": "$ x = 1 $.",
+          "is_correct": false,
+          "is_fixed": false
+        },
+        {
+          "label": "D",
+          "content": "Không có đáp án nào đúng.",
+          "is_correct": false,
+          "is_fixed": true
+        }
+      ],
+      "explanation": "Quan sát đồ thị ta thấy điểm đáy cực tiểu có tọa độ là $(1; -2)$. Chọn A.",
+      "image_urls": [
+        "/assets/job_full_test/img_3ca986545fe6.webp"
+      ],
+      "grade": "Lớp 12",
+      "subject": "TOÁN HỌC - LỚP 12",
+      "strand": "Số, Đại số và Một số yếu tố giải tích",
+      "topic": "Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+      "lesson": "Tính đơn điệu và cực trị của hàm số",
+      "learning_outcome_code": "TOAN12.GT.01",
+      "learning_outcome_desc": "Nhận biết được tính đơn điệu, điểm cực trị của hàm số thông qua bảng biến thiên hoặc đồ thị hàm số",
+      "problem_archetype": "Đọc đồ thị hoặc bảng biến thiên tìm cực trị",
+      "cognitive_level": "APPLICATION",
+      "cognitive_level_vn": "Vận dụng",
+      "confidence": 0.98,
+      "confidence_score": 100.0,
+      "confidence_badge": "GREEN"
+    },
+    {
+      "question_number": 2,
+      "section": "PART_I",
+      "item_format": "SINGLE_CHOICE",
+      "stem": "Cho hàm số $ y = x^3 - 3x^2 + 2 $. Tìm tất cả các giá trị của tham số $ m $ để phương trình $ x^3 - 3x^2 + 2 = m $ có 3 nghiệm phân biệt.",
+      "options": [
+        {
+          "label": "A",
+          "content": "$-2 < m < 2 $.",
+          "is_correct": true,
+          "is_fixed": false
+        },
+        {
+          "label": "B",
+          "content": "$ m > 2 $.",
+          "is_correct": false,
+          "is_fixed": false
+        },
+        {
+          "label": "C",
+          "content": "$ m < -2 $.",
+          "is_correct": false,
+          "is_fixed": false
+        },
+        {
+          "label": "D",
+          "content": "Cả A và B đều sai.",
+          "is_correct": false,
+          "is_fixed": true
+        }
+      ],
+      "explanation": "Ta có $ y' = 3x^2 - 6x = 0 \\Leftrightarrow x = 0 $ hoặc $ x = 2 $. Giá trị cực đại là $ y(0) = 2 $, giá trị cực tiểu là $ y(2) = -2 $. Đường thẳng $ y = m $ cắt đồ thị tại 3 điểm phân biệt khi $-2 < m < 2 $. Chọn A.",
+      "image_urls": [],
+      "grade": "Lớp 12",
+      "subject": "TOÁN HỌC - LỚP 12",
+      "strand": "Số, Đại số và Một số yếu tố giải tích",
+      "topic": "Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+      "lesson": "Tính đơn điệu và cực trị của hàm số",
+      "learning_outcome_code": "TOAN12.GT.01",
+      "learning_outcome_desc": "Nhận biết được tính đơn điệu, điểm cực trị của hàm số thông qua bảng biến thiên hoặc đồ thị hàm số",
+      "problem_archetype": "Đọc đồ thị hoặc bảng biến thiên tìm cực trị",
+      "cognitive_level": "APPLICATION",
+      "cognitive_level_vn": "Vận dụng",
+      "confidence": 0.85,
+      "confidence_score": 100.0,
+      "confidence_badge": "GREEN"
+    },
+    {
+      "question_number": 1,
+      "section": "PART_II",
+      "item_format": "TRUE_FALSE_GROUP",
+      "stem": "Cho hàm số $ y = f(x) = \\frac{2x - 1}{x + 1}$. Xét tính đúng sai của các khẳng định sau:",
+      "sub_statements": [
+        {
+          "label": "a",
+          "content": "Tập xác định của hàm số là $ D = \\mathbb{R} \\setminus \\{-1\\}$.",
+          "is_true": true,
+          "explanation": "Xét khẳng định (a): kiểm tra tính đúng/sai từ giả thiết đề bài."
+        },
+        {
+          "label": "b",
+          "content": "Đạo hàm của hàm số là $ y' = \\frac{3}{(x + 1)^2}$ với mọi $ x \\ne -1 $.",
+          "is_true": true,
+          "explanation": "Xét khẳng định (b): kiểm tra tính đúng/sai từ giả thiết đề bài."
+        },
+        {
+          "label": "c",
+          "content": "Đồ thị hàm số có đường tiệm cận đứng là đường thẳng $ x = 2 $.",
+          "is_true": false,
+          "explanation": "Xét khẳng định (c): kiểm tra tính đúng/sai từ giả thiết đề bài."
+        },
+        {
+          "label": "d",
+          "content": "Hàm số đồng biến trên từng khoảng xác định $(-\\infty; -1)$ và $(-1; +\\infty)$.",
+          "is_true": true,
+          "explanation": "Xét khẳng định (d): kiểm tra tính đúng/sai từ giả thiết đề bài."
+        }
+      ],
+      "explanation": "Quan sát đồ thị ta thấy điểm đáy cực tiểu có tọa độ là $(1; -2)$. Chọn A.",
+      "image_urls": [],
+      "grade": "Lớp 12",
+      "subject": "TOÁN HỌC - LỚP 12",
+      "strand": "Số, Đại số và Một số yếu tố giải tích",
+      "topic": "Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+      "lesson": "Tính đơn điệu và cực trị của hàm số",
+      "learning_outcome_code": "TOAN12.GT.01",
+      "learning_outcome_desc": "Nhận biết được tính đơn điệu, điểm cực trị của hàm số thông qua bảng biến thiên hoặc đồ thị hàm số",
+      "problem_archetype": "Đọc đồ thị hoặc bảng biến thiên tìm cực trị",
+      "cognitive_level": "APPLICATION",
+      "cognitive_level_vn": "Vận dụng",
+      "confidence": 0.85,
+      "confidence_score": 100.0,
+      "confidence_badge": "GREEN"
+    },
+    {
+      "question_number": 1,
+      "section": "PART_III",
+      "item_format": "SHORT_ANSWER",
+      "stem": "Một bể chứa nước có dạng hình hộp chữ nhật không nắp với thể tích bằng $ V = 32\\text{ m}^3 $. Đáy bể là hình chữ nhật có chiều dài gấp đôi chiều rộng. Tính chi phí thấp nhất để xây dựng bể nước biết chi phí xây dựng mỗi $\\text{m}^2 $ thành bể và đáy bể bằng nhau (kết quả làm tròn đến hàng đơn vị).",
+      "correct_answer": "48",
+      "expected_answer": "48",
+      "tolerance": 0.01,
+      "explanation": "Quan sát đồ thị ta thấy điểm đáy cực tiểu có tọa độ là $(1; -2)$. Chọn A.",
+      "image_urls": [],
+      "grade": "Lớp 12",
+      "subject": "TOÁN HỌC - LỚP 12",
+      "strand": "Số, Đại số và Một số yếu tố giải tích",
+      "topic": "Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+      "lesson": "Tính đơn điệu và cực trị của hàm số",
+      "learning_outcome_code": "TOAN12.GT.01",
+      "learning_outcome_desc": "Nhận biết được tính đơn điệu, điểm cực trị của hàm số thông qua bảng biến thiên hoặc đồ thị hàm số",
+      "problem_archetype": "Đọc đồ thị hoặc bảng biến thiên tìm cực trị",
+      "cognitive_level": "APPLICATION",
+      "cognitive_level_vn": "Vận dụng",
+      "confidence": 0.85,
+      "confidence_score": 100.0,
+      "confidence_badge": "GREEN"
+    }
+  ],
+  "raw_answer_key": "BẢNG ĐÁP ÁN VÀ LỜI GIẢI CHI TIẾT\n\nPHẦN I:\n1. A\n2. A\n\nPHẦN II:\nCâu 1: a - Đúng, b - Đúng, c - Sai, d - Đúng\n\nPHẦN III:\nCâu 1: 48\n\nCâu 1. Lời giải: Quan sát đồ thị ta thấy điểm đáy cực tiểu có tọa độ là $(1; -2)$. Chọn A.\n\nCâu 2. Lời giải: Ta có $ y' = 3x^2 - 6x = 0 \\Leftrightarrow x = 0 $ hoặc $ x = 2 $. Giá trị cực đại là $ y(0) = 2 $, giá trị cực tiểu là $ y(2) = -2 $. Đường thẳng $ y = m $ cắt đồ thị tại 3 điểm phân biệt khi $-2 < m < 2 $. Chọn A.",
+  "extracted_assets": [
+    {
+      "asset_id": "3ca986545fe6",
+      "filename": "img_3ca986545fe6.webp",
+      "file_path": "C:\\Users\\ngnsusinn\\Documents\\quesy\\storage\\assets\\job_full_test\\img_3ca986545fe6.webp",
+      "url": "/assets/job_full_test/img_3ca986545fe6.webp",
+      "image_markdown": "[IMAGE:/assets/job_full_test/img_3ca986545fe6.webp]",
+      "width": 400,
+      "height": 300,
+      "crop_type": "diagram",
+      "format": "webp",
+      "original_media_path": "word/media/image1.png"
+    }
+  ]
+}

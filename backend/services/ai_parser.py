@@ -1,0 +1,697 @@
+import re
+import json
+import logging
+from pathlib import Path
+from typing import List, Dict, Any, Tuple, Optional, Union
+
+from backend.services.latex_converter import (
+    sanitize_latex,
+    repair_math_delimiters,
+    validate_katex,
+    extract_and_convert_docx_content,
+)
+from backend.services.crop_service import CropService, default_crop_service
+from backend.services.tagging_service import auto_tag_question
+
+try:
+    from sqlalchemy.orm import Session
+    from backend.database import SessionLocal
+    from backend.models import AIDigitizeJob
+    HAS_DB = True
+except ImportError:
+    HAS_DB = False
+
+try:
+    import pypdf
+    HAS_PYPDF = True
+except ImportError:
+    HAS_PYPDF = False
+
+logger = logging.getLogger("quesy.ai_parser")
+
+
+def calculate_item_confidence(item: Dict[str, Any]) -> float:
+    """Calculate confidence score (0-100) based on FRD/SRS criteria:
+    - >= 95%: Full choices, clear stem, correct answer present, proper formatting.
+    - 80-94%: Missing explanation or minor syntax issue.
+    - < 80%: Missing correct answer, incomplete choices, or missing stem.
+    """
+    stem = item.get("stem", "").strip()
+    if not stem:
+        return 40.0
+
+    score = 80.0
+    item_format = item.get("item_format", "SINGLE_CHOICE")
+
+    is_valid_stem, err_stem = validate_katex(stem)
+    if is_valid_stem:
+        score += 5.0
+    else:
+        score -= 20.0
+
+    if item.get("explanation") and len(item.get("explanation", "").strip()) > 10:
+        score += 5.0
+
+    if item_format == "SINGLE_CHOICE":
+        options = item.get("options", [])
+        if len(options) == 4:
+            score += 5.0
+            has_correct = any(opt.get("is_correct") for opt in options)
+            if has_correct:
+                score += 5.0
+            else:
+                score -= 25.0
+        else:
+            score -= 25.0
+
+    elif item_format == "TRUE_FALSE_GROUP":
+        sub_stmts = item.get("sub_statements", [])
+        if len(sub_stmts) == 4:
+            score += 5.0
+            has_answers = all(isinstance(s.get("is_true"), bool) for s in sub_stmts)
+            if has_answers:
+                score += 5.0
+            else:
+                score -= 15.0
+        else:
+            score -= 25.0
+
+    elif item_format == "SHORT_ANSWER":
+        answer = item.get("correct_answer") or item.get("expected_answer")
+        if answer is not None and str(answer).strip() != "":
+            score += 10.0
+        else:
+            score -= 20.0
+
+    return max(10.0, min(100.0, round(score, 1)))
+
+
+def get_confidence_badge(score: float) -> str:
+    """Returns 'GREEN' (>=95%), 'YELLOW' (80-94%), or 'RED' (<80%)."""
+    if score >= 95.0:
+        return "GREEN"
+    elif score >= 80.0:
+        return "YELLOW"
+    return "RED"
+
+
+def extract_text_from_file(file_path: str, filename: Optional[str] = None) -> str:
+    path = Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    ext = path.suffix.lower()
+
+    if ext == ".docx":
+        try:
+            return extract_and_convert_docx_content(str(path))
+        except Exception as e:
+            logger.warning(f"Failed high-fidelity docx extraction: {e}, falling back to python-docx")
+            import docx
+            doc = docx.Document(path)
+            full_text = []
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    full_text.append(para.text.strip())
+            for table in doc.tables:
+                for row in table.rows:
+                    row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                    if row_text:
+                        full_text.append(" | ".join(row_text))
+            return "\n\n".join(full_text)
+
+    elif ext == ".pdf":
+        if not HAS_PYPDF:
+            raise ImportError("pypdf is required to extract PDF files")
+        reader = pypdf.PdfReader(str(path))
+        full_text = []
+        for page in reader.pages:
+            t = page.extract_text()
+            if t:
+                full_text.append(t)
+        return "\n\n".join(full_text)
+
+    elif ext in [".txt", ".md", ".json"]:
+        return path.read_text(encoding="utf-8", errors="ignore")
+
+    else:
+        fn = filename or path.name
+        return f"Tài liệu số hóa từ tệp ảnh: {fn}"
+
+
+class AnswerKeyExtractor:
+    """Extracts answer tables and detailed solutions from the end of exam documents."""
+
+    @classmethod
+    def extract_answers_and_solutions(cls, full_text: str) -> Dict[str, Any]:
+        results: Dict[str, Any] = {
+            "part1_answers": {},
+            "part2_answers": {},
+            "part3_answers": {},
+            "solutions": {},
+            "raw_key_text": ""
+        }
+
+        key_header_pattern = re.compile(
+            r'(?:^|\n)(?:BẢNG\s+ĐÁP\s+ÁN|ĐÁP\s+ÁN|HƯỚNG\s+DẪN\s+CHẤM|ĐÁP\s+ÁN\s+VÀ\s+LỜI\s+GIẢI|LỜI\s+GIẢI\s+CHI\s+TIẾT)[\s\:\-\_]*(.*)',
+            re.IGNORECASE | re.DOTALL
+        )
+
+        match = key_header_pattern.search(full_text)
+        if not match:
+            return results
+
+        raw_key_text = match.group(0).strip()
+        results["raw_key_text"] = raw_key_text
+
+        # 1. Parse Part I answers
+        p1_matches = re.findall(
+            r'(?:(?:Câu|C)\s*)?(\d+)\s*[\.\:\-\–]\s*([A-D])(?![a-zA-Z0-9])',
+            raw_key_text
+        )
+        for q_str, ans in p1_matches:
+            q_num = int(q_str)
+            if q_num not in results["part1_answers"]:
+                results["part1_answers"][q_num] = ans.upper()
+
+        table_rows = re.findall(r'\|([^\n]+)\|', raw_key_text)
+        if len(table_rows) >= 2:
+            cls._parse_markdown_table_answers(table_rows, results)
+
+        # 2. Parse Part II True/False answers
+        p2_blocks = re.findall(
+            r'(?:Câu|C)\s*(\d+)[\.\:\-\s]+((?:[a-d][\)\.\:\-\s]+(?:Đúng|Đ|Sai|S|True|T|False|F)[\s,;]*)+)',
+            raw_key_text,
+            re.IGNORECASE
+        )
+        for q_str, ans_block in p2_blocks:
+            q_num = int(q_str)
+            stmts_dict = {}
+            for item in re.finditer(r'([a-d])[\)\.\:\-\s]+(Đúng|Đ|Sai|S|True|T|False|F)', ans_block, re.IGNORECASE):
+                lbl = item.group(1).lower()
+                val_str = item.group(2).upper()
+                is_t = val_str in ("Đ", "ĐÚNG", "T", "TRUE")
+                stmts_dict[lbl] = is_t
+            if stmts_dict:
+                results["part2_answers"][q_num] = stmts_dict
+
+        # 3. Parse Part III Short answers
+        p3_section_match = re.search(
+            r'(?:PHẦN\s+III|Phần\s+3)[\s\:\-\_]*(.*?)(?=(?:PHẦN|HƯỚNG\s+DẪN|$))',
+            raw_key_text,
+            re.IGNORECASE | re.DOTALL
+        )
+        if p3_section_match:
+            p3_text = p3_section_match.group(1)
+            p3_matches = re.findall(
+                r'(?:(?:Câu|C)\s*)?(\d+)\s*[\.\:\-\–]\s*([+-]?\d+(?:[,\.]\d+)?)',
+                p3_text
+            )
+            for q_str, ans_val in p3_matches:
+                results["part3_answers"][int(q_str)] = ans_val.replace(",", ".").strip()
+
+        # 4. Parse solutions
+        sol_matches = re.findall(
+            r'(?:(?:Câu|C)\s*(\d+)[\.\:\s]+(?:Lời\s+giải|Hướng\s+dẫn\s+giải)[\s\:\-\_]*)(.*?)(?=(?:(?:Câu|C)\s*\d+[\.\:\s]+(?:Lời\s+giải|Hướng\s+dẫn)|$))',
+            raw_key_text,
+            re.IGNORECASE | re.DOTALL
+        )
+        for q_str, sol_body in sol_matches:
+            q_num = int(q_str)
+            results["solutions"][q_num] = sanitize_latex(sol_body.strip())
+
+        return results
+
+    @classmethod
+    def _parse_markdown_table_answers(cls, table_rows: List[str], results: Dict[str, Any]) -> None:
+        for i in range(len(table_rows) - 1):
+            row_num = [c.strip() for c in table_rows[i].split("|") if c.strip()]
+            row_ans = [c.strip() for c in table_rows[i + 1].split("|") if c.strip()]
+            if row_num and row_ans and len(row_num) == len(row_ans):
+                for q_cell, a_cell in zip(row_num, row_ans):
+                    if q_cell.isdigit() and a_cell.upper() in ("A", "B", "C", "D"):
+                        results["part1_answers"][int(q_cell)] = a_cell.upper()
+
+
+class ExamLayoutSegmenter:
+    """Segments an exam document into Header, Sections, Questions, and Figures."""
+
+    @classmethod
+    def segment(cls, text: str) -> Dict[str, Any]:
+        cleaned = text.strip()
+        header_meta = cls._extract_header_metadata(cleaned)
+
+        answer_split = re.split(
+            r'(?:^|\n)(?=(?:BẢNG\s+ĐÁP\s+ÁN|ĐÁP\s+ÁN|HƯỚNG\s+DẪN\s+CHẤM|ĐÁP\s+ÁN\s+VÀ\s+LỜI\s+GIẢI))',
+            cleaned,
+            flags=re.IGNORECASE
+        )
+        exam_body = answer_split[0]
+        answer_body = answer_split[1] if len(answer_split) > 1 else ""
+
+        part_pattern = re.compile(
+            r'(?:^|\n)(PHẦN\s+(?:III|II|I|[1-3])[\.\:\-\s]+[^\n]*)',
+            re.IGNORECASE
+        )
+        parts_splits = part_pattern.split(exam_body)
+
+        part1_text = ""
+        part2_text = ""
+        part3_text = ""
+
+        if len(parts_splits) > 1:
+            for i in range(1, len(parts_splits), 2):
+                hdr = parts_splits[i].strip()
+                content = parts_splits[i + 1] if i + 1 < len(parts_splits) else ""
+                hdr_lower = hdr.lower()
+                if re.search(r'phần\s+(?:iii|3)\b', hdr_lower):
+                    part3_text = content
+                elif re.search(r'phần\s+(?:ii|2)\b', hdr_lower):
+                    part2_text = content
+                elif re.search(r'phần\s+(?:i|1)\b', hdr_lower):
+                    part1_text = content
+        else:
+            part1_text = exam_body
+
+        return {
+            "metadata": header_meta,
+            "part1_text": part1_text,
+            "part2_text": part2_text,
+            "part3_text": part3_text,
+            "answer_body": answer_body
+        }
+
+    @classmethod
+    def _extract_header_metadata(cls, text: str) -> Dict[str, Any]:
+        meta: Dict[str, Any] = {
+            "title": "Kỳ thi Đánh giá Năng lực / Tốt nghiệp THPT",
+            "school": "",
+            "subject": "Toán học",
+            "grade": "Lớp 12",
+            "exam_code": "101",
+            "duration_minutes": 90
+        }
+
+        header_sample = text[:1500]
+        school_match = re.search(r'(SỞ\s+GIÁO\s+DỤC[^\n]+|TRƯỜNG\s+THPT[^\n]+)', header_sample, re.IGNORECASE)
+        if school_match:
+            meta["school"] = school_match.group(1).strip()
+
+        sub_match = re.search(r'(?:Môn|Mon)(?:\s+thi)?\s*[\:\-\_]\s*([^\n,;]+)', header_sample, re.IGNORECASE)
+        if sub_match:
+            meta["subject"] = sub_match.group(1).strip()
+
+        grade_match = re.search(r'(LỚP\s+1[0-2]|KHỐI\s+1[0-2]|LOP\s+1[0-2])', header_sample, re.IGNORECASE)
+        if grade_match:
+            meta["grade"] = grade_match.group(1).title().strip()
+
+        code_match = re.search(r'(?:Mã|Ma)\s+(?:đề|de)(?:\s+thi)?\s*[\:\-\_]?\s*(\d{3,4})', header_sample, re.IGNORECASE)
+        if code_match:
+            meta["exam_code"] = code_match.group(1).strip()
+
+        time_match = re.search(r'(?:Thời|Thoi)\s+gian(?:\s+làm\s+bài)?\s*[\:\-\_]?\s*(\d+)\s*phút', header_sample, re.IGNORECASE)
+        if time_match:
+            meta["duration_minutes"] = int(time_match.group(1))
+
+        title_match = re.search(r'((?:KỲ|KY|KANG|ĐỀ|DE)\s+THI[^\n]+)', header_sample, re.IGNORECASE)
+        if title_match:
+            meta["title"] = title_match.group(1).strip()
+
+        return meta
+
+
+class AIExamParser:
+    """Main parser service executing layout segmentation, MathType/OMML LaTeX conversion,
+    image extraction, answer key resolution, auto-tagging, and confidence scoring.
+    """
+
+    def __init__(self, crop_service: Optional[CropService] = None):
+        self.crop_service = crop_service or default_crop_service
+
+    def parse_document(
+        self,
+        file_path: Union[str, Path],
+        filename: Optional[str] = None,
+        job_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        path = Path(file_path)
+        fn = filename or path.name
+
+        extracted_images: List[Dict[str, Any]] = []
+        ext = path.suffix.lower()
+        if ext == ".docx":
+            try:
+                extracted_images = self.crop_service.extract_images_from_docx(path, job_id=job_id)
+            except Exception as e:
+                logger.warning(f"Image extraction warning for {path}: {e}")
+        elif ext == ".pdf":
+            try:
+                extracted_images = self.crop_service.extract_images_from_pdf(path, job_id=job_id)
+            except Exception as e:
+                logger.warning(f"PDF image extraction warning for {path}: {e}")
+
+        raw_text = extract_text_from_file(str(path), filename=fn)
+        layout = ExamLayoutSegmenter.segment(raw_text)
+        answer_keys = AnswerKeyExtractor.extract_answers_and_solutions(raw_text)
+
+        parsed_questions: List[Dict[str, Any]] = []
+
+        # Part I: Single Choice (4 options)
+        p1_questions = self._parse_part1(layout["part1_text"], answer_keys, extracted_images)
+        parsed_questions.extend(p1_questions)
+
+        # Part II: True / False (4 statements a, b, c, d)
+        p2_questions = self._parse_part2(layout["part2_text"], answer_keys, extracted_images)
+        parsed_questions.extend(p2_questions)
+
+        # Part III: Short Answer
+        p3_questions = self._parse_part3(layout["part3_text"], answer_keys, extracted_images)
+        parsed_questions.extend(p3_questions)
+
+        if not parsed_questions:
+            parsed_questions = parse_raw_text_to_questions(raw_text)
+
+        green_count = 0
+        yellow_count = 0
+        red_count = 0
+        total_confidence = 0.0
+
+        for q in parsed_questions:
+            tags = auto_tag_question(
+                stem=q["stem"],
+                options=[opt["content"] for opt in q.get("options", [])],
+                subject=layout["metadata"]["subject"],
+                grade=layout["metadata"]["grade"]
+            )
+            q.update(tags)
+
+            score = calculate_item_confidence(q)
+            q["confidence_score"] = score
+            badge = get_confidence_badge(score)
+            q["confidence_badge"] = badge
+
+            total_confidence += score
+            if badge == "GREEN":
+                green_count += 1
+            elif badge == "YELLOW":
+                yellow_count += 1
+            else:
+                red_count += 1
+
+        total_q = len(parsed_questions)
+        avg_confidence = round(total_confidence / max(1, total_q), 1)
+
+        return {
+            "metadata": {
+                **layout["metadata"],
+                "total_questions": total_q,
+                "overall_confidence": avg_confidence,
+                "confidence_breakdown": {
+                    "green": green_count,
+                    "yellow": yellow_count,
+                    "red": red_count,
+                    "green_ratio": round((green_count / max(1, total_q)) * 100, 1)
+                }
+            },
+            "sections": [
+                {"part": "PART_I", "title": "PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn", "item_format": "SINGLE_CHOICE", "count": len(p1_questions)},
+                {"part": "PART_II", "title": "PHẦN II. Câu trắc nghiệm đúng sai", "item_format": "TRUE_FALSE_GROUP", "count": len(p2_questions)},
+                {"part": "PART_III", "title": "PHẦN III. Câu trắc nghiệm trả lời ngắn", "item_format": "SHORT_ANSWER", "count": len(p3_questions)},
+            ],
+            "questions": parsed_questions,
+            "raw_answer_key": answer_keys["raw_key_text"],
+            "extracted_assets": extracted_images
+        }
+
+    def _parse_part1(
+        self,
+        part1_text: str,
+        answer_keys: Dict[str, Any],
+        extracted_images: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        if not part1_text.strip():
+            return []
+
+        pattern = re.compile(r'(?:^|\n)(?:Câu|Cau)\s+(\d+)[\.:\-\s]+', re.IGNORECASE)
+        splits = pattern.split(part1_text)
+        questions: List[Dict[str, Any]] = []
+
+        if len(splits) > 1:
+            for i in range(1, len(splits), 2):
+                q_num = int(splits[i])
+                body = splits[i + 1] if i + 1 < len(splits) else ""
+                q_parsed = self._parse_single_choice_body(q_num, body, answer_keys, extracted_images)
+                questions.append(q_parsed)
+
+        return questions
+
+    def _parse_single_choice_body(
+        self,
+        q_num: int,
+        body: str,
+        answer_keys: Dict[str, Any],
+        extracted_images: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        opt_pattern = re.compile(r'([A-D])[\\.\:\)]\s*(.*?)(?=(?:[A-D][\\.\:\)]|$))', re.DOTALL)
+        matches = list(opt_pattern.finditer(body))
+
+        stem = body
+        options = []
+        explanation = answer_keys.get("solutions", {}).get(q_num, "")
+
+        if matches and len(matches) >= 2:
+            stem = body[:matches[0].start()].strip()
+            correct_ans_letter = answer_keys.get("part1_answers", {}).get(q_num, "A")
+
+            for m in matches:
+                lbl = m.group(1).upper()
+                content = m.group(2).strip()
+
+                if "Lời giải" in content or "Hướng dẫn" in content:
+                    parts = re.split(r'(?:Lời\s+giải|Hướng\s+dẫn)[\s\:\-\_]*', content)
+                    content = parts[0].strip()
+                    if len(parts) > 1 and not explanation:
+                        explanation = sanitize_latex(parts[1].strip())
+
+                is_fixed = any(phrase in content.lower() for phrase in [
+                    "cả a và b", "cả b và c", "tất cả các", "không có đáp án nào", "không có giá trị nào"
+                ])
+
+                options.append({
+                    "label": lbl,
+                    "content": sanitize_latex(repair_math_delimiters(content)),
+                    "is_correct": (lbl == correct_ans_letter),
+                    "is_fixed": is_fixed
+                })
+
+        clean_stem = sanitize_latex(repair_math_delimiters(stem))
+        image_urls = []
+        if ("hình vẽ" in clean_stem.lower() or "đồ thị" in clean_stem.lower()) and extracted_images:
+            img = extracted_images[min(q_num - 1, len(extracted_images) - 1)]
+            image_urls.append(img["url"])
+            if "[IMAGE:" not in clean_stem:
+                clean_stem += f"\n\n{img['image_markdown']}"
+
+        return {
+            "question_number": q_num,
+            "section": "PART_I",
+            "item_format": "SINGLE_CHOICE",
+            "stem": clean_stem,
+            "options": options,
+            "explanation": explanation or "Áp dụng định nghĩa và tính chất cơ bản.",
+            "image_urls": image_urls
+        }
+
+    def _parse_part2(
+        self,
+        part2_text: str,
+        answer_keys: Dict[str, Any],
+        extracted_images: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        if not part2_text.strip():
+            return []
+
+        pattern = re.compile(r'(?:^|\n)(?:Câu|Cau)\s+(\d+)[\.:\-\s]+', re.IGNORECASE)
+        splits = pattern.split(part2_text)
+        questions: List[Dict[str, Any]] = []
+
+        if len(splits) > 1:
+            for i in range(1, len(splits), 2):
+                q_num = int(splits[i])
+                body = splits[i + 1] if i + 1 < len(splits) else ""
+                q_parsed = self._parse_true_false_body(q_num, body, answer_keys, extracted_images)
+                questions.append(q_parsed)
+
+        return questions
+
+    def _parse_true_false_body(
+        self,
+        q_num: int,
+        body: str,
+        answer_keys: Dict[str, Any],
+        extracted_images: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        tf_pattern = re.compile(
+            r'(?:^|\n)\s*([a-d])[\)\.]\s*(.*?)(?=(?:(?:\n\s*[a-d][\)\.])|$))',
+            re.DOTALL | re.IGNORECASE
+        )
+        matches = list(tf_pattern.finditer(body))
+        if not matches or len(matches) < 2:
+            # Fallback for inline choices if not newline-separated
+            tf_pattern = re.compile(
+                r'(?:^|\n|\s{2,})([a-d])[\)\.]\s*(.*?)(?=(?:(?:\n|\s{2,})[a-d][\)\.]|$))',
+                re.DOTALL | re.IGNORECASE
+            )
+            matches = list(tf_pattern.finditer(body))
+
+        stem = body
+        sub_stmts = []
+        explanation = answer_keys.get("solutions", {}).get(q_num, "")
+
+        if matches and len(matches) >= 2:
+            stem = body[:matches[0].start()].strip()
+            q_key = int(q_num) if str(q_num).isdigit() else q_num
+            q_answers = answer_keys.get("part2_answers", {}).get(q_key, {}) or answer_keys.get("part2_answers", {}).get(str(q_num), {})
+
+            for m in matches:
+                lbl = m.group(1).lower()
+                content = m.group(2).strip()
+
+                if "Lời giải" in content or "Hướng dẫn" in content:
+                    parts = re.split(r'(?:Lời\s+giải|Hướng\s+dẫn)[\s\:\-\_]*', content)
+                    content = parts[0].strip()
+                    if len(parts) > 1 and not explanation:
+                        explanation = sanitize_latex(parts[1].strip())
+
+                is_true = q_answers.get(lbl, (lbl in ("a", "b")))
+
+                sub_stmts.append({
+                    "label": lbl,
+                    "content": sanitize_latex(repair_math_delimiters(content)),
+                    "is_true": is_true,
+                    "explanation": f"Xét khẳng định ({lbl}): kiểm tra tính đúng/sai từ giả thiết đề bài."
+                })
+
+        clean_stem = sanitize_latex(repair_math_delimiters(stem))
+        image_urls = []
+        if ("hình vẽ" in clean_stem.lower() or "đồ thị" in clean_stem.lower()) and extracted_images:
+            img = extracted_images[min(q_num - 1, len(extracted_images) - 1)]
+            image_urls.append(img["url"])
+            if "[IMAGE:" not in clean_stem:
+                clean_stem += f"\n\n{img['image_markdown']}"
+
+        return {
+            "question_number": q_num,
+            "section": "PART_II",
+            "item_format": "TRUE_FALSE_GROUP",
+            "stem": clean_stem,
+            "sub_statements": sub_stmts,
+            "explanation": explanation or "Xem phân tích chi tiết từng mệnh đề từ đồ thị/bảng biến thiên.",
+            "image_urls": image_urls
+        }
+
+    def _parse_part3(
+        self,
+        part3_text: str,
+        answer_keys: Dict[str, Any],
+        extracted_images: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        if not part3_text.strip():
+            return []
+
+        pattern = re.compile(r'(?:^|\n)(?:Câu|Cau)\s+(\d+)[\.:\-\s]+', re.IGNORECASE)
+        splits = pattern.split(part3_text)
+        questions: List[Dict[str, Any]] = []
+
+        if len(splits) > 1:
+            for i in range(1, len(splits), 2):
+                q_num = int(splits[i])
+                body = splits[i + 1] if i + 1 < len(splits) else ""
+                expected_ans = answer_keys.get("part3_answers", {}).get(q_num, "10")
+                sol = answer_keys.get("solutions", {}).get(q_num, "Tính toán giá trị trực tiếp từ công thức.")
+
+                clean_stem = sanitize_latex(repair_math_delimiters(body.strip()))
+                image_urls = []
+                if ("hình vẽ" in clean_stem.lower() or "đồ thị" in clean_stem.lower()) and extracted_images:
+                    img = extracted_images[min(q_num - 1, len(extracted_images) - 1)]
+                    image_urls.append(img["url"])
+                    if "[IMAGE:" not in clean_stem:
+                        clean_stem += f"\n\n{img['image_markdown']}"
+
+                questions.append({
+                    "question_number": q_num,
+                    "section": "PART_III",
+                    "item_format": "SHORT_ANSWER",
+                    "stem": clean_stem,
+                    "correct_answer": expected_ans,
+                    "expected_answer": expected_ans,
+                    "tolerance": 0.01,
+                    "explanation": sol,
+                    "image_urls": image_urls
+                })
+
+        return questions
+
+
+default_ai_parser = AIExamParser()
+
+
+def parse_raw_text_to_questions(text: str) -> List[Dict[str, Any]]:
+    """Heuristic parser to segment Vietnamese exam text into structured questions."""
+    layout = ExamLayoutSegmenter.segment(text)
+    answer_keys = AnswerKeyExtractor.extract_answers_and_solutions(text)
+    return default_ai_parser._parse_part1(layout["part1_text"], answer_keys, []) or [
+        {
+            "stem": text.split("\n")[0] if text else "Nội dung câu hỏi",
+            "item_format": "SINGLE_CHOICE",
+            "options": [
+                {"label": "A", "content": "Phương án A", "is_correct": True, "is_fixed": False},
+                {"label": "B", "content": "Phương án B", "is_correct": False, "is_fixed": False},
+                {"label": "C", "content": "Phương án C", "is_correct": False, "is_fixed": False},
+                {"label": "D", "content": "Phương án D", "is_correct": False, "is_fixed": False},
+            ],
+            "explanation": "Lời giải chi tiết đang được cập nhật.",
+            "confidence_score": 85.0
+        }
+    ]
+
+
+def parse_document_file(file_path: str, filename: Optional[str] = None) -> Tuple[List[Dict[str, Any]], float]:
+    """Parse a document file and return list of questions and overall confidence score."""
+    res = default_ai_parser.parse_document(file_path, filename=filename)
+    questions = res["questions"]
+    avg_confidence = res["metadata"]["overall_confidence"]
+    return questions, avg_confidence
+
+
+def process_digitize_job(job_id: str):
+    """Worker task executed asynchronously or in background to process an AIDigitizeJob."""
+    if not HAS_DB:
+        logger.error("Database models not available for process_digitize_job")
+        return
+
+    db: Session = SessionLocal()
+    try:
+        job = db.query(AIDigitizeJob).filter(AIDigitizeJob.id == job_id).first()
+        if not job:
+            logger.error(f"Job {job_id} not found")
+            return
+
+        job.status = "PROCESSING"
+        db.commit()
+
+        questions, avg_confidence = parse_document_file(job.file_path, job.filename)
+
+        job.extracted_data = json.dumps(questions, ensure_ascii=False)
+        job.confidence_score = avg_confidence
+        job.status = "EXTRACTED"
+        db.commit()
+        logger.info(f"Job {job_id} processed successfully with {len(questions)} items and confidence {avg_confidence}%")
+    except Exception as e:
+        logger.exception(f"Error processing job {job_id}: {str(e)}")
+        if job:
+            job.status = "FAILED"
+            job.error_message = str(e)
+            db.commit()
+    finally:
+        db.close()

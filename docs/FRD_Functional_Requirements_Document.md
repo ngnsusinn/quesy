@@ -1,0 +1,276 @@
+# TÀI LIỆU ĐẶC TẢ CHỨC NĂNG (FUNCTIONAL REQUIREMENTS DOCUMENT - FRD)
+**Dự án: Hệ thống Quản lý Đề thi & Ngân hàng Câu hỏi Tích hợp AI Số hoá (QUESY)**
+
+- **Mã tài liệu:** QUESY-FRD-01  
+- **Phiên bản:** 2.0 (Chuẩn hóa toàn diện theo Thông tư 32/2018/TT-BGDĐT)  
+- **Căn cứ Pháp lý & Khảo thí:**  
+  - Thông tư số 32/2018/TT-BGDĐT (Chương trình GDPT 2018)  
+  - Thông tư số 22/2021/TT-BGDĐT (Đánh giá học sinh THCS, THPT)  
+  - Quyết định số 764/QĐ-BGDĐT (Định dạng đề thi tốt nghiệp THPT từ năm 2025)  
+- **Ngày phát hành:** 2026-10-14  
+- **Trạng thái:** Hoàn thành đặc tả chi tiết  
+
+---
+
+## 1. TỔNG QUAN TÀI LIỆU
+
+### 1.1. Mục đích
+Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý dữ liệu, giao diện người dùng, điều kiện biên, các API endpoints và quy tắc nghiệp vụ cho từng phân hệ trong hệ thống Quesy, đảm bảo tuân thủ triệt để nguyên tắc khảo thí phát triển năng lực của Thông tư 32/2018/TT-BGDĐT.
+
+### 1.2. Danh mục Phân hệ Chức năng
+- **MOD-01:** Phân hệ Tiếp nhận & Số hóa Đề thi bằng AI (AI Ingestion & Parsing)
+- **MOD-02:** Phân hệ Studio Hậu kiểm Đối chiếu Song song (HITL Review Studio)
+- **MOD-03:** Phân hệ Cây Kiến thức & Chuẩn Yêu cầu Cần đạt (Taxonomy & YCCĐ - TT 32)
+- **MOD-04:** Phân hệ Ngân hàng Câu hỏi & Vòng đời Kiểm duyệt (Item Bank Management)
+- **MOD-05:** Phân hệ Ma trận Đề thi & Bản đặc tả Khảo thí (Exam Matrix & Blueprint)
+- **MOD-06:** Phân hệ Động cơ Sinh Đề & Trộn Mã đề An toàn (Assembly & Shuffling Engine)
+- **MOD-07:** Phân hệ Xuất bản Đề thi Đa định dạng (Publishing & Export Service)
+- **MOD-08:** Phân hệ Khảo thí & Đánh giá Năng lực Hậu kiểm (Item Analytics)
+
+---
+
+## 2. ĐẶC TẢ CHI TIẾT TỪNG PHÂN HỆ CHỨC NĂNG
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ MOD-01: PHÂN HỆ TIẾP NHẬN & SỐ HÓA ĐỀ THI BẰNG AI                     │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.1. FR-01.1: Tải lên Tài liệu Đề thi (Document Upload)
+- **Màn hình liên quan:** `SCR-UPLOAD`
+- **Tác nhân:** Giáo viên, Tổ trưởng chuyên môn, Admin.
+- **Dữ liệu đầu vào:**
+  - File Đề thi: Định dạng `.docx`, `.doc`, `.pdf`, `.png`, `.jpg` ($\le 50$MB).
+  - File Đáp án kèm theo (Tùy chọn): File đáp án rời hoặc tích hợp cuối đề.
+  - Phân loại ban đầu: Môn học (Dropdown), Khối lớp (Dropdown) - **Không chọn bộ sách**.
+- **Hành vi hệ thống:**
+  1. Kiểm tra định dạng và dung lượng file hợp lệ.
+  2. Tải file lên Object Storage (S3/MinIO): `uploads/{user_id}/{job_id}/source.ext`.
+  3. Tạo bản ghi `ai_digitize_jobs` với trạng thái `PENDING`.
+  4. Đẩy payload vào hàng đợi Redis Queue (`queue:ai_digitize`).
+  5. Trả về `job_id` và ước lượng thời gian xử lý cho client.
+
+### 2.2. FR-01.2: Pipeline Xử lý Bóc tách AI (AI Parsing Worker)
+- **Tác nhân:** Background Worker Service (Python).
+- **Quy trình xử lý:**
+  1. **Bước 1 - Preprocessing:**
+     - Nếu là DOCX/DOC: Quét toàn bộ OLE objects, trích xuất dòng nhị phân MathType MTEF và dịch trực tiếp sang mã LaTeX chuẩn (`$...$` inline, `$$...$$` block).
+     - Nếu là PDF/Ảnh: Chuyển trang sang ảnh PNG 300 DPI, thực hiện cân bằng góc nghiêng (OpenCV Deskew) và khử bóng mờ (Binarization).
+  2. **Bước 2 - Layout Segmentation:**
+     - Tách Tiêu đề trường, Phần thi (Phần I, II, III), Nội dung câu, Phương án lựa chọn, Hình ảnh, Bảng biểu.
+  3. **Bước 3 - Vision LLM Extraction & Auto-tagging:**
+     - Gọi Multimodal LLM (Gemini 1.5 Flash / GPT-4o) kèm System Prompt ép khuôn JSON Schema.
+     - Tự động nhận diện dạng câu hỏi: Trắc nghiệm 4 lựa chọn, Đúng/Sai 4 ý, Trả lời ngắn, Câu hỏi chùm.
+     - **AI Gợi ý gán nhãn (Auto-tagging):** Phân tích ngữ cảnh câu hỏi, gợi ý Mạch nội dung, Chủ đề, Dạng câu hỏi, Mức độ nhận thức (Biết, Hiểu, Vận dụng), và mã **Yêu cầu cần đạt (YCCĐ)** tương ứng theo danh mục Thông tư 32.
+  4. **Bước 4 - Auto Image Crop:**
+     - Tự động cắt các vùng Bounding Box hình học, đồ thị, mạch điện, nén WebP và lưu vào S3: `assets/{job_id}/img_{uuid}.webp`.
+     - Nhúng mã `[IMAGE:url]` vào thân câu hỏi.
+  5. **Bước 5 - Key & Solution Matching:**
+     - Quét bảng đáp án ở cuối đề, tự động map đáp án đúng vào thuộc tính `is_correct` của từng phương án.
+  6. **Bước 6 - Hoàn tất:** Đổi trạng thái job sang `COMPLETED`, lưu JSON vào bảng tạm, bắn thông báo WebSocket tới Client.
+
+---
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ MOD-02: PHÂN HỆ STUDIO HẬU KIỂM ĐỐI CHIẾU SONG SONG (HITL STUDIO)      │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.3. FR-02.1: Giao diện Hậu kiểm Song song (Side-by-side Review Studio)
+- **Màn hình liên quan:** `SCR-HITL-STUDIO`
+- **Bố cục giao diện:**
+  - **Khung bên trái (50%):** Trình xem tài liệu gốc (PDF/Word Viewer).
+  - **Khung bên phải (50%):** Danh sách các card câu hỏi đã bóc tách.
+  - **Synchronized Scrolling:** Nhấp vào Câu $N$ ở cột phải, cột trái tự động cuộn đến trang chứa Câu $N$ và highlight vùng văn bản tương ứng với độ trễ $< 100$ms.
+- **Thanh đo độ tin cậy (Confidence Barometer):**
+  - **Xanh ($\ge 95\%$):** Nhận diện đầy đủ phương án, có đáp án đúng, công thức KaTeX render chuẩn.
+  - **Vàng ($80 - 94\%$):** Thiếu lời giải hoặc ký hiệu toán học nghi ngờ.
+  - **Đỏ ($< 80\%$):** Không tìm thấy đáp án đúng, thiếu phương án, hoặc lỗi cú pháp LaTeX.
+
+### 2.4. FR-02.2: Trình Biên tập Nhanh & Gán chuẩn YCCĐ
+- **Hành vi thao tác:**
+  - **Đổi đáp án đúng:** Click trực tiếp vào ký tự [A], [B], [C], [D] để đảo trạng thái đúng/sai.
+  - **Sửa nhanh công thức:** Nhấp đúp vào công thức để mở popup soạn thảo LaTeX với live preview KaTeX.
+  - **Gán nhanh YCCĐ & Dạng bài:** Dropdown phân loại 6 tầng: Cấp/Khối $\rightarrow$ Môn $\rightarrow$ Mạch nội dung $\rightarrow$ Chủ đề $\rightarrow$ Bài học $\rightarrow$ **YCCĐ (Mã chuẩn TT 32)** $\rightarrow$ **Dạng câu hỏi**.
+  - **Lưu vào Ngân hàng:** Nhấn "Lưu toàn bộ vào Ngân hàng" để tạo các câu hỏi ở trạng thái `DRAFT` hoặc `PENDING_REVIEW`.
+
+---
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ MOD-03: PHÂN HỆ CÂY KIẾN THỨC & YÊU CẦU CẦN ĐẠT (TAXONOMY THEO TT 32)  │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.5. FR-03.1: Quản trị Cây Phân cấp Chuẩn hóa theo Thông tư 32/2018/TT-BGDĐT
+- **Mô tả:** Hệ thống chuẩn hóa cây phân loại kiến thức và năng lực thống nhất toàn quốc, **tuyệt đối không phân chia theo bộ sách giáo khoa**.
+- **Cấu trúc phân cấp 6 tầng:**
+  1. **Cấp học / Khối lớp (Grade):** Lớp 10, Lớp 11, Lớp 12...
+  2. **Môn học (Subject):** Toán học, Vật lí, Hoá học, Sinh học, Ngữ văn, Lịch sử, Địa lí, Tiếng Anh...
+  3. **Mạch nội dung (Content Strand):** Các mạch kiến thức lớn được quy định trong Thông tư 32 (Ví dụ Môn Toán: *Mạch 1: Số, Đại số và Một số yếu tố giải tích*; *Mạch 2: Hình học và Đo lường*; *Mạch 3: Thống kê và Xác suất*; *Mạch 4: Hoạt động thực hành và trải nghiệm*).
+  4. **Chủ đề / Chuyên đề học tập (Topic / Elective Module):** Ví dụ: Ứng dụng đạo hàm, Khối đa diện, Di truyền phân tử...
+  5. **Bài học / Đơn vị kiến thức (Lesson):** Đơn vị bài giảng cụ thể.
+  6. **Yêu cầu cần đạt (YCCĐ - Learning Outcome):** Mã định danh và nội dung chuẩn hóa theo Thông tư 32 (Ví dụ: `TOAN12.GT.01`: *"Nhận biết được tính đơn điệu, điểm cực trị của hàm số thông qua bảng biến thiên hoặc đồ thị hàm số"*).
+- **Tầng Dạng câu hỏi (Problem Archetype):** Dưới mỗi YCCĐ, cho phép định nghĩa các Dạng bài tập chuyên đề cụ thể (Ví dụ: *Dạng 1: Đọc đồ thị hàm số tìm cực trị*, *Dạng 2: Cực trị hàm đa thức chứa tham số $m$*, *Dạng 3: Bài toán tối ưu thực tiễn*).
+
+### 2.6. FR-03.2: Chuẩn hóa 3 Mức độ Nhận thức theo Bảng Động từ TT 32
+- **Biết (Nhận biết):** Nhận biết và nhớ lại thông tin đã tiếp nhận (Động từ: *Đọc, đếm, viết, làm quen, nhận dạng, nhận biết*).
+- **Hiểu (Thông hiểu):** Diễn đạt theo ý hiểu cá nhân (Động từ: *Mô tả, giải thích, thể hiện, sắp xếp*).
+- **Vận dụng:** Vận dụng vào tình huống mới hoặc giải quyết vấn đề (Động từ: *Tính, vẽ, thực hiện, sử dụng, vận dụng, so sánh, phân biệt, lí giải, chứng minh, giải quyết vấn đề thực tiễn* - bao gồm cả Vận dụng cao).
+
+---
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ MOD-04: PHÂN HỆ NGÂN HÀNG CÂU HỎI & VÒNG ĐỜI (ITEM BANK MANAGEMENT)   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.7. FR-04.1: Quản lý các Dạng thức Khảo thí (Bám sát Quyết định 764/QĐ-BGDĐT)
+Hệ thống hỗ trợ 5 thể thức khảo thí:
+1. **`SINGLE_CHOICE` (Trắc nghiệm đơn 4 lựa chọn):** 1 đáp án đúng duy nhất.
+2. **`TRUE_FALSE_GROUP` (Trắc nghiệm Đúng/Sai 4 khẳng định):**
+   - 1 Thân câu hỏi chung.
+   - 4 Khẳng định con a), b), c), d) độc lập, mỗi ý lưu giá trị `is_true: true/false`.
+   - **Quy tắc tính điểm bậc thang:** Đúng 1 ý = 0.1đ; Đúng 2 ý = 0.25đ; Đúng 3 ý = 0.5đ; Đúng cả 4 ý = 1.0đ.
+3. **`SHORT_ANSWER` (Trắc nghiệm trả lời ngắn):** Thân câu hỏi + chuỗi kết quả (số hoặc chữ) kèm dung sai sai số tính toán $\pm \epsilon$.
+4. **`PASSAGE_GROUP` (Câu hỏi chùm / Ngữ liệu đọc hiểu):** 1 Ngữ liệu cha + Danh sách câu hỏi con liên kết.
+5. **`ESSAY` (Tự luận):** Thân câu hỏi + Rubric tiêu chí chấm điểm chi tiết.
+
+### 2.8. FR-04.2: Cơ chế Chống Trùng lặp Câu hỏi bằng AI Vector Search
+- Tính vector embedding 1536 chiều cho thân câu hỏi.
+- So sánh Cosine Distance trong `pgvector` với các câu hỏi cùng Môn/Lớp:
+  - Similarity $< 0.80$: Lưu bình thường.
+  - $0.80 \le \text{Similarity} < 0.90$: Hiển thị cảnh báo vàng "Câu hỏi tương tự".
+  - $\text{Similarity} \ge 0.90$: Bật Modal đỏ chặn lưu: *"Cảnh báo: Trùng lặp 92% với câu hỏi [TOAN12-0452] trong ngân hàng"* kèm bảng so sánh đối đầu trước khi cho phép lưu.
+
+---
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ MOD-05: MA TRẬN ĐỀ THI & BẢN ĐẶC TẢ KHẢO THÍ (EXAM MATRIX BUILDER)    │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.9. FR-05.1: Thiết lập Bản Đặc tả Ma trận Đề thi theo YCCĐ
+- **Màn hình:** `SCR-MATRIX-BUILDER`
+- **Thông số chung:** Tên kỳ thi, Khối lớp, Môn học, Thời gian làm bài (phút), Thang điểm tổng (10.0).
+- **Lưới Ma trận (Matrix Grid):**
+  - Trục dọc: Danh sách Mạch nội dung $\rightarrow$ Yêu cầu cần đạt (YCCĐ) $\rightarrow$ Dạng câu hỏi.
+  - Trục ngang: 3 Cấp độ nhận thức (Biết, Hiểu, Vận dụng) $\times$ Dạng thức câu hỏi.
+  - Mỗi ô cấu hình: Số lượng câu hỏi + Điểm số cho mỗi câu.
+- **Tự động tính toán & Cảnh báo:**
+  - Tổng số câu và tỷ lệ % điểm (ví dụ: $40\%$ Biết - $30\%$ Hiểu - $30\%$ Vận dụng; $70\%$ Trắc nghiệm - $30\%$ Tự luận).
+  - Hiển thị chỉ báo **"Số dư khả dụng trong Ngân hàng"** bên cạnh số lượng yêu cầu để cảnh báo thiếu câu hỏi.
+
+---
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ MOD-06: ĐỘNG CƠ SINH ĐỀ & TRỘN MÃ ĐỀ AN TOÀN (SHUFFLING ENGINE)        │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.10. FR-06.1: Thuật toán Sinh Đề Gốc theo Ràng buộc Ma trận
+- **Đầu vào:** Ma trận đề thi ID + Danh sách loại trừ (các câu đã thi trong 30 ngày qua).
+- **Xử lý:** Quét các câu hỏi đạt `status = 'APPROVED'`, lấy mẫu ngẫu nhiên có trọng số ưu tiên câu hỏi có chỉ số khảo thí tốt ($p, D$).
+- **Đầu ra:** Bản ghi `master_exams` và danh sách `master_exam_items`.
+
+### 2.11. FR-06.2: Thuật toán Trộn Đề Hoán vị An toàn (Safe Shuffling Engine)
+- **Đầu vào:** `master_exam_id`, Số lượng mã đề cần tạo (101, 102, 103, 104).
+- **4 Nguyên tắc An toàn Tuyệt đối:**
+  1. **Section Integrity:** Chỉ đảo thứ tự câu hỏi trong cùng một Phần.
+  2. **Passage Integrity:** Ngữ liệu bài đọc chung và các câu hỏi con luôn đi liền kề nhau.
+  3. **Option Anchor Rule:** Phương án chứa "Cả A và B", "Tất cả các ý trên", "Không có đáp án nào" hoặc cờ `is_fixed = true` bắt buộc **khóa cố định ở vị trí cuối cùng (D)**.
+  4. **Key Generator:** Tự động sinh Ma trận Ánh xạ Đáp án đối chiếu giữa đề gốc và các mã đề hoán vị.
+
+---
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ MOD-07: XUẤT BẢN ĐỀ THI ĐA ĐỊNH DẠNG (PUBLISHING SERVICE)              │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.12. FR-07.1: Xuất bản Microsoft Word (.docx) Chuẩn Khảo thí
+- **Định dạng in ấn:**
+  - Header chuẩn: Tên trường/sở, môn thi, mã đề thi, bảng điền số báo danh và phách.
+  - Bố cục 2 cột (Two-column layout) tiết kiệm giấy in.
+  - Toàn bộ công thức Toán/Khoa học chuyển đổi sang mã **OMML native (`<m:oMath>`)**, chữ vector sắc nét, chỉnh sửa được trực tiếp trên Word.
+- **Gói ZIP xuất bản:**
+  - $N$ file đề thi Word (`De_101.docx`, `De_102.docx`...).
+  - File Hướng dẫn giải chi tiết từng mã đề (`LoiGiai_101.docx`...).
+  - File Bảng đáp án tổng hợp các mã đề.
+  - File Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR.
+
+---
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ MOD-08: KHẢO THÍ & ĐÁNH GIÁ NĂNG LỰC HẬU KIỂM (ITEM ANALYTICS)         │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.13. FR-08.1: Phân tích Chất lượng Câu hỏi Hậu kiểm
+- **Đầu vào:** Bảng điểm học sinh theo từng câu hỏi của kỳ thi.
+- **Hệ thống tính toán:**
+  - **Độ khó thực nghiệm ($p$):** Tỷ lệ học sinh làm đúng ($p = R/N$).
+  - **Độ phân biệt ($D$):** Chênh lệch tỷ lệ đúng giữa nhóm 27% điểm cao nhất và nhóm 27% điểm thấp nhất ($D = P_H - P_L$).
+  - **Cảnh báo chất lượng:** Nếu $D < 0.2$, hệ thống gắn cờ cảnh báo `QUESTION_DEFECTIVE` để Hội đồng bộ môn thẩm định lại.
+
+---
+
+## 3. THIẾT KẾ ĐẶC TẢ API CỐT LÕI (CORE API CONTRACTS)
+
+### 3.1. API Lưu Câu hỏi vào Ngân hàng (Gắn chuẩn YCCĐ theo TT 32)
+- **Endpoint:** `POST /api/v1/questions`
+- **Content-Type:** `application/json`
+- **Request Body:**
+  ```json
+  {
+    "subject_id": "uuid-math-01",
+    "grade_id": "uuid-grade-12",
+    "strand_id": "uuid-strand-giai-tich",
+    "topic_id": "uuid-topic-ham-so",
+    "lesson_id": "uuid-lesson-cuc-tri",
+    "learning_outcome_id": "uuid-yccd-toan12-gt-01",
+    "problem_archetype_id": "uuid-archetype-cuc-tri-chua-m",
+    "cognitive_level": "APPLICATION",
+    "item_format": "SINGLE_CHOICE",
+    "stem": "Cho hàm số $y = x^3 - 3mx^2 + 4$. Tìm tất cả các giá trị của tham số $m$ để hàm số có 2 điểm cực trị nằm về 2 phía trục tung.",
+    "options": [
+      { "label": "A", "content": "$m > 0$", "is_correct": true, "is_fixed": false },
+      { "label": "B", "content": "$m < 0$", "is_correct": false, "is_fixed": false },
+      { "label": "C", "content": "$m = 0$", "is_correct": false, "is_fixed": false },
+      { "label": "D", "content": "Không có giá trị $m$ thỏa mãn", "is_correct": false, "is_fixed": true }
+    ],
+    "explanation": "Đạo hàm $y' = 3x^2 - 6mx = 3x(x - 2m)$. Để cực trị nằm về 2 phía thì tích 2 nghiệm hoành độ cực trị âm...",
+    "source_reference": "Đề Khảo sát THPT 2024"
+  }
+  ```
+- **Response:** `201 Created`
+
+### 3.2. API Lưu Câu hỏi Đúng/Sai 4 ý (Quyết định 764/QĐ-BGDĐT)
+- **Endpoint:** `POST /api/v1/questions`
+- **Request Body Payload:**
+  ```json
+  {
+    "subject_id": "uuid-math-01",
+    "grade_id": "uuid-grade-12",
+    "learning_outcome_id": "uuid-yccd-toan12-gt-01",
+    "problem_archetype_id": "uuid-archetype-doc-do-thi",
+    "cognitive_level": "COMPREHENSION",
+    "item_format": "TRUE_FALSE_GROUP",
+    "stem": "Cho hàm số $y = f(x)$ xác định và liên tục trên $\\mathbb{R}$, có đồ thị như hình vẽ bên.",
+    "image_urls": ["https://storage.quesy.edu.vn/assets/img_graph_01.webp"],
+    "sub_statements": [
+      { "label": "a", "content": "Hàm số đồng biến trên khoảng $(-\\infty; -1)$ và $(1; +\\infty)$.", "is_true": true, "explanation": "Quan sát đồ thị hàm số đi lên từ trái sang phải..." },
+      { "label": "b", "content": "Điểm cực tiểu của đồ thị hàm số là $(1; -2)$.", "is_true": true, "explanation": "Tọa độ điểm đáy là $(1; -2)$." },
+      { "label": "c", "content": "Giá trị lớn nhất của hàm số trên $\\mathbb{R}$ bằng $2$.", "is_true": false, "explanation": "Hàm số tiến ra $+\\infty$ nên không có GTLN trên R." },
+      { "label": "d", "content": "Phương trình $f(x) = m$ có đúng 3 nghiệm phân biệt khi $-2 < m < 2$.", "is_true": true, "explanation": "Đường thẳng $y=m$ cắt đồ thị tại 3 điểm khi $-2 < m < 2$." }
+    ]
+  }
+  ```
+- **Response:** `201 Created`

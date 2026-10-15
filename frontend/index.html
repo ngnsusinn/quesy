@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quesy | Hệ Thống Quản Lý Đề Thi & Ngân Hàng Câu Hỏi AI (Thông tư 32/2018/TT-BGDĐT)</title>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+              950: '#1e1b4b',
+            },
+            accent: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- KaTeX CSS & JS with auto-render extension -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- JSZip CDN for in-browser multi-variant exam zip bundle generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 antialiased bg-slate-50 selection:bg-brand-500 selection:text-white">
+
+  <!-- ================= TOP APP BAR ================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Compliance Branding -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-700 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-brand-500/20 ring-2 ring-brand-100">
+            <i data-lucide="layers" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-brand-700 to-indigo-600 bg-clip-text text-transparent">QUESY</span>
+              <span class="px-2 py-0.5 text-[10px] font-semibold bg-brand-50 text-brand-700 rounded-full border border-brand-200">v2.0</span>
+            </div>
+            <p class="text-[11px] font-medium text-slate-500 flex items-center space-x-1">
+              <span>Chuẩn hóa Thông tư 32/2018/TT-BGDĐT</span>
+              <span>•</span>
+              <span class="text-emerald-600 font-semibold">QĐ 764/BGDĐT 2025</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Middle: Quick Context Selector (Subject & Grade - NO Textbook!) -->
+        <div class="hidden md:flex items-center space-x-2 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+          <div class="flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-lg shadow-xs font-semibold text-slate-700">
+            <i data-lucide="book-open" class="w-3.5 h-3.5 text-brand-600"></i>
+            <span id="header-subject-display">Môn: Toán học</span>
+          </div>
+          <div class="flex items-center space-x-1.5 px-3 py-1.5 bg-white rounded-lg shadow-xs font-semibold text-slate-700">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-brand-600"></i>
+            <span id="header-grade-display">Khối: Lớp 12</span>
+          </div>
+          <span class="px-2 py-1 text-[11px] text-slate-400 italic">Không phân chia bộ sách</span>
+        </div>
+
+        <!-- Right: Backend Health Status & User Profile -->
+        <div class="flex items-center space-x-3">
+          <!-- Backend Live Status Badge -->
+          <div id="backend-status-pill" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="backend-status-text">FastAPI: Online</span>
+          </div>
+
+          <!-- User Info -->
+          <div class="flex items-center space-x-2.5 pl-2 border-l border-slate-200">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+              TH
+            </div>
+            <div class="hidden sm:block text-left text-xs">
+              <div class="font-semibold text-slate-800">Thầy Nguyễn Hưng</div>
+              <div class="text-[10px] text-slate-500">Tổ trưởng Chuyên môn</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 -mb-px overflow-x-auto no-scrollbar border-t border-slate-100 pt-1" aria-label="Tabs">
+        <button id="nav-btn-dashboard" onclick="app.switchTab('dashboard')" class="tab-nav-btn active">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Tổng quan Khảo thí</span>
+        </button>
+        <button id="nav-btn-digitize" onclick="app.switchTab('digitize')" class="tab-nav-btn">
+          <i data-lucide="scan-text" class="w-4 h-4"></i>
+          <span>AI Digitize Studio (HITL)</span>
+          <span class="ml-1.5 px-1.5 py-0.2 bg-brand-100 text-brand-700 rounded-full text-[10px] font-bold">HITL</span>
+        </button>
+        <button id="nav-btn-itembank" onclick="app.switchTab('itembank')" class="tab-nav-btn">
+          <i data-lucide="database" class="w-4 h-4"></i>
+          <span>Ngân hàng Câu hỏi</span>
+          <span id="bank-count-badge" class="ml-1.5 px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full text-[10px] font-bold">12</span>
+        </button>
+        <button id="nav-btn-matrix" onclick="app.switchTab('matrix')" class="tab-nav-btn">
+          <i data-lucide="grid" class="w-4 h-4"></i>
+          <span>Ma trận Đề thi & Khảo thí</span>
+        </button>
+        <button id="nav-btn-shuffler" onclick="app.switchTab('shuffler')" class="tab-nav-btn">
+          <i data-lucide="shuffle" class="w-4 h-4"></i>
+          <span>Sinh Đề & Xuất bản (.DOCX)</span>
+          <span class="ml-1.5 px-1.5 py-0.2 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">4 Mã đề</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ================= MAIN VIEW CONTAINER ================= -->
+  <main class="flex-1 overflow-y-auto bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+      <!-- ================= TAB 1: DASHBOARD ================= -->
+      <section id="tab-dashboard" class="tab-pane active space-y-6">
+        
+        <!-- Welcome Banner -->
+        <div class="bg-gradient-to-r from-brand-900 via-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
+          <div class="absolute -right-8 -bottom-10 opacity-10 pointer-events-none">
+            <i data-lucide="award" class="w-72 h-72"></i>
+          </div>
+          <div class="max-w-3xl space-y-3 relative z-10">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-medium text-indigo-200">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300"></i>
+              <span>Chuẩn khảo thí Thông tư 32/2018/TT-BGDĐT • Quyết định 764/QĐ-BGDĐT</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              Hệ Thống Số Hoá & Khảo Thí Ngân Hàng Đề Thi Quesy
+            </h1>
+            <p class="text-slate-300 text-sm leading-relaxed">
+              Giải pháp toàn diện ứng dụng AI Multimodal giải mã công thức MathType sang LaTeX, hỗ trợ giao diện đối chiếu song song HITL (Human-in-the-Loop), thiết lập ma trận khảo thí 2D và trộn mã đề an toàn tuyệt đối theo Option Anchor Rule.
+            </p>
+            <div class="flex flex-wrap items-center gap-3 pt-2">
+              <button onclick="app.switchTab('digitize')" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold rounded-xl shadow-md transition-all flex items-center space-x-2">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                <span>Tải Đề thi Số hoá ngay</span>
+              </button>
+              <button onclick="app.switchTab('matrix')" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl border border-white/20 transition-all flex items-center space-x-2">
+                <i data-lucide="table" class="w-4 h-4"></i>
+                <span>Thiết lập Ma trận Đề</span>
+              </button>
+              <button onclick="app.switchTab('shuffler')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-md transition-all flex items-center space-x-2">
+                <i data-lucide="file-down" class="w-4 h-4"></i>
+                <span>Xuất bản Đề thi Word (.docx)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics Overview Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Metric 1 -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs hover:border-brand-300 transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Tổng câu trong kho</span>
+              <div class="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center">
+                <i data-lucide="database" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-2 flex items-baseline space-x-2">
+              <span id="dash-metric-total" class="text-2xl font-black text-slate-800">1,480</span>
+              <span class="text-xs font-semibold text-emerald-600">+12 câu mới</span>
+            </div>
+            <p class="mt-1 text-xs text-slate-400">Chuẩn hóa 100% YCCĐ TT 32</p>
+          </div>
+
+          <!-- Metric 2 -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs hover:border-brand-300 transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Đã thẩm định (Approved)</span>
+              <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-2 flex items-baseline space-x-2">
+              <span id="dash-metric-approved" class="text-2xl font-black text-emerald-700">95.4%</span>
+              <span class="text-xs font-semibold text-slate-500">1,412 câu</span>
+            </div>
+            <p class="mt-1 text-xs text-slate-400">Độ phân biệt $D \ge 0.35$</p>
+          </div>
+
+          <!-- Metric 3 -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs hover:border-brand-300 transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Ma trận Khảo thí</span>
+              <div class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <i data-lucide="grid" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-2 flex items-baseline space-x-2">
+              <span class="text-2xl font-black text-indigo-700">8</span>
+              <span class="text-xs font-semibold text-slate-500">Ma trận đang dùng</span>
+            </div>
+            <p class="mt-1 text-xs text-slate-400">Tỷ lệ Bloom 40-30-30</p>
+          </div>
+
+          <!-- Metric 4 -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs hover:border-brand-300 transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Đề thi Đã Hoán vị</span>
+              <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                <i data-lucide="shuffle" class="w-4 h-4"></i>
+              </div>
+            </div>
+            <div class="mt-2 flex items-baseline space-x-2">
+              <span class="text-2xl font-black text-amber-700">48</span>
+              <span class="text-xs font-semibold text-emerald-600">Option Anchor OK</span>
+            </div>
+            <p class="mt-1 text-xs text-slate-400">Không sai lệch đáp án cố định</p>
+          </div>
+        </div>
+
+        <!-- Circular 32 Strands Distribution (Mạch nội dung CT GDPT 2018) -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i data-lucide="pie-chart" class="w-5 h-5 text-brand-600"></i>
+                <span>Phân Bố 4 Mạch Nội Dung Cốt Lõi (Thông tư 32/2018/TT-BGDĐT)</span>
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Môn Toán học - Khung chương trình giáo dục phổ thông mới toàn quốc (Không phụ thuộc SGK)</p>
+            </div>
+            <span class="self-start sm:self-auto px-3 py-1 bg-brand-50 text-brand-700 font-semibold text-xs rounded-full border border-brand-200">
+              Tổng 100% chỉ tiêu
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="dash-strands-container">
+            <!-- Strand 1 -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 hover:border-brand-400 transition-all">
+              <div class="flex items-start justify-between">
+                <div>
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-brand-600">Mạch 1</span>
+                  <h3 class="font-bold text-sm text-slate-900 leading-tight">Số, Đại số & Giải tích</h3>
+                </div>
+                <span class="px-2 py-0.5 text-xs font-extrabold bg-brand-100 text-brand-800 rounded-md">45%</span>
+              </div>
+              <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div class="bg-brand-600 h-2 rounded-full" style="width: 45%"></div>
+              </div>
+              <div class="text-xs text-slate-600 space-y-1">
+                <div class="flex justify-between"><span>Số lượng:</span> <strong class="text-slate-800">666 câu</strong></div>
+                <div class="flex justify-between"><span>Biết / Hiểu / Vận dụng:</span> <span class="text-slate-700 font-mono">40 / 30 / 30</span></div>
+                <div class="flex justify-between"><span>YCCĐ trọng tâm:</span> <code class="text-brand-700 font-semibold text-[11px]">TOAN12.GT.01-03</code></div>
+              </div>
+            </div>
+
+            <!-- Strand 2 -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 hover:border-brand-400 transition-all">
+              <div class="flex items-start justify-between">
+                <div>
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Mạch 2</span>
+                  <h3 class="font-bold text-sm text-slate-900 leading-tight">Hình học & Đo lường</h3>
+                </div>
+                <span class="px-2 py-0.5 text-xs font-extrabold bg-emerald-100 text-emerald-800 rounded-md">30%</span>
+              </div>
+              <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div class="bg-emerald-600 h-2 rounded-full" style="width: 30%"></div>
+              </div>
+              <div class="text-xs text-slate-600 space-y-1">
+                <div class="flex justify-between"><span>Số lượng:</span> <strong class="text-slate-800">444 câu</strong></div>
+                <div class="flex justify-between"><span>Biết / Hiểu / Vận dụng:</span> <span class="text-slate-700 font-mono">35 / 35 / 30</span></div>
+                <div class="flex justify-between"><span>YCCĐ trọng tâm:</span> <code class="text-emerald-700 font-semibold text-[11px]">TOAN12.HH.01-02</code></div>
+              </div>
+            </div>
+
+            <!-- Strand 3 -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 hover:border-brand-400 transition-all">
+              <div class="flex items-start justify-between">
+                <div>
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600">Mạch 3</span>
+                  <h3 class="font-bold text-sm text-slate-900 leading-tight">Thống kê & Xác suất</h3>
+                </div>
+                <span class="px-2 py-0.5 text-xs font-extrabold bg-amber-100 text-amber-800 rounded-md">15%</span>
+              </div>
+              <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div class="bg-amber-600 h-2 rounded-full" style="width: 15%"></div>
+              </div>
+              <div class="text-xs text-slate-600 space-y-1">
+                <div class="flex justify-between"><span>Số lượng:</span> <strong class="text-slate-800">222 câu</strong></div>
+                <div class="flex justify-between"><span>Biết / Hiểu / Vận dụng:</span> <span class="text-slate-700 font-mono">40 / 40 / 20</span></div>
+                <div class="flex justify-between"><span>YCCĐ trọng tâm:</span> <code class="text-amber-700 font-semibold text-[11px]">TOAN12.XS.01-02</code></div>
+              </div>
+            </div>
+
+            <!-- Strand 4 -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 hover:border-brand-400 transition-all">
+              <div class="flex items-start justify-between">
+                <div>
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Mạch 4</span>
+                  <h3 class="font-bold text-sm text-slate-900 leading-tight">Thực hành & Trải nghiệm</h3>
+                </div>
+                <span class="px-2 py-0.5 text-xs font-extrabold bg-indigo-100 text-indigo-800 rounded-md">10%</span>
+              </div>
+              <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div class="bg-indigo-600 h-2 rounded-full" style="width: 10%"></div>
+              </div>
+              <div class="text-xs text-slate-600 space-y-1">
+                <div class="flex justify-between"><span>Số lượng:</span> <strong class="text-slate-800">148 câu</strong></div>
+                <div class="flex justify-between"><span>Biết / Hiểu / Vận dụng:</span> <span class="text-slate-700 font-mono">20 / 40 / 40</span></div>
+                <div class="flex justify-between"><span>YCCĐ trọng tâm:</span> <code class="text-indigo-700 font-semibold text-[11px]">TOAN12.TH.01</code></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cognitive Bloom Level & Formats Spec according to Quyết định 764/QĐ-BGDĐT -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Cognitive Level Ratio -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
+              <i data-lucide="bar-chart-3" class="w-4 h-4 text-brand-600"></i>
+              <span>Cân Đối 3 Mức Độ Nhận Thức (Thông tư 22/2021)</span>
+            </h3>
+            <p class="text-xs text-slate-500">Chuẩn hóa theo Bảng động từ hành vi của Thông tư 32 (Đọc, mô tả, giải thích, tính toán, vận dụng thực tiễn)</p>
+            
+            <div class="space-y-3 pt-2">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-700">1. Biết (Nhận biết) - Động từ: Nhận dạng, liệt kê, đọc</span>
+                  <span class="font-bold text-slate-900">40% (4.0 điểm)</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div class="bg-blue-500 h-2.5 rounded-full" style="width: 40%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-700">2. Hiểu (Thông hiểu) - Động từ: Mô tả, giải thích, phân biệt</span>
+                  <span class="font-bold text-slate-900">30% (3.0 điểm)</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div class="bg-indigo-500 h-2.5 rounded-full" style="width: 30%"></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-700">3. Vận dụng - Động từ: Tính, giải quyết vấn đề thực tế</span>
+                  <span class="font-bold text-slate-900">30% (3.0 điểm)</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                  <div class="bg-emerald-500 h-2.5 rounded-full" style="width: 30%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exam Format 2025 Spec (QĐ 764) -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
+              <i data-lucide="check-square" class="w-4 h-4 text-emerald-600"></i>
+              <span>Cấu Trúc Đề Thi 3 Phần Mới (Quyết định 764/QĐ-BGDĐT)</span>
+            </h3>
+            <p class="text-xs text-slate-500">Định dạng thi tốt nghiệp THPT từ năm 2025 hỗ trợ tự động trên Quesy</p>
+
+            <div class="space-y-3 pt-1">
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-slate-900">Phần I: Trắc nghiệm 4 lựa chọn (1 đúng duy nhất)</div>
+                  <div class="text-[11px] text-slate-500">12 câu • 0.25đ / câu</div>
+                </div>
+                <span class="px-2.5 py-1 text-xs font-bold bg-blue-100 text-blue-800 rounded-lg">3.0 Điểm</span>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-slate-900">Phần II: Trắc nghiệm Đúng/Sai 4 khẳng định</div>
+                  <div class="text-[11px] text-slate-500">4 câu • Tính điểm bậc thang (0.1đ - 0.25đ - 0.5đ - 1.0đ)</div>
+                </div>
+                <span class="px-2.5 py-1 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-lg">4.0 Điểm</span>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-slate-900">Phần III: Trắc nghiệm Trả lời ngắn</div>
+                  <div class="text-[11px] text-slate-500">6 câu • 0.5đ / câu • Nhập số có sai số $\pm \epsilon$</div>
+                </div>
+                <span class="px-2.5 py-1 text-xs font-bold bg-purple-100 text-purple-800 rounded-lg">3.0 Điểm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 2: AI DIGITIZE STUDIO (HITL) ================= -->
+      <section id="tab-digitize" class="tab-pane hidden space-y-4">
+        
+        <!-- Studio Top Controls Bar -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+          <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+            
+            <!-- File Input & Demo Pickers -->
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="cursor-pointer inline-flex items-center space-x-2 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all">
+                <i data-lucide="file-up" class="w-4 h-4"></i>
+                <span>Tải đề thi (.docx, .pdf)</span>
+                <input type="file" id="studio-file-input" class="hidden" accept=".docx,.doc,.pdf,.png,.jpg" onchange="app.handleFileUpload(event)">
+              </label>
+
+              <button onclick="app.loadSampleExam('math12_standard')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1.5">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>Đề mẫu: Toán 12 (Công thức MathType & Đồ thị)</span>
+              </button>
+
+              <button onclick="app.loadSampleExam('true_false_group')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1.5">
+                <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-500"></i>
+                <span>Đề mẫu: Đúng/Sai 4 ý (QĐ 764)</span>
+              </button>
+            </div>
+
+            <!-- Global Actions & Confidence Filter -->
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Confidence Filter Pills -->
+              <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+                <span class="text-slate-400 text-[11px] px-2 font-medium">Lọc:</span>
+                <button onclick="app.filterStudioConfidence('all')" id="btn-filter-conf-all" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 shadow-xs">Tất cả (5)</button>
+                <button onclick="app.filterStudioConfidence('green')" id="btn-filter-conf-green" class="px-2.5 py-1 rounded-lg text-xs font-medium text-emerald-700 hover:bg-white/50">Xanh $\ge 95\%$</button>
+                <button onclick="app.filterStudioConfidence('yellow')" id="btn-filter-conf-yellow" class="px-2.5 py-1 rounded-lg text-xs font-medium text-amber-700 hover:bg-white/50">Vàng $80-94\%$</button>
+                <button onclick="app.filterStudioConfidence('red')" id="btn-filter-conf-red" class="px-2.5 py-1 rounded-lg text-xs font-medium text-rose-700 hover:bg-white/50">Đỏ $< 80\%$</button>
+              </div>
+
+              <!-- Batch Commit to Bank Button -->
+              <button onclick="app.commitExtractedToBank()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center space-x-2">
+                <i data-lucide="save" class="w-4 h-4"></i>
+                <span>Lưu toàn bộ vào Ngân hàng</span>
+                <span id="studio-ready-count-badge" class="px-1.5 py-0.2 bg-emerald-800 rounded-full text-[10px]">5</span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Studio Status Sub-bar -->
+          <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500">
+            <div class="flex items-center space-x-3">
+              <span class="flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span id="studio-status-label">AI Parsing: Hoàn tất 5/5 câu hỏi</span>
+              </span>
+              <span>•</span>
+              <span id="studio-avg-confidence" class="font-medium text-slate-700">Độ tin cậy TB: 94.8%</span>
+              <span>•</span>
+              <span class="text-brand-600 font-medium">Cuộn đồng bộ (Synchronized Scrolling): Đang bật</span>
+            </div>
+            <div class="text-[11px] text-slate-400">
+              Mẹo: Nhấp vào câu hỏi ở cột phải để cuộn và highlight đối chiếu cột trái
+            </div>
+          </div>
+        </div>
+
+        <!-- Side-by-Side HITL Workspace Grid (2 Columns 50-50) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 h-[calc(100vh-230px)] min-h-[640px]">
+          
+          <!-- LEFT PANE (50% - col 6): Original Document Viewer -->
+          <div class="lg:col-span-6 bg-slate-200/80 rounded-2xl border border-slate-300 flex flex-col overflow-hidden shadow-inner">
+            <!-- Left Header Toolbar -->
+            <div class="bg-white px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs">
+              <div class="flex items-center space-x-2 font-semibold text-slate-700">
+                <i data-lucide="file-text" class="w-4 h-4 text-brand-600"></i>
+                <span id="doc-viewer-filename">De_Khao_Sat_Toan_12_2025.docx</span>
+              </div>
+              
+              <!-- Viewer Controls -->
+              <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-1 bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+                  <button onclick="app.changeViewerPage(-1)" class="p-1 hover:bg-white rounded text-slate-600"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
+                  <span id="doc-page-display" class="px-2 text-[11px] font-semibold text-slate-700">Trang 1 / 2</span>
+                  <button onclick="app.changeViewerPage(1)" class="p-1 hover:bg-white rounded text-slate-600"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
+                </div>
+                <span id="doc-active-target-badge" class="px-2 py-0.5 bg-brand-50 text-brand-700 font-bold text-[11px] rounded-md border border-brand-200">
+                  Đối chiếu: Câu 1
+                </span>
+              </div>
+            </div>
+
+            <!-- Document Sheet Canvas (Simulated A4 Exam Paper) -->
+            <div id="doc-viewer-scroll-container" class="flex-1 overflow-y-auto p-4 sm:p-6 flex justify-center bg-slate-300/60">
+              <div id="doc-viewer-paper" class="w-full max-w-xl bg-white shadow-lg rounded-sm p-8 min-h-[880px] text-[13px] text-slate-900 leading-relaxed font-serif relative">
+                
+                <!-- Exam Header on Paper -->
+                <div class="border-b-2 border-slate-800 pb-3 mb-6 grid grid-cols-2 gap-2 text-center text-xs font-sans">
+                  <div>
+                    <div class="font-bold uppercase tracking-tight">SỞ GD&ĐT HÀ NỘI</div>
+                    <div class="font-bold text-[11px]">TRƯỜNG THPT CHU VĂN AN</div>
+                    <div class="text-[10px] text-slate-500 italic mt-0.5">(Đề thi gồm 02 trang)</div>
+                  </div>
+                  <div>
+                    <div class="font-bold uppercase tracking-tight">KỲ THI THỬ TỐT NGHIỆP THPT 2025</div>
+                    <div class="font-bold text-brand-800">BÀI THI: TOÁN HỌC</div>
+                    <div class="text-[10px] text-slate-600 italic">Thời gian: 90 phút (Không kể giao đề)</div>
+                  </div>
+                </div>
+
+                <!-- Document Content with interactive bounding sections -->
+                <div id="doc-paper-content" class="space-y-6">
+                  <!-- Dynamic render of document questions will inject here -->
+                </div>
+
+                <div class="text-center pt-8 text-[11px] font-sans text-slate-400">
+                  --- HẾT --- Cán bộ coi thi không giải thích gì thêm ---
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT PANE (50% - col 6): Extracted Questions HITL Review Stream -->
+          <div class="lg:col-span-6 flex flex-col bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+            <!-- Right Header -->
+            <div class="bg-white px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+                <span class="font-bold text-slate-800">Danh Sách Câu Hỏi Bóc Tách (HITL Studio)</span>
+                <span id="studio-total-badge" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold">5 câu</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button onclick="app.openFormulaEditorModal('new', null)" class="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-medium border border-brand-200 flex items-center space-x-1">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>Thêm câu mới</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Extracted Questions Stream Container -->
+            <div id="studio-questions-container" class="flex-1 overflow-y-auto p-4 space-y-4">
+              <!-- Question cards will be rendered dynamically by app.js -->
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 3: ITEM BANK EXPLORER ================= -->
+      <section id="tab-itembank" class="tab-pane hidden space-y-5">
+        
+        <!-- 6-Tier Taxonomy Filter Bar (Strictly Circular 32, NO TEXTBOOK!) -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center space-x-2">
+              <div class="w-7 h-7 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs">
+                <i data-lucide="filter" class="w-4 h-4"></i>
+              </div>
+              <h2 class="text-sm font-bold text-slate-900">Bộ Lọc Cây Kiến Thức 6 Tầng (Thông tư 32/2018/TT-BGDĐT)</h2>
+            </div>
+            <span class="text-[11px] text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+              Quy chuẩn quốc gia: Tuyệt đối không phân chia Bộ sách
+            </span>
+          </div>
+
+          <!-- The 6 Cascading Dropdowns -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <!-- Tier 1: Grade -->
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">1. Cấp học / Khối lớp</label>
+              <select id="bank-filter-grade" onchange="app.handleTaxonomyFilterChange('grade')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+                <option value="12">Lớp 12 (Cấp THPT)</option>
+                <option value="11">Lớp 11 (Cấp THPT)</option>
+                <option value="10">Lớp 10 (Cấp THPT)</option>
+              </select>
+            </div>
+
+            <!-- Tier 2: Subject -->
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">2. Môn học</label>
+              <select id="bank-filter-subject" onchange="app.handleTaxonomyFilterChange('subject')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+                <option value="toan">Toán học</option>
+                <option value="vatli">Vật lí</option>
+                <option value="hoahoc">Hóa học</option>
+                <option value="sinhhoc">Sinh học</option>
+              </select>
+            </div>
+
+            <!-- Tier 3: Strand (Mạch nội dung TT 32) -->
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">3. Mạch nội dung (Thông tư 32)</label>
+              <select id="bank-filter-strand" onchange="app.handleTaxonomyFilterChange('strand')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+                <option value="all">Tất cả các Mạch</option>
+                <option value="giai-tich">Mạch 1: Số, Đại số & Giải tích</option>
+                <option value="hinh-hoc">Mạch 2: Hình học & Đo lường</option>
+                <option value="xac-suat">Mạch 3: Thống kê & Xác suất</option>
+                <option value="thuc-hanh">Mạch 4: Thực hành & Trải nghiệm</option>
+              </select>
+            </div>
+
+            <!-- Tier 4: Topic (Chủ đề) -->
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">4. Chủ đề / Chuyên đề</label>
+              <select id="bank-filter-topic" onchange="app.handleTaxonomyFilterChange('topic')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+                <option value="all">Tất cả Chủ đề</option>
+              </select>
+            </div>
+
+            <!-- Tier 5: Lesson (Bài học) -->
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">5. Bài học / Đơn vị kiến thức</label>
+              <select id="bank-filter-lesson" onchange="app.handleTaxonomyFilterChange('lesson')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+                <option value="all">Tất cả Bài học</option>
+              </select>
+            </div>
+
+            <!-- Tier 6: Learning Outcome (YCCĐ - Chuẩn TT 32) -->
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">6. Yêu cầu Cần Đạt (Mã YCCĐ TT 32)</label>
+              <select id="bank-filter-yccd" onchange="app.handleTaxonomyFilterChange('yccd')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 font-mono">
+                <option value="all">Tất cả Mã YCCĐ</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Secondary Filters Row: Archetype, Bloom level, Format, Keyword Search -->
+          <div class="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <!-- Problem Archetype -->
+            <div>
+              <label class="block text-[11px] font-medium text-slate-500 mb-1">Dạng câu hỏi (Problem Archetype)</label>
+              <select id="bank-filter-archetype" onchange="app.renderItemBank()" class="w-full text-xs rounded-xl border border-slate-200 py-1.5 px-2 bg-white">
+                <option value="all">Tất cả Dạng bài</option>
+              </select>
+            </div>
+
+            <!-- Cognitive Level -->
+            <div>
+              <label class="block text-[11px] font-medium text-slate-500 mb-1">Mức độ nhận thức (TT 32)</label>
+              <select id="bank-filter-cognitive" onchange="app.renderItemBank()" class="w-full text-xs rounded-xl border border-slate-200 py-1.5 px-2 bg-white">
+                <option value="all">Tất cả Mức độ</option>
+                <option value="RECOGNITION">Biết (Nhận biết)</option>
+                <option value="COMPREHENSION">Hiểu (Thông hiểu)</option>
+                <option value="APPLICATION">Vận dụng</option>
+              </select>
+            </div>
+
+            <!-- Item Format (QĐ 764) -->
+            <div>
+              <label class="block text-[11px] font-medium text-slate-500 mb-1">Thể thức câu hỏi (QĐ 764)</label>
+              <select id="bank-filter-format" onchange="app.renderItemBank()" class="w-full text-xs rounded-xl border border-slate-200 py-1.5 px-2 bg-white">
+                <option value="all">Tất cả Thể thức</option>
+                <option value="SINGLE_CHOICE">Trắc nghiệm đơn (4 lựa chọn)</option>
+                <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý</option>
+                <option value="SHORT_ANSWER">Trả lời ngắn</option>
+              </select>
+            </div>
+
+            <!-- Search Stem Keyword -->
+            <div>
+              <label class="block text-[11px] font-medium text-slate-500 mb-1">Tìm kiếm từ khóa / Mã câu</label>
+              <div class="relative">
+                <input type="text" id="bank-search-input" oninput="app.renderItemBank()" placeholder="Nhập từ khóa hoặc công thức..." class="w-full text-xs rounded-xl border border-slate-200 py-1.5 pl-8 pr-3 bg-white focus:ring-2 focus:ring-brand-500">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bank Results Header & Stats -->
+        <div class="flex items-center justify-between text-xs text-slate-600 px-1">
+          <div class="flex items-center space-x-2">
+            <span>Tìm thấy <strong id="bank-results-count" class="text-brand-700 font-bold">12</strong> câu hỏi phù hợp bộ lọc</span>
+            <span>•</span>
+            <span class="text-emerald-600 font-medium">Kho sẵn sàng phục vụ Ma trận Đề thi</span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="app.triggerDuplicateCheckDemo()" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg font-semibold border border-rose-200 flex items-center space-x-1 transition-all">
+              <i data-lucide="copy-check" class="w-3.5 h-3.5"></i>
+              <span>Test Cảnh báo Trùng lặp AI (&ge;90%)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Question Cards Grid -->
+        <div id="bank-cards-grid" class="space-y-4">
+          <!-- Dynamic Bank Items render here -->
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 4: EXAM MATRIX BUILDER ================= -->
+      <section id="tab-matrix" class="tab-pane hidden space-y-5">
+        
+        <!-- Matrix Top Configuration Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <i data-lucide="grid" class="w-4 h-4 text-brand-600"></i>
+                <span>Thiết Lập Bản Đặc Tả Ma Trận Đề Thi Theo YCCĐ (SCR-MATRIX-BUILDER)</span>
+              </h2>
+              <p class="text-xs text-slate-500">Căn cứ Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (QĐ 764)</p>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+              <button onclick="app.loadMatrixPreset('thpt_2025')" class="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-xs font-semibold border border-brand-200">
+                Preset: Chuẩn TN THPT 2025 (34 câu)
+              </button>
+              <button onclick="app.loadMatrixPreset('midterm')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium border border-slate-200">
+                Preset: Kiểm tra Định kỳ (20 câu)
+              </button>
+            </div>
+          </div>
+
+          <!-- General Parameters -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Tên Kỳ thi / Bài thi</label>
+              <input type="text" id="matrix-param-name" value="Đề Khảo sát Toán 12 - Học kỳ I 2025" class="w-full rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white text-xs">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Khối lớp & Môn</label>
+              <input type="text" readonly value="Toán học - Lớp 12" class="w-full rounded-xl border border-slate-200 py-1.5 px-2.5 bg-slate-100 text-slate-600 text-xs">
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Thời gian làm bài</label>
+              <select id="matrix-param-time" class="w-full rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white text-xs">
+                <option value="90">90 phút</option>
+                <option value="50">50 phút</option>
+                <option value="45">45 phút</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">Thang điểm tổng</label>
+              <input type="number" readonly value="10.0" class="w-full rounded-xl border border-slate-200 py-1.5 px-2.5 bg-slate-100 text-slate-600 text-xs font-bold">
+            </div>
+            <div class="flex items-end">
+              <button onclick="app.saveMatrixConfig()" class="w-full py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center space-x-1.5">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Lưu & Ban Hành Ma Trận</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2D Interactive Matrix Grid with Inventory Counter -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center space-x-2 text-xs">
+              <span class="font-bold text-slate-800">Lưới Cấu Hình Ma Trận 2D (YCCĐ & Dạng bài &times; 3 Cấp độ nhận thức)</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-100 text-emerald-800 font-semibold">Tự động đối soát tồn kho câu hỏi</span>
+            </div>
+            <div class="text-[11px] text-slate-500 flex items-center space-x-3">
+              <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>Đủ câu trong kho</span></span>
+              <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span>Cảnh báo thiếu câu</span></span>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
+                  <th class="p-3 w-72 sticky left-0 bg-slate-100 z-10">Mạch Nội dung & YCCĐ / Dạng bài</th>
+                  <th class="p-3 text-center border-l border-slate-200 bg-blue-50/50">
+                    <div class="text-blue-900">1. Biết (Nhận biết)</div>
+                    <div class="text-[10px] font-normal text-blue-700">TN Đơn (0.25đ)</div>
+                  </th>
+                  <th class="p-3 text-center border-l border-slate-200 bg-indigo-50/50">
+                    <div class="text-indigo-900">2. Hiểu (Thông hiểu)</div>
+                    <div class="text-[10px] font-normal text-indigo-700">Đúng/Sai (1.0đ) / TN Đơn</div>
+                  </th>
+                  <th class="p-3 text-center border-l border-slate-200 bg-emerald-50/50">
+                    <div class="text-emerald-900">3. Vận dụng</div>
+                    <div class="text-[10px] font-normal text-emerald-700">Trả lời ngắn (0.5đ) / Vận dụng</div>
+                  </th>
+                  <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng câu</th>
+                  <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng điểm</th>
+                </tr>
+              </thead>
+              <tbody id="matrix-grid-tbody" class="divide-y divide-slate-200">
+                <!-- Matrix Rows dynamically rendered by app.js -->
+              </tbody>
+              <tfoot>
+                <tr class="bg-slate-50 font-bold text-slate-800 border-t-2 border-slate-300">
+                  <td class="p-3 sticky left-0 bg-slate-50">TỔNG CỘNG TOÀN MA TRẬN</td>
+                  <td id="matrix-total-biet" class="p-3 text-center border-l border-slate-200 text-blue-800">12 câu (3.0đ)</td>
+                  <td id="matrix-total-hieu" class="p-3 text-center border-l border-slate-200 text-indigo-800">10 câu (3.5đ)</td>
+                  <td id="matrix-total-vandung" class="p-3 text-center border-l border-slate-200 text-emerald-800">12 câu (3.5đ)</td>
+                  <td id="matrix-total-items" class="p-3 text-center border-l border-slate-200 text-brand-800 text-sm">34 câu</td>
+                  <td id="matrix-total-points" class="p-3 text-center border-l border-slate-200 text-brand-800 text-sm">10.0 đ</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Live Blueprint Summary & Assembly Trigger -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <!-- Bloom Cognitive Level Checker -->
+            <div class="space-y-1.5 flex-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-800">Tỷ lệ Cân Đối Mức Độ Nhận Thức (Hiện tại)</span>
+                <span id="matrix-bloom-status" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                  Chuẩn 40% Biết - 30% Hiểu - 30% Vận dụng
+                </span>
+              </div>
+              <div class="flex h-3 rounded-full overflow-hidden bg-slate-100">
+                <div id="matrix-bar-biet" class="bg-blue-500 transition-all duration-300" style="width: 40%"></div>
+                <div id="matrix-bar-hieu" class="bg-indigo-500 transition-all duration-300" style="width: 30%"></div>
+                <div id="matrix-bar-vandung" class="bg-emerald-500 transition-all duration-300" style="width: 30%"></div>
+              </div>
+              <div class="flex justify-between text-[11px] text-slate-500 font-mono">
+                <span id="matrix-lbl-biet">Biết: 40%</span>
+                <span id="matrix-lbl-hieu">Hiểu: 30%</span>
+                <span id="matrix-lbl-vandung">Vận dụng: 30%</span>
+              </div>
+            </div>
+
+            <!-- Assembly Button Action -->
+            <div class="flex items-center space-x-3 self-end md:self-center">
+              <button onclick="app.generateMasterExamFromMatrix()" class="px-5 py-3 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center space-x-2">
+                <i data-lucide="zap" class="w-4 h-4 text-amber-300"></i>
+                <span>Khởi Tạo Đề Thi Gốc & Sang Trộn Đề</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= TAB 5: EXAM GENERATOR & EXPORT ================= -->
+      <section id="tab-shuffler" class="tab-pane hidden space-y-6">
+        
+        <!-- Workflow Steps Bar -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div class="flex items-center space-x-3 p-2 rounded-xl bg-brand-50 border border-brand-200">
+              <div class="w-7 h-7 rounded-lg bg-brand-600 text-white font-bold flex items-center justify-center text-xs">1</div>
+              <div>
+                <div class="font-bold text-brand-900">Đề Thi Gốc (Master Exam)</div>
+                <div class="text-[11px] text-brand-700">Sinh theo ma trận, đổi câu linh hoạt</div>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-3 p-2 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="w-7 h-7 rounded-lg bg-slate-800 text-white font-bold flex items-center justify-center text-xs">2</div>
+              <div>
+                <div class="font-bold text-slate-800">Trộn Đề Hoán Vị An Toàn</div>
+                <div class="text-[11px] text-slate-500">Khóa Option Anchor & Bảo toàn câu chùm</div>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-3 p-2 rounded-xl bg-emerald-50 border border-emerald-200">
+              <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">3</div>
+              <div>
+                <div class="font-bold text-emerald-900">Xuất Bản Word 2 Cột & Barem</div>
+                <div class="text-[11px] text-emerald-700">Native OMML, OMR Sheet, Gói ZIP</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Master Exam Review & Shuffling Controls -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Master Exam Controls (col 1) -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
+              <i data-lucide="sliders" class="w-4 h-4 text-brand-600"></i>
+              <span>Cấu Hình Trộn Đề An Toàn (RULE-02)</span>
+            </h3>
+
+            <!-- Exclusion Setting -->
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+              <label class="flex items-start space-x-2 cursor-pointer">
+                <input type="checkbox" id="shuffler-exclude-30d" checked class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 mt-0.5">
+                <span class="text-slate-700 font-medium">Loại trừ câu hỏi đã xuất hiện trong 30 ngày qua</span>
+              </label>
+              <div class="text-[11px] text-slate-400 pl-5">Đảm bảo tính bảo mật và tính mới cho kỳ thi</div>
+            </div>
+
+            <!-- 4 Safe Shuffling Rules Checklist -->
+            <div class="space-y-2 text-xs">
+              <div class="font-semibold text-slate-700">4 Nguyên Tắc An Toàn Bắt Buộc:</div>
+              <ul class="space-y-1.5 text-[11px] text-slate-600">
+                <li class="flex items-center space-x-2 text-emerald-700">
+                  <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span><strong>Section Integrity:</strong> Chỉ đảo câu trong cùng Phần</span>
+                </li>
+                <li class="flex items-center space-x-2 text-emerald-700">
+                  <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span><strong>Passage Integrity:</strong> Giữ liền mạch Ngữ liệu & câu con</span>
+                </li>
+                <li class="flex items-center space-x-2 text-emerald-700 bg-emerald-50/70 p-1.5 rounded-lg border border-emerald-200">
+                  <i data-lucide="anchor" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                  <span><strong>Option Anchor Rule:</strong> Tự động khóa \"Cả A và B\", \"Tất cả...\" tại vị trí D</span>
+                </li>
+                <li class="flex items-center space-x-2 text-emerald-700">
+                  <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span><strong>Key Matrix:</strong> Tự sinh ma trận đối chiếu đáp án</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Number of Codes -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Số lượng mã đề hoán vị</label>
+              <div class="grid grid-cols-4 gap-2 text-xs font-bold text-center">
+                <div class="p-2 bg-brand-50 border border-brand-300 text-brand-700 rounded-lg">101</div>
+                <div class="p-2 bg-brand-50 border border-brand-300 text-brand-700 rounded-lg">102</div>
+                <div class="p-2 bg-brand-50 border border-brand-300 text-brand-700 rounded-lg">103</div>
+                <div class="p-2 bg-brand-50 border border-brand-300 text-brand-700 rounded-lg">104</div>
+              </div>
+            </div>
+
+            <!-- Start Shuffling Action -->
+            <button onclick="app.executeSafeShuffling()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center space-x-2">
+              <i data-lucide="shuffle" class="w-4 h-4"></i>
+              <span>Kích Hoạt Trộn Đề An Toàn (4 Mã Đề)</span>
+            </button>
+          </div>
+
+          <!-- Master Exam Preview with Swap Item (col 2-3) -->
+          <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                  <i data-lucide="file-check" class="w-4 h-4 text-emerald-600"></i>
+                  <span id="master-exam-title">Đề Thi Gốc (Master Exam) - 10 câu mẫu đại diện</span>
+                </h3>
+                <p class="text-xs text-slate-500">Người thẩm định có thể bấm \"Đổi câu khác\" để thay thế bằng câu tương đương cùng YCCĐ</p>
+              </div>
+              <span class="px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-bold rounded-lg border border-brand-200">
+                Thang 10.0 Điểm
+              </span>
+            </div>
+
+            <!-- Master Items Scrollable List -->
+            <div id="master-exam-items-list" class="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+              <!-- Master items rendered by app.js -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Shuffled Variants Review, Option Anchor Verification & Answer Key Matrix -->
+        <div id="shuffled-results-panel" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
+          
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <div class="flex items-center space-x-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                <h3 class="font-bold text-slate-900 text-base">Kết Quả Trộn Đề & Xác Minh Option Anchor Rule</h3>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">Hệ thống đã sinh 4 mã đề hoán vị an toàn (101, 102, 103, 104) kèm ma trận ánh xạ đáp án.</p>
+            </div>
+
+            <!-- Option Anchor Rule Verified Badge -->
+            <div class="px-3.5 py-1.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 text-xs font-bold flex items-center space-x-2">
+              <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i>
+              <span>Option Anchor Rule: ĐẠT 100% (Khóa cố định tại vị trí D)</span>
+            </div>
+          </div>
+
+          <!-- Variant Selector Tabs -->
+          <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">
+            <span class="text-xs font-bold text-slate-500 mr-2">Xem nội dung mã đề:</span>
+            <button onclick="app.viewVariant('101')" id="btn-var-101" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-xs">Mã đề 101</button>
+            <button onclick="app.viewVariant('102')" id="btn-var-102" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Mã đề 102</button>
+            <button onclick="app.viewVariant('103')" id="btn-var-103" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Mã đề 103</button>
+            <button onclick="app.viewVariant('104')" id="btn-var-104" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Mã đề 104</button>
+          </div>
+
+          <!-- Variant Question Cards Preview -->
+          <div id="variant-items-container" class="space-y-3 max-h-80 overflow-y-auto p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <!-- Active variant items render here -->
+          </div>
+
+          <!-- Answer Key Matrix Table (Ma trận Ánh xạ Đáp án) -->
+          <div class="space-y-3 pt-2">
+            <h4 class="font-bold text-slate-800 text-xs flex items-center space-x-2">
+              <i data-lucide="key" class="w-4 h-4 text-amber-500"></i>
+              <span>Ma Trận Ánh Xạ Đáp Án Đối Chiếu Giữa Đề Gốc & 4 Mã Đề (Answer Key Matrix)</span>
+            </h4>
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+              <table class="w-full text-center text-xs">
+                <thead class="bg-slate-100 font-bold text-slate-700">
+                  <tr>
+                    <th class="p-2 text-left pl-4">Câu số</th>
+                    <th class="p-2">Thể thức</th>
+                    <th class="p-2 bg-indigo-50 text-indigo-900">Đề Gốc</th>
+                    <th class="p-2">Mã 101</th>
+                    <th class="p-2">Mã 102</th>
+                    <th class="p-2">Mã 103</th>
+                    <th class="p-2">Mã 104</th>
+                    <th class="p-2 text-right pr-4">Trạng thái Anchor</th>
+                  </tr>
+                </thead>
+                <tbody id="answer-key-matrix-tbody" class="divide-y divide-slate-100">
+                  <!-- Generated answer keys -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Publishing & Word DOCX Download Section -->
+          <div class="pt-4 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-indigo-50/40 p-5 rounded-2xl border border-indigo-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-1">
+              <div class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <i data-lucide="package-check" class="w-4 h-4 text-brand-600"></i>
+                <span>Gói Xuất Bản Đề Thi Đa Định Dạng (.ZIP)</span>
+              </div>
+              <p class="text-xs text-slate-600">
+                Bao gồm 4 file đề thi Word dàn trang 2 cột chuẩn Bộ GD&ĐT (công thức OMML Native), lời giải chi tiết, file bảng đáp án tổng hợp và phiếu trắc nghiệm OMR.
+              </p>
+            </div>
+
+            <div class="flex items-center space-x-3">
+              <button onclick="app.downloadPublishZip()" class="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-emerald-600/20 transition-all flex items-center space-x-2">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>TẢI TRỌN GÓI (.ZIP) ĐỀ THI & ĐÁP ÁN</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= LATEX FORMULA LIVE EDITOR MODAL ================= -->
+  <div id="latex-editor-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="function-square" class="w-5 h-5 text-brand-600"></i>
+          <h3 class="font-bold text-slate-900 text-sm">Trình Biên Tập Công Thức Toán & KaTeX Live Preview</h3>
+        </div>
+        <button onclick="app.closeFormulaEditorModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <!-- Quick Math Symbols Toolbar -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Ký hiệu nhanh</label>
+          <div class="flex flex-wrap gap-1.5 text-xs font-mono">
+            <button type="button" onclick="app.insertLatexSymbol('\\frac{a}{b}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\frac{a}{b}$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\sqrt{x}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\sqrt{x}$</button>
+            <button type="button" onclick="app.insertLatexSymbol('x^2')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$x^2$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\int_{a}^{b}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\int_a^b$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\lim_{x \\to 0}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\lim$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\mathbb{R}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\mathbb{R}$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\in')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\in$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\overrightarrow{u}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\vec{u}$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\pm')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\pm$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\le')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\le$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\ge')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">$\ge$</button>
+          </div>
+        </div>
+
+        <!-- Latex Source Code Textarea -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Mã LaTeX Nguồn</label>
+          <textarea id="modal-latex-input" oninput="app.updateModalLatexPreview()" rows="3" class="w-full text-xs font-mono rounded-xl border border-slate-300 p-3 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500" placeholder="Nhập mã LaTeX, ví dụ: $y = x^3 - 3x^2 + 4$ hoặc $$...$$"></textarea>
+        </div>
+
+        <!-- KaTeX Live Render Box -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Hiển thị Trực quan (KaTeX Live Preview)</label>
+          <div id="modal-latex-preview-box" class="min-h-16 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-sm text-slate-900">
+            <!-- KaTeX rendered equation here -->
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2">
+        <button type="button" onclick="app.closeFormulaEditorModal()" class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-xl border border-slate-300">
+          Hủy bỏ
+        </button>
+        <button type="button" onclick="app.saveFormulaEditorResult()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-xs">
+          Cập nhật công thức
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= AI VECTOR DUPLICATE DETECTION MODAL ================= -->
+  <div id="duplicate-warning-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-rose-300 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header (Red Alert) -->
+      <div class="px-6 py-4 bg-rose-50 border-b border-rose-200 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center">
+            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-rose-900 text-sm">Cảnh Báo: Phát Hiện Trùng Lặp Câu Hỏi Bằng AI Vector Search</h3>
+            <p class="text-xs text-rose-700 font-medium">Độ tương đồng Cosine Similarity: <span class="font-extrabold text-rose-900 text-sm">92.4%</span> (&ge; 90% Ngưỡng Chặn Lưu)</p>
+          </div>
+        </div>
+        <button onclick="app.closeDuplicateModal()" class="text-rose-400 hover:text-rose-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Comparison Body (Side-by-side) -->
+      <div class="p-6 space-y-4 text-xs">
+        <p class="text-slate-600">
+          Thuật toán <code class="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-800">pgvector</code> phát hiện câu hỏi này gần như trùng lặp hoàn toàn với câu hỏi đã có sẵn trong ngân hàng. Vui lòng đối chiếu:
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Left: New Question -->
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-300 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-800 uppercase tracking-wider text-[10px]">Câu hỏi mới (Đang xử lý)</span>
+              <span class="px-1.5 py-0.5 bg-brand-100 text-brand-800 rounded font-semibold text-[10px]">Đang lưu</span>
+            </div>
+            <div class="font-medium text-slate-900" id="dup-modal-new-stem">
+              Giải phương trình $\log_2(x - 1) = 3$ để tìm nghiệm thực $x$.
+            </div>
+            <div class="text-[11px] text-slate-500">Mã YCCĐ: <code>TOAN12.GT.03</code></div>
+          </div>
+
+          <!-- Right: Existing Bank Question -->
+          <div class="p-4 rounded-xl bg-rose-50/50 border border-rose-300 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-rose-800 uppercase tracking-wider text-[10px]">Câu đã có trong ngân hàng</span>
+              <span class="px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded font-semibold text-[10px]">[TOAN-012]</span>
+            </div>
+            <div class="font-medium text-slate-900" id="dup-modal-existing-stem">
+              Tìm tập nghiệm $S$ của phương trình $\log_2(x - 1) = 3$.
+            </div>
+            <div class="text-[11px] text-slate-500">Người tạo: Thầy Trần Quang • Ngày tạo: 10/09/2026</div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px]">
+          <strong>Khuyến nghị chuyên môn:</strong> Nếu đây là câu hỏi sửa số hoặc tình huống phát triển, hãy chọn <em>\"Vẫn lưu (Xác nhận là biến thể)\"</em>. Nếu là câu hỏi trùng lặp từ đề khác, hãy bấm <em>\"Hủy bỏ lưu\"</em> để tránh làm loãng ngân hàng đề.
+        </div>
+      </div>
+
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2">
+        <button type="button" onclick="app.closeDuplicateModal()" class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-300">
+          Hủy bỏ lưu (Không nạp câu này)
+        </button>
+        <button type="button" onclick="app.confirmSaveAsVariant()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-xs">
+          Vẫn lưu (Xác nhận là Câu hỏi biến thể)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Application Logic JS -->
+  <script src="static/app.js"></script>
+</body>
+</html>
