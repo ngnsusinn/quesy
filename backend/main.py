@@ -21,7 +21,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("quesy")
 
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 # Workspace paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -135,6 +135,11 @@ def health_check():
         "version": "2.0.0",
         "standard": "Circular 32/2018/TT-BGDĐT & Decision 764/QĐ-BGDĐT"
     }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return Response(status_code=204)
 
 
 @app.get("/", tags=["Frontend"])
