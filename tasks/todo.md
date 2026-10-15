@@ -1,13 +1,14 @@
-# Quesy Project: Master Micro-Task Breakdown & Checklist (v2.0)
+# Quesy Project: Master Micro-Task Breakdown & Checklist (v3.0 - Teacher Focused)
 
-> **Quy chuẩn kỹ năng:** Phân rã công việc vi mô (Atomic Task Breakdown) tuân thủ 100% `planning-and-task-breakdown` (SKILL.md). Mỗi task là 1 chức năng nhỏ, độc lập, có tiêu chí nghiệm thu rõ ràng, quy mô XS (1 file) hoặc S (1-2 files), tối đa M (3 files). Không có task XL.
+> **Phạm vi chuẩn hóa:** Dự án dành riêng cho **Giáo viên cá nhân** (không phân cấp tổ trưởng/nhà trường, không có cổng thi cho học sinh). Hệ thống tập trung 100% vào: **(1) Ngân hàng câu hỏi/đề thi chuẩn TT32 & QĐ 764**, **(2) OCR & Số hóa AI đề thi**, **(3) Tạo đề, trộn đề & xuất bản in ấn**, **(4) Chấm thi OMR & Phân tích điểm số**.
+> Mỗi task là 1 chức năng nhỏ, độc lập, kích thước XS (1 file) hoặc S (1-2 files).
 
 ---
 
 ## Phase 1: CSDL & Cây Kiến Thức Thông Tư 32/2018/TT-BGDĐT
 
 ### Task TS-01: [DONE] Định nghĩa ORM Model `Grade` & `Subject`
-**Description:** Khai báo bảng `grades` (Khối lớp 10, 11, 12) và `subjects` (Môn học: Toán, Lý, Hóa, Sinh, Văn, Sử, Địa, Tiếng Anh) trong SQLAlchemy.
+**Description:** Khai báo bảng `grades` (Lớp 10, 11, 12) và `subjects` (Toán, Vật lí, Hóa học, Sinh học...) trong SQLAlchemy.
 **Acceptance criteria:**
 - [x] Bảng có các cột `id` (UUID), `code`, `name`, `created_at`.
 - [x] Ràng buộc `code` là duy nhất (`unique=True`).
@@ -23,18 +24,18 @@
 **Dependencies:** TS-01 | **Files:** `backend/models.py` | **Scope:** XS (1 file)
 
 ### Task TS-03: [DONE] Định nghĩa ORM Model `Lesson` & `LearningOutcome` (Mã YCCĐ TT 32)
-**Description:** Khai báo bảng `lessons` (Bài học) và `learning_outcomes` (Yêu cầu cần đạt chuẩn Thông tư 32 kèm mã định danh chuẩn hóa e.g. `TOAN12.GT.01`).
+**Description:** Khai báo bảng `lessons` (Bài học) và `learning_outcomes` (YCCĐ chuẩn hóa kèm mã định danh e.g. `TOAN12.GT.01`).
 **Acceptance criteria:**
 - [x] Cột `code` lưu mã YCCĐ chuẩn hóa không trùng lặp.
-- [x] Cột `description` lưu đầy đủ văn bản mô tả năng lực học sinh cần đạt.
+- [x] Cột `description` lưu văn bản mô tả năng lực học sinh cần đạt.
 **Verification:** `python -c "from backend.models import Lesson, LearningOutcome; print('OK')"`
 **Dependencies:** TS-02 | **Files:** `backend/models.py` | **Scope:** XS (1 file)
 
 ### Task TS-04: [DONE] Định nghĩa ORM Model `ProblemArchetype` (Dạng câu hỏi)
-**Description:** Khai báo bảng `problem_archetypes` nằm dưới YCCĐ để phân loại các dạng bài toán chuyên đề (e.g. *Đọc bảng biến thiên tìm cực trị*, *Cực trị hàm chứa tham số m*).
+**Description:** Khai báo bảng `problem_archetypes` nằm dưới YCCĐ để phân loại dạng bài tập chuyên đề (e.g. *Đọc bảng biến thiên tìm cực trị*).
 **Acceptance criteria:**
 - [x] Khóa ngoại `learning_outcome_id` liên kết chặt chẽ với YCCĐ cha.
-- [x] Cột `archetype_name` và `typical_method` lưu hướng dẫn phương pháp giải điển hình.
+- [x] Cột `archetype_name` lưu tên dạng bài và phương pháp giải.
 **Verification:** `python -c "from backend.models import ProblemArchetype; print('OK')"`
 **Dependencies:** TS-03 | **Files:** `backend/models.py` | **Scope:** XS (1 file)
 
@@ -47,7 +48,7 @@
 **Dependencies:** TS-04 | **Files:** `backend/schemas.py` | **Scope:** XS (1 file)
 
 ### Task TS-06: [DONE] API Endpoint `GET /api/v1/taxonomy/tree`
-**Description:** Viết endpoint truy vấn và trả về toàn bộ cây kiến thức phân tầng dạng JSON lồng nhau phục vụ bộ lọc client.
+**Description:** Viết endpoint truy vấn và trả về toàn bộ cây kiến thức phân tầng dạng JSON lồng nhau phục vụ bộ lọc của giáo viên.
 **Acceptance criteria:**
 - [x] Trả về mã HTTP 200 kèm cây danh mục hoàn chỉnh.
 - [x] Hỗ trợ query params `subject_id` và `grade_id` để lọc nhánh nhanh.
@@ -113,7 +114,7 @@
 **Dependencies:** IB-02 | **Files:** `backend/schemas.py` | **Scope:** XS (1 file)
 
 ### Task IB-05: [DONE] API `POST /api/v1/questions` Tạo Mới Câu Hỏi
-**Description:** Endpoint tạo mới câu hỏi, tự động lưu options và sub_statements trong transaction nguyên tử.
+**Description:** Endpoint tạo mới câu hỏi vào kho cá nhân của giáo viên, tự động lưu options và sub_statements.
 **Acceptance criteria:**
 - [x] Tạo câu hỏi thành công trả về HTTP 201 kèm ID định danh.
 - [x] Hỗ trợ lưu thân câu hỏi có chứa công thức LaTeX và mã ảnh.
@@ -136,7 +137,7 @@
 **Dependencies:** IB-05 | **Files:** `backend/routers/questions.py` | **Scope:** XS (1 file)
 
 ### Task IB-08: [DONE] API `PUT /api/v1/questions/{id}` Cập Nhật Câu Hỏi
-**Description:** Endpoint cho phép chỉnh sửa nội dung thân câu hỏi, đáp án, mức độ nhận thức và lời giải.
+**Description:** Endpoint cho phép giáo viên chỉnh sửa nội dung thân câu hỏi, đáp án, mức độ nhận thức và lời giải.
 **Acceptance criteria:**
 - [x] Cập nhật thành công trả về HTTP 200 kèm dữ liệu mới nhất.
 **Verification:** `pytest tests/test_api_endpoints.py`
@@ -262,7 +263,7 @@
 **Dependencies:** UI-01 | **Files:** `frontend/static/app.js` | **Scope:** S (1 file)
 
 ### Task UI-04: [DONE] Thao Tác Click Trực Tiếp Đổi Đáp Án Đúng
-**Description:** Cho phép người dùng click trực tiếp vào ký tự phương án [A], [B], [C], [D] để đảo trạng thái đáp án đúng/sai ngay trên thẻ câu hỏi.
+**Description:** Cho phép giáo viên click trực tiếp vào ký tự phương án [A], [B], [C], [D] để đảo trạng thái đáp án đúng/sai ngay trên thẻ câu hỏi.
 **Acceptance criteria:**
 - [x] Thẻ câu hỏi cập nhật đáp án đúng tức thì không cần mở form chỉnh sửa phức tạp.
 **Verification:** Browser check click đổi đáp án.
@@ -354,7 +355,7 @@
 
 ---
 
-## Phase 5: Trộn Đề An Toàn & Phân Tích Khảo Thí CTT
+## Phase 5: Trộn Đề An Toàn & Khảo Thí CTT
 
 ### Task SH-01: [DONE] Định nghĩa ORM Models `ExamVariant` và `ExamVariantItem`
 **Description:** Khai báo bảng lưu trữ các mã đề thi hoán vị (101, 102, 103, 104), vị trí câu hỏi mới và ánh xạ phương án hoán vị.
@@ -557,117 +558,96 @@
 
 ---
 
-## Phase 7: Mở Rộng Doanh Nghiệp & Đám Mây (Future Roadmap / Backlog)
+## Phase 7: Phân Hệ Chấm Thi Giáo Viên & Mở Rộng Trợ Lý OCR (Roadmap / Backlog)
 
-### Task BL-01: [ ] CSDL Quản Lý Tài Khoản, Vai Trò (RBAC) & Đơn Vị Trường Học
-**Description:** Khai báo bảng `users`, `roles`, `institutions` hỗ trợ mô hình Multi-tenant cách ly dữ liệu giữa các trường học.
+### Task GM-01: [ ] ORM Model `Classroom` & `StudentRoster` Quản Lý Lớp Của Giáo Viên
+**Description:** Khai báo bảng `classrooms` (Lớp 12A1, 12A2...) và `students` (Danh sách học sinh gồm SBD, Họ tên) phục vụ việc vào điểm của giáo viên.
 **Acceptance criteria:**
-- [ ] Bảng `users` có trường `institution_id`, `role_id` và mật khẩu băm bcrypt.
-**Verification:** `python -c "from backend.models import User, Institution; print('OK')"`
-**Dependencies:** TS-01 | **Files:** `backend/models.py` | **Scope:** S (1 file)
+- [ ] Bảng có cấu trúc đơn giản, lưu trữ cục bộ, không cần tài khoản học sinh.
+**Verification:** `python -c "from backend.models import Classroom, Student; print('OK')"`
+**Dependencies:** None | **Files:** `backend/models.py` | **Scope:** S (1 file)
 
-### Task BL-02: [ ] Middleware Xác Thực JWT Token & Phân Quyền Thao Tác API
-**Description:** Viết middleware giải mã JWT token trong header `Authorization: Bearer <token>`, trích xuất thông tin người dùng và phân quyền theo vai trò.
+### Task GM-02: [ ] Bảng Nhập Điểm Nhanh Dạng Lưới Câu Hỏi x Học Sinh Trên Web Studio
+**Description:** Xây dựng giao diện bảng ma trận (Hàng là học sinh, Cột là các câu hỏi 1..N) cho phép giáo viên nhập nhanh câu trả lời hoặc điểm số bằng phím bấm (Tab/Enter).
 **Acceptance criteria:**
-- [ ] Trả về HTTP 401 nếu token không hợp lệ hoặc hết hạn.
-- [ ] Trả về HTTP 403 nếu tài khoản không đủ quyền thực hiện thao tác.
-**Verification:** `pytest tests/test_auth_middleware.py`
-**Dependencies:** BL-01 | **Files:** `backend/auth.py`, `backend/main.py` | **Scope:** S (2 files)
+- [ ] Tự động tính tổng điểm và xếp loại học sinh theo từng hàng ngay khi gõ.
+**Verification:** Browser check giao diện tab Chấm thi.
+**Dependencies:** GM-01, SH-01 | **Files:** `frontend/index.html`, `frontend/static/app.js` | **Scope:** S (2 files)
 
-### Task BL-03: [ ] API Đăng Nhập, Đăng Xuất & Quản Lý Thông Tin Tài Khoản
-**Description:** Cung cấp các endpoint `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`.
+### Task GM-03: [ ] Nhập / Xuất Bảng Điểm Lớp Học Từ File Excel (.xlsx / .csv)
+**Description:** Cho phép giáo viên import danh sách học sinh từ file Excel mẫu của trường, và export bảng điểm đã chấm ra file Excel để vào sổ cái.
 **Acceptance criteria:**
-- [ ] Đăng nhập thành công trả về JWT access token và refresh token.
-**Verification:** `pytest tests/test_auth_api.py`
-**Dependencies:** BL-02 | **Files:** `backend/routers/auth.py` | **Scope:** S (1 file)
+- [ ] Đọc và ghi file Excel chuẩn định dạng mở được trên Microsoft Excel không bị lỗi font tiếng Việt.
+**Verification:** `pytest tests/test_excel_roster_import_export.py`
+**Dependencies:** GM-02 | **Files:** `backend/routers/grading.py`, `backend/services/excel_exporter.py` | **Scope:** S (2 files)
 
-### Task BL-04: [ ] Giao Diện Phê Duyệt Câu Hỏi Dành Riêng Cho Tổ Trưởng Chuyên Môn
-**Description:** Xây dựng màn hình danh sách câu hỏi ở trạng thái `PENDING_REVIEW` cho phép Tổ trưởng chuyên môn bấm "Phê duyệt" chuyển sang `APPROVED` hoặc "Yêu cầu chỉnh sửa".
+### Task GM-04: [ ] Module OMR: Thuật Toán OpenCV Căn Chỉnh 4 Điểm Mốc Phiếu Thi 2025
+**Description:** Viết module xử lý ảnh OpenCV tự động tìm 4 mốc định vị vuông ở 4 góc của phiếu trả lời trắc nghiệm, nắn thẳng ảnh chụp (Perspective Transform) kể cả khi chụp xiên bằng điện thoại.
 **Acceptance criteria:**
-- [ ] Chỉ người dùng có vai trò `SUBJECT_LEADER` hoặc `ADMIN` mới nhìn thấy nút phê duyệt.
-**Verification:** Browser check giao diện với tài khoản Tổ trưởng.
-**Dependencies:** BL-03, IB-06 | **Files:** `frontend/index.html`, `frontend/static/app.js` | **Scope:** S (2 files)
-
-### Task BL-05: [ ] Adapter Tích Hợp Cloud Multimodal LLM (Gemini 1.5 Pro / Claude 3.5 Sonnet)
-**Description:** Viết class adapter `CloudVisionAdapter` kết nối Google Gemini API và Anthropic Claude API để xử lý ảnh đề thi phức tạp hoặc chữ viết tay.
-**Acceptance criteria:**
-- [ ] Tự động chuyển đổi sang Local Parser nếu không có kết nối internet hoặc hết quota API.
-**Verification:** `pytest tests/test_cloud_vision_adapter.py`
-**Dependencies:** AI-01 | **Files:** `backend/services/ai_parser.py`, `backend/config.py` | **Scope:** S (2 files)
-
-### Task BL-06: [ ] Adapter Tích Hợp DocTR/TrOCR Mã Nguồn Mở Cho Chữ Viết Tay
-**Description:** Tích hợp mô hình OCR mã nguồn mở DocTR chạy trực tiếp trên GPU/CPU máy chủ nội bộ để nhận diện tài liệu scan mà không gửi dữ liệu ra ngoài internet.
-**Acceptance criteria:**
-- [ ] Nhận diện chính xác văn bản tiếng Việt viết tay >= 85%.
-**Verification:** `pytest tests/test_doctr_local.py`
-**Dependencies:** AI-02 | **Files:** `backend/services/ai_parser.py` | **Scope:** S (1 file)
-
-### Task BL-07: [ ] CSDL & REST API Quản Lý Ca Thi Trực Tuyến (CBT Session)
-**Description:** Khai báo bảng `cbt_exams`, `cbt_candidates`, `cbt_submissions` và các API mở/đóng ca thi, sinh mã dự thi ngẫu nhiên cho học sinh.
-**Acceptance criteria:**
-- [ ] Mỗi thí sinh được gán ngẫu nhiên 1 mã đề hoán vị trong ca thi.
-**Verification:** `pytest tests/test_cbt_management.py`
-**Dependencies:** SH-06, BL-01 | **Files:** `backend/models.py`, `backend/routers/cbt.py` | **Scope:** S (2 files)
-
-### Task BL-08: [ ] Giao Diện Học Sinh Làm Bài Thi Trực Tuyến Với Đồng Hồ Đếm Ngược
-**Description:** Xây dựng trang web thi độc lập (`cbt_taker.html`) hiển thị câu hỏi, bộ đếm ngược thời gian thi, và thanh tiến độ hoàn thành các câu hỏi.
-**Acceptance criteria:**
-- [ ] Tự động nộp bài khi thời gian đếm ngược về 00:00.
-**Verification:** Browser visual inspection tại trang làm bài thi học sinh.
-**Dependencies:** BL-07 | **Files:** `frontend/cbt_taker.html`, `frontend/static/cbt_app.js` | **Scope:** M (2 files)
-
-### Task BL-09: [ ] WebSocket Đồng Bộ Câu Trả Lời Học Sinh Mỗi 15 Giây
-**Description:** Kết nối WebSocket hai chiều giữa trình duyệt thí sinh và máy chủ, tự động lưu câu trả lời mỗi 15 giây chống mất bài khi mất mạng.
-**Acceptance criteria:**
-- [ ] Khi rớt mạng, lưu tạm vào LocalStorage và tự động đồng bộ lại khi có mạng trở lại.
-**Verification:** Giả lập ngắt mạng trong quá trình thi và kiểm tra phục hồi bài làm.
-**Dependencies:** BL-08 | **Files:** `backend/routers/cbt.py`, `frontend/static/cbt_app.js` | **Scope:** S (2 files)
-
-### Task BL-10: [ ] Module Ghi Nhận Vi Phạm Thi Cử (Chuyển Tab Trình Duyệt)
-**Description:** Bắt sự kiện `visibilitychange` và `window.onblur`, đếm số lần học sinh chuyển tab hoặc mở ứng dụng khác và gửi cảnh báo về màn hình giám thị.
-**Acceptance criteria:**
-- [ ] Hiển thị thông báo cảnh báo thí sinh và ghi log vi phạm vào CSDL.
-**Verification:** Browser check: bấm Alt+Tab, hệ thống ghi nhận vi phạm.
-**Dependencies:** BL-08 | **Files:** `frontend/static/cbt_app.js`, `backend/models.py` | **Scope:** S (2 files)
-
-### Task BL-11: [ ] Thuật Toán OpenCV Căn Chỉnh 4 Điểm Mốc Định Vị Phiếu Trắc Nghiệm 2025
-**Description:** Viết module xử lý ảnh OpenCV tự động tìm 4 dấu mốc vuông ở 4 góc của phiếu trả lời trắc nghiệm, thực hiện phép biến đổi phối cảnh (Perspective Transform) để nắn thẳng ảnh chụp.
-**Acceptance criteria:**
-- [ ] Nắn thẳng chính xác ảnh chụp bị nghiêng tối đa 30 độ.
+- [ ] Nắn thẳng chính xác ảnh chụp phiếu thi bị nghiêng tối đa 30 độ.
 **Verification:** `pytest tests/test_omr_alignment.py`
 **Dependencies:** None | **Files:** `backend/services/omr_engine.py` | **Scope:** S (1 file)
 
-### Task BL-12: [ ] Thuật Toán Nhận Diện Điểm Tô Đen Bút Chì 2B Trên Phiếu OMR
-**Description:** Quét ngưỡng sáng tối (Adaptive Thresholding) tại các tọa độ ô tròn đáp án để phát hiện ô nào được thí sinh tô đen bút chì 2B cho cả 3 phần thi.
+### Task GM-05: [ ] Module OMR: Nhận Diện Điểm Tô Chì 2B Cho 3 Phần Thi
+**Description:** Quét ngưỡng sáng tối (Adaptive Thresholding) tại các tọa độ ô tròn để phát hiện ô tô chì 2B cho: Phần I (A,B,C,D), Phần II (Đúng/Sai a,b,c,d), Phần III (Tô 4 chữ số).
 **Acceptance criteria:**
 - [ ] Độ chính xác nhận diện điểm tô đen đạt >= 99.5%.
 **Verification:** `pytest tests/test_omr_bubble_detection.py`
-**Dependencies:** BL-11 | **Files:** `backend/services/omr_engine.py` | **Scope:** S (1 file)
+**Dependencies:** GM-04 | **Files:** `backend/services/omr_engine.py` | **Scope:** S (1 file)
 
-### Task BL-13: [ ] API Nhận Ảnh Phiếu Trắc Nghiệm Và Trả Về Điểm Số Tự Động
-**Description:** Endpoint `POST /api/v1/omr/grade` nhận ảnh phiếu thi, gọi module OMR chấm điểm theo mã đề và trả về bảng điểm chi tiết của thí sinh.
+### Task GM-06: [ ] API `POST /api/v1/grading/scan-omr` Chấm Tự Động Theo Mã Đề
+**Description:** Endpoint nhận ảnh chụp phiếu thi của học sinh, tự động đọc mã đề thi (e.g. 101), đối chiếu đáp án với `ExamVariant`, áp dụng RULE-01 chấm điểm lũy tiến và trả về điểm số chi tiết.
 **Acceptance criteria:**
-- [ ] Tự động áp dụng quy tắc chấm lũy tiến RULE-01 cho Phần II.
+- [ ] Trả về điểm từng phần và tổng điểm trong thời gian < 500ms cho 1 phiếu thi.
 **Verification:** `pytest tests/test_omr_api.py`
-**Dependencies:** BL-12, SH-02 | **Files:** `backend/routers/grading.py` | **Scope:** S (1 file)
+**Dependencies:** GM-05, SH-02 | **Files:** `backend/routers/grading.py` | **Scope:** S (1 file)
 
-### Task BL-14: [ ] Viết Multi-Stage Dockerfile Cho Ứng Dụng Quesy
-**Description:** Viết file `Dockerfile` gồm build stage và runtime stage nhỏ gọn, bảo mật với tài khoản non-root user và cài đặt đầy đủ các gói phụ thuộc.
+### Task GM-07: [ ] Giao Diện Chấm Thi Trực Tiếp Bằng Webcam / Camera Máy Tính Giáo Viên
+**Description:** Tích hợp trình xem camera thời gian thực trên Web Studio: giáo viên giơ phiếu thi trước camera máy tính, hệ thống tự động phát hiện phiếu, chụp và chấm điểm tức thì.
 **Acceptance criteria:**
-- [ ] Build thành công Docker image với dung lượng < 600MB.
-**Verification:** `docker build -t quesy-app:latest .`
-**Dependencies:** SO-01 | **Files:** `Dockerfile`, `.dockerignore` | **Scope:** S (2 files)
+- [ ] Âm thanh thông báo (beep) khi chấm xong 1 phiếu và hiển thị điểm số trên màn hình.
+**Verification:** Browser check bật camera và thử nghiệm với phiếu thi in giấy.
+**Dependencies:** GM-06 | **Files:** `frontend/index.html`, `frontend/static/app.js` | **Scope:** S (2 files)
 
-### Task BL-15: [ ] Viết File `docker-compose.yml` Tích Hợp Postgres & Redis
-**Description:** Khai báo cấu hình `docker-compose.yml` khởi chạy ứng dụng cùng cơ sở dữ liệu PostgreSQL (kèm extension `pgvector`) và Redis Cache.
+### Task GM-08: [ ] Biểu Đồ Thống Kê Phân Phổ Điểm Lớp Học (Histogram & Điểm TB)
+**Description:** Hiển thị biểu đồ phân bố điểm số (phổ điểm từ 0 đến 10), tính điểm trung bình, điểm trung vị, độ lệch chuẩn và tỷ lệ học sinh đạt điểm giỏi/khá/trung bình/yếu.
 **Acceptance criteria:**
-- [ ] Lệnh `docker compose up -d` khởi động toàn bộ dịch vụ và vượt qua healthcheck.
+- [ ] Biểu đồ trực quan, cập nhật tự động ngay khi có bài chấm mới.
+**Verification:** Browser check đồ thị phổ điểm trên tab Thống kê khảo thí.
+**Dependencies:** GM-02, AN-01 | **Files:** `frontend/index.html`, `frontend/static/app.js` | **Scope:** S (2 files)
+
+### Task AI-08: [ ] Adapter Kết Nối Cloud Vision API (Gemini 1.5 / Claude) Cho Đề Thi Mờ
+**Description:** Tùy chọn cho phép giáo viên nhập API Key cá nhân để hỗ trợ bóc tách các đề thi photo bị mờ hoặc công thức viết tay phức tạp.
+**Acceptance criteria:**
+- [ ] Giáo viên có thể bật/tắt Cloud Vision trong cài đặt cá nhân.
+- [ ] Không phụ thuộc bắt buộc: vẫn chạy hoàn hảo offline với local parser.
+**Verification:** `pytest tests/test_cloud_vision_adapter.py`
+**Dependencies:** AI-01 | **Files:** `backend/services/ai_parser.py`, `backend/config.py` | **Scope:** S (2 files)
+
+### Task AI-09: [ ] Adapter DocTR Cục Bộ Hỗ Trợ OCR Offline Không Cần Mạng
+**Description:** Tích hợp mô hình OCR mã nguồn mở DocTR/TrOCR chạy trực tiếp trên máy tính của giáo viên để nhận diện tài liệu scan mà không cần kết nối internet.
+**Acceptance criteria:**
+- [ ] Bóc tách chữ tiếng Việt có dấu ngoại tuyến hoàn toàn.
+**Verification:** `pytest tests/test_doctr_local.py`
+**Dependencies:** AI-02 | **Files:** `backend/services/ai_parser.py` | **Scope:** S (1 file)
+
+### Task PK-01: [ ] Đóng Gói Ứng Dụng Chạy Cục Bộ 1-Click (.bat / .exe) Cho Giáo Viên
+**Description:** Viết file chạy `Chay_Quesy.bat` hoặc đóng gói PyInstaller tạo file chạy độc lập giúp giáo viên mở ứng dụng bằng 1 cú nhấp chuột mà không cần mở terminal dòng lệnh.
+**Acceptance criteria:**
+- [ ] Click đúp vào file là trình duyệt tự động mở `http://127.0.0.1:8000`.
+**Verification:** Chạy thử nghiệm file batch trên máy tính Windows.
+**Dependencies:** SO-01 | **Files:** `Chay_Quesy.bat` | **Scope:** XS (1 file)
+
+### Task PK-02: [ ] Viết Dockerfile Đa Tầng & docker-compose Cho Máy Tính Giáo Viên
+**Description:** Viết file `Dockerfile` và `docker-compose.yml` nhỏ gọn phục vụ giáo viên muốn chạy hệ thống qua Docker Desktop.
+**Acceptance criteria:**
+- [ ] Khởi chạy toàn bộ hệ thống bằng 1 lệnh `docker compose up -d`.
 **Verification:** `docker compose config`
-**Dependencies:** BL-14 | **Files:** `docker-compose.yml` | **Scope:** S (1 file)
+**Dependencies:** SO-01 | **Files:** `Dockerfile`, `docker-compose.yml` | **Scope:** S (2 files)
 
-### Task BL-16: [ ] Thiết Lập Pipeline GitHub Actions CI Tự Động Chạy Kiểm Thử Khi PR/Push
-**Description:** Tạo file workflow `.github/workflows/ci.yml` tự động thiết lập môi trường Python, cài đặt dependencies và chạy toàn bộ 39 bài test tự động mỗi khi có code mới.
+### Task PK-03: [ ] Thiết Lập Pipeline GitHub Actions CI Tự Động Kiểm Thử
+**Description:** Tạo file workflow `.github/workflows/ci.yml` tự động chạy 39 test cases mỗi khi giáo viên cập nhật mã nguồn lên GitHub.
 **Acceptance criteria:**
-- [ ] Workflow chạy tự động và báo trạng thái xanh khi toàn bộ test cases pass.
+- [ ] Tự động kiểm thử và báo xanh khi toàn bộ tests pass.
 **Verification:** Kiểm tra tab Actions trên GitHub repository.
 **Dependencies:** SO-04 | **Files:** `.github/workflows/ci.yml` | **Scope:** XS (1 file)
