@@ -13,8 +13,8 @@
 │                 TIẾN ĐỘ PHÂN RÃ VI MÔ HỆ THỐNG GIÁO VIÊN QUESY              │
 │  [███████████████████████████████████████████████████████░░░░░░░░] 76.4%    │
 │                                                                             │
-│  • Tổng số công việc vi mô (Micro-Tasks):  55 Tasks                         │
-│  • Đã hoàn thành & Đã kiểm thử (Done):     42 Tasks (100% Cốt lõi) [x]      │
+│  • Tổng số công việc vi mô (Micro-Tasks):  56 Tasks                         │
+│  • Đã hoàn thành & Đã kiểm thử (Done):     43 Tasks (100% Cốt lõi) [x]      │
 │  • Kế hoạch mở rộng (Roadmap / Backlog):   13 Tasks (Chấm OMR, Excel & PK)  │
 │  • Tỷ lệ kiểm thử tự động (Test Suite):    39 / 39 Tests (100% Passed)      │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -96,6 +96,7 @@ Bảng phân rã chi tiết từng chức năng nhỏ (Atomic Single Responsibil
 | **66** | `EX-09` | `[EXPORT-PDF] API GET /api/v1/exams/{id}/export-pdf tải lẻ file PDF` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, pdf` | S |
 | **67** | `EX-10` | `[EXPORT-ZIP] API GET /api/v1/exams/{id}/export-zip hỗ trợ all/docx/pdf` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, zip` | S |
 | **68** | `EX-11` | `[FRONTEND] Cơ chế tải Blob Client-side dập tắt lỗi Unknown Server Error` | **Done [x]** | `Phase 6: Publishing & Operations` | `frontend, blob, download` | S |
+| **69** | `EX-12` | `[EXPORT-OMR] Xuất bản Mẫu Phiếu trả lời trắc nghiệm OMR trắng 2025` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, omr, export` | S |
 | **69** | `SO-01` | `[SERVER] Script start_server.py tự động giải phóng socket cổng 8000` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, socket, devops` | S |
 | **70** | `SO-02` | `[SERVER] Route /favicon.ico trả về HTTP 204 chống lỗi console` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, favicon` | XS |
 | **71** | `SO-03` | `[FRONTEND] Bổ sung cache-buster ?v=... chống lưu cache script cũ` | **Done [x]** | `Phase 6: Publishing & Operations` | `frontend, cache-buster, html` | XS |
@@ -110,7 +111,7 @@ Bảng phân rã chi tiết từng chức năng nhỏ (Atomic Single Responsibil
 | **80** | `GM-08` | `[ANALYTICS] Biểu đồ thống kê phân phổ điểm lớp học (Histogram & Điểm TB)` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `frontend, chart, analytics` | S |
 | **81** | `AI-08` | `[OCR] Adapter Cloud Vision API (Gemini 1.5/Claude) cho đề thi mờ` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `backend, ai, cloud` | S |
 | **82** | `AI-09` | `[OCR] Adapter DocTR cục bộ hỗ trợ OCR offline không cần mạng` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `backend, ocr, local` | S |
-| **83** | `PK-01` | `[DESKTOP] Đóng gói ứng dụng chạy cục bộ 1-click (.bat/.exe) cho giáo viên` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `devops, desktop, launcher` | XS |
+| **84** | `PK-01` | `[WEB-PWA] Hỗ trợ chế độ Web Ngoại tuyến (Offline PWA / Service Worker)` | **Todo [ ]** | `Phase 7: Web Teacher Grading` | `frontend, pwa, offline` | S |
 | **84** | `PK-02` | `[DEVOPS] Viết Dockerfile đa tầng & docker-compose cho máy tính giáo viên` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `devops, docker, container` | S |
 | **85** | `PK-03` | `[DEVOPS] Thiết lập pipeline GitHub Actions CI tự động kiểm thử` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `devops, github-actions, ci` | XS |
 

@@ -1141,6 +1141,110 @@ try {{
     return False
 
 
+def generate_omr_bubble_sheet_pdf(output_pdf: Path) -> bool:
+    """Generates official 2025 OMR Answer Bubble Sheet PDF for students to fill in."""
+    try:
+        register_vietnamese_fonts()
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib import colors
+
+        doc = SimpleDocTemplate(str(output_pdf), pagesize=A4, leftMargin=36, rightMargin=36, topMargin=25, bottomMargin=25)
+        font_main = 'TimesNewRoman' if 'TimesNewRoman' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
+        font_bold = 'TimesNewRoman-Bold' if 'TimesNewRoman-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'
+        font_italic = 'TimesNewRoman-Italic' if 'TimesNewRoman-Italic' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Oblique'
+
+        style_title = ParagraphStyle('Title', fontName=font_bold, fontSize=12.5, alignment=1)
+        style_sub = ParagraphStyle('Sub', fontName=font_main, fontSize=9.5, alignment=1)
+        style_sec = ParagraphStyle('Sec', fontName=font_bold, fontSize=10, textColor=colors.HexColor('#002b49'))
+        style_cell = ParagraphStyle('Cell', fontName=font_main, fontSize=8.5, alignment=1)
+
+        story = [
+            Paragraph("<b>BỘ GIÁO DỤC VÀ ĐÀO TẠO</b>", style_sub),
+            Paragraph("<b>PHIẾU TRẢ LỜI TRẮC NGHIỆM (ĐỊNH DẠNG TỪ NĂM 2025)</b>", style_title),
+            Paragraph("<i>Dùng bút chì 2B để tô kín các ô tròn tương ứng với phương án lựa chọn</i>", style_sub),
+            Spacer(1, 6)
+        ]
+
+        info_data = [
+            [
+                Paragraph("Họ và tên: .................................................... Lớp: .........................<br/>Ngày sinh: ......./......./...........   SBD: .........................<br/>Hội đồng thi: .........................................................", style_cell),
+                Paragraph("<b>SỐ BÁO DANH</b><br/>[ &nbsp; ][ &nbsp; ][ &nbsp; ][ &nbsp; ][ &nbsp; ][ &nbsp; ]<br/><b>MÃ ĐỀ THI</b><br/>[ &nbsp; ][ &nbsp; ][ &nbsp; ]", style_cell)
+            ]
+        ]
+        t_info = Table(info_data, colWidths=[365, 155])
+        t_info.setStyle(TableStyle([
+            ('BOX', (0,0), (-1,-1), 1, colors.black),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#999999')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ]))
+        story.append(t_info)
+        story.append(Spacer(1, 8))
+
+        story.append(Paragraph("<b>PHẦN I: THÍ SINH CHỌN MỘT PHƯƠNG ÁN TRẢ LỜI (Từ câu 1 đến câu 12)</b>", style_sec))
+        p1_data = [["Câu", "Phương án", "Câu", "Phương án"]]
+        for i in range(1, 7):
+            p1_data.append([str(i), "[A]   [B]   [C]   [D]", str(i+6), "[A]   [B]   [C]   [D]"])
+        t_p1 = Table(p1_data, colWidths=[40, 220, 40, 220])
+        t_p1.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,-1), font_main),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('TOPPADDING', (0,0), (-1,-1), 2),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ]))
+        story.append(t_p1)
+        story.append(Spacer(1, 8))
+
+        story.append(Paragraph("<b>PHẦN II: THÍ SINH CHỌN ĐÚNG HOẶC SAI TRONG MỖI Ý a), b), c), d) (Từ câu 1 đến câu 4)</b>", style_sec))
+        p2_data = [["Câu", "Ý a", "Ý b", "Ý c", "Ý d"]]
+        for i in range(1, 5):
+            p2_data.append([f"Câu {i}", "[Đ]  [S]", "[Đ]  [S]", "[Đ]  [S]", "[Đ]  [S]"])
+        t_p2 = Table(p2_data, colWidths=[65, 113, 114, 114, 114])
+        t_p2.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,-1), font_main),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('TOPPADDING', (0,0), (-1,-1), 2),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+        ]))
+        story.append(t_p2)
+        story.append(Spacer(1, 8))
+
+        story.append(Paragraph("<b>PHẦN III: THÍ SINH VIẾT VÀ TÔ KẾT QUẢ VÀO Ô ĐÁP SỐ (Từ câu 1 đến câu 6)</b>", style_sec))
+        p3_data = [
+            ["Câu", "Đáp số", "Câu", "Đáp số"],
+            ["1", "[ - ] [ , ] [ 0 ] [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ] [ 6 ] [ 7 ] [ 8 ] [ 9 ]", "4", "[ - ] [ , ] [ 0 ] [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ] [ 6 ] [ 7 ] [ 8 ] [ 9 ]"],
+            ["2", "[ - ] [ , ] [ 0 ] [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ] [ 6 ] [ 7 ] [ 8 ] [ 9 ]", "5", "[ - ] [ , ] [ 0 ] [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ] [ 6 ] [ 7 ] [ 8 ] [ 9 ]"],
+            ["3", "[ - ] [ , ] [ 0 ] [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ] [ 6 ] [ 7 ] [ 8 ] [ 9 ]", "6", "[ - ] [ , ] [ 0 ] [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ] [ 6 ] [ 7 ] [ 8 ] [ 9 ]"],
+        ]
+        t_p3 = Table(p3_data, colWidths=[35, 225, 35, 225])
+        t_p3.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,-1), font_main),
+            ('FONTSIZE', (0,0), (-1,-1), 8),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ]))
+        story.append(t_p3)
+
+        doc.build(story)
+        return output_pdf.exists() and output_pdf.stat().st_size > 1000
+    except Exception as e:
+        logger.warning(f"ReportLab OMR Bubble Sheet PDF failed: {e}")
+        return False
+
+
 def export_single_variant_pdf(variant: ExamVariant, output_path: Path) -> Path:
     """Generates an official PDF directly for a single exam variant."""
     success = generate_variant_pdf(variant, output_path)
@@ -1224,6 +1328,11 @@ def export_exam_package_zip(
             matrix_pdf = temp_dir / "BangDapAn_TongHop.pdf"
             generate_answer_sheet_pdf(master, variants, matrix_pdf)
             generated_pdf_files.append(matrix_pdf)
+
+            # Generate Blank 2025 OMR Bubble Sheet for student testing
+            omr_pdf = temp_dir / "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf"
+            generate_omr_bubble_sheet_pdf(omr_pdf)
+            generated_pdf_files.append(omr_pdf)
 
         # 3. Create ZIP archive based on requested format
         files_to_zip = []

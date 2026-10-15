@@ -105,6 +105,7 @@
 - [x] **EX-09:** API `GET /api/v1/exams/{id}/export-pdf` (Tải lẻ file PDF)
 - [x] **EX-10:** API `GET /api/v1/exams/{id}/export-zip` hỗ trợ `format=all|docx|pdf`
 - [x] **EX-11:** Cơ chế tải Blob Client-side dập tắt lỗi *Failed - Unknown server error*
+- [x] **EX-12:** Xuất bản Mẫu Phiếu trả lời trắc nghiệm OMR 2025 trắng (.pdf) đính kèm trong gói ZIP
 - [x] **SO-01:** Script `start_server.py` tự động phát hiện và giải phóng socket cổng 8000
 - [x] **SO-02:** Route `/favicon.ico` trả về HTTP 204 chống lỗi console
 - [x] **SO-03:** Bổ sung cache-buster `?v=...` chống lưu cache script cũ trên trình duyệt
@@ -121,6 +122,6 @@
 - [ ] **GM-08:** Biểu đồ thống kê phân phổ điểm lớp học (Histogram, Điểm TB, Độ lệch chuẩn)
 - [ ] **AI-08:** Adapter kết nối Cloud Vision API (Gemini 1.5 / Claude) cho đề viết tay / ảnh mờ
 - [ ] **AI-09:** Adapter DocTR cục bộ hỗ trợ OCR offline không cần mạng internet
-- [ ] **PK-01:** Đóng gói ứng dụng chạy cục bộ 1-click (.bat / .exe launcher) cho giáo viên
+- [ ] **PK-01:** Hỗ trợ chế độ Web Ngoại tuyến (Offline PWA / Service Worker) trên trình duyệt
 - [ ] **PK-02:** Viết Multi-stage Dockerfile & docker-compose cho máy tính giáo viên
 - [ ] **PK-03:** Thiết lập pipeline GitHub Actions CI tự động chạy kiểm thử khi PR/Push

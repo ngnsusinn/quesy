@@ -528,6 +528,14 @@
 **Verification:** Real Browser CDP test: toàn bộ các nút tải đều thành công không còn lỗi ngắt kết nối.
 **Dependencies:** EX-08, EX-09, EX-10 | **Files:** `frontend/static/app.js` | **Scope:** S (1 file)
 
+### Task EX-12: [DONE] Xuất Bản Mẫu Phiếu Trả Lời Trắc Nghiệm Trống Chuẩn 2025
+**Description:** Xây dựng hàm `generate_omr_bubble_sheet_pdf` tự động kết xuất phiếu trả lời trắc nghiệm chuẩn 3 phần (Phần I - 12 câu, Phần II - 4 câu Đúng/Sai, Phần III - 6 câu trả lời ngắn) và đóng gói vào gói ZIP tải về để giáo viên in phát cho học sinh.
+**Acceptance criteria:**
+- [x] Phiếu OMR định dạng A4 chuẩn mực, có khung phách SBD và Mã đề thi.
+- [x] Tự động đính kèm tệp `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf` trong gói ZIP tải về.
+**Verification:** `python -c "import zipfile, io; from backend.main import app; from fastapi.testclient import TestClient; res=TestClient(app).get('/api/v1/exams/default/export-zip?format=pdf'); assert 'Phieu_Tra_Loi_Trac_Nghiem_2025.pdf' in zipfile.ZipFile(io.BytesIO(res.content)).namelist()"`
+**Dependencies:** EX-04, EX-10 | **Files:** `backend/services/docx_exporter.py` | **Scope:** S (1 file)
+
 ### Task SO-01: [DONE] Script `start_server.py` Tự Động Giải Phóng Socket Cổng 8000
 **Description:** Nâng cấp script khởi động hệ thống tự kiểm tra lỗi `WinError 10048`, tra cứu PID chiếm dụng qua netstat và giải phóng cổng trước khi khởi chạy uvicorn.
 **Acceptance criteria:**
@@ -558,7 +566,7 @@
 
 ---
 
-## Phase 7: Phân Hệ Chấm Thi Giáo Viên & Mở Rộng Trợ Lý OCR (Roadmap / Backlog)
+## Phase 7: Phân Hệ Chấm Thi & Thống Kê Điểm Trực Tiếp Trên Web Studio (Roadmap / Backlog)
 
 ### Task GM-01: [ ] ORM Model `Classroom` & `StudentRoster` Quản Lý Lớp Của Giáo Viên
 **Description:** Khai báo bảng `classrooms` (Lớp 12A1, 12A2...) và `students` (Danh sách học sinh gồm SBD, Họ tên) phục vụ việc vào điểm của giáo viên.
@@ -631,12 +639,12 @@
 **Verification:** `pytest tests/test_doctr_local.py`
 **Dependencies:** AI-02 | **Files:** `backend/services/ai_parser.py` | **Scope:** S (1 file)
 
-### Task PK-01: [ ] Đóng Gói Ứng Dụng Chạy Cục Bộ 1-Click (.bat / .exe) Cho Giáo Viên
-**Description:** Viết file chạy `Chay_Quesy.bat` hoặc đóng gói PyInstaller tạo file chạy độc lập giúp giáo viên mở ứng dụng bằng 1 cú nhấp chuột mà không cần mở terminal dòng lệnh.
+### Task PK-01: [ ] Hỗ Trợ Chế Độ Web Ngoại Tuyến (Offline PWA / Service Worker) Trên Trình Duyệt
+**Description:** Thiết lập Service Worker và Manifest cho Web Studio để giáo viên có thể mở và sử dụng toàn bộ tính năng số hóa, ngân hàng câu hỏi ngay trên trình duyệt mà không cần kết nối internet.
 **Acceptance criteria:**
-- [ ] Click đúp vào file là trình duyệt tự động mở `http://127.0.0.1:8000`.
-**Verification:** Chạy thử nghiệm file batch trên máy tính Windows.
-**Dependencies:** SO-01 | **Files:** `Chay_Quesy.bat` | **Scope:** XS (1 file)
+- [ ] Giao diện Web Studio lưu cache ngoại tuyến và mở được ngay cả khi ngắt kết nối mạng.
+**Verification:** Kiểm tra Offline mode trong tab Application của Chrome DevTools.
+**Dependencies:** SO-03 | **Files:** `frontend/sw.js`, `frontend/manifest.json` | **Scope:** S (2 files)
 
 ### Task PK-02: [ ] Viết Dockerfile Đa Tầng & docker-compose Cho Máy Tính Giáo Viên
 **Description:** Viết file `Dockerfile` và `docker-compose.yml` nhỏ gọn phục vụ giáo viên muốn chạy hệ thống qua Docker Desktop.

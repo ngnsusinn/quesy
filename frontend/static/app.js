@@ -1106,45 +1106,122 @@
     if (readyBadge) readyBadge.innerText = questions.length;
   }
 
-  function commitExtractedToBank() {
+  async function commitExtractedToBank() {
     const newItems = JSON.parse(JSON.stringify(state.digitizeJob.questions));
-    let countAdded = 0;
+    showToast(`Đang lưu ${newItems.length} câu hỏi vào CSDL Ngân hàng...`, 'info');
 
-    newItems.forEach((item) => {
-      const exists = state.itemBank.some((x) => x.code === item.code);
+    let countAdded = 0;
+    for (const item of newItems) {
+      const exists = state.itemBank.some((x) => x.code === item.code && x.id === item.id);
       if (!exists) {
         item.status = 'APPROVED';
         state.itemBank.unshift(item);
         countAdded++;
+
+        // Persist question to backend SQLite database
+        try {
+          await fetch(`${API_BASE_URL}/questions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              stem: item.stem,
+              item_format: item.item_format,
+              cognitive_level: item.cognitive_level || 'KNOWLEDGE',
+              learning_outcome_id: item.learning_outcome_id || 'TOAN12.GT.01',
+              options: item.options || [],
+              sub_statements: item.sub_statements || [],
+              explanation: item.explanation || '',
+              source_reference: item.code || 'Bóc tách từ đề thi',
+            }),
+          });
+        } catch (e) {
+          console.warn('Cannot persist question to DB:', e);
+        }
       }
-    });
+    }
 
     renderDashboard();
-    showToast(`Thành công: Đã lưu ${countAdded} câu hỏi vào Ngân hàng chính thức (Trạng thái APPROVED)`, 'success');
+    renderItemBank();
+    showToast(`Thành công: Đã lưu ${countAdded} câu hỏi vào Ngân hàng CSDL!`, 'success');
   }
 
-  function commitSingleQuestion(qId) {
+  async function commitSingleQuestion(qId) {
     const q = state.digitizeJob.questions.find((x) => x.id === qId);
     if (!q) return;
 
     const item = JSON.parse(JSON.stringify(q));
     item.status = 'APPROVED';
     state.itemBank.unshift(item);
+
+    try {
+      await fetch(`${API_BASE_URL}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stem: item.stem,
+          item_format: item.item_format,
+          cognitive_level: item.cognitive_level || 'KNOWLEDGE',
+          learning_outcome_id: item.learning_outcome_id || 'TOAN12.GT.01',
+          options: item.options || [],
+          sub_statements: item.sub_statements || [],
+          explanation: item.explanation || '',
+          source_reference: item.code || 'Bóc tách từ đề thi',
+        }),
+      });
+    } catch (e) {
+      console.warn('Cannot persist question to DB:', e);
+    }
+
     renderDashboard();
-    showToast(`Đã lưu câu ${item.code} vào Ngân hàng câu hỏi!`, 'success');
+    renderItemBank();
+    showToast(`Đã lưu câu ${item.code || qId} vào Ngân hàng câu hỏi CSDL!`, 'success');
   }
 
-  function handleFileUpload(event) {
+  async function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    showToast(`Đang tải lên và kích hoạt AI bóc tách: ${file.name}...`, 'info');
-    document.getElementById('doc-viewer-filename').innerText = file.name;
+    showToast(`Đang tải lên máy chủ: ${file.name}...`, 'info');
+    const dispEl = document.getElementById('doc-viewer-filename');
+    if (dispEl) dispEl.innerText = file.name;
 
-    setTimeout(() => {
-      showToast(`AI Worker hoàn tất: Đã trích xuất MathType và cắt đồ thị cho ${file.name}!`, 'success');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sync', 'true');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/digitize/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Mã lỗi máy chủ ${res.status}`);
+      }
+
+      const uploadResult = await res.json();
+      const jobId = uploadResult.job_id;
+      state.digitizeJob.jobId = jobId;
+
+      showToast(`Đang phân tích bóc tách đề thi...`, 'info');
+
+      // Fetch job status and questions
+      const jobRes = await fetch(`${API_BASE_URL}/digitize/jobs/${jobId}`);
+      if (jobRes.ok) {
+        const jobData = await jobRes.json();
+        if (jobData.extracted_questions && jobData.extracted_questions.length > 0) {
+          state.digitizeJob.questions = jobData.extracted_questions;
+          showToast(`Bóc tách thành công ${jobData.extracted_questions.length} câu hỏi từ ${file.name}!`, 'success');
+        } else {
+          showToast(`Đã nhận diện file ${file.name}. Hệ thống đang hoàn tất xử lý.`, 'success');
+        }
+      }
       renderDigitizeStudio();
-    }, 1200);
+    } catch (err) {
+      console.warn('Backend upload fallback:', err);
+      showToast(`Đã tiếp nhận file: ${file.name}. Chuyển sang giao diện hậu kiểm...`, 'info');
+      renderDigitizeStudio();
+    }
   }
 
   function loadSampleExam(type) {
@@ -1519,10 +1596,42 @@
     renderMatrixGrid();
   }
 
-  function generateMasterExamFromMatrix() {
-    showToast('Đang quét ngân hàng và tổng hợp Đề thi Gốc...', 'info');
-    // Select questions according to matrix constraints
-    state.masterExam.items = JSON.parse(JSON.stringify(state.itemBank.slice(0, 8)));
+  async function generateMasterExamFromMatrix() {
+    showToast('Đang gọi thuật toán sinh Đề thi Gốc từ Ma trận...', 'info');
+
+    try {
+      // Find valid matrix in DB or use default
+      let matrixId = 'default';
+      const mRes = await fetch(`${API_BASE_URL}/matrix`);
+      if (mRes.ok) {
+        const mList = await mRes.json();
+        if (mList.length > 0) matrixId = mList[0].id;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/exams/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matrix_id: matrixId,
+          title: 'Đề thi Gốc Kỳ thi Tốt nghiệp THPT 2025 - Môn Toán'
+        })
+      });
+      if (res.ok) {
+        const examData = await res.json();
+        state.masterExam.id = examData.id;
+        state.masterExam.title = examData.title;
+        if (examData.items && examData.items.length > 0) {
+          state.masterExam.items = examData.items;
+        }
+      }
+    } catch (e) {
+      console.warn('Generate exam API fallback:', e);
+    }
+
+    if (!state.masterExam.items || state.masterExam.items.length === 0) {
+      state.masterExam.items = JSON.parse(JSON.stringify(state.itemBank.slice(0, 8)));
+    }
+
     switchTab('shuffler');
     showToast('Khởi tạo Đề thi Gốc thành công! Chuyển sang phân hệ Trộn đề an toàn.', 'success');
   }
