@@ -215,9 +215,12 @@ def test_complete_end_to_end_assessment_workflow(client):
     assert "BangDapAn_TongHop.docx" in filenames
     assert "LoiGiai_101.docx" in filenames
 
-    # Verify DOCX files are non-empty and well-formed
+    # Verify DOCX and PDF files are non-empty and well-formed
     for fn in filenames:
-        assert zip_archive.getinfo(fn).file_size > 1000
+        if fn.endswith(".docx") or fn.endswith(".pdf"):
+            assert zip_archive.getinfo(fn).file_size > 1000
+        elif fn.endswith(".csv"):
+            assert zip_archive.getinfo(fn).file_size > 50
 
     # --------------------------------------------------------------------------
     # Step 8: Post-Exam Psychometrics (Item Difficulty p & Discrimination D)

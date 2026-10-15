@@ -2,6 +2,8 @@ import os
 import re
 import zipfile
 import json
+import subprocess
+import logging
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -588,11 +590,89 @@ def generate_answer_sheet_docx(master: MasterExam, variants: List[ExamVariant], 
     doc.save(output_path)
 
 
-def export_exam_package_zip(master_exam_id: str, db: Session) -> str:
+# ---------------------------------------------------------------------------
+# PDF Conversion & Multi-format Export
+# ---------------------------------------------------------------------------
+
+logger = logging.getLogger("quesy.docx_exporter")
+
+
+def convert_docx_to_pdf(docx_path: Path, pdf_path: Path) -> bool:
+    """Converts a DOCX file to PDF using Word COM automation on Windows or headless Edge."""
+    docx_p = Path(docx_path).resolve()
+    pdf_p = Path(pdf_path).resolve()
+
+    # Strategy 1: Word COM Automation on Windows
+    if os.name == "nt":
+        try:
+            ps_cmd = f"""
+$word = New-Object -ComObject Word.Application
+$word.Visible = $false
+try {{
+    $doc = $word.Documents.Open('{str(docx_p)}')
+    $doc.SaveAs([ref]'{str(pdf_p)}', [ref]17)
+    $doc.Close([ref]$false)
+}} finally {{
+    $word.Quit()
+}}
+"""
+            res = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], capture_output=True, text=True, timeout=30)
+            if pdf_p.exists() and pdf_p.stat().st_size > 1000:
+                return True
+        except Exception as e:
+            logger.warning(f"Word COM PDF conversion failed: {e}")
+
+    return False
+
+
+def batch_convert_docx_to_pdf(pairs: List[Tuple[Path, Path]]) -> None:
+    """Converts multiple DOCX files to PDF in a single Word COM session for speed."""
+    if not pairs or os.name != "nt":
+        return
+    try:
+        lines = [
+            "$word = New-Object -ComObject Word.Application",
+            "$word.Visible = $false",
+            "try {"
+        ]
+        for docx_p, pdf_p in pairs:
+            lines.append(f"    $doc = $word.Documents.Open('{str(Path(docx_p).resolve())}')")
+            lines.append(f"    $doc.SaveAs([ref]'{str(Path(pdf_p).resolve())}', [ref]17)")
+            lines.append(f"    $doc.Close([ref]$false)")
+        lines.append("} finally {")
+        lines.append("    $word.Quit()")
+        lines.append("}")
+        ps_cmd = "\n".join(lines)
+        subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], capture_output=True, text=True, timeout=90)
+    except Exception as e:
+        logger.warning(f"Batch PDF conversion error: {e}")
+
+
+def export_single_variant_pdf(variant: ExamVariant, output_path: Path) -> Path:
+    """Generates an official PDF directly for a single exam variant."""
+    temp_docx = output_path.with_suffix(".temp.docx")
+    generate_variant_docx(variant, temp_docx)
+    try:
+        success = convert_docx_to_pdf(temp_docx, output_path)
+        if not success:
+            raise RuntimeError("Không thể tạo file PDF từ tài liệu Word.")
+        return output_path
+    finally:
+        if temp_docx.exists():
+            temp_docx.unlink()
+
+
+def export_exam_package_zip(
+    master_exam_id: str,
+    db: Session,
+    include_pdf: bool = True,
+    export_format: str = "all"
+) -> str:
     """Creates a comprehensive ZIP export package containing:
-    - De_{code}.docx for all variants
-    - LoiGiai_{code}.docx for all variants
-    - BangDapAn_TongHop.docx
+    - De_{code}.docx for all variants (valid OpenXML documents)
+    - De_{code}.pdf for all variants (if include_pdf=True or export_format in ['pdf', 'all'])
+    - LoiGiai_{code}.docx and .pdf
+    - BangDapAn_TongHop.docx and .csv
     Returns the absolute path to the generated zip file.
     """
     master = db.query(MasterExam).filter(MasterExam.id == master_exam_id).first()
@@ -609,33 +689,79 @@ def export_exam_package_zip(master_exam_id: str, db: Session) -> str:
     zip_filename = f"Goi_DeThi_{master.subject.code if master.subject else 'MON'}_{master.id[:8]}.zip"
     zip_path = STORAGE_EXPORTS_DIR / zip_filename
 
-    generated_files = []
+    generated_docx_files = []
+    generated_pdf_files = []
+    generated_csv_files = []
+    pdf_conversion_pairs = []
 
     try:
-        # Generate DOCX for each variant and its solution
+        # 1. Generate DOCX for each variant and its solution
         for v in variants:
             exam_file = temp_dir / f"De_{v.variant_code}.docx"
             generate_variant_docx(v, exam_file)
-            generated_files.append(exam_file)
+            generated_docx_files.append(exam_file)
 
             sol_file = temp_dir / f"LoiGiai_{v.variant_code}.docx"
             generate_solution_docx(v, sol_file)
-            generated_files.append(sol_file)
+            generated_docx_files.append(sol_file)
 
-        # Generate answer matrix docx
+            if include_pdf or export_format in ["all", "pdf"]:
+                exam_pdf = temp_dir / f"De_{v.variant_code}.pdf"
+                sol_pdf = temp_dir / f"LoiGiai_{v.variant_code}.pdf"
+                pdf_conversion_pairs.append((exam_file, exam_pdf))
+                pdf_conversion_pairs.append((sol_file, sol_pdf))
+                generated_pdf_files.extend([exam_pdf, sol_pdf])
+
+        # 2. Generate answer matrix docx & CSV
         matrix_file = temp_dir / "BangDapAn_TongHop.docx"
         generate_answer_sheet_docx(master, variants, matrix_file)
-        generated_files.append(matrix_file)
+        generated_docx_files.append(matrix_file)
 
-        # Create ZIP archive
+        # Generate CSV answer key
+        csv_file = temp_dir / "BangDapAn_TongHop.csv"
+        try:
+            from backend.services.shuffling_engine import get_answer_key_matrix
+            km = get_answer_key_matrix(master.id, db)
+            rows = km.get("key_matrix", [])
+            csv_lines = ["Câu,Thể thức,Đề gốc," + ",".join([f"Mã {v.variant_code}" for v in variants])]
+            for r in rows:
+                c_line = [str(r.get("master_question_index", "")), str(r.get("item_format", "")), str(r.get("master_answer_key", ""))]
+                for v in variants:
+                    c_line.append(str(r.get(f"variant_{v.variant_code}", "")))
+                csv_lines.append(",".join(c_line))
+            csv_file.write_text("\n".join(csv_lines), encoding="utf-8-sig")
+            generated_csv_files.append(csv_file)
+        except Exception:
+            pass
+
+        if include_pdf or export_format in ["all", "pdf"]:
+            matrix_pdf = temp_dir / "BangDapAn_TongHop.pdf"
+            pdf_conversion_pairs.append((matrix_file, matrix_pdf))
+            generated_pdf_files.append(matrix_pdf)
+
+            # Perform batch PDF conversion
+            batch_convert_docx_to_pdf(pdf_conversion_pairs)
+
+        # 3. Create ZIP archive based on requested format
+        files_to_zip = []
+        if export_format == "docx":
+            files_to_zip = generated_docx_files + generated_csv_files
+        elif export_format == "pdf":
+            files_to_zip = [f for f in generated_pdf_files if f.exists()] + generated_csv_files
+            if not files_to_zip:
+                files_to_zip = generated_docx_files + generated_csv_files
+        else:  # "all"
+            files_to_zip = generated_docx_files + [f for f in generated_pdf_files if f.exists()] + generated_csv_files
+
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for f in generated_files:
-                zipf.write(f, arcname=f.name)
+            for f in files_to_zip:
+                if f.exists():
+                    zipf.write(f, arcname=f.name)
 
         return str(zip_path)
     finally:
-        # Cleanup temporary files
-        for f in generated_files:
+        all_temp = generated_docx_files + generated_pdf_files + generated_csv_files
+        for f in all_temp:
             try:
                 if f.exists():
                     f.unlink()

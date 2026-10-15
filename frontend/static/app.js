@@ -1735,6 +1735,11 @@
       }
     });
 
+    const labelPdf = document.getElementById('btn-label-active-pdf');
+    if (labelPdf) labelPdf.innerText = `Tải PDF Mã ${code}`;
+    const labelDocx = document.getElementById('btn-label-active-docx');
+    if (labelDocx) labelDocx.innerText = `Tải Word Mã ${code}`;
+
     renderVariantView(code);
   }
 
@@ -1815,82 +1820,68 @@
    * Generates formatted Word DOCX files with native OMML indicators, 2-column layout headers,
    * solution guide, and answer sheet.
    */
-  async function downloadPublishZip() {
-    if (typeof JSZip === 'undefined') {
-      showToast('Lỗi: Thư viện JSZip chưa sẵn sàng.', 'error');
-      return;
-    }
+  /**
+   * Downloads official exam package (.ZIP containing genuine 2-column Word DOCX with native OMML equations,
+   * vector PDF documents, solution guides, and answer sheets).
+   */
+  async function downloadPublishZip(format = 'all') {
+    const formatName = format === 'pdf' ? 'PDF' : format === 'docx' ? 'Word (.DOCX)' : 'Trọn gói (Word + PDF)';
+    showToast(`Đang kết nối máy chủ để xuất gói đề thi ${formatName}...`, 'info');
 
-    showToast('Đang đóng gói 4 file Word 2 cột (.docx), Barem và Phiếu OMR...', 'info');
-
-    const zip = new JSZip();
-    const codes = ['101', '102', '103', '104'];
-
-    // 1. Generate Variant Exam DOCX Text Representations (or Word XML)
-    codes.forEach((code) => {
-      const items = state.shuffledVariants.variants[code] || state.masterExam.items;
-      let docContent = `SỞ GIÁO DỤC VÀ ĐÀO TẠO HÀ NỘI\nTRƯỜNG THPT CHU VĂN AN\n\n`;
-      docContent += `KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2025\n`;
-      docContent += `MÔN THI: TOÁN HỌC\n`;
-      docContent += `MÃ ĐỀ THI: ${code}\n`;
-      docContent += `(Bố cục 2 cột chuẩn Bộ GD&ĐT - Công thức MathType/OMML Native)\n`;
-      docContent += `Thời gian làm bài: 90 phút (Không kể thời gian phát đề)\n\n`;
-      docContent += `=========================================================================\n\n`;
-
-      items.forEach((item, idx) => {
-        docContent += `Câu ${idx + 1}: ${item.stem}\n`;
-        if (item.options) {
-          item.options.forEach((opt) => {
-            docContent += `   ${opt.label}. ${opt.content}\n`;
-          });
-        } else if (item.sub_statements) {
-          item.sub_statements.forEach((sub) => {
-            docContent += `   ${sub.label}) ${sub.content}\n`;
-          });
+    let masterId = state.masterExam?.id;
+    if (!masterId) {
+      try {
+        const examsRes = await fetch(`${API_BASE_URL}/exams`);
+        if (examsRes.ok) {
+          const examsList = await examsRes.json();
+          if (examsList.length > 0) {
+            masterId = examsList[0].id;
+            state.masterExam.id = masterId;
+          }
         }
-        docContent += `\n`;
-      });
-
-      docContent += `\n--- HẾT ---\nCán bộ coi thi không giải thích gì thêm.\n`;
-      zip.file(`De_Thi_Toan_12_Ma_${code}.docx`, docContent);
-    });
-
-    // 2. Detailed Solutions
-    let solutionContent = `HƯỚNG DẪN GIẢI CHI TIẾT CÁC MÃ ĐỀ THI TOÁN 12\nChuẩn Thông tư 32/2018/TT-BGDĐT\n\n`;
-    state.masterExam.items.forEach((item, idx) => {
-      solutionContent += `Câu ${idx + 1} (${item.code} - YCCĐ: ${item.learning_outcome_id}):\n`;
-      solutionContent += `Thân câu: ${item.stem}\n`;
-      solutionContent += `Lời giải chi tiết: ${item.explanation}\n\n`;
-    });
-    zip.file(`Huong_Dan_Giai_Chi_Tiet.docx`, solutionContent);
-
-    // 3. Answer Key Matrix CSV/Text
-    let keyMatrixContent = `Câu Số,Thể Thức,Đề Gốc,Mã 101,Mã 102,Mã 103,Mã 104,Ghi Chú Anchor\n`;
-    state.shuffledVariants.keyMatrix.forEach((r) => {
-      keyMatrixContent += `${r.qIndex},${r.format},${r.masterKey},${r.variantKeys['101'] || ''},${r.variantKeys['102'] || ''},${r.variantKeys['103'] || ''},${r.variantKeys['104'] || ''},${r.hasAnchor ? 'Khóa vị trí D' : 'Tự do'}\n`;
-    });
-    zip.file(`Bang_Dap_An_Tong_Hop_4_Ma_De.csv`, keyMatrixContent);
-
-    // 4. OMR Answer Sheet Template
-    let omrContent = `PHIẾU TRẢ LỜI TRẮC NGHIỆM CHUẨN MÁY CHẤM OMR\nBộ GD&ĐT - Định dạng 2025\nSố Báo Danh: [   ][   ][   ][   ][   ][   ]\nMã Đề Thi:   [   ][   ][   ]\n\nPhần I: Tô tròn 1 ô đúng (A, B, C, D)\nPhần II: Đúng / Sai 4 ý (Đ, S)\nPhần III: Tô các chữ số kết quả trả lời ngắn\n`;
-    zip.file(`Phieu_To_Trac_Nghiem_OMR_Chuan.docx`, omrContent);
-
-    // Generate Zip Blob and Trigger Download
-    try {
-      const blob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Goi_De_Thi_Quesy_Toan12_TT32_${Date.now()}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast('Đã tải xuống thành công gói đề thi (.ZIP) gồm 4 mã đề Word, Barem và Phiếu OMR!', 'success');
-    } catch (err) {
-      console.error(err);
-      showToast('Lỗi khi tạo file zip: ' + err.message, 'error');
+      } catch (e) {
+        console.warn('Cannot fetch exams list:', e);
+      }
     }
+
+    const targetId = masterId || 'default';
+    const downloadUrl = `${API_BASE_URL}/exams/${targetId}/export-zip?format=${encodeURIComponent(format)}`;
+
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.setAttribute('download', `Goi_DeThi_Quesy_TT32_${format}.zip`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast(`Đã bắt đầu tải xuống gói đề thi ${formatName} chuẩn hóa!`, 'success');
+  }
+
+  function downloadActiveVariantPdf() {
+    const code = state.shuffledVariants.activeVariantCode || '101';
+    const masterId = state.masterExam?.id || 'default';
+    const url = `${API_BASE_URL}/exams/${masterId}/export-pdf?variant_code=${encodeURIComponent(code)}`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.setAttribute('download', `De_Thi_Toan_12_Ma_${code}.pdf`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast(`Đang tải file PDF Mã đề ${code}...`, 'info');
+  }
+
+  function downloadActiveVariantDocx() {
+    const code = state.shuffledVariants.activeVariantCode || '101';
+    const masterId = state.masterExam?.id || 'default';
+    const url = `${API_BASE_URL}/exams/${masterId}/export-docx?variant_code=${encodeURIComponent(code)}`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.setAttribute('download', `De_Thi_Toan_12_Ma_${code}.docx`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast(`Đang tải file Word (.docx) Mã đề ${code}...`, 'info');
   }
 
   // ============================================================================
@@ -2072,6 +2063,8 @@
     executeSafeShuffling,
     viewVariant,
     downloadPublishZip,
+    downloadActiveVariantPdf,
+    downloadActiveVariantDocx,
     openFormulaEditorModal,
     closeFormulaEditorModal,
     updateModalLatexPreview,

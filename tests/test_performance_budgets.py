@@ -97,7 +97,9 @@ def test_perf_budget_docx_and_zip_export(db_session):
     start_time = time.perf_counter()
     zip_path = export_exam_package_zip(
         master_exam_id=master.id,
-        db=db_session
+        db=db_session,
+        include_pdf=False,
+        export_format="docx"
     )
     elapsed_ms = (time.perf_counter() - start_time) * 1000
 

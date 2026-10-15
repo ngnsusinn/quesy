@@ -10,7 +10,10 @@ from backend.database import get_db
 from backend.models import MasterExam, MasterExamItem, ExamVariant, ExamVariantItem
 from backend.services.matrix_solver import solve_and_generate_master_exam
 from backend.services.shuffling_engine import generate_shuffled_variants, get_answer_key_matrix
-from backend.services.docx_exporter import export_exam_package_zip, compute_item_analytics
+from backend.services.docx_exporter import (
+    export_exam_package_zip, compute_item_analytics,
+    convert_docx_to_pdf, generate_variant_docx, export_single_variant_pdf
+)
 
 router = APIRouter(prefix="/api/v1/exams", tags=["Exams"])
 
@@ -263,12 +266,28 @@ def get_key_matrix(master_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{master_id}/export-zip")
-def export_zip(master_id: str, db: Session = Depends(get_db)):
+def export_zip(
+    master_id: str,
+    format: Optional[str] = Query("all", description="Export format: 'all' (DOCX + PDF), 'docx', or 'pdf'"),
+    db: Session = Depends(get_db)
+):
     """GET /api/v1/exams/:master_id/export-zip
-    Downloads ZIP package containing DOCX variants, detailed solutions, and answer sheet.
+    Downloads ZIP package containing valid OpenXML DOCX variants, PDF documents, detailed solutions, and answer sheets.
     """
     try:
-        zip_path_str = export_exam_package_zip(master_id, db)
+        if master_id == "default":
+            m = db.query(MasterExam).first()
+            if not m:
+                raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
+            master_id = m.id
+
+        variants = db.query(ExamVariant).filter(ExamVariant.master_exam_id == master_id).all()
+        if not variants:
+            from backend.services.shuffling_engine import generate_shuffled_variants
+            generate_shuffled_variants(master_id, db, ["101", "102", "103", "104"])
+
+        include_pdf = format in ["all", "pdf"]
+        zip_path_str = export_exam_package_zip(master_id, db, include_pdf=include_pdf, export_format=format or "all")
         zip_path = Path(zip_path_str)
         if not zip_path.exists():
             raise HTTPException(status_code=500, detail="Failed to locate generated ZIP package")
@@ -282,6 +301,101 @@ def export_zip(master_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
+
+@router.get("/{master_id}/export-pdf")
+def export_variant_pdf(
+    master_id: str,
+    variant_code: str = Query("101", description="Variant code e.g. 101, 102"),
+    db: Session = Depends(get_db)
+):
+    """GET /api/v1/exams/:master_id/export-pdf
+    Directly exports and downloads a single variant as a standalone PDF file.
+    """
+    if master_id == "default":
+        m = db.query(MasterExam).first()
+        if not m:
+            raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
+        master_id = m.id
+
+    variant = db.query(ExamVariant).filter(
+        ExamVariant.master_exam_id == master_id,
+        ExamVariant.variant_code == variant_code
+    ).first()
+    if not variant:
+        from backend.services.shuffling_engine import generate_shuffled_variants
+        generate_shuffled_variants(master_id, db, ["101", "102", "103", "104"])
+        variant = db.query(ExamVariant).filter(
+            ExamVariant.master_exam_id == master_id,
+            ExamVariant.variant_code == variant_code
+        ).first()
+
+    if not variant:
+        raise HTTPException(status_code=404, detail=f"Mã đề {variant_code} không tồn tại trong đề thi này.")
+
+    from backend.config import EXPORTS_DIR
+    temp_dir = EXPORTS_DIR / f"temp_{master_id}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    pdf_path = temp_dir / f"De_Thi_Ma_{variant_code}.pdf"
+    docx_path = temp_dir / f"De_Thi_Ma_{variant_code}.docx"
+
+    generate_variant_docx(variant, docx_path)
+    converted = convert_docx_to_pdf(docx_path, pdf_path)
+    if not converted or not pdf_path.exists():
+        return FileResponse(
+            path=str(docx_path),
+            filename=docx_path.name,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    return FileResponse(
+        path=str(pdf_path),
+        filename=pdf_path.name,
+        media_type="application/pdf"
+    )
+
+
+@router.get("/{master_id}/export-docx")
+def export_variant_docx(
+    master_id: str,
+    variant_code: str = Query("101", description="Variant code e.g. 101, 102"),
+    db: Session = Depends(get_db)
+):
+    """GET /api/v1/exams/:master_id/export-docx
+    Directly exports and downloads a single variant as a valid OpenXML DOCX file.
+    """
+    if master_id == "default":
+        m = db.query(MasterExam).first()
+        if not m:
+            raise HTTPException(status_code=404, detail="Không tìm thấy đề thi trong hệ thống.")
+        master_id = m.id
+
+    variant = db.query(ExamVariant).filter(
+        ExamVariant.master_exam_id == master_id,
+        ExamVariant.variant_code == variant_code
+    ).first()
+    if not variant:
+        from backend.services.shuffling_engine import generate_shuffled_variants
+        generate_shuffled_variants(master_id, db, ["101", "102", "103", "104"])
+        variant = db.query(ExamVariant).filter(
+            ExamVariant.master_exam_id == master_id,
+            ExamVariant.variant_code == variant_code
+        ).first()
+
+    if not variant:
+        raise HTTPException(status_code=404, detail=f"Mã đề {variant_code} không tồn tại trong đề thi này.")
+
+    from backend.config import EXPORTS_DIR
+    temp_dir = EXPORTS_DIR / f"temp_{master_id}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    docx_path = temp_dir / f"De_Thi_Ma_{variant_code}.docx"
+
+    generate_variant_docx(variant, docx_path)
+    return FileResponse(
+        path=str(docx_path),
+        filename=docx_path.name,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
 
 
 @router.post("/{master_id}/analytics")
