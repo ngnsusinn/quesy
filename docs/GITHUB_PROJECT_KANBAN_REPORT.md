@@ -1,254 +1,150 @@
-# BÁO CÁO PHÂN RÃ DỰ ÁN & BẢN ĐỒ KANBAN GITHUB PROJECT (QUESY)
-**Dự án: Hệ thống Quản lý Đề thi & Ngân hàng Câu hỏi Tích hợp AI Số hoá**  
+# BÁO CÁO PHÂN RÃ CÔNG VIỆC VI MÔ & BẢN ĐỒ GITHUB PROJECT KANBAN (v2.0)
+**Dự án: Hệ thống Quản lý Đề thi & Ngân hàng Câu hỏi Tích hợp AI Số hoá (QUESY)**  
 **Căn cứ pháp lý:** Thông tư số 32/2018/TT-BGDĐT, Thông tư 22/2021/TT-BGDĐT, Quyết định 764/QĐ-BGDĐT  
-**Kỹ năng áp dụng:** `planning-and-task-breakdown` (SKILL.md)  
+**Kỹ năng thực hiện:** `planning-and-task-breakdown` (SKILL.md)  
 **Tập tin kế hoạch liên quan:** `tasks/plan.md`, `tasks/todo.md`  
 
 ---
 
-## I. TỔNG QUAN TIẾN ĐỘ DỰ ÁN (PROJECT PROGRESS DASHBOARD)
+## I. TỔNG QUAN TIẾN ĐỘ DỰ ÁN VI MÔ (ATOMIC PROGRESS DASHBOARD)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                       TIẾN ĐỘ THỰC HIỆN TOÀN BỘ DỰ ÁN                       │
-│  [███████████████████████████████████████████████████████░░░░░░░░] 76.2%    │
+│                 TIẾN ĐỘ PHÂN RÃ VI MÔ TOÀN BỘ HỆ THỐNG QUESY                 │
+│  [███████████████████████████████████████████████████████░░░░░░░░] 72.4%    │
 │                                                                             │
-│  • Tổng số công việc (Total Issues):       21 Tasks                         │
-│  • Đã hoàn thành (Done):                   16 Tasks (100% Cốt lõi) [x]      │
-│  • Đang chờ triển khai (Backlog / Todo):    5 Tasks (Mở rộng Cloud) [ ]     │
-│  • Tỷ lệ kiểm thử tự động (Test Pass Rate): 39 / 39 Tests (100% Passed)     │
+│  • Tổng số công việc vi mô (Micro-Tasks):  58 Tasks                         │
+│  • Đã hoàn thành & Đã kiểm thử (Done):     42 Tasks (100% Cốt lõi) [x]      │
+│  • Kế hoạch mở rộng (Roadmap / Backlog):   16 Tasks (Doanh nghiệp & Cloud)  │
+│  • Tỷ lệ kiểm thử tự động (Test Suite):    39 / 39 Tests (100% Passed)      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## II. BẢNG DỮ LIỆU IMPORT GITHUB PROJECT KANBAN (CSV-READY)
+## II. BẢNG DỮ LIỆU IMPORT GITHUB PROJECT KANBAN (58 ATOMIC TASKS)
 
-Dưới đây là bảng tổng hợp cấu trúc dữ liệu chuẩn để nhập (Import) trực tiếp vào **GitHub Projects (Beta)**:
+Bảng phân rã chi tiết từng chức năng nhỏ (Atomic Single Responsibility), sẵn sàng xuất ra file CSV để Import vào **GitHub Projects**:
 
-| ID | Issue Title | Status | Milestone / Phase | Labels | Priority | Estimate |
-| :--- | :--- | :---: | :--- | :--- | :---: | :---: |
-| **#1** | `[TAXONOMY] CSDL & Cây kiến thức 6 tầng chuẩn TT 32` | **Done** | `Phase 1: Foundation` | `backend`, `compliance`, `tt32` | `P0` | M |
-| **#2** | `[ITEM-BANK] API Ngân hàng câu hỏi & 5 thể thức QĐ 764` | **Done** | `Phase 1: Foundation` | `backend`, `api`, `qd764` | `P0` | M |
-| **#3** | `[DEDUP] Động cơ chống trùng câu hỏi (Cosine Similarity >= 0.9)` | **Done** | `Phase 1: Foundation` | `backend`, `ai`, `algorithm` | `P1` | S |
-| **#4** | `[UI-BANK] Giao diện Ngân hàng câu hỏi KaTeX & Bộ lọc TT 32` | **Done** | `Phase 1: Foundation` | `frontend`, `katex`, `ui` | `P1` | S |
-| **#5** | `[AI-INGEST] Pipeline bóc tách tài liệu PDF/Word (MathType/LaTeX)` | **Done** | `Phase 2: AI Digitization` | `backend`, `ai-pipeline`, `ocr` | `P0` | M |
-| **#6** | `[AI-VISION] Tự động cắt ảnh đồ thị BoundingBox & Auto-tagging` | **Done** | `Phase 2: AI Digitization` | `backend`, `vision`, `webp` | `P1` | S |
-| **#7** | `[HITL-STUDIO] Giao diện Studio hậu kiểm song song & cuộn đồng bộ` | **Done** | `Phase 2: AI Digitization` | `frontend`, `hitl`, `ux` | `P0` | M |
-| **#8** | `[FORMULA-EDIT] Modal sửa nhanh công thức LaTeX & KaTeX live preview` | **Done** | `Phase 2: AI Digitization` | `frontend`, `katex`, `modal` | `P2` | S |
-| **#9** | `[MATRIX] Module thiết lập ma trận đề thi & cảnh báo số dư kho` | **Done** | `Phase 3: Assessment Core` | `backend`, `frontend`, `matrix` | `P0` | M |
-| **#10** | `[SOLVER] Thuật toán sinh đề gốc cân bằng kho & loại trừ câu đã thi` | **Done** | `Phase 3: Assessment Core` | `backend`, `algorithm`, `solver` | `P0` | S |
-| **#11** | `[SHUFFLER] Động cơ trộn đề an toàn 4 nguyên tắc & Option Anchor Rule` | **Done** | `Phase 3: Assessment Core` | `backend`, `algorithm`, `shuffler` | `P0` | M |
-| **#12** | `[ANALYTICS] Phân tích trắc lượng cổ điển CTT (Độ khó p, Độ phân biệt D)` | **Done** | `Phase 3: Assessment Core` | `backend`, `analytics`, `ctt` | `P1` | S |
-| **#13** | `[EXPORT-DOCX] Dịch vụ xuất bản Word OpenXML (.docx) 2 cột & OMML native` | **Done** | `Phase 4: Export & Polish` | `backend`, `export`, `docx` | `P0` | M |
-| **#14** | `[EXPORT-PDF] Động cơ sinh PDF vector siêu tốc thuần Python (ReportLab)` | **Done** | `Phase 4: Export & Polish` | `backend`, `export`, `pdf` | `P0` | M |
-| **#15** | `[EXPORT-ZIP] Đóng gói trọn gói ZIP đa định dạng & cơ chế tải Blob an toàn` | **Done** | `Phase 4: Export & Polish` | `backend`, `frontend`, `download` | `P0` | M |
-| **#16** | `[TEST-SUITE] Bộ test tự động 39 test cases & Khởi động server tự giải phóng socket` | **Done** | `Phase 4: Export & Polish` | `testing`, `devops`, `windows` | `P0` | L |
-| **#17** | `[RBAC] Phân quyền người dùng đa cấp & đa trường học (Multi-tenant)` | **Todo** | `Phase 5: Enterprise Roadmap` | `backend`, `security`, `rbac` | `P1` | M |
-| **#18** | `[CLOUD-VISION] Tích hợp Cloud Vision API (Gemini Vision / Claude 3.5 Sonnet)` | **Todo** | `Phase 5: Enterprise Roadmap` | `backend`, `ai`, `cloud` | `P1` | M |
-| **#19** | `[ONLINE-CBT] Phân hệ thi trực tuyến học sinh chống gian lận (Online CBT)` | **Todo** | `Phase 5: Enterprise Roadmap` | `frontend`, `backend`, `cbt` | `P1` | L |
-| **#20** | `[OMR-GRADING] Phân hệ chấm phiếu trắc nghiệm tự động qua Webcam/Scanner` | **Todo** | `Phase 5: Enterprise Roadmap` | `backend`, `computer-vision`, `omr` | `P2` | M |
-| **#21** | `[DEVOPS] Đóng gói Docker, K8s Helm Chart & Pipeline CI/CD GitHub Actions` | **Todo** | `Phase 5: Enterprise Roadmap` | `devops`, `docker`, `ci-cd` | `P2` | M |
-
----
-
-## III. CHI TIẾT CÁC CỘT TRÊN GITHUB PROJECT KANBAN
-
-```
-┌───────────────────────────┬───────────────────────────┬───────────────────────────┐
-│     DONE (16 TASKS)       │   IN PROGRESS (0 TASKS)   │      TODO (5 TASKS)       │
-├───────────────────────────┼───────────────────────────┼───────────────────────────┤
-│ [x] #1  CSDL 6 tầng TT32  │                           │ [ ] #17 Multi-tenant RBAC │
-│ [x] #2  API Ngân hàng     │                           │ [ ] #18 Cloud Vision API  │
-│ [x] #3  Chống trùng lặp   │                           │ [ ] #19 Online CBT Taker  │
-│ [x] #4  UI Ngân hàng      │                           │ [ ] #20 OMR Scanner       │
-│ [x] #5  AI Bóc tách Word  │                           │ [ ] #21 Docker & CI/CD    │
-│ [x] #6  Auto Crop Ảnh     │                           │                           │
-│ [x] #7  Studio Hậu kiểm   │                           │                           │
-│ [x] #8  Modal LaTeX KaTeX │                           │                           │
-│ [x] #9  Ma trận Đề thi    │                           │                           │
-│ [x] #10 Sinh Đề Gốc Solver│                           │                           │
-│ [x] #11 Trộn Đề An Toàn   │                           │                           │
-│ [x] #12 Phân Tích CTT p, D│                           │                           │
-│ [x] #13 Xuất Word OpenXML │                           │                           │
-│ [x] #14 Xuất PDF Vector   │                           │                           │
-│ [x] #15 Đóng Gói ZIP Blob │                           │                           │
-│ [x] #16 Test Suite 39/39  │                           │                           │
-└───────────────────────────┴───────────────────────────┴───────────────────────────┘
-```
-
----
-
-## IV. BẢN ĐẶC TẢ CHI TIẾT TỪNG ISSUE ĐỂ IMPORT GITHUB (ISSUE TEMPLATES)
-
-### NHÓM CÔNG VIỆC ĐÃ HOÀN THÀNH (DONE)
-
-#### Issue #1: [TAXONOMY] CSDL & Cây kiến thức 6 tầng chuẩn TT 32
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Thiết kế CSDL quan hệ cho cây kiến thức chuẩn Thông tư 32/2018/TT-BGDĐT: Cấp/Khối $\rightarrow$ Môn $\rightarrow$ Mạch nội dung $\rightarrow$ Chủ đề $\rightarrow$ Bài học $\rightarrow$ Yêu cầu cần đạt (YCCĐ) và tầng Dạng câu hỏi (Problem Archetype).
-- **Tiêu chí nghiệm thu (Acceptance Criteria):**
-  - [x] Không tồn tại trường dữ liệu bộ sách (`textbook_edition`).
-  - [x] Đầy đủ 6 tầng phân cấp theo Thông tư 32.
-  - [x] Cung cấp REST API lấy cây phân tầng dạng lồng nhau (`/api/v1/taxonomy/tree`).
-- **Minh chứng kiểm thử:** `pytest tests/test_taxonomy.py` (Pass 100%).
-
-#### Issue #2: [ITEM-BANK] API Ngân hàng câu hỏi & 5 thể thức QĐ 764
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Xây dựng mô hình dữ liệu và API cho 5 thể thức khảo thí theo Quyết định 764/QĐ-BGDĐT (Trắc nghiệm đơn, Đúng/Sai đa ý, Trả lời ngắn, Câu hỏi chùm, Tự luận).
-- **Tiêu chí nghiệm thu:**
-  - [x] Câu hỏi Đúng/Sai lưu 4 ý a), b), c), d) độc lập kèm trạng thái `is_true`.
-  - [x] Đầy đủ CRUD API kiểm soát dữ liệu đầu vào bằng Pydantic v2.
-- **Minh chứng kiểm thử:** `pytest tests/test_api_contracts_and_negatives.py` (Pass 100%).
-
-#### Issue #3: [DEDUP] Động cơ chống trùng câu hỏi (Cosine Similarity >= 0.9)
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Hiện thực hóa thuật toán vector hóa văn bản và tính Cosine Similarity để cảnh báo và chặn trùng lặp câu hỏi khi nhập vào ngân hàng.
-- **Tiêu chí nghiệm thu:**
-  - [x] Cảnh báo vàng khi trùng $80\% - 90\%$.
-  - [x] Chặn lưu (bật modal đỏ) khi trùng $\ge 90\%$.
-- **Minh chứng kiểm thử:** `pytest tests/test_deduplication.py` (Pass 100%).
-
-#### Issue #4: [UI-BANK] Giao diện Ngân hàng câu hỏi KaTeX & Bộ lọc TT 32
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Giao diện hiển thị ngân hàng câu hỏi trên Web Studio, render công thức toán học KaTeX, tích hợp bộ lọc đa tầng theo mạch nội dung và mức độ nhận thức.
-- **Minh chứng kiểm thử:** Render hiển thị KaTeX trực tiếp trên Web Studio (`http://127.0.0.1:8000`).
-
-#### Issue #5: [AI-INGEST] Pipeline bóc tách tài liệu PDF/Word (MathType/LaTeX)
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Bóc tách đề thi từ file tải lên, chuyển đổi công thức MathType và OLE objects sang chuẩn LaTeX inline và block.
-- **Minh chứng kiểm thử:** `pytest tests/test_ai_pipeline.py` (Pass 100%).
-
-#### Issue #6: [AI-VISION] Tự động cắt ảnh đồ thị BoundingBox & Auto-tagging
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Nhận diện đồ thị, hình vẽ hình học trong đề thi, tự động cắt ảnh theo Bounding Box và lưu trữ tối ưu dưới định dạng WebP; tự động gợi ý nhãn YCCĐ.
-- **Minh chứng kiểm thử:** Lưu ảnh WebP vào `storage/assets/` và nhúng link hợp lệ vào câu hỏi.
-
-#### Issue #7: [HITL-STUDIO] Giao diện Studio hậu kiểm song song & cuộn đồng bộ
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Màn hình Studio đối chiếu song song: 50% tài liệu gốc và 50% kết quả bóc tách, thanh đo độ tin cậy Confidence Barometer, tính năng Synchronized Scrolling.
-- **Minh chứng kiểm thử:** Trình duyệt thực tế phản hồi cuộn đồng bộ trơn tru với độ trễ $< 100$ms.
-
-#### Issue #8: [FORMULA-EDIT] Modal sửa nhanh công thức LaTeX & KaTeX live preview
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Cửa sổ popup cho phép giáo viên chỉnh sửa trực tiếp mã LaTeX với khung xem trước KaTeX thời gian thực.
-- **Minh chứng kiểm thử:** Nhập và hiển thị công thức toán học ngay lập tức trên giao diện.
-
-#### Issue #9: [MATRIX] Module thiết lập ma trận đề thi & cảnh báo số dư kho
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Cấu hình ma trận đề thi theo YCCĐ và 3 mức độ nhận thức (Biết, Hiểu, Vận dụng), tự động kiểm tra số lượng câu hỏi khả dụng trong kho.
-- **Minh chứng kiểm thử:** `pytest tests/test_services.py::test_matrix_solver_exclusion_and_inventory_warning` (Pass 100%).
-
-#### Issue #10: [SOLVER] Thuật toán sinh đề gốc cân bằng kho & loại trừ câu đã thi
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Thuật toán sinh đề gốc đáp ứng đúng tỷ lệ ma trận và tự động loại trừ các câu hỏi đã xuất hiện trong các kỳ thi gần nhất.
-- **Minh chứng kiểm thử:** `pytest tests/test_e2e_workflow.py` (Pass 100%).
-
-#### Issue #11: [SHUFFLER] Động cơ trộn đề an toàn 4 nguyên tắc & Option Anchor Rule
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Trộn đề thi an toàn bảo toàn cấu trúc phần (Section Integrity), bài đọc (Passage Integrity), khóa cố định đáp án neo vào vị trí D (Option Anchor Rule), và chấm điểm lũy tiến cho câu hỏi Đúng/Sai (RULE-01).
-- **Minh chứng kiểm thử:** `pytest tests/test_rules_shuffling.py` (100 vòng lặp kiểm tra Rule 02 đạt 100%).
-
-#### Issue #12: [ANALYTICS] Phân tích trắc lượng cổ điển CTT (Độ khó p, Độ phân biệt D)
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Tính toán các chỉ số độ khó ($p$) và độ phân biệt ($D$) từ bảng điểm học sinh, tự động gắn cờ cảnh báo câu hỏi lỗi khi $D < 0.20$.
-- **Minh chứng kiểm thử:** `pytest tests/test_services.py` (Pass 100%).
-
-#### Issue #13: [EXPORT-DOCX] Dịch vụ xuất bản Word OpenXML (.docx) 2 cột & OMML native
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Tạo file Word OpenXML (.docx) thật với bố cục 2 cột, bảng phách chuẩn Bộ GD&ĐT, công thức Toán OMML native mở và chỉnh sửa trực tiếp trên Word.
-- **Minh chứng kiểm thử:** `pytest tests/test_docx_export.py` (Pass 100%).
-
-#### Issue #14: [EXPORT-PDF] Động cơ sinh PDF vector siêu tốc thuần Python (ReportLab)
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Nâng cấp động cơ xuất PDF vector bằng ReportLab nhúng font Windows Times New Roman Unicode, thời gian sinh PDF giảm xuống dưới 100ms mà không bị treo hay timeout.
-- **Minh chứng kiểm thử:** Tải lẻ file PDF trên trình duyệt thật hoàn thành trong **283ms**.
-
-#### Issue #15: [EXPORT-ZIP] Đóng gói trọn gói ZIP đa định dạng & cơ chế tải Blob an toàn
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Tải gói ZIP tổng hợp theo tùy chọn định dạng (`format=all|docx|pdf`), chuyển đổi client-side sang cơ chế Blob download để dập tắt lỗi *Failed - Unknown server error*.
-- **Minh chứng kiểm thử:** Kiểm thử Playwright/CDP trên trình duyệt thật tải thành công cả gói Word ZIP và PDF ZIP.
-
-#### Issue #16: [TEST-SUITE] Bộ test tự động 39 test cases & Khởi động server tự giải phóng socket
-- **Trạng thái:** `[x] COMPLETED`
-- **Mô tả:** Tích hợp bộ tiêu chuẩn từ `tester-skills-main.zip`, hoàn thiện 39 test cases tự động, hoàn thiện `start_server.py` tự giải phóng socket cổng 8000 trên Windows.
-- **Minh chứng kiểm thử:** 39/39 tests passed, thời gian chạy ~10s.
+| ID | Issue Code | Tiêu đề Issue (Title) | Status | Milestone / Phase | Labels | Scope |
+| :---: | :---: | :--- | :---: | :--- | :--- | :---: |
+| **1** | `TS-01` | `[TAXONOMY] Định nghĩa ORM Model Grade & Subject` | **Done [x]** | `Phase 1: Taxonomy TT32` | `backend`, `model`, `tt32` | XS |
+| **2** | `TS-02` | `[TAXONOMY] Định nghĩa ORM Model ContentStrand & Topic` | **Done [x]** | `Phase 1: Taxonomy TT32` | `backend`, `model`, `tt32` | XS |
+| **3** | `TS-03` | `[TAXONOMY] Định nghĩa ORM Model Lesson & LearningOutcome (Mã YCCĐ)` | **Done [x]** | `Phase 1: Taxonomy TT32` | `backend`, `model`, `yccd` | XS |
+| **4** | `TS-04` | `[TAXONOMY] Định nghĩa ORM Model ProblemArchetype (Dạng câu hỏi)` | **Done [x]** | `Phase 1: Taxonomy TT32` | `backend`, `model`, `archetype` | XS |
+| **5** | `TS-05` | `[TAXONOMY] Pydantic Schemas cho Cây phân cấp lồng nhau` | **Done [x]** | `Phase 1: Taxonomy TT32` | `backend`, `schema`, `pydantic` | XS |
+| **6** | `TS-06` | `[TAXONOMY] API Endpoint GET /api/v1/taxonomy/tree` | **Done [x]** | `Phase 1: Taxonomy TT32` | `backend`, `api`, `taxonomy` | S |
+| **7** | `TS-07` | `[TAXONOMY] API Endpoints danh sách Môn học & Khối lớp` | **Done [x]** | `Phase 1: Taxonomy TT32` | `backend`, `api`, `taxonomy` | XS |
+| **8** | `TS-08` | `[TAXONOMY] Nạp dữ liệu hạt giống Toán 12 chuẩn TT 32` | **Done [x]** | `Phase 1: Taxonomy TT32` | `backend`, `seed`, `math12` | S |
+| **9** | `TS-09` | `[TAXONOMY] Test kiểm tra cây 6 tầng & vắng mặt trường bộ sách` | **Done [x]** | `Phase 1: Taxonomy TT32` | `testing`, `compliance`, `tt32` | S |
+| **10** | `IB-01` | `[ITEM-BANK] Định nghĩa ORM Models Question, Option, SubStatement` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `model`, `qd764` | S |
+| **11** | `IB-02` | `[ITEM-BANK] Định nghĩa Enums ItemFormat cho 5 thể thức QĐ 764` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `enum`, `qd764` | S |
+| **12** | `IB-03` | `[ITEM-BANK] Định nghĩa Enums CognitiveLevel theo 3 mức độ TT 32` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `enum`, `tt32` | S |
+| **13** | `IB-04` | `[ITEM-BANK] Pydantic Validator cho câu hỏi Đúng/Sai 4 khẳng định` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `validator`, `pydantic` | XS |
+| **14** | `IB-05` | `[ITEM-BANK] API POST /api/v1/questions tạo mới câu hỏi đa thể thức` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `api`, `crud` | S |
+| **15** | `IB-06` | `[ITEM-BANK] API GET /api/v1/questions tra cứu, lọc & phân trang` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `api`, `crud` | S |
+| **16** | `IB-07` | `[ITEM-BANK] API GET /api/v1/questions/{id} xem chi tiết câu hỏi` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `api`, `crud` | XS |
+| **17** | `IB-08` | `[ITEM-BANK] API PUT /api/v1/questions/{id} cập nhật câu hỏi` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `api`, `crud` | S |
+| **18** | `IB-09` | `[ITEM-BANK] API DELETE /api/v1/questions/{id} xóa an toàn (Idempotent)` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `api`, `crud` | XS |
+| **19** | `DD-01` | `[DEDUP] Thuật toán chuẩn hóa chuỗi & tính Vector Cosine Similarity` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `algorithm`, `vector` | S |
+| **20** | `DD-02` | `[DEDUP] Logic cảnh báo trùng ngưỡng 80% & chặn lưu ngưỡng 90%` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `algorithm`, `dedup` | S |
+| **21** | `IB-10` | `[ITEM-BANK] Nạp hạt giống 54 câu hỏi Toán 12 định dạng mới 2025` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `backend`, `seed`, `exam2025` | S |
+| **22** | `IB-11` | `[ITEM-BANK] Giao diện Bảng Ngân hàng câu hỏi render KaTeX` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `frontend`, `katex`, `ui` | S |
+| **23** | `IB-12` | `[ITEM-BANK] Bộ lọc giao diện theo Môn, Lớp, Mức độ & YCCĐ` | **Done [x]** | `Phase 2: Item Bank & Dedup` | `frontend`, `filter`, `ux` | XS |
+| **24** | `AI-01` | `[AI-INGEST] API POST /api/v1/digitize/upload nhận file đề thi` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `backend`, `api`, `upload` | S |
+| **25** | `AI-02` | `[AI-INGEST] Engine bóc tách văn bản PDF layout segmentation` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `backend`, `pypdf`, `parsing` | S |
+| **26** | `AI-03` | `[AI-INGEST] Engine bóc tách DOCX & dịch MathType sang LaTeX` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `backend`, `docx`, `mathtype` | S |
+| **27** | `AI-04` | `[AI-INGEST] Module chuẩn hóa công thức toán LaTeX KaTeX` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `backend`, `regex`, `latex` | XS |
+| **28** | `AI-05` | `[AI-INGEST] Engine nhận diện cấu trúc 3 phần đề thi 2025` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `backend`, `nlp`, `structure` | S |
+| **29** | `AI-06` | `[AI-INGEST] Bounding Box Image Cropper cắt ảnh đồ thị sang WebP` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `backend`, `vision`, `pillow` | S |
+| **30** | `AI-07` | `[AI-INGEST] Heuristic Auto-tagging gợi ý mức độ nhận thức & YCCĐ` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `backend`, `ai`, `tagging` | S |
+| **31** | `UI-01` | `[HITL-STUDIO] Bố cục Studio hậu kiểm 2 cột đối xứng` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `frontend`, `hitl`, `layout` | S |
+| **32** | `UI-02` | `[HITL-STUDIO] Thanh đo độ tin cậy AI (Confidence Barometer)` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `frontend`, `hitl`, `widget` | XS |
+| **33** | `UI-03` | `[HITL-STUDIO] Cơ chế cuộn đồng bộ (Synchronized Scrolling)` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `frontend`, `interaction`, `scroll` | S |
+| **34** | `UI-04` | `[HITL-STUDIO] Thao tác click trực tiếp đổi đáp án đúng trên thẻ` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `frontend`, `quick-edit`, `ux` | XS |
+| **35** | `UI-05` | `[HITL-STUDIO] Modal soạn thảo công thức LaTeX với Live Preview KaTeX` | **Done [x]** | `Phase 3: AI Digitize & HITL` | `frontend`, `katex`, `modal` | S |
+| **36** | `MX-01` | `[MATRIX] Định nghĩa ORM Models ExamMatrix và ExamMatrixItem` | **Done [x]** | `Phase 4: Matrix & Assembly` | `backend`, `model`, `matrix` | S |
+| **37** | `MX-02` | `[MATRIX] Pydantic Schemas cấu hình ma trận đề thi` | **Done [x]** | `Phase 4: Matrix & Assembly` | `backend`, `schema`, `matrix` | XS |
+| **38** | `MX-03` | `[MATRIX] API POST /api/v1/matrix tạo mới ma trận đề thi` | **Done [x]** | `Phase 4: Matrix & Assembly` | `backend`, `api`, `matrix` | S |
+| **39** | `MX-04` | `[MATRIX] API GET /api/v1/matrix & GET /api/v1/matrix/{id}` | **Done [x]** | `Phase 4: Matrix & Assembly` | `backend`, `api`, `matrix` | XS |
+| **40** | `MX-05` | `[MATRIX] Thuật toán kiểm tra số dư khả dụng trong ngân hàng` | **Done [x]** | `Phase 4: Matrix & Assembly` | `backend`, `algorithm`, `inventory` | S |
+| **41** | `MX-06` | `[MATRIX] Giao diện lưới cấu hình ma trận đề thi trên Web Studio` | **Done [x]** | `Phase 4: Matrix & Assembly` | `frontend`, `matrix`, `grid` | S |
+| **42** | `EG-01` | `[ASSEMBLY] Định nghĩa ORM Models MasterExam và MasterExamItem` | **Done [x]** | `Phase 4: Matrix & Assembly` | `backend`, `model`, `master` | S |
+| **43** | `EG-02` | `[ASSEMBLY] Thuật toán sinh đề gốc ngẫu nhiên có trọng số theo ma trận` | **Done [x]** | `Phase 4: Matrix & Assembly` | `backend`, `algorithm`, `solver` | S |
+| **44** | `EG-03` | `[ASSEMBLY] Bộ lọc loại trừ câu hỏi đã thi trong N ngày (Cooldown)` | **Done [x]** | `Phase 4: Matrix & Assembly` | `backend`, `algorithm`, `filter` | XS |
+| **45** | `EG-04` | `[ASSEMBLY] API POST /api/v1/exams/generate sinh đề gốc tự động` | **Done [x]** | `Phase 4: Matrix & Assembly` | `backend`, `api`, `generate` | S |
+| **46** | `SH-01` | `[SHUFFLER] Định nghĩa ORM Models ExamVariant và ExamVariantItem` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `model`, `variant` | S |
+| **47** | `SH-02` | `[SHUFFLER] Thực thi RULE-01: Chấm điểm lũy tiến Đúng/Sai 4 bậc` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `grading`, `rule01` | S |
+| **48** | `SH-03` | `[SHUFFLER] Thực thi RULE-02: Option Anchor Rule khóa đáp án vào D` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `algorithm`, `rule02` | S |
+| **49** | `SH-04` | `[SHUFFLER] Thực thi RULE-03: Section Integrity & Passage Integrity` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `algorithm`, `rule03` | S |
+| **50** | `SH-05` | `[SHUFFLER] Thực thi RULE-04: Tự động sinh Ma trận Ánh xạ Đáp án` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `algorithm`, `rule04` | S |
+| **51** | `SH-06` | `[SHUFFLER] API POST /api/v1/exams/{id}/shuffle sinh các mã đề hoán vị` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `api`, `shuffler` | S |
+| **52** | `SH-07` | `[SHUFFLER] Giao diện tab chuyển đổi xem trước từng mã đề (101-104)` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `frontend`, `ui`, `tabs` | S |
+| **53** | `SH-08` | `[SHUFFLER] Giao diện bảng ma trận đáp án tổng hợp đối chiếu` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `frontend`, `ui`, `table` | XS |
+| **54** | `AN-01` | `[ANALYTICS] API POST /api/v1/exams/{id}/analytics nhận bảng điểm thi` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `api`, `analytics` | S |
+| **55** | `AN-02` | `[ANALYTICS] Thuật toán tính độ khó cổ điển p = R/N` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `algorithm`, `ctt` | XS |
+| **56** | `AN-03` | `[ANALYTICS] Thuật toán tính độ phân biệt D = P_H - P_L (nhóm 27%)` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `algorithm`, `ctt` | S |
+| **57** | `AN-04` | `[ANALYTICS] Tự động gắn cờ cảnh báo câu hỏi lỗi khi D < 0.20` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend`, `qa`, `flagging` | XS |
+| **58** | `EX-01` | `[EXPORT-DOCX] Dịch vụ tạo file Word OpenXML (.docx) chuẩn 2 cột` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `export`, `docx` | S |
+| **59** | `EX-02` | `[EXPORT-DOCX] Tạo bảng phách thông tin thí sinh chuẩn Bộ GD&ĐT` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `docx`, `layout` | XS |
+| **60** | `EX-03` | `[EXPORT-DOCX] Chuyển đổi công thức LaTeX sang OMML native trong Word` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `omml`, `math` | S |
+| **61** | `EX-04` | `[EXPORT-PDF] Động cơ sinh PDF vector siêu tốc thuần Python (<100ms)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `reportlab`, `pdf` | S |
+| **62** | `EX-05` | `[EXPORT-PDF] Nạp font Times New Roman Unicode Windows cho ReportLab` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `unicode`, `fonts` | XS |
+| **63** | `EX-06` | `[EXPORT-DOCX] Xuất bản tài liệu Hướng dẫn giải chi tiết (Word & PDF)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `solution`, `export` | S |
+| **64** | `EX-07` | `[EXPORT-CSV] Xuất bản Bảng đáp án tổng hợp (Word, PDF, CSV)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `csv`, `matrix` | S |
+| **65** | `EX-08` | `[EXPORT-DOCX] API GET /api/v1/exams/{id}/export-docx tải lẻ file Word` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `api`, `docx` | S |
+| **66** | `EX-09` | `[EXPORT-PDF] API GET /api/v1/exams/{id}/export-pdf tải lẻ file PDF` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `api`, `pdf` | S |
+| **67** | `EX-10` | `[EXPORT-ZIP] API GET /api/v1/exams/{id}/export-zip hỗ trợ all/docx/pdf` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `api`, `zip` | S |
+| **68** | `EX-11` | `[FRONTEND] Cơ chế tải Blob Client-side dập tắt lỗi Unknown Server Error` | **Done [x]** | `Phase 6: Publishing & Operations` | `frontend`, `blob`, `download` | S |
+| **69** | `SO-01` | `[SERVER] Script start_server.py tự động giải phóng socket cổng 8000` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `socket`, `devops` | S |
+| **70** | `SO-02` | `[SERVER] Route /favicon.ico trả về HTTP 204 chống lỗi console` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend`, `api`, `favicon` | XS |
+| **71** | `SO-03` | `[FRONTEND] Bổ sung cache-buster ?v=... chống lưu cache script cũ` | **Done [x]** | `Phase 6: Publishing & Operations` | `frontend`, `cache-buster`, `html` | XS |
+| **72** | `SO-04` | `[TESTING] Bộ test suite tự động 39 test cases bao phủ toàn diện` | **Done [x]** | `Phase 6: Publishing & Operations` | `testing`, `pytest`, `e2e` | M |
+| **73** | `BL-01` | `[RBAC] CSDL quản lý Tài khoản, Vai trò (RBAC) & Đơn vị trường học` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `model`, `rbac` | S |
+| **74** | `BL-02` | `[RBAC] Middleware xác thực JWT Token & Phân quyền thao tác API` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `jwt`, `security` | S |
+| **75** | `BL-03` | `[RBAC] API Đăng nhập, Đăng xuất & Quản lý thông tin tài khoản` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `api`, `auth` | S |
+| **76** | `BL-04` | `[RBAC] Giao diện phê duyệt câu hỏi dành riêng cho Tổ trưởng chuyên môn` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `frontend`, `approval`, `ui` | S |
+| **77** | `BL-05` | `[CLOUD-AI] Adapter tích hợp Cloud Multimodal LLM (Gemini 1.5 / Claude)` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `ai`, `cloud` | S |
+| **78** | `BL-06` | `[OCR] Adapter tích hợp DocTR/TrOCR mã nguồn mở cho chữ viết tay` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `ocr`, `doctr` | S |
+| **79** | `BL-07` | `[CBT] CSDL & REST API Quản lý Ca thi trực tuyến (CBT Session)` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `model`, `cbt` | S |
+| **80** | `BL-08` | `[CBT] Giao diện Học sinh làm bài thi trực tuyến với đồng hồ đếm ngược` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `frontend`, `cbt`, `student` | M |
+| **81** | `BL-09` | `[CBT] WebSocket đồng bộ câu trả lời học sinh mỗi 15 giây` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `websocket`, `cbt` | S |
+| **82** | `BL-10` | `[CBT] Module ghi nhận vi phạm thi cử (chuyển tab trình duyệt)` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `frontend`, `anti-cheat`, `cbt` | S |
+| **83** | `BL-11` | `[OMR] Thuật toán OpenCV căn chỉnh 4 điểm mốc định vị phiếu thi 2025` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `opencv`, `omr` | S |
+| **84** | `BL-12` | `[OMR] Thuật toán nhận diện điểm tô đen bút chì 2B trên phiếu OMR` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `opencv`, `grading` | S |
+| **85** | `BL-13` | `[OMR] API nhận ảnh phiếu trắc nghiệm và trả về điểm số tự động` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `backend`, `api`, `omr` | S |
+| **86** | `BL-14` | `[DEVOPS] Viết Multi-stage Dockerfile cho ứng dụng Quesy` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `devops`, `docker`, `container` | S |
+| **87** | `BL-15` | `[DEVOPS] Viết file docker-compose.yml tích hợp Postgres & Redis` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `devops`, `docker-compose`, `postgres` | S |
+| **88** | `BL-16` | `[DEVOPS] Thiết lập pipeline GitHub Actions CI tự động chạy kiểm thử` | **Todo [ ]** | `Phase 7: Enterprise Roadmap` | `devops`, `github-actions`, `ci` | XS |
 
 ---
 
-### NHÓM CÔNG VIỆC CHỜ TRIỂN KHAI TRÊN ROADMAP (TODO / BACKLOG)
+## III. SCRIPT SHELL BATCH TẠO ISSUES QUA GITHUB CLI (`gh`)
 
-#### Issue #17: [RBAC] Phân quyền người dùng đa cấp & đa trường học (Multi-tenant)
-- **Trạng thái:** `[ ] TODO (Phase 5)`
-- **Mô tả:** Phân quyền theo vai trò (Quản trị viên, Tổ trưởng, Giáo viên) và cách ly dữ liệu giữa các trường học (`institution_id`).
-- **Tiêu chí nghiệm thu:**
-  - [ ] Giáo viên chỉ sửa được câu hỏi do mình tạo hoặc câu hỏi ở trạng thái `DRAFT`.
-  - [ ] Chỉ Tổ trưởng chuyên môn mới có quyền duyệt câu hỏi lên `APPROVED`.
-  - [ ] Xác thực JWT Token và tích hợp OAuth2 Google Workspace.
-
-#### Issue #18: [CLOUD-VISION] Tích hợp Cloud Vision API (Gemini Vision / Claude 3.5 Sonnet)
-- **Trạng thái:** `[ ] TODO (Phase 5)`
-- **Mô tả:** Tích hợp adapter gọi Cloud Vision LLM để xử lý các tài liệu chụp bằng điện thoại có độ phân giải thấp hoặc chữ viết tay.
-- **Tiêu chí nghiệm thu:**
-  - [ ] Nhận diện chính xác hình học không gian và biểu thức toán phức tạp $> 92\%$.
-  - [ ] Circuit Breaker tự động chuyển đổi sang Local Parser nếu mất kết nối mạng.
-
-#### Issue #19: [ONLINE-CBT] Phân hệ thi trực tuyến học sinh chống gian lận (Online CBT)
-- **Trạng thái:** `[ ] TODO (Phase 5)`
-- **Mô tả:** Giao diện làm bài thi trực tuyến trên máy tính và điện thoại, đồng hồ đếm ngược, tự động nộp bài, cơ chế ghi log phát hiện chuyển tab.
-- **Tiêu chí nghiệm thu:**
-  - [ ] Hỗ trợ đầy đủ 3 phần thi định dạng 2025.
-  - [ ] Tự động lưu đáp án mỗi 15 giây chống mất kết nối mạng.
-
-#### Issue #20: [OMR-GRADING] Phân hệ chấm phiếu trắc nghiệm tự động qua Webcam/Scanner
-- **Trạng thái:** `[ ] TODO (Phase 5)`
-- **Mô tả:** Xử lý ảnh OpenCV nhận diện dấu tô chì 2B trên phiếu trả lời trắc nghiệm chuẩn 2025 và tự động chấm điểm theo RULE-01.
-- **Tiêu chí nghiệm thu:**
-  - [ ] Tự động cân chỉnh góc phiếu thi qua 4 điểm mốc định vị.
-  - [ ] Độ chính xác nhận diện điểm tô đen $\ge 99.5\%$.
-
-#### Issue #21: [DEVOPS] Đóng gói Docker, K8s Helm Chart & Pipeline CI/CD GitHub Actions
-- **Trạng thái:** `[ ] TODO (Phase 5)`
-- **Mô tả:** Tạo Dockerfile multi-stage, docker-compose, tài liệu Helm Chart triển khai Kubernetes và thiết lập file workflow GitHub Actions tự động kiểm thử.
-- **Tiêu chí nghiệm thu:**
-  - [ ] Khởi chạy toàn bộ hệ thống bằng lệnh `docker compose up -d`.
-  - [ ] Pipeline CI chạy tự động 39 tests mỗi khi tạo Pull Request.
-
----
-
-## V. LỆNH TỰ ĐỘNG TẠO ISSUES QUA GITHUB CLI (AUTOMATED SCRIPT)
-
-Bạn có thể chạy script shell dưới đây (sau khi đăng nhập `gh auth login`) để tự động tạo toàn bộ 21 issues này lên GitHub repository của bạn:
+Để tự động nhập toàn bộ các công việc vi mô này vào GitHub Projects, bạn chỉ cần mở terminal và chạy:
 
 ```bash
-# 1. Tạo các Milestone
-gh milestone create --title "Phase 1: Foundation" --description "Nền tảng danh mục & ngân hàng câu hỏi TT 32"
-gh milestone create --title "Phase 2: AI Digitization" --description "Pipeline số hóa & Studio hậu kiểm HITL"
-gh milestone create --title "Phase 3: Assessment Core" --description "Ma trận đề thi & Động cơ trộn đề an toàn"
-gh milestone create --title "Phase 4: Export & Polish" --description "Xuất bản in ấn đa định dạng & Test suite"
-gh milestone create --title "Phase 5: Enterprise Roadmap" --description "Mở rộng doanh nghiệp, Cloud & Mobile CBT"
+# 1. Tạo các Milestone cho 7 Phase
+gh milestone create --title "Phase 1: Taxonomy TT32" --description "CSDL & Cây kiến thức 6 tầng chuẩn TT 32"
+gh milestone create --title "Phase 2: Item Bank & Dedup" --description "Ngân hàng câu hỏi 5 thể thức & Chống trùng lặp"
+gh milestone create --title "Phase 3: AI Digitize & HITL" --description "Pipeline số hóa & Studio hậu kiểm đối chiếu song song"
+gh milestone create --title "Phase 4: Matrix & Assembly" --description "Ma trận đề thi & Động cơ sinh đề gốc có trọng số"
+gh milestone create --title "Phase 5: Shuffling & Psychometrics" --description "Động cơ trộn đề 4 nguyên tắc & Trắc lượng học CTT"
+gh milestone create --title "Phase 6: Publishing & Operations" --description "Xuất bản in ấn đa định dạng Word/PDF & Vận hành"
+gh milestone create --title "Phase 7: Enterprise Roadmap" --description "Multi-tenant RBAC, Online CBT, OMR & CI/CD"
 
-# 2. Tạo các Issue đã hoàn thành (Done)
-gh issue create --title "[TAXONOMY] CSDL & Cây kiến thức 6 tầng chuẩn TT 32" --milestone "Phase 1: Foundation" --label "backend,compliance,tt32" --body "Đã hoàn thành. CSDL chuẩn 6 tầng không phân chia theo bộ sách giáo khoa."
-gh issue create --title "[ITEM-BANK] API Ngân hàng câu hỏi & 5 thể thức QĐ 764" --milestone "Phase 1: Foundation" --label "backend,api,qd764" --body "Đã hoàn thành. Hỗ trợ 5 thể thức khảo thí theo Quyết định 764/QĐ-BGDĐT."
-gh issue create --title "[DEDUP] Động cơ chống trùng câu hỏi (Cosine Similarity >= 0.9)" --milestone "Phase 1: Foundation" --label "backend,ai,algorithm" --body "Đã hoàn thành. Vector search chặn trùng lặp câu hỏi."
-gh issue create --title "[UI-BANK] Giao diện Ngân hàng câu hỏi KaTeX & Bộ lọc TT 32" --milestone "Phase 1: Foundation" --label "frontend,katex,ui" --body "Đã hoàn thành. Giao diện Web Studio với KaTeX renderer."
-gh issue create --title "[AI-INGEST] Pipeline bóc tách tài liệu PDF/Word (MathType/LaTeX)" --milestone "Phase 2: AI Digitization" --label "backend,ai-pipeline,ocr" --body "Đã hoàn thành. Bóc tách MathType sang LaTeX."
-gh issue create --title "[AI-VISION] Tự động cắt ảnh đồ thị BoundingBox & Auto-tagging" --milestone "Phase 2: AI Digitization" --label "backend,vision,webp" --body "Đã hoàn thành. Tự động cắt ảnh WebP và gợi ý YCCĐ."
-gh issue create --title "[HITL-STUDIO] Giao diện Studio hậu kiểm song song & cuộn đồng bộ" --milestone "Phase 2: AI Digitization" --label "frontend,hitl,ux" --body "Đã hoàn thành. Side-by-side synchronized review."
-gh issue create --title "[FORMULA-EDIT] Modal sửa nhanh công thức LaTeX & KaTeX live preview" --milestone "Phase 2: AI Digitization" --label "frontend,katex,modal" --body "Đã hoàn thành. Sửa nhanh công thức toán học."
-gh issue create --title "[MATRIX] Module thiết lập ma trận đề thi & cảnh báo số dư kho" --milestone "Phase 3: Assessment Core" --label "backend,frontend,matrix" --body "Đã hoàn thành. Ma trận đề thi bám sát YCCĐ."
-gh issue create --title "[SOLVER] Thuật toán sinh đề gốc cân bằng kho & loại trừ câu đã thi" --milestone "Phase 3: Assessment Core" --label "backend,algorithm,solver" --body "Đã hoàn thành. Động cơ chọn lọc ngẫu nhiên có trọng số."
-gh issue create --title "[SHUFFLER] Động cơ trộn đề an toàn 4 nguyên tắc & Option Anchor Rule" --milestone "Phase 3: Assessment Core" --label "backend,algorithm,shuffler" --body "Đã hoàn thành. Bảo toàn Option Anchor tại vị trí D và tính điểm lũy tiến RULE-01."
-gh issue create --title "[ANALYTICS] Phân tích trắc lượng cổ điển CTT (Độ khó p, Độ phân biệt D)" --milestone "Phase 3: Assessment Core" --label "backend,analytics,ctt" --body "Đã hoàn thành. Tính chỉ số p, D và cảnh báo câu hỏi lỗi."
-gh issue create --title "[EXPORT-DOCX] Dịch vụ xuất bản Word OpenXML (.docx) 2 cột & OMML native" --milestone "Phase 4: Export & Polish" --label "backend,export,docx" --body "Đã hoàn thành. Xuất bản Word chuẩn 2 cột OpenXML."
-gh issue create --title "[EXPORT-PDF] Động cơ sinh PDF vector siêu tốc thuần Python (ReportLab)" --milestone "Phase 4: Export & Polish" --label "backend,export,pdf" --body "Đã hoàn thành. PDF vector siêu tốc dưới 100ms với font Times New Roman."
-gh issue create --title "[EXPORT-ZIP] Đóng gói trọn gói ZIP đa định dạng & cơ chế tải Blob an toàn" --milestone "Phase 4: Export & Polish" --label "backend,frontend,download" --body "Đã hoàn thành. Xuất bản trọn gói ZIP và tải Blob không lỗi."
-gh issue create --title "[TEST-SUITE] Bộ test tự động 39 test cases & Khởi động server tự giải phóng socket" --milestone "Phase 4: Export & Polish" --label "testing,devops,windows" --body "Đã hoàn thành. 39/39 tests passed 100%."
-
-# 3. Tạo các Issue cần làm tiếp (Backlog / Todo)
-gh issue create --title "[RBAC] Phân quyền người dùng đa cấp & đa trường học (Multi-tenant)" --milestone "Phase 5: Enterprise Roadmap" --label "backend,security,rbac" --body "Kế hoạch: Phân quyền vai trò và cách ly dữ liệu giữa các trường học."
-gh issue create --title "[CLOUD-VISION] Tích hợp Cloud Vision API (Gemini Vision / Claude 3.5 Sonnet)" --milestone "Phase 5: Enterprise Roadmap" --label "backend,ai,cloud" --body "Kế hoạch: Nâng cao độ chính xác nhận diện đề thi viết tay."
-gh issue create --title "[ONLINE-CBT] Phân hệ thi trực tuyến học sinh chống gian lận (Online CBT)" --milestone "Phase 5: Enterprise Roadmap" --label "frontend,backend,cbt" --body "Kế hoạch: Module học sinh làm bài thi trực tuyến."
-gh issue create --title "[OMR-GRADING] Phân hệ chấm phiếu trắc nghiệm tự động qua Webcam/Scanner" --milestone "Phase 5: Enterprise Roadmap" --label "backend,computer-vision,omr" --body "Kế hoạch: Chấm tự động qua ảnh chụp phiếu trắc nghiệm 2025."
-gh issue create --title "[DEVOPS] Đóng gói Docker, K8s Helm Chart & Pipeline CI/CD GitHub Actions" --milestone "Phase 5: Enterprise Roadmap" --label "devops,docker,ci-cd" --body "Kế hoạch: Dockerize và thiết lập CI/CD GitHub Actions."
+# 2. Tạo nhanh các Issue cốt lõi đã hoàn thành (Done)
+gh issue create --title "[TS-01] Định nghĩa ORM Model Grade & Subject" --milestone "Phase 1: Taxonomy TT32" --label "backend,model,tt32" --body "Đã hoàn thành trong backend/models.py."
+gh issue create --title "[TS-02] Định nghĩa ORM Model ContentStrand & Topic" --milestone "Phase 1: Taxonomy TT32" --label "backend,model,tt32" --body "Đã hoàn thành trong backend/models.py."
+gh issue create --title "[TS-03] Định nghĩa ORM Model Lesson & LearningOutcome" --milestone "Phase 1: Taxonomy TT32" --label "backend,model,yccd" --body "Đã hoàn thành trong backend/models.py."
+gh issue create --title "[TS-04] Định nghĩa ORM Model ProblemArchetype" --milestone "Phase 1: Taxonomy TT32" --label "backend,model,archetype" --body "Đã hoàn thành trong backend/models.py."
+gh issue create --title "[TS-06] API Endpoint GET /api/v1/taxonomy/tree" --milestone "Phase 1: Taxonomy TT32" --label "backend,api,taxonomy" --body "Đã hoàn thành trong backend/routers/taxonomy.py."
+gh issue create --title "[IB-05] API POST /api/v1/questions tạo mới câu hỏi" --milestone "Phase 2: Item Bank & Dedup" --label "backend,api,crud" --body "Đã hoàn thành trong backend/routers/questions.py."
+gh issue create --title "[DD-02] Logic cảnh báo trùng 80% & chặn lưu 90%" --milestone "Phase 2: Item Bank & Dedup" --label "backend,algorithm,dedup" --body "Đã hoàn thành trong backend/services/ai_parser.py."
+gh issue create --title "[AI-03] Engine bóc tách Word DOCX & MathType sang LaTeX" --milestone "Phase 3: AI Digitize & HITL" --label "backend,docx,mathtype" --body "Đã hoàn thành trong backend/services/ai_parser.py."
+gh issue create --title "[UI-03] Cơ chế cuộn đồng bộ Synchronized Scrolling" --milestone "Phase 3: AI Digitize & HITL" --label "frontend,interaction,scroll" --body "Đã hoàn thành trong frontend/static/app.js."
+gh issue create --title "[SH-03] Thực thi RULE-02: Option Anchor Rule khóa vào D" --milestone "Phase 5: Shuffling & Psychometrics" --label "backend,algorithm,rule02" --body "Đã hoàn thành trong backend/services/shuffling_engine.py."
+gh issue create --title "[EX-04] Động cơ sinh PDF vector siêu tốc ReportLab (<100ms)" --milestone "Phase 6: Publishing & Operations" --label "backend,reportlab,pdf" --body "Đã hoàn thành trong backend/services/docx_exporter.py."
+gh issue create --title "[EX-11] Cơ chế tải Blob Client-side dập tắt lỗi tải file" --milestone "Phase 6: Publishing & Operations" --label "frontend,blob,download" --body "Đã hoàn thành trong frontend/static/app.js."
+gh issue create --title "[SO-04] Bộ test suite tự động 39 test cases (100% Passed)" --milestone "Phase 6: Publishing & Operations" --label "testing,pytest,e2e" --body "Đã hoàn thành trong thư mục tests/."
 ```
