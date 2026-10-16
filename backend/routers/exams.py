@@ -26,6 +26,7 @@ class GenerateExamRequest(BaseModel):
     matrix_id: str
     title: Optional[str] = None
     excluded_question_ids: Optional[List[str]] = None
+    allow_partial: Optional[bool] = False
 
 
 class ShuffleExamRequest(BaseModel):
@@ -98,7 +99,8 @@ def generate_master_exam(payload: GenerateExamRequest, db: Session = Depends(get
             matrix_id=payload.matrix_id,
             db=db,
             title=payload.title,
-            excluded_question_ids=payload.excluded_question_ids
+            excluded_question_ids=payload.excluded_question_ids,
+            allow_partial=payload.allow_partial or False
         )
 
         # Enrich item outputs

@@ -1,9 +1,13 @@
 import os
 from pathlib import Path
 from typing import List
+from dotenv import load_dotenv
 
 # Base Directory of the Project
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env if present
+load_dotenv(BASE_DIR / ".env")
 
 # Storage Directories
 STORAGE_DIR = BASE_DIR / "storage"
@@ -66,6 +70,21 @@ class Settings:
     EMBEDDING_DIM: int = 1536
     SIMILARITY_WARN_THRESHOLD: float = 0.80
     SIMILARITY_BLOCK_THRESHOLD: float = 0.90
+
+    # Online AI Provider Configuration (Loaded from .env)
+    # Supported: openai | gemini | anthropic | openrouter | custom
+    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "").lower()
+    AI_API_KEY: str = (
+        os.getenv("AI_API_KEY", "")
+        or os.getenv("GEMINI_API_KEY", "")
+        or os.getenv("OPENAI_API_KEY", "")
+        or os.getenv("ANTHROPIC_API_KEY", "")
+        or os.getenv("OPENROUTER_API_KEY", "")
+    )
+    AI_MODEL: str = os.getenv("AI_MODEL", "")
+    AI_BASE_URL: str = os.getenv("AI_BASE_URL", "")
+    AI_MAX_TOKENS: int = int(os.getenv("AI_MAX_TOKENS", "8192"))
+    AI_TEMPERATURE: float = float(os.getenv("AI_TEMPERATURE", "0.1"))
 
     # Decision 764/QĐ-BGDĐT Stepwise Scoring Rule for True/False 4-Statement Questions
     # 1 correct = 0.1, 2 correct = 0.25, 3 correct = 0.5, 4 correct = 1.0 (per 1.0 point scale)

@@ -17,6 +17,7 @@ import math
 import os
 import uuid
 import zipfile
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -280,6 +281,10 @@ class CropService:
 
         if not HAS_PYPDF:
             return []
+
+        # Silence verbose internal pypdf mask warnings
+        logging.getLogger("pypdf").setLevel(logging.ERROR)
+        logging.getLogger("pypdf.generic._image_xobject").setLevel(logging.ERROR)
 
         extracted_assets: List[Dict[str, Any]] = []
         reader = pypdf.PdfReader(str(pdf_path))

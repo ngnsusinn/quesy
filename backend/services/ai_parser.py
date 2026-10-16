@@ -12,6 +12,7 @@ from backend.services.latex_converter import (
 )
 from backend.services.crop_service import CropService, default_crop_service
 from backend.services.tagging_service import auto_tag_question
+from backend.services.ai_provider_service import default_ai_provider_service
 
 try:
     from sqlalchemy.orm import Session
@@ -376,7 +377,12 @@ class AIExamParser:
         red_count = 0
         total_confidence = 0.0
 
-        for q in parsed_questions:
+        for idx, q in enumerate(parsed_questions):
+            if not q.get("id"):
+                q["id"] = idx + 1
+            if not q.get("code"):
+                q["code"] = f"EXTRACT-{idx + 1:03d}"
+
             tags = auto_tag_question(
                 stem=q["stem"],
                 options=[opt["content"] for opt in q.get("options", [])],
@@ -387,6 +393,7 @@ class AIExamParser:
 
             score = calculate_item_confidence(q)
             q["confidence_score"] = score
+            q["confidence"] = score
             badge = get_confidence_badge(score)
             q["confidence_badge"] = badge
 
@@ -642,6 +649,8 @@ def parse_raw_text_to_questions(text: str) -> List[Dict[str, Any]]:
     answer_keys = AnswerKeyExtractor.extract_answers_and_solutions(text)
     return default_ai_parser._parse_part1(layout["part1_text"], answer_keys, []) or [
         {
+            "id": 1,
+            "code": "EXTRACT-001",
             "stem": text.split("\n")[0] if text else "Nội dung câu hỏi",
             "item_format": "SINGLE_CHOICE",
             "options": [
@@ -651,7 +660,8 @@ def parse_raw_text_to_questions(text: str) -> List[Dict[str, Any]]:
                 {"label": "D", "content": "Phương án D", "is_correct": False, "is_fixed": False},
             ],
             "explanation": "Lời giải chi tiết đang được cập nhật.",
-            "confidence_score": 85.0
+            "confidence_score": 85.0,
+            "confidence": 85.0
         }
     ]
 
@@ -680,7 +690,57 @@ def process_digitize_job(job_id: str):
         job.status = "PROCESSING"
         db.commit()
 
-        questions, avg_confidence = parse_document_file(job.file_path, job.filename)
+        questions: List[Dict[str, Any]] = []
+        avg_confidence: float = 0.0
+
+        # Check if an external online AI Provider is configured in .env
+        if default_ai_provider_service.is_configured():
+            logger.info(
+                f"Using Online AI Provider ({default_ai_provider_service.provider.upper()} - {default_ai_provider_service.model}) for job {job_id}"
+            )
+            p = Path(job.file_path)
+            ext = p.suffix.lower()
+
+            image_paths: List[Union[str, Path]] = []
+            pdf_path: Optional[Union[str, Path]] = None
+            doc_text = ""
+
+            if ext in [".png", ".jpg", ".jpeg", ".webp"]:
+                image_paths = [p]
+            elif ext == ".pdf":
+                pdf_path = p
+                try:
+                    doc_text = extract_text_from_file(str(p), filename=job.filename)
+                except Exception as ex_err:
+                    logger.warning(f"Text pre-extraction for PDF warning: {ex_err}")
+            elif ext in [".docx", ".doc"]:
+                try:
+                    doc_text = extract_text_from_file(str(p), filename=job.filename)
+                except Exception as ex_err:
+                    logger.warning(f"Text pre-extraction for DOCX warning: {ex_err}")
+            elif ext in [".txt", ".md"]:
+                doc_text = p.read_text(encoding="utf-8", errors="ignore")
+
+            # Check if there is an uploads subfolder with multiple images
+            parent_dir = p.parent
+            if parent_dir.name == job_id:
+                for img_candidate in sorted(parent_dir.glob("*.*")):
+                    if img_candidate.suffix.lower() in [".png", ".jpg", ".jpeg", ".webp"] and img_candidate not in image_paths:
+                        image_paths.append(img_candidate)
+
+            try:
+                questions, avg_confidence = default_ai_provider_service.digitize_exam(
+                    document_text=doc_text,
+                    image_paths=image_paths,
+                    pdf_path=pdf_path,
+                    filename=job.filename
+                )
+            except Exception as ai_err:
+                logger.error(f"Online AI Provider execution error: {ai_err}. Falling back to high-fidelity local parser.")
+                questions, avg_confidence = parse_document_file(job.file_path, job.filename)
+        else:
+            logger.info("No online AI Provider configured in .env. Using high-fidelity local converter.")
+            questions, avg_confidence = parse_document_file(job.file_path, job.filename)
 
         job.extracted_data = json.dumps(questions, ensure_ascii=False)
         job.confidence_score = avg_confidence

@@ -102,14 +102,20 @@
 
     // HITL Digitize Studio Job
     digitizeJob: {
-      id: 'job-demo-2025',
-      filename: 'De_Khao_Sat_Toan_12_2025.docx',
-      status: 'COMPLETED',
-      avgConfidence: 94.6,
-      currentPage: 1,
-      totalPages: 2,
-      activeQuestionId: 1,
+      id: null,
+      jobId: null,
+      filename: '',
+      fileType: '',
+      status: 'IDLE',
+      avgConfidence: 0,
+      currentPage: 0,
+      totalPages: 0,
+      activeQuestionId: null,
       confidenceFilter: 'all',
+      previewUrl: null,
+      previewImages: [],
+      aiProvider: null,
+      aiModel: null,
       questions: [],
     },
 
@@ -495,7 +501,16 @@
     ];
 
     state.itemBank = JSON.parse(JSON.stringify([...defaultQuestions, ...extraQuestions]));
-    state.digitizeJob.questions = JSON.parse(JSON.stringify(defaultQuestions.slice(0, 5)));
+    // AI Digitize Studio is completely empty by default on startup
+    state.digitizeJob.jobId = null;
+    state.digitizeJob.questions = [];
+    state.digitizeJob.filename = '';
+    state.digitizeJob.fileType = '';
+    state.digitizeJob.previewUrl = null;
+    state.digitizeJob.previewImages = [];
+    state.digitizeJob.activeQuestionId = null;
+    state.digitizeJob.currentPage = 0;
+    state.digitizeJob.totalPages = 0;
     state.masterExam.items = JSON.parse(JSON.stringify(state.itemBank.slice(0, 8)));
   }
 
@@ -709,27 +724,125 @@
   }
 
   /**
-   * Render simulated original document sheet on the left pane
+   * Render original document viewer on the left pane
+   * Shows native PDF viewer iframe, Word DOCX styled preview iframe, or image list preview.
+   * Does NOT reconstruct / fake the exam paper from parsed questions.
    */
   function renderDocumentPaperPreview() {
-    const container = document.getElementById('doc-paper-content');
-    if (!container) return;
+    const scrollContainer = document.getElementById('doc-viewer-scroll-container');
+    if (!scrollContainer) return;
 
-    let html = '';
-    const questions = state.digitizeJob.questions;
+    const job = state.digitizeJob;
+    const questions = job.questions || [];
 
-    html += `
-      <div class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 pb-1 border-b border-slate-300">
-        PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn (Thí sinh chọn 01 phương án đúng)
-      </div>
+    // 1. If empty state (no file, no questions)
+    if (!job.jobId && questions.length === 0) {
+      scrollContainer.innerHTML = `
+        <div id="doc-viewer-paper" class="w-full max-w-xl bg-white shadow-lg rounded-sm p-8 min-h-[880px] text-[13px] text-slate-900 leading-relaxed font-serif relative">
+          <div id="doc-paper-content" class="py-16 px-4 flex flex-col items-center justify-center text-center text-slate-400">
+            <div class="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center shadow-xs mb-3 text-slate-400">
+              <i data-lucide="file-up" class="w-8 h-8 text-brand-500"></i>
+            </div>
+            <h4 class="text-sm font-bold text-slate-700 mb-1">Khu Vực Đối Chiếu Đề Thi Gốc</h4>
+            <p class="text-xs text-slate-500 max-w-sm mb-5 leading-relaxed">
+              Chưa có tệp đề thi nào được nạp. Hãy chọn tệp Word (.docx), PDF hoặc danh sách ảnh để xem trước trực tiếp tài liệu gốc và đối chiếu bóc tách.
+            </p>
+            <div class="flex items-center gap-2">
+              <button onclick="document.getElementById('studio-file-input').click()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-all">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                <span>Tải tệp đề thi</span>
+              </button>
+              <button onclick="app.loadSampleExam('math12_standard')" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 shadow-xs flex items-center space-x-1.5 transition-all">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>Xem đề mẫu</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    // 2. If an actual uploaded file exists (PDF, DOCX, or Images)
+    if (job.jobId) {
+      const fileType = (job.fileType || '').toLowerCase();
+      const filename = (job.filename || '').toLowerCase();
+
+      // Case A: PDF Document -> Direct browser native PDF streaming viewer
+      if (fileType === 'pdf' || filename.endsWith('.pdf')) {
+        const previewUrl = job.previewUrl || `${API_BASE_URL}/digitize/jobs/${job.jobId}/preview`;
+        scrollContainer.innerHTML = `
+          <div class="w-full h-full min-h-[850px] flex flex-col bg-slate-200 rounded-lg overflow-hidden border border-slate-300 shadow-inner">
+            <iframe id="doc-pdf-iframe" src="${previewUrl}" class="w-full h-full min-h-[850px] border-0 rounded bg-white" title="PDF Document Viewer"></iframe>
+          </div>
+        `;
+        return;
+      }
+
+      // Case B: Word DOCX Document -> Clean styled document view
+      if (fileType === 'docx' || fileType === 'doc' || filename.endsWith('.docx') || filename.endsWith('.doc')) {
+        const previewUrl = job.previewUrl || `${API_BASE_URL}/digitize/jobs/${job.jobId}/preview`;
+        scrollContainer.innerHTML = `
+          <div class="w-full h-full min-h-[850px] flex flex-col bg-slate-200 rounded-lg overflow-hidden border border-slate-300 shadow-inner">
+            <iframe id="doc-docx-iframe" src="${previewUrl}" class="w-full h-full min-h-[850px] border-0 rounded bg-white" title="Word DOCX Document Viewer"></iframe>
+          </div>
+        `;
+        return;
+      }
+
+      // Case C: Images (or list of images) -> Stack of full-resolution exam images
+      if (fileType === 'images' || ['png', 'jpg', 'jpeg', 'webp'].includes(fileType) || (job.previewImages && job.previewImages.length > 0)) {
+        const images = (job.previewImages && job.previewImages.length > 0)
+          ? job.previewImages
+          : [`${API_BASE_URL}/digitize/jobs/${job.jobId}/preview`];
+
+        scrollContainer.innerHTML = `
+          <div class="w-full max-w-2xl space-y-4 py-2 flex flex-col items-center">
+            ${images.map((imgUrl, i) => `
+              <div class="w-full bg-white rounded-xl p-3 shadow-md border border-slate-300">
+                <div class="text-[11px] font-bold text-slate-500 mb-2 flex items-center justify-between border-b border-slate-100 pb-1">
+                  <span>Trang ${i + 1} / ${images.length}</span>
+                  <a href="${imgUrl}" target="_blank" class="text-brand-600 hover:underline flex items-center space-x-1">
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                    <span>Mở ảnh gốc</span>
+                  </a>
+                </div>
+                <img src="${imgUrl}" class="w-full h-auto rounded shadow-xs object-contain" alt="Trang ${i + 1}">
+              </div>
+            `).join('')}
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+    }
+
+    // 3. Sample Exam Paper View (for built-in demo presets)
+    let html = `
+      <div id="doc-viewer-paper" class="w-full max-w-xl bg-white shadow-lg rounded-sm p-8 min-h-[880px] text-[13px] text-slate-900 leading-relaxed font-serif relative">
+        <div class="border-b-2 border-slate-800 pb-3 mb-6 grid grid-cols-2 gap-2 text-center text-xs font-sans">
+          <div>
+            <div class="font-bold uppercase tracking-tight">SỞ GD&ĐT HÀ NỘI</div>
+            <div class="font-bold text-[11px]">TRƯỜNG THPT CHU VĂN AN</div>
+            <div class="text-[10px] text-slate-500 italic mt-0.5">(Đề thi mẫu chuẩn Bộ GD&ĐT)</div>
+          </div>
+          <div>
+            <div class="font-bold uppercase tracking-tight">KỲ THI THỬ TỐT NGHIỆP THPT 2025</div>
+            <div class="font-bold text-brand-800">BÀI THI: TOÁN HỌC</div>
+            <div class="text-[10px] text-slate-600 italic">Thời gian: 90 phút (Không kể giao đề)</div>
+          </div>
+        </div>
+        <div id="doc-paper-content" class="space-y-6">
     `;
 
     questions.forEach((q, idx) => {
-      const isSelected = q.id === state.digitizeJob.activeQuestionId;
+      const qId = q.id || idx + 1;
+      const isSelected = qId === state.digitizeJob.activeQuestionId;
       const highlightClass = isSelected ? 'active-source-highlight' : '';
 
       html += `
-        <div id="doc-source-q-${q.id}" onclick="app.selectQuestionForHITL(${q.id})" class="doc-source-item ${highlightClass}">
+        <div id="doc-source-q-${qId}" onclick="app.selectQuestionForHITL(${qId})" class="doc-source-item ${highlightClass}">
           <div class="flex items-baseline space-x-1.5 font-bold text-slate-900 mb-1">
             <span class="text-brand-700">Câu ${idx + 1}:</span>
             <div class="font-normal text-slate-800">${q.stem}</div>
@@ -755,8 +868,17 @@
       html += `</div>`;
     });
 
-    container.innerHTML = html;
-    renderKaTeX(container);
+    html += `
+        </div>
+        <div class="text-center pt-8 text-[11px] font-sans text-slate-400">
+          --- HẾT --- Cán bộ coi thi không giải thích gì thêm ---
+        </div>
+      </div>
+    `;
+
+    scrollContainer.innerHTML = html;
+    renderKaTeX(scrollContainer);
+    if (window.lucide) lucide.createIcons();
   }
 
   /**
@@ -766,19 +888,49 @@
     const container = document.getElementById('studio-questions-container');
     if (!container) return;
 
+    const totalQuestions = state.digitizeJob.questions || [];
+    if (totalQuestions.length === 0) {
+      container.innerHTML = `
+        <div class="min-h-[460px] flex flex-col items-center justify-center p-8 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400">
+          <div class="w-16 h-16 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center shadow-xs mb-3 text-brand-600">
+            <i data-lucide="scan-line" class="w-8 h-8"></i>
+          </div>
+          <h4 class="text-sm font-bold text-slate-800 mb-1">Chưa Có Câu Hỏi Bóc Tách</h4>
+          <p class="text-xs text-slate-500 max-w-md mb-5 leading-relaxed">
+            Hệ thống AI Digitize Studio sẵn sàng tiếp nhận đề thi DOCX chứa công thức MathType/OMML hoặc file PDF scan vector. Hãy tải tệp để tự động phân tích và trích xuất.
+          </p>
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <button onclick="document.getElementById('studio-file-input').click()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center space-x-2 transition-all">
+              <i data-lucide="file-up" class="w-4 h-4"></i>
+              <span>Chọn tệp Word / PDF</span>
+            </button>
+            <button onclick="app.loadSampleExam('math12_standard')" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition-all flex items-center space-x-1.5">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+              <span>Đề mẫu Toán 12</span>
+            </button>
+            <button onclick="app.loadSampleExam('true_false_group')" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition-all flex items-center space-x-1.5">
+              <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-500"></i>
+              <span>Đề Đúng/Sai 4 ý</span>
+            </button>
+          </div>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
     const filter = state.digitizeJob.confidenceFilter;
-    const questions = state.digitizeJob.questions.filter((q) => {
-      if (filter === 'green') return q.confidence >= 95;
-      if (filter === 'yellow') return q.confidence >= 80 && q.confidence < 95;
-      if (filter === 'red') return q.confidence < 80;
+    const questions = totalQuestions.filter((q) => {
+      const c = q.confidence || 0;
+      if (filter === 'green') return c >= 95;
+      if (filter === 'yellow') return c >= 80 && c < 95;
+      if (filter === 'red') return c < 80;
       return true;
     });
 
-    let html = '';
-
     if (questions.length === 0) {
       container.innerHTML = `
-        <div class="p-8 text-center text-slate-400 text-xs">
+        <div class="p-8 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-200">
           <i data-lucide="filter-x" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
           Không có câu hỏi nào khớp với bộ lọc độ tin cậy đã chọn.
         </div>
@@ -787,17 +939,22 @@
       return;
     }
 
+    let html = '';
+
     questions.forEach((q, idx) => {
-      const isSelected = q.id === state.digitizeJob.activeQuestionId;
+      const qId = q.id || idx + 1;
+      const qCode = q.code || `EXTRACT-${String(qId).padStart(3, '0')}`;
+      const qConfidence = q.confidence !== undefined ? Math.round(q.confidence) : 95;
+      const isSelected = qId === state.digitizeJob.activeQuestionId;
       const activeCardClass = isSelected ? 'active-card' : '';
 
       // Confidence badge styling
       let confBadgeClass = 'badge-conf-green';
       let confLabel = 'Hoàn hảo';
-      if (q.confidence < 80) {
+      if (qConfidence < 80) {
         confBadgeClass = 'badge-conf-red';
         confLabel = 'Lỗi cú pháp / Thiếu key';
-      } else if (q.confidence < 95) {
+      } else if (qConfidence < 95) {
         confBadgeClass = 'badge-conf-yellow';
         confLabel = 'Cần kiểm tra lại';
       }
@@ -810,7 +967,7 @@
       };
 
       html += `
-        <div id="hitl-card-q-${q.id}" onclick="app.selectQuestionForHITL(${q.id})" class="hitl-question-card bg-white rounded-xl p-4 shadow-xs ${activeCardClass}">
+        <div id="hitl-card-q-${qId}" onclick="app.selectQuestionForHITL(${qId})" class="hitl-question-card bg-white rounded-xl p-4 shadow-xs ${activeCardClass}">
           
           <!-- Card Header -->
           <div class="flex items-center justify-between pb-2.5 border-b border-slate-100 text-xs">
@@ -821,13 +978,13 @@
               <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
                 ${formatLabels[q.item_format] || q.item_format}
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">${q.code}</span>
+              <span class="text-[11px] text-slate-400 font-mono">${qCode}</span>
             </div>
 
             <!-- Confidence Barometer -->
             <div class="flex items-center space-x-1.5 px-2 py-0.5 rounded-lg text-xs font-bold ${confBadgeClass}">
-              <i data-lucide="${q.confidence >= 95 ? 'shield-check' : q.confidence >= 80 ? 'alert-triangle' : 'alert-octagon'}" class="w-3.5 h-3.5"></i>
-              <span>${q.confidence}%</span>
+              <i data-lucide="${qConfidence >= 95 ? 'shield-check' : qConfidence >= 80 ? 'alert-triangle' : 'alert-octagon'}" class="w-3.5 h-3.5"></i>
+              <span>${qConfidence}%</span>
               <span class="text-[10px] font-normal opacity-80">(${confLabel})</span>
             </div>
           </div>
@@ -836,7 +993,7 @@
           <div class="py-3 text-xs text-slate-800 leading-relaxed">
             <div class="font-medium flex items-start justify-between gap-2">
               <div class="flex-1">${q.stem}</div>
-              <button onclick="event.stopPropagation(); app.openFormulaEditorModal('digitize', ${q.id}, 'stem')" title="Chỉnh sửa công thức nhanh" class="p-1 text-slate-400 hover:text-brand-600 rounded">
+              <button onclick="event.stopPropagation(); app.openFormulaEditorModal('digitize', ${qId}, 'stem')" title="Chỉnh sửa công thức nhanh" class="p-1 text-slate-400 hover:text-brand-600 rounded">
                 <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -854,7 +1011,7 @@
           const hasAnchor = opt.is_fixed || isAnchorPhrase(opt.content);
 
           html += `
-            <div onclick="event.stopPropagation(); app.toggleSingleChoiceAnswer(${q.id}, ${optIdx})" class="option-pill flex items-center justify-between p-2 rounded-xl border ${correctClass}">
+            <div onclick="event.stopPropagation(); app.toggleSingleChoiceAnswer(${qId}, ${optIdx})" class="option-pill flex items-center justify-between p-2 rounded-xl border ${correctClass}">
               <div class="flex items-center space-x-2">
                 <span class="option-letter-badge w-5 h-5 rounded-md flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
                   ${opt.label}
@@ -870,7 +1027,7 @@
                        </span>`
                     : ''
                 }
-                <button onclick="event.stopPropagation(); app.openFormulaEditorModal('digitize', ${q.id}, 'option', ${optIdx})" class="p-1 text-slate-400 hover:text-brand-600">
+                <button onclick="event.stopPropagation(); app.openFormulaEditorModal('digitize', ${qId}, 'option', ${optIdx})" class="p-1 text-slate-400 hover:text-brand-600">
                   <i data-lucide="edit-2" class="w-3 h-3"></i>
                 </button>
               </div>
@@ -895,10 +1052,10 @@
                 <span class="text-slate-800">${sub.content}</span>
               </div>
               <div class="flex items-center space-x-1 shrink-0">
-                <button onclick="event.stopPropagation(); app.toggleTrueFalseAnswer(${q.id}, ${subIdx}, true)" class="px-2 py-0.5 rounded text-[11px] font-bold transition-all ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}">
+                <button onclick="event.stopPropagation(); app.toggleTrueFalseAnswer(${qId}, ${subIdx}, true)" class="px-2 py-0.5 rounded text-[11px] font-bold transition-all ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}">
                   ĐÚNG
                 </button>
-                <button onclick="event.stopPropagation(); app.toggleTrueFalseAnswer(${q.id}, ${subIdx}, false)" class="px-2 py-0.5 rounded text-[11px] font-bold transition-all ${!sub.is_true ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}">
+                <button onclick="event.stopPropagation(); app.toggleTrueFalseAnswer(${qId}, ${subIdx}, false)" class="px-2 py-0.5 rounded text-[11px] font-bold transition-all ${!sub.is_true ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}">
                   SAI
                 </button>
               </div>
@@ -911,7 +1068,7 @@
           <div class="mb-3 p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-xs flex items-center justify-between">
             <div class="flex items-center space-x-2">
               <span class="font-bold text-purple-900">Chuỗi kết quả đúng:</span>
-              <input type="text" value="${q.short_answer_value || ''}" onchange="app.updateShortAnswerValue(${q.id}, this.value)" class="font-mono font-bold text-xs px-2 py-1 bg-white border border-purple-300 rounded-lg w-28">
+              <input type="text" value="${q.short_answer_value || ''}" onchange="app.updateShortAnswerValue(${qId}, this.value)" class="font-mono font-bold text-xs px-2 py-1 bg-white border border-purple-300 rounded-lg w-28">
             </div>
             <div class="text-[11px] text-purple-700">Dung sai sai số $\\pm ${q.tolerance || '0.0'}$</div>
           </div>
@@ -923,7 +1080,7 @@
         <div class="pt-2.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
           <div>
             <label class="block text-slate-500 font-bold mb-0.5">Yêu cầu cần đạt (YCCĐ TT 32):</label>
-            <select onchange="app.updateQuestionYCCD(${q.id}, this.value)" class="w-full text-xs font-mono rounded-lg border border-slate-200 py-1 px-2 bg-slate-50">
+            <select onchange="app.updateQuestionYCCD(${qId}, this.value)" class="w-full text-xs font-mono rounded-lg border border-slate-200 py-1 px-2 bg-slate-50">
               <option value="TOAN12.GT.01" ${q.learning_outcome_id === 'TOAN12.GT.01' ? 'selected' : ''}>TOAN12.GT.01: Cực trị hàm số</option>
               <option value="TOAN12.GT.02" ${q.learning_outcome_id === 'TOAN12.GT.02' ? 'selected' : ''}>TOAN12.GT.02: Đường tiệm cận</option>
               <option value="TOAN12.GT.03" ${q.learning_outcome_id === 'TOAN12.GT.03' ? 'selected' : ''}>TOAN12.GT.03: Khái niệm nguyên hàm</option>
@@ -934,7 +1091,7 @@
 
           <div>
             <label class="block text-slate-500 font-bold mb-0.5">Mức độ nhận thức (TT 32):</label>
-            <select onchange="app.updateQuestionCognitive(${q.id}, this.value)" class="w-full text-xs rounded-lg border border-slate-200 py-1 px-2 bg-slate-50 font-semibold">
+            <select onchange="app.updateQuestionCognitive(${qId}, this.value)" class="w-full text-xs rounded-lg border border-slate-200 py-1 px-2 bg-slate-50 font-semibold">
               <option value="RECOGNITION" ${q.cognitive_level === 'RECOGNITION' ? 'selected' : ''}>1. Biết (Nhận biết)</option>
               <option value="COMPREHENSION" ${q.cognitive_level === 'COMPREHENSION' ? 'selected' : ''}>2. Hiểu (Thông hiểu)</option>
               <option value="APPLICATION" ${q.cognitive_level === 'APPLICATION' ? 'selected' : ''}>3. Vận dụng</option>
@@ -950,11 +1107,11 @@
           </div>
 
           <div class="flex items-center space-x-2">
-            <button onclick="event.stopPropagation(); app.checkQuestionDuplicate(${q.id})" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium flex items-center space-x-1">
+            <button onclick="event.stopPropagation(); app.checkQuestionDuplicate(${qId})" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium flex items-center space-x-1">
               <i data-lucide="copy" class="w-3 h-3"></i>
               <span>Kiểm tra trùng</span>
             </button>
-            <button onclick="event.stopPropagation(); app.commitSingleQuestion(${q.id})" class="px-2.5 py-1 rounded bg-brand-50 hover:bg-brand-100 text-brand-700 text-[11px] font-bold border border-brand-200">
+            <button onclick="event.stopPropagation(); app.commitSingleQuestion(${qId})" class="px-2.5 py-1 rounded bg-brand-50 hover:bg-brand-100 text-brand-700 text-[11px] font-bold border border-brand-200">
               Lưu câu này
             </button>
           </div>
@@ -1092,22 +1249,80 @@
   }
 
   function updateConfidenceSummary() {
-    const questions = state.digitizeJob.questions;
-    if (questions.length === 0) return;
+    const questions = state.digitizeJob.questions || [];
 
-    const sum = questions.reduce((acc, q) => acc + q.confidence, 0);
-    const avg = (sum / questions.length).toFixed(1);
-    state.digitizeJob.avgConfidence = avg;
+    const allBtn = document.getElementById('btn-filter-conf-all');
+    if (allBtn) allBtn.innerText = `Tất cả (${questions.length})`;
 
-    const avgEl = document.getElementById('studio-avg-confidence');
-    if (avgEl) avgEl.innerText = `Độ tin cậy TB: ${avg}%`;
+    const greenCount = questions.filter((q) => (q.confidence || 0) >= 95).length;
+    const yellowCount = questions.filter((q) => (q.confidence || 0) >= 80 && (q.confidence || 0) < 95).length;
+    const redCount = questions.filter((q) => (q.confidence || 0) < 80).length;
+
+    const greenBtn = document.getElementById('btn-filter-conf-green');
+    if (greenBtn) greenBtn.innerHTML = `Xanh $\\ge 95\\%$ (${greenCount})`;
+    const yellowBtn = document.getElementById('btn-filter-conf-yellow');
+    if (yellowBtn) yellowBtn.innerHTML = `Vàng $80-94\\%$ (${yellowCount})`;
+    const redBtn = document.getElementById('btn-filter-conf-red');
+    if (redBtn) redBtn.innerHTML = `Đỏ $< 80\\%$ (${redCount})`;
 
     const readyBadge = document.getElementById('studio-ready-count-badge');
     if (readyBadge) readyBadge.innerText = questions.length;
+
+    const totalBadge = document.getElementById('studio-total-badge');
+    if (totalBadge) totalBadge.innerText = `${questions.length} câu`;
+
+    const avgEl = document.getElementById('studio-avg-confidence');
+    const statusLabel = document.getElementById('studio-status-label');
+    const statusIndicator = document.getElementById('studio-status-indicator');
+    const filenameEl = document.getElementById('doc-viewer-filename');
+    const pageDisplay = document.getElementById('doc-page-display');
+    const activeBadge = document.getElementById('doc-active-target-badge');
+    const commitBtn = document.getElementById('btn-commit-to-bank');
+
+    if (questions.length === 0) {
+      if (avgEl) avgEl.innerText = 'Độ tin cậy TB: --';
+      if (statusLabel) statusLabel.innerText = 'AI Parsing: Sẵn sàng (Chưa tải tệp)';
+      if (statusIndicator) {
+        statusIndicator.className = 'w-2 h-2 rounded-full bg-slate-400';
+      }
+      if (filenameEl) filenameEl.innerText = state.digitizeJob.filename || 'Chưa tải tệp nào';
+      if (pageDisplay) pageDisplay.innerText = 'Trang 0 / 0';
+      if (activeBadge) {
+        activeBadge.innerText = 'Chưa chọn câu';
+        activeBadge.className = 'px-2 py-0.5 bg-slate-100 text-slate-600 font-bold text-[11px] rounded-md border border-slate-200';
+      }
+      if (commitBtn) {
+        commitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+      state.digitizeJob.avgConfidence = 0;
+    } else {
+      const sum = questions.reduce((acc, q) => acc + (q.confidence || 0), 0);
+      const avg = (sum / questions.length).toFixed(1);
+      state.digitizeJob.avgConfidence = avg;
+      if (avgEl) avgEl.innerText = `Độ tin cậy TB: ${avg}%`;
+      if (statusLabel) statusLabel.innerText = `AI Parsing: Hoàn tất ${questions.length}/${questions.length} câu hỏi`;
+      if (statusIndicator) {
+        statusIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500';
+      }
+      if (filenameEl) filenameEl.innerText = state.digitizeJob.filename || 'Tệp đã tải lên';
+      if (pageDisplay) pageDisplay.innerText = `Trang ${state.digitizeJob.currentPage || 1} / ${state.digitizeJob.totalPages || 1}`;
+      const activeIdx = questions.findIndex((q) => q.id === state.digitizeJob.activeQuestionId);
+      if (activeBadge) {
+        activeBadge.innerText = `Đối chiếu: Câu ${activeIdx >= 0 ? activeIdx + 1 : (questions[0]?.id || 1)}`;
+        activeBadge.className = 'px-2 py-0.5 bg-brand-50 text-brand-700 font-bold text-[11px] rounded-md border border-brand-200';
+      }
+      if (commitBtn) {
+        commitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
   }
 
   async function commitExtractedToBank() {
-    const newItems = JSON.parse(JSON.stringify(state.digitizeJob.questions));
+    const newItems = JSON.parse(JSON.stringify(state.digitizeJob.questions || []));
+    if (newItems.length === 0) {
+      showToast('Chưa có câu hỏi nào để lưu vào ngân hàng. Vui lòng tải đề thi hoặc nạp đề mẫu!', 'warning');
+      return;
+    }
     showToast(`Đang lưu ${newItems.length} câu hỏi vào CSDL Ngân hàng...`, 'info');
 
     let countAdded = 0;
@@ -1178,15 +1393,34 @@
   }
 
   async function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    let files = [];
+    if (event && event.target && event.target.files) {
+      files = Array.from(event.target.files);
+    } else if (Array.isArray(event)) {
+      files = event;
+    } else if (event && event.name) {
+      files = [event];
+    }
+    if (files.length === 0) return;
 
-    showToast(`Đang tải lên máy chủ: ${file.name}...`, 'info');
+    const primaryFile = files[0];
+    const isMulti = files.length > 1;
+    const displayName = isMulti ? `${files.length} trang ảnh đề thi` : primaryFile.name;
+    const primaryExt = primaryFile.name.split('.').pop().toLowerCase();
+
+    showToast(`Đang tải lên máy chủ: ${displayName}...`, 'info');
+    state.digitizeJob.filename = displayName;
+    state.digitizeJob.fileType = isMulti ? 'images' : primaryExt;
     const dispEl = document.getElementById('doc-viewer-filename');
-    if (dispEl) dispEl.innerText = file.name;
+    if (dispEl) dispEl.innerText = displayName;
 
     const formData = new FormData();
-    formData.append('file', file);
+    for (const f of files) {
+      formData.append('files', f);
+    }
+    if (files.length === 1) {
+      formData.append('file', primaryFile);
+    }
     formData.append('sync', 'true');
 
     try {
@@ -1196,42 +1430,108 @@
       });
 
       if (!res.ok) {
-        throw new Error(`Mã lỗi máy chủ ${res.status}`);
+        let errMsg = `Mã lỗi máy chủ ${res.status}`;
+        try {
+          const errBody = await res.json();
+          if (errBody.detail) errMsg = errBody.detail;
+        } catch (_) {}
+        throw new Error(errMsg);
       }
 
       const uploadResult = await res.json();
       const jobId = uploadResult.job_id;
       state.digitizeJob.jobId = jobId;
+      state.digitizeJob.fileType = uploadResult.file_type || state.digitizeJob.fileType;
+      state.digitizeJob.previewUrl = uploadResult.preview_url || `${API_BASE_URL}/digitize/jobs/${jobId}/preview`;
 
-      showToast(`Đang phân tích bóc tách đề thi...`, 'info');
+      showToast(`Đang gửi tệp sang AI bóc tách: ${displayName}...`, 'info');
 
       // Fetch job status and questions
       const jobRes = await fetch(`${API_BASE_URL}/digitize/jobs/${jobId}`);
       if (jobRes.ok) {
         const jobData = await jobRes.json();
+        state.digitizeJob.previewUrl = jobData.preview_url || state.digitizeJob.previewUrl;
+        state.digitizeJob.previewImages = jobData.preview_images || [];
+        state.digitizeJob.aiProvider = jobData.ai_provider;
+        state.digitizeJob.aiModel = jobData.ai_model;
+        state.digitizeJob.fileType = jobData.file_type || state.digitizeJob.fileType;
+
         if (jobData.extracted_questions && jobData.extracted_questions.length > 0) {
-          state.digitizeJob.questions = jobData.extracted_questions;
-          showToast(`Bóc tách thành công ${jobData.extracted_questions.length} câu hỏi từ ${file.name}!`, 'success');
+          state.digitizeJob.questions = jobData.extracted_questions.map((q, idx) => {
+            const id = q.id || idx + 1;
+            const rawConf = q.confidence_score !== undefined ? q.confidence_score : (q.confidence !== undefined ? q.confidence : 95);
+            const conf = rawConf <= 1.0 ? Math.round(rawConf * 100) : Math.round(rawConf);
+            return {
+              ...q,
+              id: id,
+              code: q.code || `EXTRACT-${String(id).padStart(3, '0')}`,
+              confidence: conf,
+              confidence_score: conf,
+            };
+          });
+          state.digitizeJob.activeQuestionId = state.digitizeJob.questions[0]?.id || 1;
+          state.digitizeJob.totalPages = Math.max(1, Math.ceil(state.digitizeJob.questions.length / 6));
+          state.digitizeJob.currentPage = 1;
+
+          const aiNote = (jobData.ai_provider && jobData.ai_provider !== 'local_fallback')
+            ? ` qua AI (${jobData.ai_provider.toUpperCase()} - ${jobData.ai_model})`
+            : '';
+          showToast(`Bóc tách thành công ${state.digitizeJob.questions.length} câu hỏi${aiNote}!`, 'success');
+        } else if (jobData.status === 'FAILED') {
+          throw new Error(jobData.error_message || 'Xử lý file thất bại trên máy chủ.');
         } else {
-          showToast(`Đã nhận diện file ${file.name}. Hệ thống đang hoàn tất xử lý.`, 'success');
+          showToast(`Đã nhận diện file ${displayName}. Chưa phát hiện câu hỏi nào.`, 'warning');
         }
+      } else {
+        throw new Error(`Không lấy được trạng thái tác vụ (HTTP ${jobRes.status})`);
       }
       renderDigitizeStudio();
     } catch (err) {
-      console.warn('Backend upload fallback:', err);
-      showToast(`Đã tiếp nhận file: ${file.name}. Chuyển sang giao diện hậu kiểm...`, 'info');
+      console.warn('Backend upload error:', err);
+      showToast(`Lỗi khi xử lý file: ${err.message}`, 'error');
       renderDigitizeStudio();
+    } finally {
+      if (event && event.target) {
+        event.target.value = '';
+      }
     }
   }
 
   function loadSampleExam(type) {
+    state.digitizeJob.jobId = null;
+    state.digitizeJob.previewUrl = null;
+    state.digitizeJob.previewImages = [];
+
     if (type === 'math12_standard') {
       showToast('Đang nạp đề mẫu Toán 12 (MathType OLE + Đồ thị)...', 'info');
-      seedInitialQuestions();
+      state.digitizeJob.filename = 'De_Mau_Toan_12_MathType.docx';
+      state.digitizeJob.fileType = 'sample_docx';
+      state.digitizeJob.questions = JSON.parse(JSON.stringify(state.itemBank.slice(0, 5))).map((q, idx) => ({
+        ...q,
+        id: idx + 1,
+        code: q.code || `TOAN12-${String(idx + 1).padStart(3, '0')}`,
+        confidence: q.confidence || 98,
+        confidence_score: q.confidence || 98,
+      }));
+      state.digitizeJob.activeQuestionId = 1;
+      state.digitizeJob.currentPage = 1;
+      state.digitizeJob.totalPages = 2;
       renderDigitizeStudio();
     } else if (type === 'true_false_group') {
       showToast('Đang nạp đề mẫu trắc nghiệm Đúng/Sai 4 ý (QĐ 764)...', 'info');
-      state.digitizeJob.questions = state.itemBank.filter((q) => q.item_format === 'TRUE_FALSE_GROUP');
+      state.digitizeJob.filename = 'De_Mau_Dung_Sai_4_Y_QD764.docx';
+      state.digitizeJob.fileType = 'sample_tf';
+      const tfQuestions = state.itemBank.filter((q) => q.item_format === 'TRUE_FALSE_GROUP');
+      state.digitizeJob.questions = JSON.parse(JSON.stringify(tfQuestions.length > 0 ? tfQuestions : state.itemBank.slice(0, 4))).map((q, idx) => ({
+        ...q,
+        id: idx + 1,
+        code: q.code || `TF-${String(idx + 1).padStart(3, '0')}`,
+        confidence: q.confidence || 96,
+        confidence_score: q.confidence || 96,
+      }));
+      state.digitizeJob.activeQuestionId = 1;
+      state.digitizeJob.currentPage = 1;
+      state.digitizeJob.totalPages = 1;
       renderDigitizeStudio();
     }
   }
@@ -2192,10 +2492,43 @@
   }
 
   // ============================================================================
+  // 13. DRAG & DROP FOR DOCUMENT VIEWER
+  // ============================================================================
+  function setupPaperDropZone() {
+    const dropZone = document.getElementById('doc-viewer-scroll-container');
+    if (!dropZone) return;
+
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('ring-4', 'ring-brand-400', 'bg-brand-50');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('ring-4', 'ring-brand-400', 'bg-brand-50');
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      const files = dt && dt.files;
+      if (files && files.length > 0) {
+        handleFileUpload(Array.from(files));
+      }
+    });
+  }
+
+  // ============================================================================
   // 14. INITIALIZATION
   // ============================================================================
   async function init() {
     seedInitialQuestions();
+    setupPaperDropZone();
 
     // Check backend API live status
     await apiService.checkHealth();
@@ -2257,5 +2590,7 @@
     triggerDuplicateCheckDemo,
     closeDuplicateModal,
     confirmSaveAsVariant,
+    renderDigitizeStudio,
+    getState: () => state,
   };
 })();

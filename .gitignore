@@ -1,13 +1,88 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+*.so
+
+# C extensions
+*.obj
+*.o
+*.a
+*.lib
 *.pyd
-.pytest_cache/
-*.db
-*.sqlite3
-storage/uploads/*
-storage/exports/*
-!storage/uploads/.gitkeep
-!storage/exports/.gitkeep
+
+# Environments & Virtual Environments
 .env
+.env.*
+!.env.example
 .venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Temporary test pipeline outputs
+tests/tmp_*/
+tests/tmp_test_pipeline/
+
+# Storage & Databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+storage/*.db
+storage/*.db-journal
+storage/*.sqlite3
+
+# Uploads, Exports & Generated Assets
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/exports/*
+!storage/exports/.gitkeep
+storage/assets/*
+!storage/assets/.gitkeep
+
+# Temporary test / probe scripts & reports
+storage/test_*.py
+storage/*.json
+storage/loop_test_report.json
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Large reference document files
+thong-tu-32-2018-tt-bgddt-ban-hanh-chuong-trinh-giao-duc-pho-thong-moi_d79a0783f6_f3b32480ba.pdf
+*.pdf.tmp
+
+# Log files
+*.log
+logs/

@@ -440,8 +440,8 @@
             <div class="flex flex-wrap items-center gap-2">
               <label class="cursor-pointer inline-flex items-center space-x-2 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all">
                 <i data-lucide="file-up" class="w-4 h-4"></i>
-                <span>Tải đề thi (.docx, .pdf)</span>
-                <input type="file" id="studio-file-input" class="hidden" accept=".docx,.doc,.pdf,.png,.jpg" onchange="app.handleFileUpload(event)">
+                <span>Tải đề thi (.docx, .pdf, ảnh)</span>
+                <input type="file" id="studio-file-input" class="hidden" accept=".docx,.doc,.pdf,.png,.jpg,.jpeg,.webp" multiple onchange="app.handleFileUpload(event)">
               </label>
 
               <button onclick="app.loadSampleExam('math12_standard')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1.5">
@@ -460,17 +460,17 @@
               <!-- Confidence Filter Pills -->
               <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                 <span class="text-slate-400 text-[11px] px-2 font-medium">Lọc:</span>
-                <button onclick="app.filterStudioConfidence('all')" id="btn-filter-conf-all" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 shadow-xs">Tất cả (5)</button>
-                <button onclick="app.filterStudioConfidence('green')" id="btn-filter-conf-green" class="px-2.5 py-1 rounded-lg text-xs font-medium text-emerald-700 hover:bg-white/50">Xanh $\ge 95\%$</button>
-                <button onclick="app.filterStudioConfidence('yellow')" id="btn-filter-conf-yellow" class="px-2.5 py-1 rounded-lg text-xs font-medium text-amber-700 hover:bg-white/50">Vàng $80-94\%$</button>
-                <button onclick="app.filterStudioConfidence('red')" id="btn-filter-conf-red" class="px-2.5 py-1 rounded-lg text-xs font-medium text-rose-700 hover:bg-white/50">Đỏ $< 80\%$</button>
+                <button onclick="app.filterStudioConfidence('all')" id="btn-filter-conf-all" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white text-slate-800 shadow-xs">Tất cả (0)</button>
+                <button onclick="app.filterStudioConfidence('green')" id="btn-filter-conf-green" class="px-2.5 py-1 rounded-lg text-xs font-medium text-emerald-700 hover:bg-white/50">Xanh $\ge 95\%$ (0)</button>
+                <button onclick="app.filterStudioConfidence('yellow')" id="btn-filter-conf-yellow" class="px-2.5 py-1 rounded-lg text-xs font-medium text-amber-700 hover:bg-white/50">Vàng $80-94\%$ (0)</button>
+                <button onclick="app.filterStudioConfidence('red')" id="btn-filter-conf-red" class="px-2.5 py-1 rounded-lg text-xs font-medium text-rose-700 hover:bg-white/50">Đỏ $< 80\%$ (0)</button>
               </div>
 
               <!-- Batch Commit to Bank Button -->
-              <button onclick="app.commitExtractedToBank()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center space-x-2">
+              <button onclick="app.commitExtractedToBank()" id="btn-commit-to-bank" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center space-x-2">
                 <i data-lucide="save" class="w-4 h-4"></i>
                 <span>Lưu toàn bộ vào Ngân hàng</span>
-                <span id="studio-ready-count-badge" class="px-1.5 py-0.2 bg-emerald-800 rounded-full text-[10px]">5</span>
+                <span id="studio-ready-count-badge" class="px-1.5 py-0.2 bg-emerald-800 rounded-full text-[10px]">0</span>
               </button>
             </div>
 
@@ -480,11 +480,11 @@
           <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500">
             <div class="flex items-center space-x-3">
               <span class="flex items-center space-x-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span id="studio-status-label">AI Parsing: Hoàn tất 5/5 câu hỏi</span>
+                <span id="studio-status-indicator" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span id="studio-status-label">AI Parsing: Sẵn sàng (Chưa tải tệp)</span>
               </span>
               <span>•</span>
-              <span id="studio-avg-confidence" class="font-medium text-slate-700">Độ tin cậy TB: 94.8%</span>
+              <span id="studio-avg-confidence" class="font-medium text-slate-700">Độ tin cậy TB: --</span>
               <span>•</span>
               <span class="text-brand-600 font-medium">Cuộn đồng bộ (Synchronized Scrolling): Đang bật</span>
             </div>
@@ -503,18 +503,18 @@
             <div class="bg-white px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs">
               <div class="flex items-center space-x-2 font-semibold text-slate-700">
                 <i data-lucide="file-text" class="w-4 h-4 text-brand-600"></i>
-                <span id="doc-viewer-filename">De_Khao_Sat_Toan_12_2025.docx</span>
+                <span id="doc-viewer-filename">Chưa tải tệp nào</span>
               </div>
               
               <!-- Viewer Controls -->
               <div class="flex items-center space-x-3">
                 <div class="flex items-center space-x-1 bg-slate-100 rounded-lg p-0.5 border border-slate-200">
                   <button onclick="app.changeViewerPage(-1)" class="p-1 hover:bg-white rounded text-slate-600"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
-                  <span id="doc-page-display" class="px-2 text-[11px] font-semibold text-slate-700">Trang 1 / 2</span>
+                  <span id="doc-page-display" class="px-2 text-[11px] font-semibold text-slate-700">Trang 0 / 0</span>
                   <button onclick="app.changeViewerPage(1)" class="p-1 hover:bg-white rounded text-slate-600"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
                 </div>
-                <span id="doc-active-target-badge" class="px-2 py-0.5 bg-brand-50 text-brand-700 font-bold text-[11px] rounded-md border border-brand-200">
-                  Đối chiếu: Câu 1
+                <span id="doc-active-target-badge" class="px-2 py-0.5 bg-slate-100 text-slate-600 font-bold text-[11px] rounded-md border border-slate-200">
+                  Chưa chọn câu
                 </span>
               </div>
             </div>
@@ -524,7 +524,7 @@
               <div id="doc-viewer-paper" class="w-full max-w-xl bg-white shadow-lg rounded-sm p-8 min-h-[880px] text-[13px] text-slate-900 leading-relaxed font-serif relative">
                 
                 <!-- Exam Header on Paper -->
-                <div class="border-b-2 border-slate-800 pb-3 mb-6 grid grid-cols-2 gap-2 text-center text-xs font-sans">
+                <div id="doc-paper-header" class="border-b-2 border-slate-800 pb-3 mb-6 grid grid-cols-2 gap-2 text-center text-xs font-sans hidden">
                   <div>
                     <div class="font-bold uppercase tracking-tight">SỞ GD&ĐT HÀ NỘI</div>
                     <div class="font-bold text-[11px]">TRƯỜNG THPT CHU VĂN AN</div>
@@ -542,7 +542,7 @@
                   <!-- Dynamic render of document questions will inject here -->
                 </div>
 
-                <div class="text-center pt-8 text-[11px] font-sans text-slate-400">
+                <div id="doc-paper-footer" class="text-center pt-8 text-[11px] font-sans text-slate-400 hidden">
                   --- HẾT --- Cán bộ coi thi không giải thích gì thêm ---
                 </div>
 
@@ -557,7 +557,7 @@
               <div class="flex items-center space-x-2">
                 <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
                 <span class="font-bold text-slate-800">Danh Sách Câu Hỏi Bóc Tách (HITL Studio)</span>
-                <span id="studio-total-badge" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold">5 câu</span>
+                <span id="studio-total-badge" class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold">0 câu</span>
               </div>
               <div class="flex items-center space-x-2">
                 <button onclick="app.openFormulaEditorModal('new', null)" class="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-medium border border-brand-200 flex items-center space-x-1">
@@ -1216,6 +1216,6 @@
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
   <!-- Application Logic JS -->
-  <script src="static/app.js?v=2.0.4"></script>
+  <script src="static/app.js?v=2.0.6"></script>
 </body>
 </html>

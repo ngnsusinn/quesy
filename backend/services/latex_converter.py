@@ -11,6 +11,7 @@ Provides:
 
 from __future__ import annotations
 
+import logging
 import io
 import os
 import re
@@ -18,6 +19,8 @@ import struct
 import zipfile
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+logger = logging.getLogger("quesy.latex_converter")
 
 try:
     import latex2mathml.converter
@@ -598,69 +601,164 @@ def convert_omml_to_latex(omml_input: Union[str, ET.Element]) -> str:
 # 5. MathType MTEF Binary Parser
 # ---------------------------------------------------------------------------
 
+SYMBOL_GREEK_MAP = {
+    ord('a'): r'\alpha', ord('b'): r'\beta', ord('g'): r'\gamma', ord('d'): r'\delta',
+    ord('e'): r'\epsilon', ord('z'): r'\zeta', ord('h'): r'\eta', ord('q'): r'\theta',
+    ord('i'): r'\iota', ord('k'): r'\kappa', ord('l'): r'\lambda', ord('m'): r'\mu',
+    ord('n'): r'\nu', ord('x'): r'\xi', ord('p'): r'\pi', ord('r'): r'\rho',
+    ord('s'): r'\sigma', ord('t'): r'\tau', ord('u'): r'\upsilon', ord('f'): r'\phi',
+    ord('c'): r'\chi', ord('y'): r'\psi', ord('w'): r'\omega',
+    ord('G'): r'\Gamma', ord('D'): r'\Delta', ord('Q'): r'\Theta',
+    ord('L'): r'\Lambda', ord('X'): r'\Xi', ord('P'): r'\Pi',
+    ord('S'): r'\Sigma', ord('F'): r'\Phi', ord('Y'): r'\Psi', ord('W'): r'\Omega',
+    0xa3: r'\le ', 0xb3: r'\ge ', 0xb9: r'\ne ', 0xae: r'\rightarrow ',
+    0xdb: r'\Leftrightarrow ', 0xde: r'\Rightarrow ', 0xc7: r'\cap ', 0xc8: r'\cup ',
+    0xce: r'\in ', 0xcf: r'\notin ', 0xcc: r'\subset ', 0xcd: r'\supset ',
+    0xc6: r'\emptyset ', 0xa5: r'\infty ', 0xb1: r'\pm ', 0xb0: r'^\circ ',
+}
+
+
 class MTEFParser:
+    """Decoder for MathType Equation Format (MTEF) streams version 3 and 5.
+    Converts MTEF binary records into standard clean LaTeX.
     """
-    Decoder for MathType Equation Format (MTEF) streams version 3 and 5.
-    Converts MTEF binary records into standard LaTeX.
-    """
-
-    RECORD_END = 0
-    RECORD_LINE = 1
-    RECORD_CHAR = 2
-    RECORD_TMPL = 3
-    RECORD_PILE = 4
-    RECORD_MATRIX = 5
-    RECORD_EMBEL = 6
-    RECORD_RULER = 7
-    RECORD_FONT = 8
-    RECORD_COLOR = 9
-
-    # Template selector codes
-    TM_ROOT = 5
-    TM_FRACT = 6
-    TM_UBAR = 7
-    TM_OBAR = 8
-    TM_ARROW = 9
-    TM_INTEG = 10
-    TM_SUM = 11
-    TM_PROD = 12
-    TM_COPROD = 13
-    TM_UNION = 14
-    TM_INTER = 15
-    TM_SUP = 16
-    TM_SUB = 17
-    TM_SUBSUP = 18
-    TM_LIM = 19
-    TM_BOX = 20
-    TM_PAREN = 1
-    TM_BRACE = 2
-    TM_BRACK = 3
-    TM_BAR = 4
 
     def __init__(self, data: bytes):
         self.data = data
+        if len(data) > 28 and data[0] == 28 and data[1] == 0:
+            self.data = data[28:]
+        idx = -1
+        for sig in [b"\x05\x01\x00", b"\x05\x01\x01", b"\x03\x01\x01", b"\x03\x01\x00", b"\x02\x01\x01"]:
+            i = self.data.find(sig)
+            if i != -1:
+                idx = i
+                break
+        if idx != -1:
+            self.data = self.data[idx:]
         self.pos = 0
         self.version = 5
-        self.platform = 1
-        self.product = 0
 
     def parse(self) -> str:
         if len(self.data) < 5:
             return ""
 
-        # Parse MTEF Header
-        self.version = self.data[self.pos]
-        self.platform = self.data[self.pos + 1]
-        self.product = self.data[self.pos + 2]
-        self.pos += 5
+        self.version = self.data[0]
+        # Check if this is a simple/mock MTEF stream without DSMT header
+        if self.data.find(b"\x0f\x0c") == -1 and (len(self.data) > 5 and self.data[5] in (1, 4)):
+            return self._parse_simple()
 
-        # Process top-level records until end
-        output: List[str] = []
+        self.pos = 5
+        # Skip null-terminated application key (e.g. "DSMT7\0")
+        while self.pos < len(self.data) and self.data[self.pos] != 0:
+            self.pos += 1
+        self.pos += 1  # null byte
+        if self.pos < len(self.data):
+            self.pos += 1  # equation options byte
+
+        if self.version >= 5:
+            # Skip definition records until the equation body (LINE or PILE)
+            while self.pos < len(self.data):
+                tag = self.data[self.pos]
+                if tag in (1, 4):  # Start of LINE or PILE
+                    break
+                self.pos += 1
+                if tag == 19:  # ENCODING_DEF
+                    while self.pos < len(self.data) and self.data[self.pos] != 0:
+                        self.pos += 1
+                    self.pos += 1
+                elif tag == 17:  # FONT_DEF
+                    self.pos += 1
+                    while self.pos < len(self.data) and self.data[self.pos] != 0:
+                        self.pos += 1
+                    self.pos += 1
+                elif tag == 18:  # EQN_PREFS
+                    idx12 = self.data.find(b"\x0c", self.pos)
+                    if idx12 != -1 and idx12 < self.pos + 120:
+                        self.pos = idx12
+                    else:
+                        break
+                elif tag == 12:  # FONT_STYLE_DEF
+                    self.pos += 24
+                    if self.pos < len(self.data) and self.data[self.pos] == 10:
+                        self.pos += 1
+                    break
+
+        parts: List[str] = []
         while self.pos < len(self.data):
-            rec = self._parse_record()
-            if rec:
-                output.append(rec)
-        return "".join(output).strip()
+            tag = self._read_byte()
+            if tag == 0:  # END
+                break
+            val = self._parse_record(tag)
+            if val:
+                parts.append(val)
+        return "".join(parts).strip()
+
+    def _parse_simple(self) -> str:
+        pos = 5
+        data = self.data
+        version = self.version
+
+        def read_b():
+            nonlocal pos
+            if pos >= len(data):
+                return 0
+            v = data[pos]
+            pos += 1
+            return v
+
+        def read_u16():
+            nonlocal pos
+            if pos + 2 > len(data):
+                pos = len(data)
+                return 0
+            v = struct.unpack_from("<H", data, pos)[0]
+            pos += 2
+            return v
+
+        def parse_rec():
+            nonlocal pos
+            if pos >= len(data):
+                return ""
+            tag_byte = read_b()
+            rec_type = tag_byte & 0x0F
+            if rec_type == 0:
+                return ""
+            elif rec_type == 1:
+                parts = []
+                while pos < len(data):
+                    if data[pos] & 0x0F == 0:
+                        read_b()
+                        break
+                    p = parse_rec()
+                    if p:
+                        parts.append(p)
+                return "".join(parts)
+            elif rec_type == 2:
+                read_b()  # font_pos
+                char_val = read_u16() if version >= 5 else read_b()
+                return chr(char_val) if 32 <= char_val <= 126 else ""
+            elif rec_type == 3:
+                sel = read_b()
+                read_u16()  # var
+                lines = []
+                while pos < len(data):
+                    if data[pos] & 0x0F == 0:
+                        read_b()
+                        break
+                    lines.append(parse_rec())
+                if sel in (6, 10, 11):
+                    n = lines[0] if len(lines) > 0 else ""
+                    d = lines[1] if len(lines) > 1 else ""
+                    return rf"\frac{{{n}}}{{{d}}}"
+                return "".join(lines)
+            return ""
+
+        out = []
+        while pos < len(data):
+            r = parse_rec()
+            if r:
+                out.append(r)
+        return "".join(out).strip()
 
     def _read_byte(self) -> int:
         if self.pos >= len(self.data):
@@ -669,279 +767,154 @@ class MTEFParser:
         self.pos += 1
         return b
 
-    def _read_uint16(self) -> int:
+    def _read_u16(self) -> int:
         if self.pos + 2 > len(self.data):
             self.pos = len(self.data)
             return 0
-        val = struct.unpack_from("<H", self.data, self.pos)[0]
+        v = struct.unpack_from("<H", self.data, self.pos)[0]
         self.pos += 2
-        return val
+        return v
 
-    def _read_null_string(self) -> str:
-        start = self.pos
-        while self.pos < len(self.data) and self.data[self.pos] != 0:
-            self.pos += 1
-        s = self.data[start:self.pos].decode("latin-1", errors="ignore")
-        if self.pos < len(self.data) and self.data[self.pos] == 0:
-            self.pos += 1
-        return s
-
-    def _parse_record(self) -> str:
-        if self.pos >= len(self.data):
+    def _parse_record(self, tag: int) -> str:
+        if tag == 0:
             return ""
 
-        tag_byte = self._read_byte()
-        rec_type = tag_byte & 0x0F
-        options = tag_byte >> 4
+        rec_type = tag if self.version >= 5 else (tag & 0x0F)
+        opts = self._read_byte() if self.version >= 5 else (tag >> 4)
+        if opts & 0x08:  # nudge
+            self.pos += 2
 
-        if rec_type == self.RECORD_END:
-            return ""
-
-        elif rec_type == self.RECORD_LINE:
-            # LINE options
-            # If line has nudge (0x08), skip dx, dy
-            if options & 0x08:
-                self.pos += 2  # dx, dy
-            # If null line (0x01)
-            if options & 0x01:
-                return ""
-
+        if rec_type == 1:  # LINE
             parts: List[str] = []
             while self.pos < len(self.data):
-                if self.data[self.pos] & 0x0F == self.RECORD_END:
-                    self._read_byte()  # consume END
+                child_tag = self._read_byte()
+                if child_tag == 0:  # END of line
                     break
-                rec_val = self._parse_record()
-                if rec_val:
-                    parts.append(rec_val)
+                p = self._parse_record(child_tag)
+                if p:
+                    parts.append(p)
             return "".join(parts)
 
-        elif rec_type == self.RECORD_CHAR:
-            # CHAR options, font position, character code
-            font_pos = self._read_byte()
-            if self.version >= 5:
-                char_val = self._read_uint16()
-            else:
-                char_val = self._read_byte()
+        elif rec_type == 2:  # CHAR
+            typeface = self._read_byte()
+            char_code = self._read_u16() if self.version >= 5 else self._read_byte()
+            if opts & 0x04:  # user point size
+                self._read_byte()
 
-            # Embellishments
-            embel_str = ""
-            if options & 0x01:
+            emb = ""
+            if opts & 0x01:  # embellishments
                 while self.pos < len(self.data):
-                    emb = self._read_byte()
-                    if emb == 0:
+                    e = self._read_byte()
+                    if e == 0:
                         break
-                    if emb == 1:
-                        embel_str += "'"
-                    elif emb == 2:
-                        embel_str += "''"
-                    elif emb == 5:
-                        embel_str = r"\bar"
-                    elif emb == 6:
-                        embel_str = r"\vec"
+                    if e == 6:
+                        emb = r"\vec"
+                    elif e == 5:
+                        emb = r"\bar"
+                    elif e == 1:
+                        emb = "'"
+                    elif e == 2:
+                        emb = "''"
 
-            char_str = self._char_to_latex(char_val)
-            if embel_str:
-                if embel_str.startswith("\\"):
-                    return f"{embel_str}{{{char_str}}}"
-                return f"{char_str}{embel_str}"
-            return char_str
+            # Character conversion
+            ch = ""
+            if char_code == 0x2212:
+                ch = "-"
+            elif char_code == 0x2264:
+                ch = r"\le "
+            elif char_code == 0x2265:
+                ch = r"\ge "
+            elif char_code == 0x2260:
+                ch = r"\ne "
+            elif char_code == 0x20D7:
+                ch = ""  # combining vector arrow
+            elif char_code in (0xEF02, 0xEF03, 0xEF04):
+                ch = " "
+            elif typeface in (132, 134, 135) and char_code in SYMBOL_GREEK_MAP:
+                ch = SYMBOL_GREEK_MAP[char_code]
+            elif 32 <= char_code <= 126:
+                c_ascii = chr(char_code)
+                if c_ascii == "\\":
+                    ch = r"\backslash "
+                elif c_ascii in ("{", "}"):
+                    ch = f"\\{c_ascii}"
+                else:
+                    ch = c_ascii
+            else:
+                try:
+                    c = chr(char_code)
+                    ch = c if c.isprintable() else ""
+                except Exception:
+                    ch = ""
 
-        elif rec_type == self.RECORD_TMPL:
-            # Template record
-            selector = self._read_byte()
-            variation = self._read_uint16()
-            return self._parse_template(selector, variation)
+            if emb:
+                if emb.startswith("\\"):
+                    ch = f"{emb}{{{ch}}}"
+                else:
+                    ch = f"{ch}{emb}"
+            return ch
 
-        elif rec_type == self.RECORD_PILE:
-            parts = []
+        elif rec_type == 3:  # TMPL
+            sel = self._read_byte()
+            var = self._read_byte()
+            if var & 0x80:
+                var = (var & 0x7F) | (self._read_byte() << 8)
+            tmpl_opts = self._read_byte()
+
+            sublines: List[str] = []
             while self.pos < len(self.data):
-                if self.data[self.pos] & 0x0F == self.RECORD_END:
-                    self._read_byte()
+                child_tag = self._read_byte()
+                if child_tag == 0:  # END of template
                     break
-                rec_val = self._parse_record()
-                if rec_val:
-                    parts.append(rec_val)
-            return " \\\\ ".join(parts)
+                p = self._parse_record(child_tag)
+                sublines.append(p)
 
-        elif rec_type == self.RECORD_MATRIX:
-            rows = self._read_byte()
-            cols = self._read_byte()
-            cells = []
+            if sel in (28, 14):  # SUP
+                inner = sublines[0] if sublines else ""
+                return f"^{{{inner}}}"
+            elif sel in (29, 13):  # SUB
+                inner = sublines[0] if sublines else ""
+                return f"_{{{inner}}}"
+            elif sel in (30, 15):  # SUBSUP
+                s1 = sublines[0] if len(sublines) > 0 else ""
+                s2 = sublines[1] if len(sublines) > 1 else ""
+                return f"_{{{s1}}}^{{{s2}}}"
+            elif sel == 31:  # OVER ARROW
+                inner = sublines[0] if sublines else ""
+                return f"\\vec{{{inner}}}"
+            elif sel in (10, 11):  # FRACT
+                s1 = sublines[0] if len(sublines) > 0 else ""
+                s2 = sublines[1] if len(sublines) > 1 else ""
+                return f"\\frac{{{s1}}}{{{s2}}}"
+            elif sel in (9, 5):  # ROOT
+                inner = sublines[0] if sublines else ""
+                return f"\\sqrt{{{inner}}}"
+            elif sel in (1, 2, 3, 4):
+                pairs = {1: ("(", ")"), 2: (r"\{", r"\}"), 3: ("[", "]"), 4: ("|", "|")}
+                l, r = pairs.get(sel, ("(", ")"))
+                return f"{l}{sublines[0] if sublines else ''}{r}"
+            return "".join(sublines)
+
+        elif rec_type in (4, 10):  # PILE
+            parts: List[str] = []
             while self.pos < len(self.data):
-                if self.data[self.pos] & 0x0F == self.RECORD_END:
-                    self._read_byte()
+                ct = self._read_byte()
+                if ct == 0:
                     break
-                rec_val = self._parse_record()
-                if rec_val:
-                    cells.append(rec_val)
-            return "\\begin{matrix} " + " & ".join(cells) + " \\end{matrix}"
+                p = self._parse_record(ct)
+                if p:
+                    parts.append(p)
+            return "".join(parts)
 
-        elif rec_type == self.RECORD_FONT:
-            self._read_byte()  # font def
-            self._read_null_string()  # font name
+        elif rec_type == 16:  # RULER
+            self.pos += 6
             return ""
 
-        elif rec_type == self.RECORD_COLOR:
+        elif rec_type in (8, 9, 11, 12, 13, 14, 15):
             self._read_byte()
             return ""
 
-        elif rec_type == self.RECORD_RULER:
-            n_stops = self._read_byte()
-            self.pos += n_stops * 3
-            return ""
-
         return ""
-
-    def _parse_template(self, selector: int, variation: int) -> str:
-        lines: List[str] = []
-        while self.pos < len(self.data):
-            if self.data[self.pos] & 0x0F == self.RECORD_END:
-                self._read_byte()
-                break
-            rec_val = self._parse_record()
-            lines.append(rec_val)
-
-        if selector == self.TM_ROOT:
-            if len(lines) >= 2 and variation != 0:
-                return rf"\sqrt[{lines[0]}]{{{lines[1]}}}"
-            arg = lines[0] if lines else ""
-            return rf"\sqrt{{{arg}}}"
-
-        elif selector == self.TM_FRACT:
-            num = lines[0] if len(lines) > 0 else ""
-            den = lines[1] if len(lines) > 1 else ""
-            return rf"\frac{{{num}}}{{{den}}}"
-
-        elif selector == self.TM_SUP:
-            sup = lines[0] if lines else ""
-            return f"^{{{sup}}}"
-
-        elif selector == self.TM_SUB:
-            sub = lines[0] if lines else ""
-            return f"_{{{sub}}}"
-
-        elif selector == self.TM_SUBSUP:
-            sub = lines[0] if len(lines) > 0 else ""
-            sup = lines[1] if len(lines) > 1 else ""
-            return f"_{{{sub}}}^{{{sup}}}"
-
-        elif selector == self.TM_INTEG:
-            low = lines[0] if len(lines) > 0 else ""
-            upp = lines[1] if len(lines) > 1 else ""
-            integrand = lines[2] if len(lines) > 2 else ""
-            if low and upp:
-                return rf"\int_{{{low}}}^{{{upp}}} {{{integrand}}}"
-            return rf"\int {{{integrand}}}"
-
-        elif selector == self.TM_SUM:
-            low = lines[0] if len(lines) > 0 else ""
-            upp = lines[1] if len(lines) > 1 else ""
-            arg = lines[2] if len(lines) > 2 else ""
-            return rf"\sum_{{{low}}}^{{{upp}}} {{{arg}}}"
-
-        elif selector == self.TM_PROD:
-            low = lines[0] if len(lines) > 0 else ""
-            upp = lines[1] if len(lines) > 1 else ""
-            arg = lines[2] if len(lines) > 2 else ""
-            return rf"\prod_{{{low}}}^{{{upp}}} {{{arg}}}"
-
-        elif selector == self.TM_PAREN:
-            inner = lines[0] if lines else ""
-            return rf"\left( {inner} \right)"
-
-        elif selector == self.TM_BRACK:
-            inner = lines[0] if lines else ""
-            return rf"\left[ {inner} \right]"
-
-        elif selector == self.TM_BRACE:
-            inner = lines[0] if lines else ""
-            return rf"\left\{{ {inner} \right\}}"
-
-        elif selector == self.TM_BAR:
-            inner = lines[0] if lines else ""
-            return rf"\left| {inner} \right|"
-
-        elif selector == self.TM_ARROW:
-            inner = lines[0] if lines else ""
-            return rf"\vec{{{inner}}}"
-
-        elif selector == self.TM_OBAR:
-            inner = lines[0] if lines else ""
-            return rf"\overline{{{inner}}}"
-
-        elif selector == self.TM_UBAR:
-            inner = lines[0] if lines else ""
-            return rf"\underline{{{inner}}}"
-
-        elif selector == self.TM_LIM:
-            target = lines[0] if len(lines) > 0 else ""
-            expr = lines[1] if len(lines) > 1 else ""
-            return rf"\lim_{{{target}}} {{{expr}}}"
-
-        elif selector == self.TM_BOX:
-            inner = lines[0] if lines else ""
-            return f"{{{inner}}}"
-
-        # Default fallback: concatenate sub-lines
-        return " ".join(lines)
-
-    def _char_to_latex(self, char_code: int) -> str:
-        # Standard ASCII
-        if 0x20 <= char_code <= 0x7E:
-            ch = chr(char_code)
-            if ch == '\\':
-                return r"\backslash "
-            elif ch in ('{', '}'):
-                return rf"\{ch}"
-            return ch
-
-        # Common unicode symbols
-        code_map = {
-            0x00B1: r"\pm ",
-            0x2213: r"\mp ",
-            0x00D7: r"\times ",
-            0x00F7: r"\div ",
-            0x2264: r"\le ",
-            0x2265: r"\ge ",
-            0x2260: r"\ne ",
-            0x2248: r"\approx ",
-            0x221E: r"\infty ",
-            0x2208: r"\in ",
-            0x2209: r"\notin ",
-            0x2282: r"\subset ",
-            0x2283: r"\supset ",
-            0x222A: r"\cup ",
-            0x2229: r"\cap ",
-            0x2205: r"\emptyset ",
-            0x2192: r"\rightarrow ",
-            0x21D2: r"\Rightarrow ",
-            0x21D4: r"\Leftrightarrow ",
-            0x2212: "-",
-            0x03C0: r"\pi ",
-            0x03B1: r"\alpha ",
-            0x03B2: r"\beta ",
-            0x03B3: r"\gamma ",
-            0x03B4: r"\delta ",
-            0x03B8: r"\theta ",
-            0x03BB: r"\lambda ",
-            0x03BC: r"\mu ",
-            0x03C3: r"\sigma ",
-            0x03C9: r"\omega ",
-            0x0394: r"\Delta ",
-            0x211D: r"\mathbb{R}",
-            0x2124: r"\mathbb{Z}",
-            0x2115: r"\mathbb{N}",
-            0x211A: r"\mathbb{Q}",
-            0x2102: r"\mathbb{C}",
-        }
-        if char_code in code_map:
-            return code_map[char_code]
-
-        try:
-            return chr(char_code)
-        except (ValueError, OverflowError):
-            return ""
 
 
 def decode_mtef(mtef_bytes: bytes) -> str:
@@ -990,6 +963,7 @@ def decode_mtef(mtef_bytes: bytes) -> str:
 def extract_mathtype_from_docx(docx_file: Union[str, bytes, io.BytesIO]) -> Dict[str, str]:
     """
     Extracts all MathType OLE binary objects from a DOCX zip archive and decodes them to LaTeX formulas.
+    Uses olefile to extract the true 'Equation Native' stream if present, preventing sector desynchronization.
     Returns:
         Dict mapping part name (e.g. 'word/embeddings/oleObject1.bin') to decoded LaTeX '$...$'.
     """
@@ -999,7 +973,24 @@ def extract_mathtype_from_docx(docx_file: Union[str, bytes, io.BytesIO]) -> Dict
     for name in zf.namelist():
         if name.startswith("word/embeddings/") and (name.endswith(".bin") or name.endswith(".ole")):
             raw_data = zf.read(name)
-            formula_tex = decode_mtef(raw_data)
+            formula_tex = ""
+            # Try olefile stream extraction first
+            try:
+                import olefile
+                if olefile.isOleFile(io.BytesIO(raw_data)):
+                    ole = olefile.OleFileIO(io.BytesIO(raw_data))
+                    for stream_name in ["Equation Native", "\x03Equation Native"]:
+                        if ole.exists(stream_name):
+                            st_data = ole.openstream(stream_name).read()
+                            formula_tex = decode_mtef(st_data)
+                            break
+                    ole.close()
+            except Exception as ole_err:
+                logger.debug(f"olefile stream extraction fallback for {name}: {ole_err}")
+
+            if not formula_tex:
+                formula_tex = decode_mtef(raw_data)
+
             if formula_tex:
                 results[name] = formula_tex
 
@@ -1113,7 +1104,7 @@ def _extract_table_with_math(
     rid_map: Dict[str, str],
     mathtype_map: Dict[str, str]
 ) -> List[str]:
-    """Converts a Word table to Markdown table lines."""
+    """Converts a Word table to text lines or Markdown table lines."""
     rows: List[List[str]] = []
     for tr in tbl_elem.findall(f"{W_NS}tr"):
         row_cells: List[str] = []
@@ -1129,7 +1120,15 @@ def _extract_table_with_math(
     if not rows:
         return []
 
-    # Format as Markdown table
+    # Check if table represents multiple-choice options or header info
+    all_cells_flat = [c.strip() for r in rows for c in r if c and c.strip()]
+    is_option_table = any(re.match(r"^[A-Da-d][\.\)]", c) for c in all_cells_flat)
+    is_header_table = any(kw in " ".join(all_cells_flat).lower() for kw in ["họ và tên", "số báo danh", "mã đề", "thời gian làm bài", "đề thi gồm"])
+
+    if is_option_table or is_header_table:
+        return all_cells_flat
+
+    # Format as Markdown table for true data tables
     col_count = max(len(r) for r in rows) if rows else 0
     if col_count == 0:
         return []
