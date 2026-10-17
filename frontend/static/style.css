@@ -1,33 +1,93 @@
 /* ==========================================================================
-   QUESY ASSESSMENT & ITEM BANK STUDIO - STYLESHEET
-   Chuẩn hóa Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
+   QUESY ASSESSMENT & ITEM BANK STUDIO - APPLE HIG DESIGN SYSTEM
+   Chuẩn hóa Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (2025)
+   Grounded in Apple Human Interface Guidelines (macOS / iPadOS Pro)
    ========================================================================== */
 
-/* --- Base & Scrollbars --- */
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
+/* --- Apple Typography & CSS Tokens --- */
+:root {
+  --apple-bg: #f5f5f7;
+  --apple-card: #ffffff;
+  --apple-border: rgba(0, 0, 0, 0.08);
+  --apple-border-subtle: rgba(0, 0, 0, 0.04);
+  --apple-text-primary: #1d1d1f;
+  --apple-text-secondary: #86868b;
+  --apple-text-tertiary: #a1a1a6;
+  --apple-blue: #0071e3;
+  --apple-blue-hover: #0077ed;
+  --apple-green: #34c759;
+  --apple-green-hover: #30b753;
+  --apple-amber: #ff9f0a;
+  --apple-red: #ff3b30;
+  --apple-purple: #af52de;
+  --apple-indigo: #5856d6;
+  --apple-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --apple-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --apple-shadow-md: 0 6px 16px rgba(0, 0, 0, 0.06);
+  --apple-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.1);
 }
 
-/* Custom modern scrollbars */
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--apple-bg);
+  color: var(--apple-text-primary);
+  letter-spacing: -0.011em;
+}
+
+/* Typography Optical Tracking (Emil Kowalski / Apple HIG) */
+h1, .apple-large-title {
+  letter-spacing: -0.022em;
+}
+h2, h3, h4, .apple-headline {
+  letter-spacing: -0.015em;
+}
+p, span, label, button, input, select, textarea {
+  letter-spacing: -0.008em;
+}
+
+/* Micro-interactions & Zero-latency Instant Response (§1 Emil Kowalski) */
+button, .btn-apple-primary, .btn-apple-secondary, .btn-apple-success, .btn-apple-danger, .tab-nav-btn, .option-pill, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 100ms cubic-bezier(0.2, 0, 0, 1), background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+button:active, .btn-apple-primary:active, .btn-apple-secondary:active, .btn-apple-success:active, .btn-apple-danger:active, .tab-nav-btn:active {
+  transform: scale(0.97) !important;
+}
+
+/* Apple HIG Smooth Scrollbars (Visible & Subtle, Native macOS/iOS Feel) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.24) transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: rgba(0, 0, 0, 0.22);
   border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgba(0, 0, 0, 0.42);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
-/* Hide scrollbar for clean horizontal tabs */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -36,41 +96,223 @@ html, body {
   scrollbar-width: none;
 }
 
-/* --- Tab Navigation Buttons --- */
+/* Main Viewport Container */
+#main-scroll-view {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+/* Apple Native Form Inputs & Selects */
+select, input[type="text"], input[type="number"], textarea {
+  font-family: inherit;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background-color: rgba(0, 0, 0, 0.025);
+  color: #1d1d1f;
+  transition: all 120ms ease;
+}
+
+select:focus, input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+  outline: none;
+  border-color: var(--apple-blue);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
+}
+
+/* --- Apple Frosted Glass Header --- */
+.apple-header {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--apple-border);
+}
+
+/* --- Apple macOS Segmented Control Tab Navigation --- */
+.apple-nav-segmented {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(118, 118, 128, 0.12);
+  padding: 3px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  gap: 2px;
+}
+
 .tab-nav-btn {
   display: inline-flex;
   align-items: center;
-  padding: 0.75rem 1rem;
-  font-size: 0.8125rem;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
   font-weight: 500;
-  color: #64748b;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s ease-in-out;
-  white-space: nowrap;
-  gap: 0.5rem;
+  color: #636366;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
   cursor: pointer;
-  border-top-left-radius: 0.5rem;
-  border-top-right-radius: 0.5rem;
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+  white-space: nowrap;
+  user-select: none;
+  text-decoration: none;
 }
 
 .tab-nav-btn:hover {
-  color: #1e293b;
-  background-color: #f8fafc;
+  color: #1d1d1f;
 }
 
 .tab-nav-btn.active {
-  color: #4f46e5;
-  border-bottom-color: #4f46e5;
   background-color: #ffffff;
+  color: #1d1d1f;
   font-weight: 600;
-  box-shadow: inset 0 -2px 0 0 #4f46e5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.tab-nav-btn.active i,
+.tab-nav-btn.active svg {
+  color: var(--apple-blue) !important;
+}
+
+/* --- Apple Clean Cards --- */
+.apple-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid var(--apple-border);
+  box-shadow: var(--apple-shadow-xs);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.apple-card:hover {
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: var(--apple-shadow-sm);
+}
+
+/* --- Apple HIG Primary & Secondary Buttons --- */
+.btn-apple-primary {
+  background-color: var(--apple-blue);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 7px 15px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(0, 113, 227, 0.2);
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-apple-primary:hover {
+  background-color: var(--apple-blue-hover);
+  box-shadow: 0 2px 6px rgba(0, 113, 227, 0.3);
+}
+
+.btn-apple-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-apple-secondary {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #1d1d1f;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-apple-secondary:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.btn-apple-secondary:active {
+  transform: scale(0.97);
+}
+
+.btn-apple-success {
+  background-color: var(--apple-green);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 7px 15px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(52, 199, 89, 0.2);
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-apple-success:hover {
+  background-color: var(--apple-green-hover);
+  box-shadow: 0 2px 6px rgba(52, 199, 89, 0.3);
+}
+
+.btn-apple-success:active {
+  transform: scale(0.97);
+}
+
+.btn-apple-danger {
+  background-color: rgba(255, 59, 48, 0.1);
+  color: var(--apple-red);
+  border: 1px solid rgba(255, 59, 48, 0.2);
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-apple-danger:hover {
+  background-color: rgba(255, 59, 48, 0.16);
+}
+
+.btn-apple-danger:active {
+  transform: scale(0.97);
+}
+
+.btn-apple-tinted {
+  background-color: rgba(0, 113, 227, 0.1);
+  color: var(--apple-blue);
+  border: 1px solid rgba(0, 113, 227, 0.15);
+  border-radius: 10px;
+  padding: 6px 13px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-apple-tinted:hover {
+  background-color: rgba(0, 113, 227, 0.16);
+}
+
+.btn-apple-tinted:active {
+  transform: scale(0.97);
 }
 
 /* --- HITL STUDIO: Simulated Exam Paper View (Left Column) --- */
 #doc-viewer-paper {
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07), 0 1px 4px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background-color: #ffffff;
+  border-radius: 8px;
   transition: all 0.2s ease-in-out;
 }
 
@@ -78,69 +320,66 @@ html, body {
 .doc-source-item {
   position: relative;
   padding: 0.75rem 0.875rem;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   border: 1.5px solid transparent;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
   cursor: pointer;
 }
 
 .doc-source-item:hover {
-  background-color: #f8fafc;
-  border-color: #cbd5e1;
+  background-color: rgba(0, 0, 0, 0.025);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 /* Active Highlight when Question is Selected on Right Pane */
 .doc-source-item.active-source-highlight {
-  background-color: #eff6ff;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-  animation: sourcePulse 1.2s ease-in-out infinite alternate;
-}
-
-@keyframes sourcePulse {
-  0% {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-  }
-  100% {
-    box-shadow: 0 0 0 7px rgba(59, 130, 246, 0.05);
-  }
+  background-color: rgba(0, 113, 227, 0.06);
+  border-color: rgba(0, 113, 227, 0.45);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
 }
 
 /* Right Pane Question Cards */
 .hitl-question-card {
-  transition: all 0.2s ease-in-out;
-  border: 1.5px solid #e2e8f0;
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--apple-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.18s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .hitl-question-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
 }
 
 .hitl-question-card.active-card {
-  border-color: #6366f1;
-  background-color: #ffffff;
-  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.15);
-  ring: 2px ring-brand-500/20;
+  border-color: var(--apple-blue);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12), 0 4px 14px rgba(0, 113, 227, 0.08);
 }
 
-/* --- Confidence Barometer Badges --- */
+/* --- Confidence Barometer Badges (Apple Pastel Pills) --- */
 .badge-conf-green {
-  background-color: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background-color: rgba(52, 199, 89, 0.12);
+  color: #1b7a36;
+  border: 1px solid rgba(52, 199, 89, 0.25);
+  font-weight: 600;
+  border-radius: 980px;
 }
 
 .badge-conf-yellow {
-  background-color: #fffbeb;
-  color: #92400e;
-  border: 1px solid #fde68a;
+  background-color: rgba(255, 159, 10, 0.12);
+  color: #a05a00;
+  border: 1px solid rgba(255, 159, 10, 0.25);
+  font-weight: 600;
+  border-radius: 980px;
 }
 
 .badge-conf-red {
-  background-color: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background-color: rgba(255, 59, 48, 0.12);
+  color: #b81d13;
+  border: 1px solid rgba(255, 59, 48, 0.25);
+  font-weight: 600;
+  border-radius: 980px;
 }
 
 /* --- KaTeX Math Rendering Customization --- */
@@ -156,7 +395,6 @@ html, body {
   padding: 0.25rem 0;
 }
 
-/* Inline formula baseline alignment */
 .katex-inline {
   display: inline-block;
   vertical-align: -0.1em;
@@ -167,22 +405,22 @@ html, body {
   transition: all 0.15s ease-in-out;
   cursor: pointer;
   user-select: none;
+  border-radius: 10px;
 }
 
 .option-pill:hover {
-  background-color: #f1f5f9;
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 .option-pill.is-correct {
-  background-color: #ecfdf5 !important;
-  border-color: #10b981 !important;
-  color: #065f46 !important;
+  background-color: rgba(52, 199, 89, 0.1) !important;
+  border-color: var(--apple-green) !important;
+  color: #1b7a36 !important;
   font-weight: 600;
-  box-shadow: 0 1px 3px 0 rgba(16, 185, 129, 0.2);
 }
 
 .option-pill.is-correct .option-letter-badge {
-  background-color: #10b981;
+  background-color: var(--apple-green);
   color: #ffffff;
 }
 
@@ -191,15 +429,15 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  background-color: #f0fdf4;
-  border: 1px solid #86efac;
+  background-color: rgba(52, 199, 89, 0.1);
+  border: 1px solid rgba(52, 199, 89, 0.3);
   color: #166534;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.375rem;
+  padding: 0.125rem 0.4rem;
+  border-radius: 6px;
   font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.02em;
 }
 
 /* --- Matrix Grid Custom Cells --- */
@@ -212,16 +450,18 @@ html, body {
   width: 3.25rem;
   text-align: center;
   font-weight: 700;
-  padding: 0.25rem 0.2rem;
-  border-radius: 0.5rem;
-  border: 1.5px solid #cbd5e1;
+  padding: 0.3rem 0.2rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   background-color: #ffffff;
+  color: #1d1d1f;
+  transition: all 0.15s ease;
 }
 
 .matrix-input-cell input:focus {
-  border-color: #6366f1;
+  border-color: var(--apple-blue);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
 }
 
 .matrix-inventory-stock {
@@ -232,47 +472,69 @@ html, body {
 }
 
 .stock-sufficient {
-  color: #059669;
+  color: #1b7a36;
 }
 
 .stock-insufficient {
-  color: #dc2626;
+  color: var(--apple-red);
   font-weight: 700;
 }
 
-/* --- Modal Backdrop & Animations --- */
-.fade-in {
-  animation: fadeIn 0.2s ease-out;
+/* --- Apple Dialog / Modal Sheet --- */
+.apple-modal-backdrop {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.apple-modal-sheet {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-/* Toast notification styling */
+/* --- Apple Dynamic Island Style Toasts --- */
 .quesy-toast {
   pointer-events: auto;
-  min-width: 280px;
-  max-width: 420px;
-  padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
+  min-width: 260px;
+  max-width: 440px;
+  padding: 0.65rem 1.15rem;
+  border-radius: 980px;
   font-size: 0.8125rem;
   font-weight: 500;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  display: flex;
+  background: rgba(29, 29, 31, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  animation: toastSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: toastPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes toastSlideUp {
+.quesy-toast.toast-success {
+  border-left: 3px solid var(--apple-green);
+}
+.quesy-toast.toast-error {
+  border-left: 3px solid var(--apple-red);
+}
+.quesy-toast.toast-warning {
+  border-left: 3px solid var(--apple-amber);
+}
+.quesy-toast.toast-info {
+  border-left: 3px solid var(--apple-blue);
+}
+
+@keyframes toastPop {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(12px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }

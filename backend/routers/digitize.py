@@ -104,8 +104,8 @@ async def upload_document(
     """
     uploaded_files: List[UploadFile] = []
     if files:
-        uploaded_files.extend([f for f in files if f.filename])
-    if file and file.filename and file not in uploaded_files:
+        uploaded_files.extend([f for f in files if f and f.filename])
+    elif file and file.filename:
         uploaded_files.append(file)
 
     if not uploaded_files:

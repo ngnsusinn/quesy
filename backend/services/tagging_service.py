@@ -531,10 +531,11 @@ def auto_tag_question(
 
     cog_level = classify_cognitive_level(stem)
     level_vn_map = {
-        "RECOGNITION": "Biết",
-        "KNOWLEDGE": "Biết",
-        "COMPREHENSION": "Hiểu",
-        "APPLICATION": "Vận dụng"
+        "RECOGNITION": "Nhận biết",
+        "KNOWLEDGE": "Nhận biết",
+        "COMPREHENSION": "Thông hiểu",
+        "APPLICATION": "Vận dụng",
+        "HIGH_APPLICATION": "Vận dụng cao"
     }
 
     return {

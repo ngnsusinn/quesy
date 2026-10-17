@@ -143,6 +143,11 @@ def favicon():
 
 
 @app.get("/", tags=["Frontend"])
+@app.get("/dashboard", tags=["Frontend"])
+@app.get("/digitize", tags=["Frontend"])
+@app.get("/bank", tags=["Frontend"])
+@app.get("/matrix", tags=["Frontend"])
+@app.get("/shuffler", tags=["Frontend"])
 def root():
     index_file = BASE_DIR / "frontend" / "index.html"
     if index_file.exists():

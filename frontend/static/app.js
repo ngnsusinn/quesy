@@ -100,6 +100,15 @@
       ],
     },
 
+    // Staged Exam Documents for Preview & Reordering before AI Digitization
+    stagedExam: {
+      status: 'EMPTY', // 'EMPTY' | 'STAGED' | 'PROCESSING' | 'DONE'
+      files: [],
+      previews: [],
+      activePreviewIndex: 0,
+    },
+    activeEditingQuestion: null,
+
     // HITL Digitize Studio Job
     digitizeJob: {
       id: null,
@@ -502,6 +511,12 @@
 
     state.itemBank = JSON.parse(JSON.stringify([...defaultQuestions, ...extraQuestions]));
     // AI Digitize Studio is completely empty by default on startup
+    state.stagedExam = {
+      status: 'EMPTY',
+      files: [],
+      previews: [],
+      activePreviewIndex: 0,
+    };
     state.digitizeJob.jobId = null;
     state.digitizeJob.questions = [];
     state.digitizeJob.filename = '';
@@ -651,12 +666,57 @@
   }
 
   // ============================================================================
-  // 6. TAB SWITCHING SYSTEM
+  // 6. CLIENT-SIDE ROUTER & TAB SWITCHING SYSTEM (APPLE HIG ROUTER)
   // ============================================================================
-  function switchTab(tabId) {
+  const ROUTE_MAP = {
+    '/': 'dashboard',
+    '/dashboard': 'dashboard',
+    '/digitize': 'digitize',
+    '/bank': 'itembank',
+    '/itembank': 'itembank',
+    '/matrix': 'matrix',
+    '/shuffler': 'shuffler',
+  };
+
+  const TAB_TO_ROUTE = {
+    dashboard: '/dashboard',
+    digitize: '/digitize',
+    itembank: '/bank',
+    matrix: '/matrix',
+    shuffler: '/shuffler',
+  };
+
+  const TAB_TITLES = {
+    dashboard: 'Quesy — Tổng quan Khảo thí',
+    digitize: 'Quesy — Số hóa AI & HITL Studio',
+    itembank: 'Quesy — Ngân hàng Câu hỏi Chuẩn hóa',
+    matrix: 'Quesy — Ma trận Đề thi 2D',
+    shuffler: 'Quesy — Sinh đề & Trộn đề (.DOCX)',
+  };
+
+  function navigateTo(path) {
+    const cleanPath = (path || '/').split('?')[0].replace(/\/$/, '') || '/';
+    const tabId = ROUTE_MAP[cleanPath] || 'dashboard';
+    switchTab(tabId, true);
+  }
+
+  function switchTab(tabId, pushState = true) {
+    if (!tabId) tabId = 'dashboard';
     state.currentTab = tabId;
 
-    // Update Tab Buttons
+    // Update Browser URL with History API
+    if (pushState) {
+      const targetRoute = TAB_TO_ROUTE[tabId] || '/dashboard';
+      if (window.location.pathname !== targetRoute && !(window.location.pathname === '/' && tabId === 'dashboard')) {
+        window.history.pushState({ tabId }, '', targetRoute);
+      }
+    }
+
+    if (TAB_TITLES[tabId]) {
+      document.title = TAB_TITLES[tabId];
+    }
+
+    // Update Tab Buttons (macOS Segmented Control state)
     const tabButtons = document.querySelectorAll('.tab-nav-btn');
     tabButtons.forEach((btn) => {
       btn.classList.remove('active');
@@ -677,6 +737,12 @@
       activePane.classList.add('active');
     }
 
+    // Smooth reset scroll on tab transition
+    const mainView = document.getElementById('main-scroll-view');
+    if (mainView) {
+      mainView.scrollTop = 0;
+    }
+
     // Refresh specific tab contents
     if (tabId === 'dashboard') {
       renderDashboard();
@@ -690,8 +756,6 @@
       renderMasterExam();
     }
 
-    // Scroll window to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (window.lucide) lucide.createIcons();
   }
 
@@ -724,6 +788,24 @@
   }
 
   /**
+   * Truncate filename with clean ellipsis while keeping file extension
+   */
+  function truncateFilename(name, maxLength = 32) {
+    if (!name || typeof name !== 'string') return '';
+    if (name.length <= maxLength) return name;
+    const parts = name.split('.');
+    if (parts.length > 1) {
+      const ext = parts.pop();
+      const base = parts.join('.');
+      const keepBase = maxLength - ext.length - 4;
+      if (keepBase > 3) {
+        return `${base.slice(0, keepBase)}...${ext}`;
+      }
+    }
+    return `${name.slice(0, maxLength - 3)}...`;
+  }
+
+  /**
    * Render original document viewer on the left pane
    * Shows native PDF viewer iframe, Word DOCX styled preview iframe, or image list preview.
    * Does NOT reconstruct / fake the exam paper from parsed questions.
@@ -733,26 +815,151 @@
     if (!scrollContainer) return;
 
     const job = state.digitizeJob;
+    const staged = state.stagedExam;
     const questions = job.questions || [];
+    const hasStagedPreviews = staged && staged.previews && staged.previews.length > 0;
+    const isProcessing = staged && staged.status === 'PROCESSING';
 
-    // 1. If empty state (no file, no questions)
+    // Mode 1: STAGED or PROCESSING files before/during AI processing (maintains preview while processing!)
+    if (hasStagedPreviews && (staged.status === 'STAGED' || isProcessing || (!job.jobId && questions.length === 0))) {
+      const previews = staged.previews;
+      const isImages = previews.every((p) => ['png', 'jpg', 'jpeg', 'webp'].includes(p.type));
+      const activeIdx = staged.activePreviewIndex || 0;
+      const activeP = previews[activeIdx] || previews[0];
+
+      if (isImages) {
+        scrollContainer.innerHTML = `
+          <div class="w-full flex flex-col space-y-3">
+            ${previews.length > 1 ? `
+              <!-- Staging Reordering Toolbar & Thumbnails Strip (Only for multiple image pages) -->
+              <div class="apple-card p-3 space-y-2.5">
+                <div class="flex items-center justify-between text-xs">
+                  <div class="flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full ${isProcessing ? 'bg-blue-500' : 'bg-amber-500'} animate-pulse"></span>
+                    <span class="font-bold text-slate-800">${isProcessing ? `AI đang xử lý (${previews.length} trang ảnh)` : `Thứ Tự Các Trang Đề Thi (${previews.length} trang ảnh)`}</span>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    ${!isProcessing ? `
+                      <button type="button" onclick="document.getElementById('studio-add-file-input').click()" class="btn-apple-secondary text-xs py-1 px-2.5">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                        <span>Thêm trang ảnh</span>
+                      </button>
+                      <span class="text-[11px] text-slate-400">Bấm ← → để đổi thứ tự trang</span>
+                    ` : `
+                      <span class="text-[11px] text-blue-600 font-medium flex items-center space-x-1">
+                        <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>
+                        <span>Đang bóc tách...</span>
+                      </span>
+                    `}
+                  </div>
+                </div>
+
+                <!-- Thumbnails Horizontal Scroller -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 no-scrollbar">
+                  ${previews.map((p, i) => `
+                    <div onclick="app.selectStagedPreviewPage(${i})" class="shrink-0 flex flex-col items-center p-2 rounded-xl border transition-all cursor-pointer ${i === activeIdx ? 'ring-2 ring-[#0071E3] border-[#0071E3] bg-[#0071E3]/[0.05]' : 'border-black/[0.08] bg-slate-50 hover:bg-white'}">
+                      <div class="flex items-center justify-between w-full text-[10px] font-bold text-slate-600 mb-1">
+                        <span>Trang ${i + 1}</span>
+                        ${!isProcessing ? `<button type="button" onclick="event.stopPropagation(); app.removeStagedPage(${i})" class="text-slate-400 hover:text-rose-600 p-0.5 rounded" title="Xóa trang này">✕</button>` : ''}
+                      </div>
+                      <img src="${p.url}" class="w-16 h-20 object-cover rounded shadow-xs mb-1.5 border border-slate-200" alt="Trang ${i + 1}">
+                      ${!isProcessing ? `
+                        <div class="flex items-center space-x-1" onclick="event.stopPropagation()">
+                          <button type="button" onclick="app.moveStagedPage(${i}, -1)" ${i === 0 ? 'disabled' : ''} class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white border border-slate-300 hover:bg-slate-100 ${i === 0 ? 'opacity-30 cursor-not-allowed' : 'text-slate-700'}" title="Đưa trang này lên trước">←</button>
+                          <button type="button" onclick="app.moveStagedPage(${i}, 1)" ${i === previews.length - 1 ? 'disabled' : ''} class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white border border-slate-300 hover:bg-slate-100 ${i === previews.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-slate-700'}" title="Đưa trang này xuống sau">→</button>
+                        </div>
+                      ` : ''}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Active Large Image Viewer -->
+            <div class="w-full apple-card p-4 flex flex-col items-center">
+              <div class="w-full flex items-center justify-between text-xs text-slate-500 border-b border-black/[0.06] pb-2 mb-3">
+                <span class="font-bold text-slate-700 truncate max-w-sm" title="${escapeHtml(activeP.name)}">
+                  ${isProcessing ? 'AI đang xử lý: ' : 'Xem trước: '} ${previews.length > 1 ? `Trang ${activeIdx + 1} / ${previews.length} • ` : ''}${truncateFilename(activeP.name, 28)}
+                </span>
+                <div class="flex items-center space-x-2">
+                  ${previews.length === 1 && !isProcessing ? `
+                    <button type="button" onclick="document.getElementById('studio-add-file-input').click()" class="btn-apple-secondary text-xs py-0.5 px-2">
+                      <i data-lucide="plus" class="w-3 h-3"></i>
+                      <span>Thêm trang ảnh</span>
+                    </button>
+                  ` : ''}
+                  ${isProcessing ? `
+                    <span class="text-[11px] text-blue-600 font-medium flex items-center space-x-1">
+                      <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i>
+                      <span>Đang bóc tách...</span>
+                    </span>
+                  ` : ''}
+                  <span class="text-[11px] text-slate-400">Dung lượng: ${activeP.size}</span>
+                </div>
+              </div>
+              <img src="${activeP.url}" class="max-w-full h-auto max-h-[750px] rounded-lg shadow-xs object-contain border border-black/[0.06]" alt="Xem trước Trang ${activeIdx + 1}">
+            </div>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      if (previews[0].type === 'pdf') {
+        scrollContainer.innerHTML = `
+          <div class="w-full h-full min-h-[850px] flex flex-col bg-slate-200 rounded-lg overflow-hidden border border-slate-300 shadow-inner">
+            <iframe id="doc-pdf-iframe" src="${previews[0].url}" class="w-full h-full min-h-[850px] border-0 rounded bg-white" title="PDF Document Staging Viewer"></iframe>
+          </div>
+        `;
+        return;
+      }
+
+      if (['docx', 'doc'].includes(previews[0].type)) {
+        scrollContainer.innerHTML = `
+          <div class="w-full max-w-xl apple-card p-8 text-center space-y-4 my-auto">
+            <div class="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 mx-auto shadow-xs">
+              <i data-lucide="file-text" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 truncate max-w-md mx-auto" title="${escapeHtml(previews[0].name)}">${truncateFilename(previews[0].name, 36)}</h3>
+            <p class="text-xs text-slate-500">Tài liệu Word DOCX (${previews[0].size}) ${isProcessing ? 'đang được AI phân tích và bóc tách công thức MathType...' : 'đã sẵn sàng để bóc tách công thức MathType và gõ lại đề thi.'}</p>
+            <div class="pt-2">
+              ${isProcessing ? `
+                <div class="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">
+                  <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-brand-600"></i>
+                  <span>AI đang phân tích tài liệu & bóc tách câu hỏi...</span>
+                </div>
+              ` : `
+                <button onclick="app.startAIDigitize()" class="btn-apple-primary mx-auto py-2.5 px-6">
+                  <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                  <span>Tiến hành gõ lại</span>
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+    }
+
+    // Mode 2: If empty state (no file, no questions)
     if (!job.jobId && questions.length === 0) {
       scrollContainer.innerHTML = `
-        <div id="doc-viewer-paper" class="w-full max-w-xl bg-white shadow-lg rounded-sm p-8 min-h-[880px] text-[13px] text-slate-900 leading-relaxed font-serif relative">
+        <div id="doc-viewer-paper" class="w-full bg-white shadow-lg rounded-sm p-6 min-h-[880px] text-[13px] text-slate-900 leading-relaxed font-sans relative">
           <div id="doc-paper-content" class="py-16 px-4 flex flex-col items-center justify-center text-center text-slate-400">
-            <div class="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center shadow-xs mb-3 text-slate-400">
-              <i data-lucide="file-up" class="w-8 h-8 text-brand-500"></i>
+            <div class="w-16 h-16 rounded-2xl bg-black/[0.03] border border-black/[0.06] flex items-center justify-center shadow-xs mb-3 text-brand-600">
+              <i data-lucide="file-up" class="w-8 h-8"></i>
             </div>
-            <h4 class="text-sm font-bold text-slate-700 mb-1">Khu Vực Đối Chiếu Đề Thi Gốc</h4>
+            <h4 class="text-sm font-bold text-slate-900 mb-1">Khu Vực Đối Chiếu Đề Thi Gốc</h4>
             <p class="text-xs text-slate-500 max-w-sm mb-5 leading-relaxed">
               Chưa có tệp đề thi nào được nạp. Hãy chọn tệp Word (.docx), PDF hoặc danh sách ảnh để xem trước trực tiếp tài liệu gốc và đối chiếu bóc tách.
             </p>
             <div class="flex items-center gap-2">
-              <button onclick="document.getElementById('studio-file-input').click()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center space-x-1.5 transition-all">
+              <button onclick="document.getElementById('studio-file-input').click()" class="btn-apple-primary">
                 <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-                <span>Tải tệp đề thi</span>
+                <span>Chọn tệp đề thi</span>
               </button>
-              <button onclick="app.loadSampleExam('math12_standard')" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 shadow-xs flex items-center space-x-1.5 transition-all">
+              <button onclick="app.loadSampleExam('math12_standard')" class="btn-apple-secondary">
                 <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
                 <span>Xem đề mẫu</span>
               </button>
@@ -764,7 +971,7 @@
       return;
     }
 
-    // 2. If an actual uploaded file exists (PDF, DOCX, or Images)
+    // Mode 3: If an actual uploaded file exists (PDF, DOCX, or Images)
     if (job.jobId) {
       const fileType = (job.fileType || '').toLowerCase();
       const filename = (job.filename || '').toLowerCase();
@@ -820,7 +1027,7 @@
 
     // 3. Sample Exam Paper View (for built-in demo presets)
     let html = `
-      <div id="doc-viewer-paper" class="w-full max-w-xl bg-white shadow-lg rounded-sm p-8 min-h-[880px] text-[13px] text-slate-900 leading-relaxed font-serif relative">
+      <div id="doc-viewer-paper" class="w-full max-w-xl bg-white shadow-lg rounded-sm p-8 min-h-[880px] text-[13px] text-slate-900 leading-relaxed font-sans relative">
         <div class="border-b-2 border-slate-800 pb-3 mb-6 grid grid-cols-2 gap-2 text-center text-xs font-sans">
           <div>
             <div class="font-bold uppercase tracking-tight">SỞ GD&ĐT HÀ NỘI</div>
@@ -888,31 +1095,66 @@
     const container = document.getElementById('studio-questions-container');
     if (!container) return;
 
+    // 1. If files are staged for preview before AI processing
+    if (state.stagedExam && state.stagedExam.status === 'STAGED') {
+      const staged = state.stagedExam;
+      const count = staged.previews.length;
+      container.innerHTML = `
+        <div class="min-h-[440px] flex flex-col items-center justify-center p-8 text-center apple-card space-y-4">
+          <div class="w-14 h-14 rounded-2xl bg-[#0071E3]/[0.08] flex items-center justify-center shadow-xs text-[#0071E3]">
+            <i data-lucide="sparkles" class="w-7 h-7 text-amber-500"></i>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-black/[0.05] text-slate-800 font-semibold text-xs">
+            TÀI LIỆU ĐÃ SẴN SÀNG
+          </span>
+          <h3 class="text-base font-bold text-slate-900 truncate max-w-md mx-auto" title="${escapeHtml(state.digitizeJob.filename || 'Tài liệu đề thi')}">
+            ${truncateFilename(state.digitizeJob.filename || 'Tài liệu đề thi', 36)}
+          </h3>
+          <p class="text-xs text-slate-500 max-w-md leading-relaxed">
+            Thầy/cô vui lòng kiểm tra bản xem trước và sắp xếp thứ tự các trang ở cột trái. Sau khi hoàn tất, nhấn nút bên dưới để AI bắt đầu gõ lại đề và bóc tách câu hỏi theo chuẩn Thông tư 32 & QĐ 764.
+          </p>
+          <div class="pt-2">
+            <button onclick="app.startAIDigitize()" class="btn-apple-primary py-2.5 px-6">
+              <i data-lucide="cpu" class="w-4 h-4 text-amber-300"></i>
+              <span>Tiến hành gõ lại</span>
+            </button>
+          </div>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    // 2. If processing
+    if (state.stagedExam && state.stagedExam.status === 'PROCESSING') {
+      container.innerHTML = `
+        <div class="min-h-[440px] flex flex-col items-center justify-center p-8 text-center apple-card space-y-4">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shadow-xs text-brand-600 animate-spin">
+            <i data-lucide="loader-2" class="w-7 h-7"></i>
+          </div>
+          <h3 class="text-base font-bold text-slate-900">
+            Đang Gõ Lại & Bóc Tách Đề Thi Bằng AI...
+          </h3>
+          <p class="text-xs text-slate-500 max-w-md leading-relaxed">
+            Hệ thống AI đang phân tích cấu trúc 3 phần (QĐ 764), bóc tách công thức Toán học KaTeX và phân loại YCCĐ (TT 32). Vui lòng đợi trong giây lát...
+          </p>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
     const totalQuestions = state.digitizeJob.questions || [];
     if (totalQuestions.length === 0) {
       container.innerHTML = `
-        <div class="min-h-[460px] flex flex-col items-center justify-center p-8 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400">
-          <div class="w-16 h-16 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center shadow-xs mb-3 text-brand-600">
-            <i data-lucide="scan-line" class="w-8 h-8"></i>
+        <div class="min-h-[440px] flex flex-col items-center justify-center p-8 text-center apple-card border-dashed border-black/[0.12] text-slate-400">
+          <div class="w-14 h-14 rounded-2xl bg-black/[0.03] border border-black/[0.06] flex items-center justify-center shadow-xs mb-3 text-brand-600">
+            <i data-lucide="scan-line" class="w-7 h-7"></i>
           </div>
-          <h4 class="text-sm font-bold text-slate-800 mb-1">Chưa Có Câu Hỏi Bóc Tách</h4>
-          <p class="text-xs text-slate-500 max-w-md mb-5 leading-relaxed">
-            Hệ thống AI Digitize Studio sẵn sàng tiếp nhận đề thi DOCX chứa công thức MathType/OMML hoặc file PDF scan vector. Hãy tải tệp để tự động phân tích và trích xuất.
+          <h4 class="text-sm font-bold text-slate-800 mb-1">Chưa Có Danh Sách Câu Hỏi</h4>
+          <p class="text-xs text-slate-500 max-w-sm leading-relaxed">
+            Danh sách các câu hỏi được AI bóc tách (công thức Toán KaTeX, đáp án và phân loại chuẩn TT 32 & QĐ 764) sẽ hiển thị tại đây sau khi tiến hành gõ lại đề.
           </p>
-          <div class="flex flex-wrap items-center justify-center gap-2">
-            <button onclick="document.getElementById('studio-file-input').click()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center space-x-2 transition-all">
-              <i data-lucide="file-up" class="w-4 h-4"></i>
-              <span>Chọn tệp Word / PDF</span>
-            </button>
-            <button onclick="app.loadSampleExam('math12_standard')" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition-all flex items-center space-x-1.5">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
-              <span>Đề mẫu Toán 12</span>
-            </button>
-            <button onclick="app.loadSampleExam('true_false_group')" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 transition-all flex items-center space-x-1.5">
-              <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-500"></i>
-              <span>Đề Đúng/Sai 4 ý</span>
-            </button>
-          </div>
         </div>
       `;
       if (window.lucide) lucide.createIcons();
@@ -978,14 +1220,6 @@
               <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
                 ${formatLabels[q.item_format] || q.item_format}
               </span>
-              <span class="text-[11px] text-slate-400 font-mono">${qCode}</span>
-            </div>
-
-            <!-- Confidence Barometer -->
-            <div class="flex items-center space-x-1.5 px-2 py-0.5 rounded-lg text-xs font-bold ${confBadgeClass}">
-              <i data-lucide="${qConfidence >= 95 ? 'shield-check' : qConfidence >= 80 ? 'alert-triangle' : 'alert-octagon'}" class="w-3.5 h-3.5"></i>
-              <span>${qConfidence}%</span>
-              <span class="text-[10px] font-normal opacity-80">(${confLabel})</span>
             </div>
           </div>
 
@@ -1079,7 +1313,7 @@
       html += `
         <div class="pt-2.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
           <div>
-            <label class="block text-slate-500 font-bold mb-0.5">Yêu cầu cần đạt (YCCĐ TT 32):</label>
+            <label class="block text-slate-500 font-bold mb-0.5">Yêu cầu cần đạt:</label>
             <select onchange="app.updateQuestionYCCD(${qId}, this.value)" class="w-full text-xs font-mono rounded-lg border border-slate-200 py-1 px-2 bg-slate-50">
               <option value="TOAN12.GT.01" ${q.learning_outcome_id === 'TOAN12.GT.01' ? 'selected' : ''}>TOAN12.GT.01: Cực trị hàm số</option>
               <option value="TOAN12.GT.02" ${q.learning_outcome_id === 'TOAN12.GT.02' ? 'selected' : ''}>TOAN12.GT.02: Đường tiệm cận</option>
@@ -1090,28 +1324,28 @@
           </div>
 
           <div>
-            <label class="block text-slate-500 font-bold mb-0.5">Mức độ nhận thức (TT 32):</label>
+            <label class="block text-slate-500 font-bold mb-0.5">Mức độ nhận thức:</label>
             <select onchange="app.updateQuestionCognitive(${qId}, this.value)" class="w-full text-xs rounded-lg border border-slate-200 py-1 px-2 bg-slate-50 font-semibold">
-              <option value="RECOGNITION" ${q.cognitive_level === 'RECOGNITION' ? 'selected' : ''}>1. Biết (Nhận biết)</option>
-              <option value="COMPREHENSION" ${q.cognitive_level === 'COMPREHENSION' ? 'selected' : ''}>2. Hiểu (Thông hiểu)</option>
+              <option value="RECOGNITION" ${q.cognitive_level === 'RECOGNITION' ? 'selected' : ''}>1. Nhận biết</option>
+              <option value="COMPREHENSION" ${q.cognitive_level === 'COMPREHENSION' ? 'selected' : ''}>2. Thông hiểu</option>
               <option value="APPLICATION" ${q.cognitive_level === 'APPLICATION' ? 'selected' : ''}>3. Vận dụng</option>
+              <option value="HIGH_APPLICATION" ${q.cognitive_level === 'HIGH_APPLICATION' ? 'selected' : ''}>4. Vận dụng cao</option>
             </select>
           </div>
         </div>
 
         <!-- Footer Actions -->
-        <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-          <div class="flex items-center space-x-1.5 text-emerald-700 font-medium">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
-            <span class="text-[11px]">AI Gợi ý chuẩn TT 32 (Khớp 95%)</span>
-          </div>
-
-          <div class="flex items-center space-x-2">
-            <button onclick="event.stopPropagation(); app.checkQuestionDuplicate(${qId})" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium flex items-center space-x-1">
-              <i data-lucide="copy" class="w-3 h-3"></i>
-              <span>Kiểm tra trùng</span>
+        <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-end text-xs">
+          <div class="flex items-center space-x-1.5">
+            <button onclick="event.stopPropagation(); app.openQuestionEditorModal(${qId})" class="btn-apple-tinted py-1 px-2.5 text-[11px]" title="Chỉnh sửa câu hỏi này">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              <span>Chỉnh sửa</span>
             </button>
-            <button onclick="event.stopPropagation(); app.commitSingleQuestion(${qId})" class="px-2.5 py-1 rounded bg-brand-50 hover:bg-brand-100 text-brand-700 text-[11px] font-bold border border-brand-200">
+            <button onclick="event.stopPropagation(); app.checkQuestionDuplicate(${qId})" class="btn-apple-secondary py-1 px-2 text-[11px]" title="Kiểm tra độ trùng lặp AI">
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span>Trùng lặp</span>
+            </button>
+            <button onclick="event.stopPropagation(); app.commitSingleQuestion(${qId})" class="btn-apple-primary py-1 px-2.5 text-[11px]">
               Lưu câu này
             </button>
           </div>
@@ -1278,14 +1512,60 @@
     const pageDisplay = document.getElementById('doc-page-display');
     const activeBadge = document.getElementById('doc-active-target-badge');
     const commitBtn = document.getElementById('btn-commit-to-bank');
+    const startDigitizeBtn = document.getElementById('btn-start-digitize');
+    const resetStageBtn = document.getElementById('btn-reset-stage');
+    const rightHeaderActions = document.getElementById('studio-right-header-actions');
+
+    // Staged mode before AI processing
+    if (state.stagedExam && state.stagedExam.status === 'STAGED') {
+      const count = (state.stagedExam.previews || []).length;
+      if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
+      if (startDigitizeBtn) startDigitizeBtn.classList.remove('hidden');
+      if (resetStageBtn) resetStageBtn.classList.remove('hidden');
+      if (statusLabel) statusLabel.innerText = `Đã chọn ${count} tệp (Kiểm tra & Sắp xếp thứ tự trước khi gõ đề)`;
+      if (statusIndicator) statusIndicator.className = 'w-2 h-2 rounded-full bg-amber-500 animate-pulse';
+      if (filenameEl) {
+        const rawName = state.digitizeJob.filename || 'Tài liệu chờ xử lý';
+        filenameEl.innerText = truncateFilename(rawName, 32);
+        filenameEl.title = rawName;
+      }
+      if (pageDisplay) pageDisplay.innerText = `Trang ${(state.stagedExam.activePreviewIndex || 0) + 1} / ${count}`;
+      if (activeBadge) {
+        activeBadge.innerText = 'Chờ xác nhận gõ đề';
+        activeBadge.className = 'px-2 py-0.5 bg-amber-50 text-amber-700 font-bold text-[11px] rounded-md border border-amber-200';
+      }
+      if (commitBtn) commitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      return;
+    } else if (state.stagedExam && state.stagedExam.status === 'PROCESSING') {
+      if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
+      if (startDigitizeBtn) startDigitizeBtn.classList.add('hidden');
+      if (resetStageBtn) resetStageBtn.classList.add('hidden');
+      if (statusLabel) statusLabel.innerText = 'AI đang gõ lại và bóc tách đề thi...';
+      if (statusIndicator) statusIndicator.className = 'w-2 h-2 rounded-full bg-blue-500 animate-pulse';
+      if (filenameEl) {
+        const rawName = state.digitizeJob.filename || 'Tài liệu đang xử lý';
+        filenameEl.innerText = truncateFilename(rawName, 32);
+        filenameEl.title = rawName;
+      }
+      if (commitBtn) commitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      return;
+    } else {
+      if (startDigitizeBtn) startDigitizeBtn.classList.add('hidden');
+    }
 
     if (questions.length === 0) {
+      if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
       if (avgEl) avgEl.innerText = 'Độ tin cậy TB: --';
       if (statusLabel) statusLabel.innerText = 'AI Parsing: Sẵn sàng (Chưa tải tệp)';
       if (statusIndicator) {
         statusIndicator.className = 'w-2 h-2 rounded-full bg-slate-400';
       }
-      if (filenameEl) filenameEl.innerText = state.digitizeJob.filename || 'Chưa tải tệp nào';
+      if (resetStageBtn) resetStageBtn.classList.add('hidden');
+      if (filenameEl) {
+        const rawName = state.digitizeJob.filename || 'Chưa tải tệp nào';
+        filenameEl.innerText = truncateFilename(rawName, 32);
+        filenameEl.title = rawName;
+      }
       if (pageDisplay) pageDisplay.innerText = 'Trang 0 / 0';
       if (activeBadge) {
         activeBadge.innerText = 'Chưa chọn câu';
@@ -1296,6 +1576,8 @@
       }
       state.digitizeJob.avgConfidence = 0;
     } else {
+      if (rightHeaderActions) rightHeaderActions.classList.remove('hidden');
+      if (resetStageBtn) resetStageBtn.classList.remove('hidden');
       const sum = questions.reduce((acc, q) => acc + (q.confidence || 0), 0);
       const avg = (sum / questions.length).toFixed(1);
       state.digitizeJob.avgConfidence = avg;
@@ -1304,7 +1586,11 @@
       if (statusIndicator) {
         statusIndicator.className = 'w-2 h-2 rounded-full bg-emerald-500';
       }
-      if (filenameEl) filenameEl.innerText = state.digitizeJob.filename || 'Tệp đã tải lên';
+      if (filenameEl) {
+        const rawName = state.digitizeJob.filename || 'Tệp đã tải lên';
+        filenameEl.innerText = truncateFilename(rawName, 32);
+        filenameEl.title = rawName;
+      }
       if (pageDisplay) pageDisplay.innerText = `Trang ${state.digitizeJob.currentPage || 1} / ${state.digitizeJob.totalPages || 1}`;
       const activeIdx = questions.findIndex((q) => q.id === state.digitizeJob.activeQuestionId);
       if (activeBadge) {
@@ -1392,7 +1678,10 @@
     showToast(`Đã lưu câu ${item.code || qId} vào Ngân hàng câu hỏi CSDL!`, 'success');
   }
 
-  async function handleFileUpload(event) {
+  // ============================================================================
+  // STAGING, PREVIEW & REORDERING BEFORE AI DIGITIZING
+  // ============================================================================
+  function handleFileSelect(event) {
     let files = [];
     if (event && event.target && event.target.files) {
       files = Array.from(event.target.files);
@@ -1402,24 +1691,132 @@
       files = [event];
     }
     if (files.length === 0) return;
+    stageFiles(files);
+  }
 
-    const primaryFile = files[0];
+  function handleAddMoreFiles(event) {
+    let files = [];
+    if (event && event.target && event.target.files) {
+      files = Array.from(event.target.files);
+    } else if (Array.isArray(event)) {
+      files = event;
+    }
+    if (files.length === 0) return;
+    stageFiles([...state.stagedExam.files, ...files]);
+  }
+
+  function stageFiles(files) {
+    state.stagedExam.files = files;
+    state.stagedExam.previews = files.map((f) => ({
+      name: f.name,
+      size: (f.size / (1024 * 1024)).toFixed(2) + ' MB',
+      type: f.name.split('.').pop().toLowerCase(),
+      url: URL.createObjectURL(f),
+      fileObj: f
+    }));
+    state.stagedExam.activePreviewIndex = 0;
+    state.stagedExam.status = 'STAGED';
+
     const isMulti = files.length > 1;
-    const displayName = isMulti ? `${files.length} trang ảnh đề thi` : primaryFile.name;
-    const primaryExt = primaryFile.name.split('.').pop().toLowerCase();
-
-    showToast(`Đang tải lên máy chủ: ${displayName}...`, 'info');
+    const displayName = isMulti ? `${files.length} trang ảnh đề thi` : files[0].name;
     state.digitizeJob.filename = displayName;
-    state.digitizeJob.fileType = isMulti ? 'images' : primaryExt;
+    state.digitizeJob.fileType = isMulti ? 'images' : files[0].name.split('.').pop().toLowerCase();
+    state.digitizeJob.status = 'STAGED';
+    state.digitizeJob.questions = [];
+
     const dispEl = document.getElementById('doc-viewer-filename');
-    if (dispEl) dispEl.innerText = displayName;
+    if (dispEl) {
+      dispEl.innerText = truncateFilename(displayName, 32);
+      dispEl.title = displayName;
+    }
+
+    renderDigitizeStudio();
+    showToast(`Đã nạp ${files.length} tệp. Kiểm tra bản xem trước và sắp xếp thứ tự trước khi gõ đề!`, 'info');
+  }
+
+  function moveStagedPage(index, delta) {
+    const newIndex = index + delta;
+    const files = state.stagedExam.files;
+    const previews = state.stagedExam.previews;
+    if (newIndex < 0 || newIndex >= files.length) return;
+
+    // Swap files and previews
+    const tempF = files[index];
+    files[index] = files[newIndex];
+    files[newIndex] = tempF;
+
+    const tempP = previews[index];
+    previews[index] = previews[newIndex];
+    previews[newIndex] = tempP;
+
+    state.stagedExam.activePreviewIndex = newIndex;
+    renderDigitizeStudio();
+    showToast(`Đã chuyển trang ảnh sang vị trí Trang ${newIndex + 1}`, 'info');
+  }
+
+  function removeStagedPage(index) {
+    const files = state.stagedExam.files;
+    const previews = state.stagedExam.previews;
+    files.splice(index, 1);
+    previews.splice(index, 1);
+
+    if (files.length === 0) {
+      resetStagedFiles();
+      return;
+    }
+    if (state.stagedExam.activePreviewIndex >= files.length) {
+      state.stagedExam.activePreviewIndex = files.length - 1;
+    }
+    renderDigitizeStudio();
+    showToast('Đã xóa 1 trang ảnh khỏi danh sách tải lên', 'info');
+  }
+
+  function selectStagedPreviewPage(index) {
+    state.stagedExam.activePreviewIndex = index;
+    renderDocumentPaperPreview();
+  }
+
+  function resetStagedFiles() {
+    state.stagedExam = {
+      status: 'EMPTY',
+      files: [],
+      previews: [],
+      activePreviewIndex: 0
+    };
+    state.digitizeJob.jobId = null;
+    state.digitizeJob.status = 'IDLE';
+    state.digitizeJob.filename = '';
+    state.digitizeJob.fileType = '';
+    state.digitizeJob.previewUrl = null;
+    state.digitizeJob.previewImages = [];
+    state.digitizeJob.questions = [];
+    renderDigitizeStudio();
+    showToast('Đã hủy và xóa tài liệu đã chọn.', 'info');
+  }
+
+  async function startAIDigitize() {
+    const files = state.stagedExam.files;
+    if (!files || files.length === 0) {
+      showToast('Chưa có tệp nào được chọn để gõ đề!', 'warning');
+      return;
+    }
+
+    state.stagedExam.status = 'PROCESSING';
+    state.digitizeJob.status = 'PROCESSING';
+    renderDigitizeStudio();
+
+    const isMulti = files.length > 1;
+    const displayName = isMulti ? `${files.length} trang ảnh đề thi` : files[0].name;
+
+    showToast(`Đang tải lên và gửi sang AI để gõ lại đề thi: ${displayName}...`, 'info');
 
     const formData = new FormData();
-    for (const f of files) {
-      formData.append('files', f);
-    }
     if (files.length === 1) {
-      formData.append('file', primaryFile);
+      formData.append('file', files[0]);
+    } else {
+      for (const f of files) {
+        formData.append('files', f);
+      }
     }
     formData.append('sync', 'true');
 
@@ -1443,8 +1840,6 @@
       state.digitizeJob.jobId = jobId;
       state.digitizeJob.fileType = uploadResult.file_type || state.digitizeJob.fileType;
       state.digitizeJob.previewUrl = uploadResult.preview_url || `${API_BASE_URL}/digitize/jobs/${jobId}/preview`;
-
-      showToast(`Đang gửi tệp sang AI bóc tách: ${displayName}...`, 'info');
 
       // Fetch job status and questions
       const jobRes = await fetch(`${API_BASE_URL}/digitize/jobs/${jobId}`);
@@ -1472,29 +1867,292 @@
           state.digitizeJob.activeQuestionId = state.digitizeJob.questions[0]?.id || 1;
           state.digitizeJob.totalPages = Math.max(1, Math.ceil(state.digitizeJob.questions.length / 6));
           state.digitizeJob.currentPage = 1;
+          state.stagedExam.status = 'DONE';
 
           const aiNote = (jobData.ai_provider && jobData.ai_provider !== 'local_fallback')
             ? ` qua AI (${jobData.ai_provider.toUpperCase()} - ${jobData.ai_model})`
             : '';
-          showToast(`Bóc tách thành công ${state.digitizeJob.questions.length} câu hỏi${aiNote}!`, 'success');
+          showToast(`Đã gõ lại và bóc tách thành công ${state.digitizeJob.questions.length} câu hỏi${aiNote}!`, 'success');
         } else if (jobData.status === 'FAILED') {
           throw new Error(jobData.error_message || 'Xử lý file thất bại trên máy chủ.');
         } else {
-          showToast(`Đã nhận diện file ${displayName}. Chưa phát hiện câu hỏi nào.`, 'warning');
+          showToast(`Đã xử lý xong tệp nhưng chưa phát hiện câu hỏi nào.`, 'warning');
         }
       } else {
         throw new Error(`Không lấy được trạng thái tác vụ (HTTP ${jobRes.status})`);
       }
-      renderDigitizeStudio();
     } catch (err) {
-      console.warn('Backend upload error:', err);
-      showToast(`Lỗi khi xử lý file: ${err.message}`, 'error');
-      renderDigitizeStudio();
+      console.warn('AI digitize error:', err);
+      showToast(`Lỗi khi gõ đề: ${err.message}`, 'error');
+      state.stagedExam.status = 'STAGED';
     } finally {
-      if (event && event.target) {
-        event.target.value = '';
-      }
+      renderDigitizeStudio();
     }
+  }
+
+  // Legacy alias
+  function handleFileUpload(event) {
+    handleFileSelect(event);
+  }
+
+  // ============================================================================
+  // QUESTION FULL HITL EDITOR MODAL
+  // ============================================================================
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function openQuestionEditorModal(qId) {
+    const q = state.digitizeJob.questions.find((x) => x.id === qId);
+    if (!q) return;
+
+    state.activeEditingQuestion = JSON.parse(JSON.stringify(q));
+    const modal = document.getElementById('question-editor-modal');
+    if (!modal) return;
+
+    const idx = state.digitizeJob.questions.findIndex((x) => x.id === qId);
+    document.getElementById('q-modal-title').innerText = `Chỉnh Sửa Câu ${idx + 1} (${q.code || 'EXTRACT'})`;
+
+    document.getElementById('q-edit-format').value = q.item_format || 'SINGLE_CHOICE';
+    document.getElementById('q-edit-cognitive').value = q.cognitive_level || 'RECOGNITION';
+    document.getElementById('q-edit-yccd').value = q.learning_outcome_code || q.learning_outcome_id || 'TOAN12.GT.01';
+    document.getElementById('q-edit-stem').value = q.stem || '';
+    document.getElementById('q-edit-explanation').value = q.explanation || '';
+
+    handleQuestionFormatChangeInModal();
+    updateQuestionEditorLivePreview();
+
+    modal.classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function closeQuestionEditorModal() {
+    const modal = document.getElementById('question-editor-modal');
+    if (modal) modal.classList.add('hidden');
+    state.activeEditingQuestion = null;
+  }
+
+  function handleQuestionFormatChangeInModal() {
+    const format = document.getElementById('q-edit-format').value;
+    if (!state.activeEditingQuestion) return;
+    state.activeEditingQuestion.item_format = format;
+
+    if (format === 'SINGLE_CHOICE' && (!state.activeEditingQuestion.options || state.activeEditingQuestion.options.length === 0)) {
+      state.activeEditingQuestion.options = [
+        { label: 'A', content: '', is_correct: true, is_fixed: false },
+        { label: 'B', content: '', is_correct: false, is_fixed: false },
+        { label: 'C', content: '', is_correct: false, is_fixed: false },
+        { label: 'D', content: '', is_correct: false, is_fixed: false },
+      ];
+    } else if (format === 'TRUE_FALSE_GROUP' && (!state.activeEditingQuestion.sub_statements || state.activeEditingQuestion.sub_statements.length === 0)) {
+      state.activeEditingQuestion.sub_statements = [
+        { label: 'a', content: '', is_true: true, explanation: '' },
+        { label: 'b', content: '', is_true: false, explanation: '' },
+        { label: 'c', content: '', is_true: true, explanation: '' },
+        { label: 'd', content: '', is_true: false, explanation: '' },
+      ];
+    }
+    renderQuestionAnswersInModal();
+  }
+
+  function renderQuestionAnswersInModal() {
+    const container = document.getElementById('q-edit-answers-container');
+    if (!container || !state.activeEditingQuestion) return;
+
+    const q = state.activeEditingQuestion;
+    const format = q.item_format || 'SINGLE_CHOICE';
+
+    let html = '';
+
+    if (format === 'SINGLE_CHOICE') {
+      const options = q.options || [];
+      html += `
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">4 Phương án lựa chọn (Chọn 1 đáp án đúng)</label>
+            <span class="text-[10px] text-slate-500">Tích chọn radio tròn để đặt phương án đúng</span>
+          </div>
+          <div class="space-y-2">
+      `;
+      ['A', 'B', 'C', 'D'].forEach((lbl, idx) => {
+        const opt = options[idx] || { label: lbl, content: '', is_correct: idx === 0, is_fixed: false };
+        html += `
+          <div class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200">
+            <label class="flex items-center space-x-1.5 cursor-pointer shrink-0">
+              <input type="radio" name="modal-correct-choice" value="${idx}" ${opt.is_correct ? 'checked' : ''} onchange="app.setModalCorrectChoice(${idx})" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <span class="w-6 h-6 rounded-md bg-white border border-slate-300 flex items-center justify-center font-bold text-xs text-brand-700 shadow-xs">${lbl}</span>
+            </label>
+            <input type="text" id="q-edit-opt-${idx}" value="${escapeHtml(opt.content)}" oninput="app.updateModalOptionContent(${idx}, this.value)" class="flex-1 text-xs rounded-lg border border-slate-300 p-2 bg-white focus:ring-2 focus:ring-brand-500 font-mono" placeholder="Nội dung phương án ${lbl}...">
+            <label class="flex items-center space-x-1 cursor-pointer shrink-0 text-[11px] text-slate-600 px-2 py-1 rounded bg-white border border-slate-200" title="Khóa cố định vị trí D khi xáo trộn đề">
+              <input type="checkbox" id="q-edit-fixed-${idx}" ${opt.is_fixed ? 'checked' : ''} onchange="app.setModalOptionFixed(${idx}, this.checked)" class="rounded text-brand-600">
+              <span>Khóa D</span>
+            </label>
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    } else if (format === 'TRUE_FALSE_GROUP') {
+      const subs = q.sub_statements || [];
+      html += `
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">4 Ý khẳng định con (Quyết định 764/QĐ-BGDĐT)</label>
+            <span class="text-[10px] text-slate-500">Điểm bậc thang: 1 ý = 0.1đ | 2 ý = 0.25đ | 3 ý = 0.5đ | 4 ý = 1.0đ</span>
+          </div>
+          <div class="space-y-2.5">
+      `;
+      ['a', 'b', 'c', 'd'].forEach((lbl, idx) => {
+        const sub = subs[idx] || { label: lbl, content: '', is_true: false, explanation: '' };
+        html += `
+          <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center space-x-1.5 flex-1">
+                <span class="font-bold text-brand-700 text-xs">${lbl})</span>
+                <input type="text" id="q-edit-sub-${idx}" value="${escapeHtml(sub.content)}" oninput="app.updateModalSubContent(${idx}, this.value)" class="flex-1 text-xs rounded-lg border border-slate-300 p-1.5 bg-white font-mono" placeholder="Nội dung khẳng định ${lbl})...">
+              </div>
+              <div class="flex items-center space-x-1 shrink-0">
+                <button type="button" onclick="app.setModalSubIsTrue(${idx}, true)" class="px-2.5 py-1 rounded text-[11px] font-bold ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
+                  ĐÚNG
+                </button>
+                <button type="button" onclick="app.setModalSubIsTrue(${idx}, false)" class="px-2.5 py-1 rounded text-[11px] font-bold ${!sub.is_true ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'}">
+                  SAI
+                </button>
+              </div>
+            </div>
+            <input type="text" id="q-edit-sub-exp-${idx}" value="${escapeHtml(sub.explanation || '')}" oninput="app.updateModalSubExp(${idx}, this.value)" class="w-full text-[11px] rounded border border-slate-200 p-1 bg-white text-slate-600 italic" placeholder="Giải thích tính đúng/sai của ý ${lbl})...">
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    } else if (format === 'SHORT_ANSWER') {
+      html += `
+        <div class="p-3 bg-purple-50 rounded-xl border border-purple-200">
+          <label class="block font-bold text-purple-900 mb-2 uppercase tracking-wider text-[11px]">Đáp số đúng (PHẦN III)</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <span class="text-[11px] text-purple-700 mb-1 block">Chuỗi kết quả số / ký tự:</span>
+              <input type="text" id="q-edit-short-val" value="${escapeHtml(q.short_answer_value || '')}" class="w-full text-xs font-mono font-bold rounded-lg border border-purple-300 p-2 bg-white" placeholder="Ví dụ: 12 hoặc -3.5">
+            </div>
+            <div>
+              <span class="text-[11px] text-purple-700 mb-1 block">Dung sai sai số ($\\pm$):</span>
+              <input type="number" step="0.01" id="q-edit-short-tol" value="${q.tolerance || 0.0}" class="w-full text-xs font-mono rounded-lg border border-purple-300 p-2 bg-white">
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+    renderKaTeX(container);
+  }
+
+  function setModalCorrectChoice(choiceIdx) {
+    if (!state.activeEditingQuestion || !state.activeEditingQuestion.options) return;
+    state.activeEditingQuestion.options.forEach((opt, idx) => {
+      opt.is_correct = idx === choiceIdx;
+    });
+  }
+
+  function setModalOptionFixed(optIdx, isFixed) {
+    if (!state.activeEditingQuestion || !state.activeEditingQuestion.options) return;
+    if (state.activeEditingQuestion.options[optIdx]) {
+      state.activeEditingQuestion.options[optIdx].is_fixed = isFixed;
+    }
+  }
+
+  function updateModalOptionContent(optIdx, val) {
+    if (!state.activeEditingQuestion || !state.activeEditingQuestion.options) return;
+    if (state.activeEditingQuestion.options[optIdx]) {
+      state.activeEditingQuestion.options[optIdx].content = val;
+    }
+  }
+
+  function setModalSubIsTrue(subIdx, isTrue) {
+    if (!state.activeEditingQuestion || !state.activeEditingQuestion.sub_statements) return;
+    if (state.activeEditingQuestion.sub_statements[subIdx]) {
+      state.activeEditingQuestion.sub_statements[subIdx].is_true = isTrue;
+      renderQuestionAnswersInModal();
+    }
+  }
+
+  function updateModalSubContent(subIdx, val) {
+    if (!state.activeEditingQuestion || !state.activeEditingQuestion.sub_statements) return;
+    if (state.activeEditingQuestion.sub_statements[subIdx]) {
+      state.activeEditingQuestion.sub_statements[subIdx].content = val;
+    }
+  }
+
+  function updateModalSubExp(subIdx, val) {
+    if (!state.activeEditingQuestion || !state.activeEditingQuestion.sub_statements) return;
+    if (state.activeEditingQuestion.sub_statements[subIdx]) {
+      state.activeEditingQuestion.sub_statements[subIdx].explanation = val;
+    }
+  }
+
+  function updateQuestionEditorLivePreview() {
+    const stemInput = document.getElementById('q-edit-stem');
+    const stemPreview = document.getElementById('q-edit-stem-preview');
+    if (stemInput && stemPreview) {
+      const val = stemInput.value.trim();
+      stemPreview.innerHTML = val ? val : '<span class="text-slate-400 italic">Xem trước nội dung câu hỏi...</span>';
+      renderKaTeX(stemPreview);
+    }
+
+    const expInput = document.getElementById('q-edit-explanation');
+    const expPreview = document.getElementById('q-edit-explanation-preview');
+    if (expInput && expPreview) {
+      const val = expInput.value.trim();
+      expPreview.innerHTML = val ? `<strong>Hướng dẫn giải:</strong> ${val}` : '<span class="text-slate-400 italic">Xem trước lời giải...</span>';
+      renderKaTeX(expPreview);
+    }
+  }
+
+  function insertStemSymbol(symbol) {
+    const input = document.getElementById('q-edit-stem');
+    if (!input) return;
+    const start = input.selectionStart || 0;
+    const end = input.selectionEnd || 0;
+    const val = input.value;
+    input.value = val.substring(0, start) + symbol + val.substring(end);
+    input.focus();
+    input.setSelectionRange(start + symbol.length, start + symbol.length);
+    updateQuestionEditorLivePreview();
+  }
+
+  function saveQuestionEdit() {
+    if (!state.activeEditingQuestion) return;
+    const qId = state.activeEditingQuestion.id;
+    const q = state.digitizeJob.questions.find((x) => x.id === qId);
+    if (!q) return;
+
+    q.item_format = document.getElementById('q-edit-format').value;
+    q.cognitive_level = document.getElementById('q-edit-cognitive').value;
+    q.learning_outcome_code = document.getElementById('q-edit-yccd').value;
+    q.learning_outcome_id = q.learning_outcome_code;
+    q.stem = document.getElementById('q-edit-stem').value.trim();
+    q.explanation = document.getElementById('q-edit-explanation').value.trim();
+
+    if (q.item_format === 'SINGLE_CHOICE' && state.activeEditingQuestion.options) {
+      q.options = JSON.parse(JSON.stringify(state.activeEditingQuestion.options));
+    } else if (q.item_format === 'TRUE_FALSE_GROUP' && state.activeEditingQuestion.sub_statements) {
+      q.sub_statements = JSON.parse(JSON.stringify(state.activeEditingQuestion.sub_statements));
+    } else if (q.item_format === 'SHORT_ANSWER') {
+      const valEl = document.getElementById('q-edit-short-val');
+      const tolEl = document.getElementById('q-edit-short-tol');
+      if (valEl) q.short_answer_value = valEl.value.trim();
+      if (tolEl) q.tolerance = parseFloat(tolEl.value) || 0.0;
+    }
+
+    closeQuestionEditorModal();
+    renderExtractedQuestionsList();
+    updateConfidenceSummary();
+    showToast(`Đã lưu thay đổi cho Câu ${q.code || qId}!`, 'success');
   }
 
   function loadSampleExam(type) {
@@ -1641,27 +2299,29 @@
     let html = '';
     filtered.forEach((q) => {
       const cogLabels = {
-        RECOGNITION: '1. Biết (Nhận biết)',
-        COMPREHENSION: '2. Hiểu (Thông hiểu)',
-        APPLICATION: '3. Vận dụng',
+        RECOGNITION: 'Nhận biết',
+        COMPREHENSION: 'Thông hiểu',
+        APPLICATION: 'Vận dụng',
+        HIGH_APPLICATION: 'Vận dụng cao',
       };
       const cogColors = {
         RECOGNITION: 'bg-blue-50 text-blue-700 border-blue-200',
         COMPREHENSION: 'bg-indigo-50 text-indigo-700 border-indigo-200',
         APPLICATION: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        HIGH_APPLICATION: 'bg-purple-50 text-purple-700 border-purple-200',
       };
 
       html += `
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:border-brand-300 transition-all space-y-3">
+        <div class="apple-card p-5 space-y-3">
           
           <!-- Header: Code, Badges, Psychometrics -->
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 text-xs">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-black/[0.06] pb-3 text-xs">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-xs">${q.code}</span>
+              <span class="font-mono font-bold text-slate-800 bg-black/[0.04] px-2 py-0.5 rounded-md text-xs">${q.code}</span>
               <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${cogColors[q.cognitive_level] || 'bg-slate-100'}">
                 ${cogLabels[q.cognitive_level] || q.cognitive_level}
               </span>
-              <span class="px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 text-[11px] font-bold border border-brand-200 font-mono">
+              <span class="px-2 py-0.5 rounded-md bg-[#0071E3]/[0.08] text-[#0071E3] text-[11px] font-bold border border-[#0071E3]/[0.15] font-mono">
                 ${q.learning_outcome_id}
               </span>
               <span class="text-slate-400 text-[11px]">• ${q.source_ref || 'Thông tư 32'}</span>
@@ -1669,10 +2329,10 @@
 
             <!-- Psychometric Indices: p & D -->
             <div class="flex items-center space-x-2 text-[11px]">
-              <span class="px-2 py-0.5 bg-slate-50 border border-slate-200 rounded text-slate-700 font-mono" title="Độ khó thực nghiệm (Tỷ lệ làm đúng p = R/N)">
+              <span class="px-2 py-0.5 bg-black/[0.03] border border-black/[0.06] rounded-md text-slate-700 font-mono" title="Độ khó thực nghiệm (Tỷ lệ làm đúng p = R/N)">
                 Độ khó $p = ${q.p_index || 0.65}$
               </span>
-              <span class="px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded text-emerald-700 font-mono font-bold" title="Độ phân biệt D = P_H - P_L">
+              <span class="px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-700 font-mono font-bold" title="Độ phân biệt D = P_H - P_L">
                 Độ PB $D = ${q.d_index || 0.42}$
               </span>
             </div>
@@ -1689,7 +2349,7 @@
         html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">`;
         q.options.forEach((opt) => {
           const isCorrect = opt.is_correct;
-          const optClass = isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-700';
+          const optClass = isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold' : 'bg-slate-50 border-black/[0.06] text-slate-700';
           html += `
             <div class="flex items-center justify-between p-2 rounded-xl border ${optClass}">
               <div class="flex items-center space-x-2">
@@ -1707,18 +2367,18 @@
         html += `<div class="space-y-1.5 pt-1 text-xs">`;
         q.sub_statements.forEach((sub) => {
           html += `
-            <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div class="p-2 rounded-lg bg-slate-50 border border-black/[0.06] flex items-center justify-between">
               <div><strong>${sub.label})</strong> ${sub.content}</div>
               <span class="px-2 py-0.5 rounded text-[10px] font-bold ${sub.is_true ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                ${sub.is_true ? 'ĐÚNG' : 'SAI'}
-              </span>
+                ${sub.is_true ? 'ĐÚNG' : 'SAI'
+              }</span>
             </div>
           `;
         });
         html += `</div>`;
       } else if (q.item_format === 'SHORT_ANSWER') {
         html += `
-          <div class="p-2 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-900 font-mono">
+          <div class="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200 text-xs text-purple-900 font-mono">
             <strong>Đáp án:</strong> ${q.short_answer_value} (Dung sai $\\pm ${q.tolerance}$)
           </div>
         `;
@@ -1726,12 +2386,12 @@
 
       // Actions
       html += `
-        <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100 text-xs">
-          <button onclick="app.checkQuestionDuplicate(${q.id})" class="px-2.5 py-1 text-slate-600 hover:text-brand-600 flex items-center space-x-1">
+        <div class="flex items-center justify-end space-x-2 pt-2.5 border-t border-black/[0.06] text-xs">
+          <button onclick="app.checkQuestionDuplicate(${q.id})" class="btn-apple-secondary py-1 px-2.5 text-xs">
             <i data-lucide="scan" class="w-3.5 h-3.5"></i>
             <span>So khớp Trùng lặp AI</span>
           </button>
-          <button onclick="app.deleteBankQuestion(${q.id})" class="px-2.5 py-1 text-rose-600 hover:bg-rose-50 rounded flex items-center space-x-1">
+          <button onclick="app.deleteBankQuestion(${q.id})" class="btn-apple-danger py-1 px-2.5 text-xs">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             <span>Xóa</span>
           </button>
@@ -1955,10 +2615,10 @@
       const hasAnchorOption = q.options?.some((o) => o.is_fixed || isAnchorPhrase(o.content));
 
       html += `
-        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2 hover:border-slate-300 transition-all">
+        <div class="apple-card p-4 text-xs space-y-2">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
-              <span class="font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">Câu ${idx + 1}</span>
+              <span class="font-bold text-[#0071E3] bg-[#0071E3]/[0.08] px-2 py-0.5 rounded-md border border-[#0071E3]/[0.15]">Câu ${idx + 1}</span>
               <span class="font-mono text-slate-500">${q.code}</span>
               <span class="font-mono text-[11px] text-slate-700 font-bold">${q.learning_outcome_id}</span>
               ${
@@ -1971,13 +2631,13 @@
             </div>
 
             <!-- Swap Question Button (Same YCCD & Bloom) -->
-            <button onclick="app.swapMasterQuestion(${idx})" class="px-2 py-1 bg-white hover:bg-slate-100 text-brand-700 border border-slate-300 rounded text-[11px] font-semibold flex items-center space-x-1 shadow-xs">
+            <button onclick="app.swapMasterQuestion(${idx})" class="btn-apple-secondary py-1 px-2 text-[11px] font-semibold">
               <i data-lucide="refresh-cw" class="w-3 h-3"></i>
               <span>Đổi câu khác</span>
             </button>
           </div>
 
-          <div class="font-medium text-slate-900">${q.stem}</div>
+          <div class="font-medium text-slate-900 leading-relaxed">${q.stem}</div>
 
           ${
             q.options
@@ -1985,7 +2645,7 @@
                   ${q.options
                     .map(
                       (o) => `
-                    <div class="p-1.5 rounded ${o.is_correct ? 'bg-emerald-100 text-emerald-900 font-bold' : 'bg-white text-slate-700'} border border-slate-200">
+                    <div class="p-2 rounded-lg ${o.is_correct ? 'bg-emerald-50 text-emerald-900 font-bold border-emerald-300' : 'bg-black/[0.02] text-slate-700 border-black/[0.06]'} border">
                       <strong>${o.label}.</strong> ${o.content}
                     </div>
                   `
@@ -2524,23 +3184,27 @@
   }
 
   // ============================================================================
-  // 14. INITIALIZATION
+  // 14. INITIALIZATION & ROUTER POPSTATE
   // ============================================================================
   async function init() {
     seedInitialQuestions();
     setupPaperDropZone();
 
+    // Setup Browser History popstate listener for SPA Router
+    window.addEventListener('popstate', (event) => {
+      const tabId = (event.state && event.state.tabId) || ROUTE_MAP[window.location.pathname.replace(/\/$/, '') || '/'] || 'dashboard';
+      switchTab(tabId, false);
+    });
+
     // Check backend API live status
     await apiService.checkHealth();
 
-    // Render initial views
-    renderDashboard();
-    renderDigitizeStudio();
-    renderItemBank();
-    renderMatrixGrid();
-    executeSafeShuffling();
+    // Initial Routing based on current URL path
+    const initialPath = window.location.pathname.replace(/\/$/, '') || '/';
+    const targetTab = ROUTE_MAP[initialPath] || 'dashboard';
+    switchTab(targetTab, false);
 
-    // Init Lucide
+    // Init Lucide Icons
     if (window.lucide) {
       lucide.createIcons();
     }
@@ -2555,6 +3219,7 @@
 
   // Expose global methods to window.app for HTML onclick bindings
   window.app = {
+    navigateTo,
     switchTab,
     selectQuestionForHITL,
     toggleSingleChoiceAnswer,
@@ -2566,6 +3231,25 @@
     commitExtractedToBank,
     commitSingleQuestion,
     handleFileUpload,
+    handleFileSelect,
+    handleAddMoreFiles,
+    moveStagedPage,
+    removeStagedPage,
+    selectStagedPreviewPage,
+    resetStagedFiles,
+    startAIDigitize,
+    openQuestionEditorModal,
+    closeQuestionEditorModal,
+    handleQuestionFormatChangeInModal,
+    setModalCorrectChoice,
+    setModalOptionFixed,
+    updateModalOptionContent,
+    setModalSubIsTrue,
+    updateModalSubContent,
+    updateModalSubExp,
+    updateQuestionEditorLivePreview,
+    insertStemSymbol,
+    saveQuestionEdit,
     loadSampleExam,
     changeViewerPage,
     handleTaxonomyFilterChange,

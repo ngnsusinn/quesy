@@ -10,9 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 # ==============================================================================
 
 class CognitiveLevel(str, Enum):
-    RECOGNITION = "RECOGNITION"       # Biết (Nhận biết)
-    COMPREHENSION = "COMPREHENSION"   # Hiểu (Thông hiểu)
-    APPLICATION = "APPLICATION"       # Vận dụng (bao gồm Vận dụng & Vận dụng cao)
+    RECOGNITION = "RECOGNITION"             # Nhận biết
+    COMPREHENSION = "COMPREHENSION"         # Thông hiểu
+    APPLICATION = "APPLICATION"             # Vận dụng
+    HIGH_APPLICATION = "HIGH_APPLICATION"   # Vận dụng cao
 
 
 class ItemFormat(str, Enum):
