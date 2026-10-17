@@ -125,11 +125,19 @@ def add_math_text_to_paragraph(
             if omml_elem is not None:
                 paragraph._p.append(omml_elem)
             else:
-                clean_expr = tok.strip("$")
-                r_math = paragraph.add_run(clean_expr)
-                r_math.font.italic = True
-                r_math.font.name = "Times New Roman"
-                r_math.font.size = Pt(default_font_size)
+                clean_expr = tok.strip("$").strip()
+                try:
+                    omml_fallback = parse_xml(
+                        f'<m:oMath {nsdecls("m")}>'
+                        f'<m:r><m:rPr><w:rFonts {nsdecls("w")} w:ascii="Cambria Math" w:hAnsi="Cambria Math"/></m:rPr><m:t>{clean_expr}</m:t></m:r>'
+                        f'</m:oMath>'
+                    )
+                    paragraph._p.append(omml_fallback)
+                except Exception:
+                    r_math = paragraph.add_run(clean_expr)
+                    r_math.font.italic = True
+                    r_math.font.name = "Times New Roman"
+                    r_math.font.size = Pt(default_font_size)
         else:
             r_txt = paragraph.add_run(tok)
             r_txt.font.name = "Times New Roman"
