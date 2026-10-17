@@ -568,10 +568,10 @@
 
 ## Phase 7: Phân Hệ Chấm Thi & Thống Kê Điểm Trực Tiếp Trên Web Studio (Roadmap / Backlog)
 
-### Task GM-01: [ ] ORM Model `Classroom` & `StudentRoster` Quản Lý Lớp Của Giáo Viên
+### Task GM-01: [x] [DONE] ORM Model `Classroom` & `StudentRoster` Quản Lý Lớp Của Giáo Viên
 **Description:** Khai báo bảng `classrooms` (Lớp 12A1, 12A2...) và `students` (Danh sách học sinh gồm SBD, Họ tên) phục vụ việc vào điểm của giáo viên.
 **Acceptance criteria:**
-- [ ] Bảng có cấu trúc đơn giản, lưu trữ cục bộ, không cần tài khoản học sinh.
+- [x] Bảng có cấu trúc đơn giản, lưu trữ cục bộ, không cần tài khoản học sinh.
 **Verification:** `python -c "from backend.models import Classroom, Student; print('OK')"`
 **Dependencies:** None | **Files:** `backend/models.py` | **Scope:** S (1 file)
 
@@ -582,10 +582,10 @@
 **Verification:** Browser check giao diện tab Chấm thi.
 **Dependencies:** GM-01, SH-01 | **Files:** `frontend/index.html`, `frontend/static/app.js` | **Scope:** S (2 files)
 
-### Task GM-03: [ ] Nhập / Xuất Bảng Điểm Lớp Học Từ File Excel (.xlsx / .csv)
+### Task GM-03: [x] [DONE] Nhập / Xuất Bảng Điểm Lớp Học Từ File Excel (.xlsx / .csv)
 **Description:** Cho phép giáo viên import danh sách học sinh từ file Excel mẫu của trường, và export bảng điểm đã chấm ra file Excel để vào sổ cái.
 **Acceptance criteria:**
-- [ ] Đọc và ghi file Excel chuẩn định dạng mở được trên Microsoft Excel không bị lỗi font tiếng Việt.
+- [x] Đọc và ghi file Excel chuẩn định dạng mở được trên Microsoft Excel không bị lỗi font tiếng Việt.
 **Verification:** `pytest tests/test_excel_roster_import_export.py`
 **Dependencies:** GM-02 | **Files:** `backend/routers/grading.py`, `backend/services/excel_exporter.py` | **Scope:** S (2 files)
 
@@ -624,11 +624,11 @@
 **Verification:** Browser check đồ thị phổ điểm trên tab Thống kê khảo thí.
 **Dependencies:** GM-02, AN-01 | **Files:** `frontend/index.html`, `frontend/static/app.js` | **Scope:** S (2 files)
 
-### Task AI-08: [ ] Adapter Kết Nối Cloud Vision API (Gemini 1.5 / Claude) Cho Đề Thi Mờ
+### Task AI-08: [x] [DONE] Adapter Kết Nối Cloud Vision API (Gemini 1.5 / Claude) Cho Đề Thi Mờ
 **Description:** Tùy chọn cho phép giáo viên nhập API Key cá nhân để hỗ trợ bóc tách các đề thi photo bị mờ hoặc công thức viết tay phức tạp.
 **Acceptance criteria:**
-- [ ] Giáo viên có thể bật/tắt Cloud Vision trong cài đặt cá nhân.
-- [ ] Không phụ thuộc bắt buộc: vẫn chạy hoàn hảo offline với local parser.
+- [x] Giáo viên có thể bật/tắt Cloud Vision trong cài đặt cá nhân.
+- [x] Không phụ thuộc bắt buộc: vẫn chạy hoàn hảo offline với local parser.
 **Verification:** `pytest tests/test_cloud_vision_adapter.py`
 **Dependencies:** AI-01 | **Files:** `backend/services/ai_parser.py`, `backend/config.py` | **Scope:** S (2 files)
 
@@ -639,23 +639,23 @@
 **Verification:** `pytest tests/test_doctr_local.py`
 **Dependencies:** AI-02 | **Files:** `backend/services/ai_parser.py` | **Scope:** S (1 file)
 
-### Task PK-01: [ ] Hỗ Trợ Chế Độ Web Ngoại Tuyến (Offline PWA / Service Worker) Trên Trình Duyệt
+### Task PK-01: [x] [DONE] Hỗ Trợ Chế Độ Web Ngoại Tuyến (Offline PWA / Service Worker) Trên Trình Duyệt
 **Description:** Thiết lập Service Worker và Manifest cho Web Studio để giáo viên có thể mở và sử dụng toàn bộ tính năng số hóa, ngân hàng câu hỏi ngay trên trình duyệt mà không cần kết nối internet.
 **Acceptance criteria:**
-- [ ] Giao diện Web Studio lưu cache ngoại tuyến và mở được ngay cả khi ngắt kết nối mạng.
+- [x] Giao diện Web Studio lưu cache ngoại tuyến và mở được ngay cả khi ngắt kết nối mạng.
 **Verification:** Kiểm tra Offline mode trong tab Application của Chrome DevTools.
 **Dependencies:** SO-03 | **Files:** `frontend/sw.js`, `frontend/manifest.json` | **Scope:** S (2 files)
 
-### Task PK-02: [ ] Viết Dockerfile Đa Tầng & docker-compose Cho Máy Tính Giáo Viên
+### Task PK-02: [x] [DONE] Viết Dockerfile Đa Tầng & docker-compose Cho Máy Tính Giáo Viên
 **Description:** Viết file `Dockerfile` và `docker-compose.yml` nhỏ gọn phục vụ giáo viên muốn chạy hệ thống qua Docker Desktop.
 **Acceptance criteria:**
-- [ ] Khởi chạy toàn bộ hệ thống bằng 1 lệnh `docker compose up -d`.
+- [x] Khởi chạy toàn bộ hệ thống bằng 1 lệnh `docker compose up -d`.
 **Verification:** `docker compose config`
 **Dependencies:** SO-01 | **Files:** `Dockerfile`, `docker-compose.yml` | **Scope:** S (2 files)
 
-### Task PK-03: [ ] Thiết Lập Pipeline GitHub Actions CI Tự Động Kiểm Thử
+### Task PK-03: [x] [DONE] Thiết Lập Pipeline GitHub Actions CI Tự Động Kiểm Thử
 **Description:** Tạo file workflow `.github/workflows/ci.yml` tự động chạy 39 test cases mỗi khi giáo viên cập nhật mã nguồn lên GitHub.
 **Acceptance criteria:**
-- [ ] Tự động kiểm thử và báo xanh khi toàn bộ tests pass.
+- [x] Tự động kiểm thử và báo xanh khi toàn bộ tests pass.
 **Verification:** Kiểm tra tab Actions trên GitHub repository.
 **Dependencies:** SO-04 | **Files:** `.github/workflows/ci.yml` | **Scope:** XS (1 file)

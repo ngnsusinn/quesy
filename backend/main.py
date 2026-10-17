@@ -142,6 +142,22 @@ def favicon():
     return Response(status_code=204)
 
 
+@app.get("/manifest.json", include_in_schema=False)
+def get_manifest():
+    p = BASE_DIR / "frontend" / "manifest.json"
+    if p.exists():
+        return FileResponse(p, media_type="application/manifest+json")
+    return Response(status_code=404)
+
+
+@app.get("/sw.js", include_in_schema=False)
+def get_service_worker():
+    p = BASE_DIR / "frontend" / "sw.js"
+    if p.exists():
+        return FileResponse(p, media_type="application/javascript")
+    return Response(status_code=404)
+
+
 @app.get("/", tags=["Frontend"])
 @app.get("/dashboard", tags=["Frontend"])
 @app.get("/digitize", tags=["Frontend"])

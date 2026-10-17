@@ -3208,6 +3208,13 @@
     if (window.lucide) {
       lucide.createIcons();
     }
+
+    // Register Service Worker for Offline PWA Support (Task PK-01)
+    if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.debug('ServiceWorker registration skipped/failed:', err);
+      });
+    }
   }
 
   // Run on DOM loaded

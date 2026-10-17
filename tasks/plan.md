@@ -112,16 +112,16 @@
 - [x] **SO-04:** Bộ test suite tự động 39 test cases bao phủ toàn diện hệ thống
 
 ### Phase 7: Phân Hệ Chấm Thi Giáo Viên & Mở Rộng Trợ Lý OCR (Roadmap / Backlog)
-- [ ] **GM-01:** ORM Model `Classroom` & `StudentRoster` (Quản lý danh sách lớp của giáo viên)
+- [x] **GM-01:** ORM Model `Classroom` & `StudentRoster` (Quản lý danh sách lớp của giáo viên)
 - [ ] **GM-02:** Bảng nhập điểm nhanh dạng lưới câu hỏi x học sinh trên Web Studio
-- [ ] **GM-03:** Nhập / Xuất bảng điểm lớp học từ file Excel (.xlsx / .csv)
+- [x] **GM-03:** Nhập / Xuất bảng điểm lớp học từ file Excel (.xlsx / .csv)
 - [ ] **GM-04:** Module OMR: Thuật toán OpenCV căn chỉnh 4 mốc định vị góc phiếu thi 2025
 - [ ] **GM-05:** Module OMR: Nhận diện điểm tô chì 2B cho Phần I (A,B,C,D), Phần II (Đ/S), Phần III (Tô số)
 - [ ] **GM-06:** API `POST /api/v1/grading/scan-omr` nhận ảnh phiếu thi và chấm tự động theo mã đề
 - [ ] **GM-07:** Giao diện chấm thi trực tiếp bằng Camera / Webcam máy tính của giáo viên
 - [ ] **GM-08:** Biểu đồ thống kê phân phổ điểm lớp học (Histogram, Điểm TB, Độ lệch chuẩn)
-- [ ] **AI-08:** Adapter kết nối Cloud Vision API (Gemini 1.5 / Claude) cho đề viết tay / ảnh mờ
+- [x] **AI-08:** Adapter kết nối Cloud Vision API (Gemini 1.5 / Claude) cho đề viết tay / ảnh mờ
 - [ ] **AI-09:** Adapter DocTR cục bộ hỗ trợ OCR offline không cần mạng internet
-- [ ] **PK-01:** Hỗ trợ chế độ Web Ngoại tuyến (Offline PWA / Service Worker) trên trình duyệt
-- [ ] **PK-02:** Viết Multi-stage Dockerfile & docker-compose cho máy tính giáo viên
-- [ ] **PK-03:** Thiết lập pipeline GitHub Actions CI tự động chạy kiểm thử khi PR/Push
+- [x] **PK-01:** Hỗ trợ chế độ Web Ngoại tuyến (Offline PWA / Service Worker) trên trình duyệt
+- [x] **PK-02:** Viết Multi-stage Dockerfile & docker-compose cho máy tính giáo viên
+- [x] **PK-03:** Thiết lập pipeline GitHub Actions CI tự động chạy kiểm thử khi PR/Push

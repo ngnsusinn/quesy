@@ -448,3 +448,43 @@ class ExamVariantItem(Base):
     variant = relationship("ExamVariant", back_populates="items")
     question = relationship("Question", back_populates="exam_variant_items")
 
+
+# ==============================================================================
+# CLASSROOM & STUDENT ROSTER (FOR TEACHER GRADING & SCORE ENTRY)
+# ==============================================================================
+
+class Classroom(Base):
+    """Lớp học của giáo viên (ví dụ: 12A1, 12A2, Chuyên Toán...)"""
+    __tablename__ = "classrooms"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    name = Column(String(100), nullable=False)
+    academic_year = Column(String(20), default="2025-2026")
+    grade_id = Column(String(36), ForeignKey("grades.id"), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    grade = relationship("Grade")
+    students = relationship("Student", back_populates="classroom", cascade="all, delete-orphan", order_by="Student.student_code")
+
+
+class Student(Base):
+    """Học sinh trong danh sách lớp của giáo viên phục vụ vào điểm / chấm OMR"""
+    __tablename__ = "students"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    classroom_id = Column(String(36), ForeignKey("classrooms.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_code = Column(String(20), nullable=False, index=True)  # Số báo danh / Mã học sinh (e.g. SBD 012001)
+    full_name = Column(String(150), nullable=False)
+    date_of_birth = Column(String(20), nullable=True)
+    gender = Column(String(10), nullable=True)  # Nam, Nữ
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    classroom = relationship("Classroom", back_populates="students")
+
+
+# Alias for backward compatibility
+StudentRoster = Student
+
+

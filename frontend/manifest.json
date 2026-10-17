@@ -1,0 +1,16 @@
+{
+  "name": "Quesy 2026 - Trợ Lý Khảo Thí & Ngân Hàng Đề Thi",
+  "short_name": "Quesy",
+  "description": "Hệ thống Trợ lý Khảo thí & Ngân hàng Đề thi chuẩn Thông tư 32/2018 và Quyết định 764/QĐ-BGDĐT",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0071e3",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+services:
+  quesy:
+    build: .
+    container_name: quesy-studio
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - quesy-data:/app/backend/storage
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - AI_PROVIDER=gemini
+      - AI_MODEL=gemini-3.8-flash-high
+
+volumes:
+  quesy-data:
