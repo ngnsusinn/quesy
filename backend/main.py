@@ -154,7 +154,11 @@ def get_manifest():
 def get_service_worker():
     p = BASE_DIR / "frontend" / "sw.js"
     if p.exists():
-        return FileResponse(p, media_type="application/javascript")
+        return FileResponse(
+            p,
+            media_type="application/javascript",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        )
     return Response(status_code=404)
 
 
@@ -167,7 +171,10 @@ def get_service_worker():
 def root():
     index_file = BASE_DIR / "frontend" / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        return FileResponse(
+            index_file,
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        )
     return {
         "name": "QUESY Exam Management & AI Digitization API",
         "version": "2.0.0",

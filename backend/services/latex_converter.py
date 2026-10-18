@@ -130,13 +130,48 @@ def sanitize_latex(text: str) -> str:
 
     s = text
 
+    # 0. Clean off any redundant \begin{center} and \end{center} tags
+    s = re.sub(r'\\+(?:begin|end)\{center\}', '', s)
+
+    # 0. Extract and protect any \begin{tikzpicture} ... \end{tikzpicture} blocks
+    # TikZ code contains drawing commands and coordinates that must NOT be altered by math rules
+    tikz_blocks = []
+    def _protect_tikz(m):
+        raw_tikz = m.group(0).strip()
+        # Clean off any outer $$ if accidentally wrapped around tikzpicture
+        raw_tikz = re.sub(r'^\$\$?', '', raw_tikz).strip()
+        raw_tikz = re.sub(r'\$\$?$', '', raw_tikz).strip()
+        raw_tikz = re.sub(r'\\+(?:begin|end)\{center\}', '', raw_tikz).strip()
+        tikz_blocks.append(raw_tikz)
+        return f"__LATEX_TIKZ_BLOCK_{len(tikz_blocks) - 1}__"
+
+    s = re.sub(r'\\?\$*\s*\\+begin\{tikzpicture\}[\s\S]*?\\+end\{tikzpicture\}\s*\\?\$*', _protect_tikz, s)
+
     # 1. Normalize block delimiters \[ ... \] to $$ ... $$
     s = re.sub(r'\\\[(.*?)\\\]', r'$$\1$$', s, flags=re.DOTALL)
 
     # 2. Normalize inline delimiters \( ... \) to $ ... $
     s = re.sub(r'\\\((.*?)\\\)', r'$\1$', s, flags=re.DOTALL)
 
-    # 3. Handle unicode superscripts and subscripts outside or inside math
+    # 3. Convert tabular to array and auto-wrap / auto-close array environments with $$
+    s = re.sub(r'\\begin\{tabular\}\s*(\{[^{}]*\})', r'$$\\begin{array}\1', s)
+    s = re.sub(r'\\end\{tabular\}', r'\\end{array}$$', s)
+
+    # Auto-close \begin{array}...\end{array} if opened with $$ but missing closing $$
+    s = re.sub(
+        r'(\$\$\s*\\begin\{(?:array|matrix|pmatrix|bmatrix|vmatrix|cases)\}[\s\S]*?\\end\{(?:array|matrix|pmatrix|bmatrix|vmatrix|cases)\})(?!\s*\$\$)',
+        lambda m: m.group(1) + '$$',
+        s
+    )
+
+    # Auto-wrap \begin{array}...\end{array} if not wrapped in $$ at all
+    s = re.sub(
+        r'(?<!\$)\\begin\{(array|matrix|pmatrix|bmatrix|vmatrix|cases)\}([\s\S]*?)\\end\{\1\}(?!\$)',
+        lambda m: f"$${m.group(0)}$$",
+        s
+    )
+
+    # 4. Handle unicode superscripts and subscripts outside or inside math
     for uni, repl in SUPERSCRIPT_MAP.items():
         if uni in s:
             # If after a letter/digit, replace with ^{repl}
@@ -168,8 +203,68 @@ def sanitize_latex(text: str) -> str:
         res = re.sub(r'√\s*([A-Za-z0-9]+)', r'\\sqrt{\1}', res)
         res = res.replace("√", r"\sqrt")
 
-        # Normalize fractions \frac {a} {b} -> \frac{a}{b}
-        res = re.sub(r'\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}', r'\\frac{\1}{\2}', res)
+        # Normalize fractions \frac {a} {b} -> \dfrac{a}{b} (Rule: always \dfrac instead of \frac)
+        res = re.sub(r'\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}', r'\\dfrac{\1}{\2}', res)
+        res = re.sub(r'(?<![a-zA-Z])\\frac(?![a-zA-Z])', lambda m: r'\dfrac', res)
+
+        # Standardize vectors: always \overrightarrow instead of \vec
+        res = re.sub(r'\\vec\s*\{([^{}]+)\}', lambda m: rf'\overrightarrow{{{m.group(1)}}}', res)
+        res = re.sub(r'\\vec\s*([a-zA-Z0-9])', lambda m: rf'\overrightarrow{{{m.group(1)}}}', res)
+        res = re.sub(r'(?<![a-zA-Z])\\vec(?![a-zA-Z])', lambda m: r'\overrightarrow', res)
+
+        # Standardize decimal numbers: write decimal commas as {,} (e.g. 15,25 -> 15{,}25)
+        res = re.sub(r'(?<=\d)[\.,](?=\d)', '{,}', res)
+
+        # Protect \text{...} from math bracket conversion (\left is illegal in text mode!)
+        text_blocks = []
+        def _protect_text_mode(m):
+            inner = m.group(1)
+            # Remove any \left / \right if accidentally present inside \text{}
+            inner = re.sub(r'\\(?:left|right)\s*([()\[\]{}|.]?)', r'\1', inner)
+            inner = re.sub(r'\\(?:left|right)\b', '', inner)
+            text_blocks.append(inner)
+            return f"__LATEX_TEXT_BLOCK_{len(text_blocks) - 1}__"
+
+        res = re.sub(r'\\text\{([^{}]*)\}', _protect_text_mode, res)
+
+        # Normalize excessive backslashes before curly braces (\+{ -> \{ and \+} -> \})
+        res = re.sub(r'\\+([{}])', r'\\\1', res)
+
+        # Standardize brackets: always \left and \right for (, ), [, ], \{, \}
+        res = re.sub(r'\\sqrt\[([^\[\]]+)\]', r'__SQRT_ROOT_OPT_\1__', res)
+        res = re.sub(r'\\left\s*\(', '__LEFT_PAREN__', res)
+        res = re.sub(r'\\right\s*\)', '__RIGHT_PAREN__', res)
+        res = re.sub(r'\\left\s*\[', '__LEFT_BRACKET__', res)
+        res = re.sub(r'\\right\s*\]', '__RIGHT_BRACKET__', res)
+        res = re.sub(r'\\left\s*\\\{', '__LEFT_BRACE__', res)
+        res = re.sub(r'\\right\s*\\\}', '__RIGHT_BRACE__', res)
+        res = re.sub(r'\\left\.', '__LEFT_DOT__', res)
+        res = re.sub(r'\\right\.', '__RIGHT_DOT__', res)
+
+        res = re.sub(r'\\\{', r'\\left\\{', res)
+        res = re.sub(r'\\\}', r'\\right\\}', res)
+        res = res.replace('(', r'\left(').replace(')', r'\right)')
+        res = res.replace('[', r'\left[').replace(']', r'\right]')
+
+        res = res.replace('__LEFT_PAREN__', r'\left(')
+        res = res.replace('__RIGHT_PAREN__', r'\right)')
+        res = res.replace('__LEFT_BRACKET__', r'\left[')
+        res = res.replace('__RIGHT_BRACKET__', r'\right]')
+        res = res.replace('__LEFT_BRACE__', r'\left\{')
+        res = res.replace('__RIGHT_BRACE__', r'\right\}')
+        res = res.replace('__LEFT_DOT__', r'\left.')
+        res = res.replace('__RIGHT_DOT__', r'\right.')
+        res = re.sub(r'__SQRT_ROOT_OPT_(.*?)__', r'\\sqrt[\1]', res)
+
+        # Clean any accidental double \left or \right
+        res = re.sub(r'(?:\\left\s*)+(\\left)', r'\1', res)
+        res = re.sub(r'(?:\\right\s*)+(\\right)', r'\1', res)
+        # Ensure single backslash before set braces \{ and \}
+        res = re.sub(r'\\+([{}])', r'\\\1', res)
+
+        # Restore \text{...}
+        for idx, orig_text in enumerate(text_blocks):
+            res = res.replace(f"__LATEX_TEXT_BLOCK_{idx}__", f"\\text{{{orig_text}}}")
 
         # Fix double backslashes that were accidentally escaped (except linebreaks \\)
         res = re.sub(r'\\\\([a-zA-Z]+)', r'\\\1', res)
@@ -182,7 +277,9 @@ def sanitize_latex(text: str) -> str:
     def replace_display(match: re.Match) -> str:
         content = match.group(1)
         cleaned = sanitize_math_content(content)
-        return f"$${cleaned}$$"
+        # Flatten newlines inside display math to spaces so KaTeX text nodes remain unbroken across HTML breaks
+        flattened = re.sub(r'\r?\n', ' ', cleaned)
+        return f"$${flattened}$$"
 
     s = re.sub(r'\$\$(.*?)\$\$', replace_display, s, flags=re.DOTALL)
 
@@ -201,22 +298,26 @@ def sanitize_latex(text: str) -> str:
         if u_char in s:
             s = s.replace(u_char, f" ${tex}$ ")
 
-    # 6. Merge adjacent $...$ $...$
+    # 6. Merge adjacent inline $...$ $...$ (strictly without touching $$ display math)
     while True:
-        new_s = re.sub(r'\$([^$]+)\$\s*\$([^$]+)\$', r'$\1 \2$', s)
+        new_s = re.sub(r'(?<!\$)\$([^$]+)\$(?!\$)\s*(?<!\$)\$([^$]+)\$(?!\$)', r'$\1 \2$', s)
         if new_s == s:
             break
         s = new_s
 
-    # 7. Clean up redundant spaces around math delimiters
-    # Ensure space before $ if preceded by letter/number
-    s = re.sub(r'([a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9])\$', r'\1 $', s)
-    # Ensure space after $ if followed by letter/number
-    s = re.sub(r'\$([a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9])', r'$ \1', s)
+    # 7. Clean up redundant spaces around inline math delimiters only
+    # Ensure space before inline $ if preceded by letter/number
+    s = re.sub(r'([a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9])(?<!\$)\$(?!\$)', r'\1 $', s)
+    # Ensure space after inline $ if followed by letter/number
+    s = re.sub(r'(?<!\$)\$(?!\$)([a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9])', r'$ \1', s)
 
     # Re-normalize $$
-    s = s.replace('$ $', '$$').replace('$$ ', '$$').replace(' $$', '$$')
+    s = s.replace('$ $', '$$')
     s = re.sub(r'[ \t]{2,}', ' ', s)
+
+    # Restore protected TikZ blocks
+    for idx, raw_tikz in enumerate(tikz_blocks):
+        s = s.replace(f"__LATEX_TIKZ_BLOCK_{idx}__", raw_tikz)
 
     return s.strip()
 

@@ -431,14 +431,11 @@
                   <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                   <span>Chọn tệp</span>
                 </button>
-                <div class="flex items-center space-x-1 bg-black/[0.04] rounded-lg p-0.5 border border-black/[0.04]">
-                  <button onclick="app.changeViewerPage(-1)" class="p-1 hover:bg-white rounded text-slate-600"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
-                  <span id="doc-page-display" class="px-2 text-[11px] font-semibold text-slate-700">Trang 0 / 0</span>
-                  <button onclick="app.changeViewerPage(1)" class="p-1 hover:bg-white rounded text-slate-600"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
+                <div id="doc-viewer-pagination" class="flex items-center space-x-1 bg-black/[0.04] rounded-lg p-0.5 border border-black/[0.04] hidden">
+                  <button id="doc-page-prev-btn" onclick="app.changeViewerPage(-1)" class="p-1 hover:bg-white rounded text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
+                  <span id="doc-page-display" class="px-2 text-[11px] font-semibold text-slate-700">Trang 1 / 1</span>
+                  <button id="doc-page-next-btn" onclick="app.changeViewerPage(1)" class="p-1 hover:bg-white rounded text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
                 </div>
-                <span id="doc-active-target-badge" class="px-2 py-0.5 bg-black/[0.04] text-slate-600 font-bold text-[11px] rounded-md border border-black/[0.06]">
-                  Chưa chọn câu
-                </span>
               </div>
             </div>
 
@@ -1034,14 +1031,14 @@
         <div>
           <label class="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Ký hiệu nhanh</label>
           <div class="flex flex-wrap gap-1.5 text-xs font-mono">
-            <button type="button" onclick="app.insertLatexSymbol('\\frac{a}{b}')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\frac{a}{b}$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\dfrac{a}{b}')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\dfrac{a}{b}$</button>
             <button type="button" onclick="app.insertLatexSymbol('\\sqrt{x}')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\sqrt{x}$</button>
             <button type="button" onclick="app.insertLatexSymbol('x^2')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$x^2$</button>
             <button type="button" onclick="app.insertLatexSymbol('\\int_{a}^{b}')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\int_a^b$</button>
             <button type="button" onclick="app.insertLatexSymbol('\\lim_{x \\to 0}')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\lim$</button>
             <button type="button" onclick="app.insertLatexSymbol('\\mathbb{R}')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\mathbb{R}$</button>
             <button type="button" onclick="app.insertLatexSymbol('\\in')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\in$</button>
-            <button type="button" onclick="app.insertLatexSymbol('\\overrightarrow{u}')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\vec{u}$</button>
+            <button type="button" onclick="app.insertLatexSymbol('\\overrightarrow{u}')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\overrightarrow{u}$</button>
             <button type="button" onclick="app.insertLatexSymbol('\\pm')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\pm$</button>
             <button type="button" onclick="app.insertLatexSymbol('\\le')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\le$</button>
             <button type="button" onclick="app.insertLatexSymbol('\\ge')" class="px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08] rounded-lg border border-black/[0.06]">$\ge$</button>
@@ -1201,14 +1198,18 @@
           <div class="flex items-center justify-between">
             <label class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">Nội dung câu hỏi (Stem)</label>
             <!-- Quick Math Insert Toolbar -->
-            <div class="flex items-center space-x-1 font-mono text-[11px]">
+            <div class="flex items-center space-x-1 font-mono text-[11px] flex-wrap gap-y-1">
               <span class="text-slate-400 mr-1 font-sans text-[10px]">Chèn nhanh:</span>
-              <button type="button" onclick="app.insertStemSymbol('\\frac{a}{b}')" class="px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08] rounded border border-black/[0.06]">$\frac{a}{b}$</button>
+              <button type="button" onclick="app.insertStemSymbol('\\dfrac{a}{b}')" class="px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08] rounded border border-black/[0.06]">$\dfrac{a}{b}$</button>
               <button type="button" onclick="app.insertStemSymbol('\\sqrt{x}')" class="px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08] rounded border border-black/[0.06]">$\sqrt{x}$</button>
-              <button type="button" onclick="app.insertStemSymbol('\\vec{u}')" class="px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08] rounded border border-black/[0.06]">$\vec{u}$</button>
+              <button type="button" onclick="app.insertStemSymbol('\\overrightarrow{u}')" class="px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08] rounded border border-black/[0.06]">$\overrightarrow{u}$</button>
               <button type="button" onclick="app.insertStemSymbol('\\in \\mathbb{R}')" class="px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08] rounded border border-black/[0.06]">$\in \mathbb{R}$</button>
               <button type="button" onclick="app.insertStemSymbol('\\ge')" class="px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08] rounded border border-black/[0.06]">$\ge$</button>
               <button type="button" onclick="app.insertStemSymbol('\\le')" class="px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08] rounded border border-black/[0.06]">$\le$</button>
+              <button type="button" onclick="app.insertStemTikzDiagram('rational')" class="px-1.5 py-0.5 bg-brand-50 hover:bg-brand-100 rounded border border-brand-200 text-brand-700 font-sans font-medium text-[10px]" title="Chèn đồ thị tiệm cận TikZ">+ Đồ thị Tiệm cận</button>
+              <button type="button" onclick="app.insertStemTikzDiagram('cubic')" class="px-1.5 py-0.5 bg-brand-50 hover:bg-brand-100 rounded border border-brand-200 text-brand-700 font-sans font-medium text-[10px]" title="Chèn đồ thị hàm bậc 3 TikZ">+ Đồ thị Bậc 3</button>
+              <button type="button" onclick="app.insertStemTikzDiagram('variation_table')" class="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded border border-slate-200 text-slate-700 font-sans font-medium text-[10px]" title="Chèn bảng biến thiên">+ Bảng Biến thiên</button>
+              <button type="button" onclick="app.insertStemTikzDiagram('table')" class="px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded border border-slate-200 text-slate-700 font-sans font-medium text-[10px]" title="Chèn bảng dữ liệu">+ Bảng Số liệu</button>
             </div>
           </div>
           <textarea id="q-edit-stem" oninput="app.updateQuestionEditorLivePreview()" rows="3" class="w-full text-xs font-mono rounded-xl border border-black/[0.12] p-3 bg-white focus:ring-2 focus:ring-brand-500"></textarea>
@@ -1254,6 +1255,6 @@
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
   <!-- Application Logic JS -->
-  <script src="static/app.js?v=2.0.6"></script>
+  <script src="static/app.js?v=2.0.11"></script>
 </body>
 </html>

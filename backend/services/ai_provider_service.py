@@ -17,10 +17,11 @@ import httpx
 
 from backend.config import settings
 from backend.services.latex_converter import sanitize_latex, repair_math_delimiters
+from backend.services.tagging_service import auto_tag_question
 
 logger = logging.getLogger("quesy.ai_provider")
 
-SYSTEM_PROMPT = """Bạn là Chuyên gia Khảo thí và Số hóa Đề thi hàng đầu Việt Nam theo chuẩn Chương trình GDPT 2018 (Thông tư 32/2018/TT-BGDĐT) và Cấu trúc đề thi mới của Bộ GD&ĐT (Quyết định 764/QĐ-BGDĐT định dạng 2025).
+SYSTEM_PROMPT = r"""Bạn là Chuyên gia Khảo thí và Số hóa Đề thi hàng đầu Việt Nam theo chuẩn Chương trình GDPT 2018 (Thông tư 32/2018/TT-BGDĐT) và Cấu trúc đề thi mới của Bộ GD&ĐT (Quyết định 764/QĐ-BGDĐT định dạng 2025).
 
 Nhiệm vụ của bạn là đọc toàn bộ nội dung đề thi (văn bản hoặc hình ảnh) được cung cấp, nhận diện và trích xuất cấu trúc đề thi một cách trung thực, đầy đủ và trả về định dạng JSON thuần túy.
 
@@ -39,9 +40,35 @@ QUY TẮC CẤU TRÚC 3 PHẦN THI THEO QUYẾT ĐỊNH 764/QĐ-BGDĐT:
    - short_answer_value: chuỗi hoặc số đáp án đúng (ví dụ: "12", "-3.5").
    - tolerance: dung sai (mặc định 0.0 hoặc 0.01).
 
-QUY TẮC CÔNG THỨC TOÁN HỌC & KÝ HIỆU:
-- Toàn bộ công thức toán, biến số, phân số, căn thức, vectơ, ma trận, tập hợp, bất phương trình PHẢI được định dạng chuẩn LaTeX/KaTeX đặt trong cặp dấu $...$ (ví dụ: $y = x^3 - 3x + 1$, $\\vec{u} = (1; 2; -3)$, $\\frac{a}{b}$, $\\mathbb{R}$, $\\ge$, $\\in$).
+QUY TẮC CÔNG THỨC TOÁN HỌC & KÝ HIỆU (CHUẨN BẮT BUỘC):
+1. Dấu ngoặc mở/đóng: BẮT BUỘC dùng \left và \right cho tất cả các loại dấu ngoặc:
+   - Ngoặc tròn: \left( ... \right) (ví dụ: \left(x - 1\right), f\left(x\right), \left(1; 2\right))
+   - Ngoặc vuông: \left[ ... \right] (ví dụ: \left[0; 3\right], \left[-2; 5\right))
+   - Ngoặc nhọn: \left\{ ... \right\} (ví dụ: \left\{1; 2\right\}; TUYỆT ĐỐI không viết double backslash \\{ hay \left\\{)
+2. Số thập phân:
+   - Trong phần NỘI DUNG ĐỀ BÀI (stem): BẮT BUỘC viết dưới dạng dấu phẩy đặt trong ngoặc nhọn {,} để không bị lỗi khoảng trắng trong KaTeX (ví dụ: 15{,}25, 0{,}5, -3{,}14; TUYỆT ĐỐI KHÔNG viết 15.25 hay 15,25).
+   - Trong phần ĐÁP ÁN (options A, B, C, D và short_answer_value): TUYỆT ĐỐI KHÔNG dùng dấu ngoặc nhọn {} cho số thập phân! Viết số thập phân thông thường dạng "15,25" hoặc "3,9" (không viết 15{,}25 hay 3{,}9).
+3. Phân số: BẮT BUỘC dùng \dfrac thay vì \frac (ví dụ: \dfrac{a}{b}, \dfrac{1}{2}, \dfrac{-b}{2a}).
+4. Dấu vectơ: BẮT BUỘC dùng \overrightarrow thay vì \vec (ví dụ: \overrightarrow{u}, \overrightarrow{AB}, \overrightarrow{a}, \overrightarrow{0}).
+- Toàn bộ công thức toán, biến số, phân số, căn thức, vectơ, ma trận, tập hợp, bất phương trình PHẢI được định dạng chuẩn LaTeX/KaTeX đặt trong cặp dấu $...$ (ví dụ: $y = x^3 - 3x + 1$, $\overrightarrow{u} = \left(1; 2; -3\right)$, $\dfrac{a}{b}$, $\mathbb{R}$, $\ge$, $\in$).
 - Tuyệt đối không để sót ký tự rác chữ Hán hay mã nhị phân lỗi.
+
+QUY TẮC NHẬN DIỆN VÀ TÁI TẠO ĐỒ THỊ, HÌNH VẼ, BẢNG BIẾN THIÊN BẰNG TIKZ / ARRAY (CHUẨN BẮT BUỘC):
+1. ĐỒ THỊ HÀM SỐ & HÌNH HỌC (BẮT BUỘC DÙNG MÃ TIKZ):
+   - Khi câu hỏi trong đề thi có chứa Đồ thị hàm số (hàm bậc ba, hàm phân thức, hàm bậc bốn trùng phương, parabol, tương giao đồ thị, đạo hàm f'(x)), Hình học không gian (hình chóp, lăng trụ, nón, trụ, cầu) hoặc Hình học toạ độ Oxy/Oxyz:
+   - BẮT BUỘC PHẢI TÁI TẠO LẠI HÌNH VẼ ĐÓ DƯỚI DẠNG MÃ TIKZ \begin{tikzpicture} ... \end{tikzpicture} VÀ NHÚNG TRỰC TIẾP VÀO PHẦN stem (HOẶC VÀO TỪNG PHƯƠNG ÁN options NẾU LÀ CÂU HỎI NHẬN DẠNG ĐỒ THỊ A, B, C, D).
+   - QUY TẮC TOÁN HỌC CHÍNH XÁC KHI DỰNG ĐỒ THỊ:
+     + Hàm bậc ba: BẮT BUỘC phải đọc đúng toạ độ các điểm cực đại (x1, y1), cực tiểu (x2, y2), giao điểm Ox, Oy trên đề gốc. Đường cong màu xanh BẮT BUỘC phải đi qua ĐÚNG các điểm cực trị đó và vẽ ĐẦY ĐỦ CẢ 2 NHÁNH từ mép trái sang mép phải hệ trục (không được cắt cụt nhánh bên trái hay bên phải). Có thể dùng plot smooth coordinates qua các điểm toạ độ: \draw[thick, blue, smooth] plot coordinates {(-3, -4) (-2, 0) (-1, 5) (0, 1) (1, 0) (2, -5) (3, 0) (3.5, 4)};
+     + Hàm phân thức bậc nhất trên bậc nhất (y = (ax+b)/(cx+d)): BẮT BUỘC vẽ tiệm cận đứng x = -d/c và tiệm cận ngang y = a/c (nét đứt dashed), vẽ đủ 2 nhánh Hyperbol ở hai phía tiệm cận.
+     + BẮT BUỘC CĂN CHỈNH TỶ LỆ (BOUNDING BOX): Ngay sau \begin{tikzpicture}, BẮT BUỘC dùng lệnh \clip (xmin - 0.5, ymin - 0.5) rectangle (xmax + 0.5, ymax + 0.5); theo đúng phạm vi 2 trục tọa độ, để tránh đồ thị bị kéo giãn vô cực làm méo tỷ lệ khung hình.
+     + Trục toạ độ Oxy: \draw[->, thick] (-4, 0) -- (4.5, 0) node[right] {$x$}; \draw[->, thick] (0, -6) -- (0, 6.5) node[above] {$y$}; \node[below left] at (0, 0) {$O$};
+     + Các điểm toạ độ và đường nét đứt: \draw[dashed] (x, 0) -- (x, y) -- (0, y); \fill (x, y) circle (1.5pt);
+     + Câu hỏi nhận diện đồ thị ở 4 phương án A, B, C, D: Mỗi phương án A, B, C, D trả về khối TikZ thu nhỏ \begin{tikzpicture}[scale=0.25, font=\tiny, >=stealth] ... \end{tikzpicture}.
+     + TUYỆT ĐỐI KHÔNG bọc thẻ \begin{center} hay \end{center} quanh TikZ (hệ thống tự động căn giữa).
+   - TUYỆT ĐỐI KHÔNG BỎ QUA HÌNH VẼ, ĐỒ THỊ! Mọi câu hỏi có hình minh họa đều phải có khối mã TikZ tương ứng để hệ thống biên dịch hiển thị đồ thị vector SVG sắc nét.
+2. BẢNG BIẾN THIÊN & BẢNG SỐ LIỆU:
+   - Bảng số liệu hoặc bảng biến thiên PHẢI được bọc chuẩn trong display math KaTeX: $$\begin{array}{|c|c|...|} \hline ... \hline \end{array}$$
+   - TUYỆT ĐỐI KHÔNG để thiếu dấu đóng $$ và không viết lệnh \left bên trong thẻ text \text{...}.
 
 QUY TẮC PHÂN LOẠI CHUẨN THÔNG TƯ 32/2018/TT-BGDĐT (KHÔNG PHÂN CHIA BỘ SÁCH):
 - subject: Môn học (mặc định "Toán học")
@@ -391,17 +418,34 @@ class AIProviderService:
             raw_conf = q.get("confidence") or q.get("confidence_score") or 95.0
             conf = raw_conf if raw_conf > 1.0 else raw_conf * 100.0
 
+            # Run auto-tagging to refine YCCD, lesson, and problem archetype
+            raw_opts = [str(opt.get("content", "")) for opt in q.get("options", [])]
+            auto_tags = auto_tag_question(stem=stem, options=raw_opts, subject="Toán học", grade="12")
+            yccd = q.get("learning_outcome_code")
+            lesson = q.get("lesson")
+            topic = q.get("topic")
+            strand = q.get("strand")
+            archetype = q.get("problem_archetype")
+
+            # If learning_outcome_code is missing or default "TOAN12.GT.01", override with accurately detected tag
+            if (not yccd or yccd == "TOAN12.GT.01") and auto_tags.get("learning_outcome_code"):
+                yccd = auto_tags["learning_outcome_code"]
+                lesson = auto_tags.get("lesson") or lesson
+                topic = auto_tags.get("topic") or topic
+                strand = auto_tags.get("strand") or strand
+                archetype = auto_tags.get("problem_archetype") or archetype
+
             std_q: Dict[str, Any] = {
                 "id": qid,
                 "code": code,
                 "question_number": qid,
                 "item_format": fmt,
                 "cognitive_level": cog,
-                "strand": q.get("strand", "Số, Đại số & Giải tích"),
-                "topic": q.get("topic", "Khảo sát và vẽ đồ thị hàm số"),
-                "lesson": q.get("lesson", "Khảo sát hàm số"),
-                "learning_outcome_code": q.get("learning_outcome_code", "TOAN12.GT.01"),
-                "problem_archetype": q.get("problem_archetype", "Dạng toán cơ bản"),
+                "strand": strand or "Số, Đại số & Giải tích",
+                "topic": topic or "Khảo sát và vẽ đồ thị hàm số",
+                "lesson": lesson or "Khảo sát hàm số",
+                "learning_outcome_code": yccd or "TOAN12.GT.01",
+                "problem_archetype": archetype or "Dạng toán cơ bản",
                 "stem": stem,
                 "explanation": sanitize_latex(repair_math_delimiters(q.get("explanation", ""))),
                 "confidence": round(conf, 1),
@@ -413,6 +457,8 @@ class AIProviderService:
                 opts = []
                 for o_idx, opt in enumerate(q.get("options", [])):
                     c = sanitize_latex(repair_math_delimiters(str(opt.get("content", ""))))
+                    # Do not use {,} brackets for decimal numbers in answers
+                    c = c.replace("{,}", ",")
                     lbl = opt.get("label", chr(65 + o_idx))
                     opts.append({
                         "label": lbl,
@@ -436,7 +482,10 @@ class AIProviderService:
                 std_q["sub_statements"] = subs
 
             elif fmt == "SHORT_ANSWER":
-                std_q["short_answer_value"] = str(q.get("short_answer_value", ""))
+                raw_short = str(q.get("short_answer_value", "")).strip()
+                # Clean any LaTeX formatting or curly brackets from short answers: 3{,}9 -> 3,9
+                clean_short = raw_short.replace("{,}", ",").replace("{", "").replace("}", "").replace("$", "").strip()
+                std_q["short_answer_value"] = clean_short
                 std_q["tolerance"] = float(q.get("tolerance", 0.0))
 
             standardized.append(std_q)

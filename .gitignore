@@ -59,6 +59,7 @@ storage/assets/*
 storage/test_*.py
 storage/*.json
 storage/loop_test_report.json
+storage/tikz_cache/
 
 # IDE & Editor files
 .vscode/

@@ -623,6 +623,237 @@
     if (window.lucide && typeof lucide.createIcons === 'function') {
       lucide.createIcons();
     }
+    // Render any TikZ diagrams
+    renderTikzDiagrams(domElement);
+  }
+
+  function cleanShortAnswer(val) {
+    if (!val || typeof val !== 'string') return String(val || '');
+    return val.replace(/\{,\}/g, ',').replace(/[\${}]/g, '').trim();
+  }
+
+  function cleanOptionAnswer(text) {
+    if (!text || typeof text !== 'string') return text || '';
+    return text.replace(/\{,\}/g, ',');
+  }
+
+  function formatStemForDisplay(text, isOption = false) {
+    if (!text || typeof text !== 'string') return '';
+    let s = text;
+
+    // Remove any redundant center environment tags wrapping the diagram or in text
+    s = s.replace(/\\+(?:begin|end)\{center\}/g, '');
+
+    // 1. Extract and protect all TikZ blocks BEFORE any LaTeX formatting!
+    // Matches \begin{tikzpicture}...\end{tikzpicture} with any leading/trailing slashes or math delimiters
+    const tikzBlocks = [];
+    s = s.replace(/(\\?\$*\s*(?:\\+begin\{center\}\s*)?\\+begin\{tikzpicture\}[\s\S]*?\\+end\{tikzpicture\}(?:\s*\\+end\{center\})?\s*\\?\$*)/g, (match) => {
+      let cleanTikz = match.trim();
+      // Remove any erroneous outer $$ or $ delimiters
+      while (cleanTikz.startsWith('$')) cleanTikz = cleanTikz.slice(1).trim();
+      while (cleanTikz.endsWith('$')) cleanTikz = cleanTikz.slice(0, -1).trim();
+      // Remove center tags inside tikz block
+      cleanTikz = cleanTikz.replace(/\\+(?:begin|end)\{center\}/g, '').trim();
+      // Normalize any excessive backslashes (e.g. \\begin -> \begin)
+      cleanTikz = cleanTikz.replace(/\\\\([a-zA-Z]+)/g, '\\$1');
+      if (!cleanTikz.startsWith('\\')) cleanTikz = '\\' + cleanTikz;
+      const encoded = encodeURIComponent(cleanTikz);
+      tikzBlocks.push(encoded);
+      return `__TIKZ_BLOCK_PLACEHOLDER_${tikzBlocks.length - 1}__`;
+    });
+
+    // 2. Format LaTeX rules for math, brackets, fractions, decimals, and tables
+    s = formatLatexRules(s);
+
+    // 3. Support markdown images ![alt](url)
+    s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<div class="my-3 flex justify-center"><img src="$2" alt="$1" class="max-h-64 rounded-xl border border-slate-200/80 shadow-xs object-contain" /></div>');
+
+    // 4. Support [IMAGE: url] placeholders
+    s = s.replace(/\[IMAGE:\s*([^\]]+)\]/g, '<div class="my-3 flex justify-center"><img src="$1" alt="Hình minh họa" class="max-h-64 rounded-xl border border-slate-200/80 shadow-xs object-contain" /></div>');
+
+    // 5. Restore TikZ blocks into interactive SVG diagram wrappers
+    for (let idx = 0; idx < tikzBlocks.length; idx++) {
+      const placeholder = `__TIKZ_BLOCK_PLACEHOLDER_${idx}__`;
+      const wrapperHtml = isOption
+        ? `<div class="tikz-diagram-wrapper tikz-option-wrapper my-1 p-1.5 bg-white rounded-lg border border-slate-200 shadow-2xs flex flex-col items-center w-full" data-tikz="${tikzBlocks[idx]}">
+            <div class="tikz-status text-[10px] text-slate-500 flex items-center space-x-1.5 py-1.5">
+              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-brand-600"></i>
+              <span>Đang tải hình...</span>
+            </div>
+          </div>`
+        : `<div class="tikz-diagram-wrapper my-3 p-3 bg-slate-50/90 rounded-xl border border-slate-200/80 shadow-xs flex flex-col items-center" data-tikz="${tikzBlocks[idx]}">
+            <div class="tikz-status text-xs text-slate-500 flex items-center space-x-2 py-3">
+              <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-brand-600"></i>
+              <span class="font-medium">Đang kết xuất đồ thị TikZ vector...</span>
+            </div>
+          </div>`;
+      s = s.replace(placeholder, wrapperHtml);
+    }
+
+    return s;
+  }
+
+  async function renderTikzDiagrams(container) {
+    if (!container) return;
+    const wrappers = container.querySelectorAll('.tikz-diagram-wrapper[data-tikz]');
+    for (const wrap of wrappers) {
+      if (wrap.getAttribute('data-rendered') === 'true') continue;
+      const rawTikz = decodeURIComponent(wrap.getAttribute('data-tikz') || '');
+      if (!rawTikz) continue;
+      try {
+        const res = await fetch(`${API_BASE_URL}/digitize/render-tikz`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tikz_code: rawTikz })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.svg) {
+            wrap.setAttribute('data-rendered', 'true');
+            if (wrap.classList.contains('tikz-option-wrapper')) {
+              let cleanSvg = data.svg.replace(/<svg(\s[^>]*)>/i, '<svg class="max-w-full h-auto max-h-48 object-contain mx-auto" $1>');
+              wrap.innerHTML = `
+                <div class="overflow-x-auto max-w-full w-full flex justify-center py-1">
+                  ${cleanSvg}
+                </div>
+              `;
+            } else {
+              // Clean and enhance SVG styling for responsive web display
+              let cleanSvg = data.svg.replace(/<svg(\s[^>]*)>/i, '<svg class="max-w-full h-auto max-h-80 object-contain shadow-2xs rounded-lg bg-white p-2" $1>');
+
+              wrap.innerHTML = `
+                <div class="w-full flex items-center justify-between text-[11px] font-bold text-slate-500 mb-2 border-b border-slate-200/60 pb-1">
+                  <span class="flex items-center space-x-1.5 text-brand-700">
+                    <i data-lucide="line-chart" class="w-3.5 h-3.5"></i>
+                    <span>Đồ thị / Hình vẽ (TikZ Vector)</span>
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-normal">Vector SVG</span>
+                </div>
+                <div class="overflow-x-auto max-w-full w-full flex justify-center py-2">
+                  <div class="inline-flex justify-center items-center bg-white rounded-xl border border-slate-200/90 shadow-2xs p-3 min-w-[280px] max-w-full">
+                    ${cleanSvg}
+                  </div>
+                </div>
+              `;
+            }
+            if (window.lucide) lucide.createIcons();
+            continue;
+          }
+        }
+      } catch (err) {
+        console.warn('TikZ render error:', err);
+      }
+      wrap.setAttribute('data-rendered', 'true');
+      wrap.innerHTML = `
+        <div class="text-xs text-slate-600 p-2 bg-white rounded-lg border border-slate-200 w-full">
+          <div class="font-bold text-[10px] text-slate-700 mb-1 flex items-center space-x-1">
+            <i data-lucide="code" class="w-3 h-3 text-slate-500"></i>
+            <span>Mã TikZ</span>
+          </div>
+          <pre class="font-mono text-[9px] bg-slate-50 p-1.5 rounded border border-slate-200 overflow-x-auto text-slate-700">${escapeHtml(rawTikz)}</pre>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  /**
+   * Standardizes math strings adhering to Vietnam High School assessment rules:
+   * 1. Brackets: \left and \right for (, ), [, ], \{, \}
+   * 2. Decimal numbers: 15{,}25 instead of 15,25 or 15.25
+   * 3. Fractions: \dfrac instead of \frac
+   * 4. Vectors: \overrightarrow instead of \vec
+   */
+  function formatLatexRules(text) {
+    if (!text || typeof text !== 'string') return text;
+    let res = text;
+
+    // 1. Auto-close \begin{array}...\end{array} if opened with $$ but missing closing $$
+    res = res.replace(/(\$\$\s*\\begin\{(?:array|matrix|pmatrix|bmatrix|vmatrix|cases)\}[\s\S]*?\\end\{(?:array|matrix|pmatrix|bmatrix|vmatrix|cases)\})(?!\s*\$\$)/g, (m, p1) => p1 + '$$');
+
+    // 2. Auto-wrap \begin{array}...\end{array} if not wrapped in $$ at all
+    res = res.replace(/(?<!\$\$)(?<!\$)\\begin\{(array|matrix|pmatrix|bmatrix|vmatrix|cases)\}([\s\S]*?)\\end\{\1\}(?!\$\$)(?!\$)/g, (m, env, inner) => `$$\\begin{${env}}${inner}\\end{${env}}$$`);
+
+    const processMath = (mathInner) => {
+      let m = mathInner;
+
+      // Protect \text{...} from math bracket conversion (\left is illegal in text mode!)
+      const textBlocks = [];
+      m = m.replace(/\\text\{([^{}]*)\}/g, (match, inner) => {
+        let clean = inner.replace(/\\(?:left|right)\s*([()\[\]{}|.]?)/g, '$1');
+        clean = clean.replace(/\\(?:left|right)\b/g, '');
+        textBlocks.push(clean);
+        return `__LATEX_TEXT_BLOCK_${textBlocks.length - 1}__`;
+      });
+
+      // Rule 3: \frac -> \dfrac
+      m = m.replace(/\\frac(?![a-zA-Z])/g, '\\dfrac');
+
+      // Rule 4: \vec -> \overrightarrow
+      m = m.replace(/\\vec\s*\{([^{}]+)\}/g, '\\overrightarrow{$1}');
+      m = m.replace(/\\vec\s*([a-zA-Z0-9])/g, '\\overrightarrow{$1}');
+      m = m.replace(/\\vec(?![a-zA-Z])/g, '\\overrightarrow');
+
+      // Rule 2: Decimal comma {,}
+      m = m.replace(/(\d+)[,\.](\d+)/g, '$1{,}$2');
+
+      // Normalize excessive backslashes before curly braces (\+{ -> \{ and \+} -> \})
+      m = m.replace(/\\+([{}])/g, '\\$1');
+
+      // Rule 1: Brackets \left and \right
+      m = m.replace(/\\sqrt\[([^\[\]]+)\]/g, '__SQRT_ROOT_OPT_$1__');
+      m = m.replace(/\\left\s*\(/g, '__LEFT_PAREN__');
+      m = m.replace(/\\right\s*\)/g, '__RIGHT_PAREN__');
+      m = m.replace(/\\left\s*\[/g, '__LEFT_BRACKET__');
+      m = m.replace(/\\right\s*\]/g, '__RIGHT_BRACKET__');
+      m = m.replace(/\\left\s*\\\{/g, '__LEFT_BRACE__');
+      m = m.replace(/\\right\s*\\\}/g, '__RIGHT_BRACE__');
+      m = m.replace(/\\left\./g, '__LEFT_DOT__');
+      m = m.replace(/\\right\./g, '__RIGHT_DOT__');
+
+      m = m.replace(/\\\{/g, '\\left\\{');
+      m = m.replace(/\\\}/g, '\\right\\}');
+      m = m.replace(/\(/g, '\\left(').replace(/\)/g, '\\right)');
+      m = m.replace(/\[/g, '\\left[').replace(/\]/g, '\\right]');
+
+      m = m.replace(/__LEFT_PAREN__/g, '\\left(');
+      m = m.replace(/__RIGHT_PAREN__/g, '\\right)');
+      m = m.replace(/__LEFT_BRACKET__/g, '\\left[');
+      m = m.replace(/__RIGHT_BRACKET__/g, '\\right]');
+      m = m.replace(/__LEFT_BRACE__/g, '\\left\\{');
+      m = m.replace(/__RIGHT_BRACE__/g, '\\right\\}');
+      m = m.replace(/__LEFT_DOT__/g, '\\left.');
+      m = m.replace(/__RIGHT_DOT__/g, '\\right.');
+      m = m.replace(/__SQRT_ROOT_OPT_(.*?)__/g, '\\sqrt[$1]');
+
+      // Clean any accidental double \left or \right
+      m = m.replace(/(?:\\left\s*)+(\\left)/g, '$1');
+      m = m.replace(/(?:\\right\s*)+(\\right)/g, '$1');
+      // Ensure single backslash before set braces \{ and \}
+      m = m.replace(/\\+([{}])/g, '\\$1');
+
+      // Restore \text{...}
+      for (let idx = 0; idx < textBlocks.length; idx++) {
+        m = m.replace(`__LATEX_TEXT_BLOCK_${idx}__`, `\\text{${textBlocks[idx]}}`);
+      }
+
+      return m;
+    };
+
+    if (res.includes('$')) {
+      res = res.replace(/(\$\$[\s\S]*?\$\$|\$[^\$]*?\$)/g, (match) => {
+        const isBlock = match.startsWith('$$');
+        const inner = isBlock ? match.slice(2, -2) : match.slice(1, -1);
+        const processed = processMath(inner);
+        // Flatten newlines inside display math to spaces so KaTeX text nodes remain unbroken across HTML breaks
+        const finalInner = isBlock ? processed.replace(/\r?\n/g, ' ') : processed;
+        return isBlock ? `$$${finalInner}$$` : `$${finalInner}$`;
+      });
+    } else {
+      res = processMath(res);
+    }
+
+    return res;
   }
 
   // ============================================================================
@@ -1007,9 +1238,9 @@
         scrollContainer.innerHTML = `
           <div class="w-full max-w-2xl space-y-4 py-2 flex flex-col items-center">
             ${images.map((imgUrl, i) => `
-              <div class="w-full bg-white rounded-xl p-3 shadow-md border border-slate-300">
+              <div id="doc-preview-page-${i + 1}" class="w-full bg-white rounded-xl p-3 shadow-md border border-slate-300">
                 <div class="text-[11px] font-bold text-slate-500 mb-2 flex items-center justify-between border-b border-slate-100 pb-1">
-                  <span>Trang ${i + 1} / ${images.length}</span>
+                  <span>${images.length > 1 ? `Trang ${i + 1} / ${images.length}` : 'Tài liệu đề thi gốc'}</span>
                   <a href="${imgUrl}" target="_blank" class="text-brand-600 hover:underline flex items-center space-x-1">
                     <i data-lucide="external-link" class="w-3 h-3"></i>
                     <span>Mở ảnh gốc</span>
@@ -1052,7 +1283,7 @@
         <div id="doc-source-q-${qId}" onclick="app.selectQuestionForHITL(${qId})" class="doc-source-item ${highlightClass}">
           <div class="flex items-baseline space-x-1.5 font-bold text-slate-900 mb-1">
             <span class="text-brand-700">Câu ${idx + 1}:</span>
-            <div class="font-normal text-slate-800">${q.stem}</div>
+            <div class="font-normal text-slate-800">${formatStemForDisplay(q.stem)}</div>
           </div>
       `;
 
@@ -1226,7 +1457,7 @@
           <!-- Question Stem & KaTeX -->
           <div class="py-3 text-xs text-slate-800 leading-relaxed">
             <div class="font-medium flex items-start justify-between gap-2">
-              <div class="flex-1">${q.stem}</div>
+              <div class="flex-1">${formatStemForDisplay(q.stem)}</div>
               <button onclick="event.stopPropagation(); app.openFormulaEditorModal('digitize', ${qId}, 'stem')" title="Chỉnh sửa công thức nhanh" class="p-1 text-slate-400 hover:text-brand-600 rounded">
                 <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
               </button>
@@ -1243,27 +1474,30 @@
 
           // Option Anchor Rule check
           const hasAnchor = opt.is_fixed || isAnchorPhrase(opt.content);
+          const hasTikz = opt.content && (opt.content.includes('tikzpicture') || opt.content.includes('tikz'));
 
           html += `
-            <div onclick="event.stopPropagation(); app.toggleSingleChoiceAnswer(${qId}, ${optIdx})" class="option-pill flex items-center justify-between p-2 rounded-xl border ${correctClass}">
-              <div class="flex items-center space-x-2">
-                <span class="option-letter-badge w-5 h-5 rounded-md flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
-                  ${opt.label}
-                </span>
-                <span>${opt.content}</span>
-              </div>
-              
-              <div class="flex items-center space-x-1">
-                ${
-                  hasAnchor
-                    ? `<span class="option-anchor-indicator" title="Option Anchor Rule: Khóa cố định tại vị trí D khi trộn đề">
-                        <i data-lucide="anchor" class="w-3 h-3"></i> Khóa D
-                       </span>`
-                    : ''
-                }
+            <div onclick="event.stopPropagation(); app.toggleSingleChoiceAnswer(${qId}, ${optIdx})" class="option-pill ${hasTikz ? 'flex flex-col items-stretch p-2.5' : 'flex items-center justify-between p-2'} rounded-xl border ${correctClass} cursor-pointer hover:border-brand-400 transition-all">
+              <div class="flex items-center justify-between w-full mb-1">
+                <div class="flex items-center space-x-1.5">
+                  <span class="option-letter-badge w-5 h-5 rounded-md flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
+                    ${opt.label}
+                  </span>
+                  ${
+                    hasAnchor
+                      ? `<span class="option-anchor-indicator" title="Option Anchor Rule: Khóa cố định tại vị trí D khi trộn đề">
+                          <i data-lucide="anchor" class="w-3 h-3"></i> Khóa D
+                         </span>`
+                      : ''
+                  }
+                </div>
                 <button onclick="event.stopPropagation(); app.openFormulaEditorModal('digitize', ${qId}, 'option', ${optIdx})" class="p-1 text-slate-400 hover:text-brand-600">
                   <i data-lucide="edit-2" class="w-3 h-3"></i>
                 </button>
+              </div>
+
+              <div class="w-full ${hasTikz ? 'flex justify-center' : 'text-xs text-slate-800 leading-relaxed'}">
+                ${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}
               </div>
             </div>
           `;
@@ -1302,7 +1536,7 @@
           <div class="mb-3 p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-xs flex items-center justify-between">
             <div class="flex items-center space-x-2">
               <span class="font-bold text-purple-900">Chuỗi kết quả đúng:</span>
-              <input type="text" value="${q.short_answer_value || ''}" onchange="app.updateShortAnswerValue(${qId}, this.value)" class="font-mono font-bold text-xs px-2 py-1 bg-white border border-purple-300 rounded-lg w-28">
+              <input type="text" value="${escapeHtml(cleanShortAnswer(q.short_answer_value))}" onchange="app.updateShortAnswerValue(${qId}, this.value)" class="font-mono font-bold text-xs px-2 py-1 bg-white border border-purple-300 rounded-lg w-28">
             </div>
             <div class="text-[11px] text-purple-700">Dung sai sai số $\\pm ${q.tolerance || '0.0'}$</div>
           </div>
@@ -1400,13 +1634,6 @@
     if (rightCard) {
       rightCard.classList.add('active-card');
     }
-
-    // Update active label
-    const activeBadge = document.getElementById('doc-active-target-badge');
-    if (activeBadge) {
-      const idx = state.digitizeJob.questions.findIndex((q) => q.id === qId);
-      activeBadge.innerText = `Đối chiếu: Câu ${idx >= 0 ? idx + 1 : qId}`;
-    }
   }
 
   function toggleSingleChoiceAnswer(qId, optIdx) {
@@ -1437,8 +1664,8 @@
   function updateShortAnswerValue(qId, val) {
     const q = state.digitizeJob.questions.find((x) => x.id === qId);
     if (!q) return;
-    q.short_answer_value = val.trim();
-    showToast(`Đã lưu kết quả trả lời ngắn: ${val}`, 'success');
+    q.short_answer_value = cleanShortAnswer(val);
+    showToast(`Đã lưu kết quả trả lời ngắn: ${q.short_answer_value}`, 'success');
   }
 
   function updateQuestionYCCD(qId, yccdCode) {
@@ -1510,7 +1737,7 @@
     const statusIndicator = document.getElementById('studio-status-indicator');
     const filenameEl = document.getElementById('doc-viewer-filename');
     const pageDisplay = document.getElementById('doc-page-display');
-    const activeBadge = document.getElementById('doc-active-target-badge');
+    const paginationBox = document.getElementById('doc-viewer-pagination');
     const commitBtn = document.getElementById('btn-commit-to-bank');
     const startDigitizeBtn = document.getElementById('btn-start-digitize');
     const resetStageBtn = document.getElementById('btn-reset-stage');
@@ -1529,10 +1756,13 @@
         filenameEl.innerText = truncateFilename(rawName, 32);
         filenameEl.title = rawName;
       }
-      if (pageDisplay) pageDisplay.innerText = `Trang ${(state.stagedExam.activePreviewIndex || 0) + 1} / ${count}`;
-      if (activeBadge) {
-        activeBadge.innerText = 'Chờ xác nhận gõ đề';
-        activeBadge.className = 'px-2 py-0.5 bg-amber-50 text-amber-700 font-bold text-[11px] rounded-md border border-amber-200';
+      if (paginationBox) {
+        if (count > 1) {
+          paginationBox.classList.remove('hidden');
+          if (pageDisplay) pageDisplay.innerText = `Trang ${(state.stagedExam.activePreviewIndex || 0) + 1} / ${count}`;
+        } else {
+          paginationBox.classList.add('hidden');
+        }
       }
       if (commitBtn) commitBtn.classList.add('opacity-50', 'cursor-not-allowed');
       return;
@@ -1555,6 +1785,7 @@
 
     if (questions.length === 0) {
       if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
+      if (paginationBox) paginationBox.classList.add('hidden');
       if (avgEl) avgEl.innerText = 'Độ tin cậy TB: --';
       if (statusLabel) statusLabel.innerText = 'AI Parsing: Sẵn sàng (Chưa tải tệp)';
       if (statusIndicator) {
@@ -1567,10 +1798,6 @@
         filenameEl.title = rawName;
       }
       if (pageDisplay) pageDisplay.innerText = 'Trang 0 / 0';
-      if (activeBadge) {
-        activeBadge.innerText = 'Chưa chọn câu';
-        activeBadge.className = 'px-2 py-0.5 bg-slate-100 text-slate-600 font-bold text-[11px] rounded-md border border-slate-200';
-      }
       if (commitBtn) {
         commitBtn.classList.add('opacity-50', 'cursor-not-allowed');
       }
@@ -1591,11 +1818,15 @@
         filenameEl.innerText = truncateFilename(rawName, 32);
         filenameEl.title = rawName;
       }
-      if (pageDisplay) pageDisplay.innerText = `Trang ${state.digitizeJob.currentPage || 1} / ${state.digitizeJob.totalPages || 1}`;
-      const activeIdx = questions.findIndex((q) => q.id === state.digitizeJob.activeQuestionId);
-      if (activeBadge) {
-        activeBadge.innerText = `Đối chiếu: Câu ${activeIdx >= 0 ? activeIdx + 1 : (questions[0]?.id || 1)}`;
-        activeBadge.className = 'px-2 py-0.5 bg-brand-50 text-brand-700 font-bold text-[11px] rounded-md border border-brand-200';
+      const totalPages = state.digitizeJob.totalPages || 1;
+      const curPage = state.digitizeJob.currentPage || 1;
+      if (paginationBox) {
+        if (totalPages > 1) {
+          paginationBox.classList.remove('hidden');
+          if (pageDisplay) pageDisplay.innerText = `Trang ${curPage} / ${totalPages}`;
+        } else {
+          paginationBox.classList.add('hidden');
+        }
       }
       if (commitBtn) {
         commitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -1723,6 +1954,8 @@
     state.digitizeJob.fileType = isMulti ? 'images' : files[0].name.split('.').pop().toLowerCase();
     state.digitizeJob.status = 'STAGED';
     state.digitizeJob.questions = [];
+    state.digitizeJob.totalPages = files.length;
+    state.digitizeJob.currentPage = 1;
 
     const dispEl = document.getElementById('doc-viewer-filename');
     if (dispEl) {
@@ -1773,6 +2006,10 @@
 
   function selectStagedPreviewPage(index) {
     state.stagedExam.activePreviewIndex = index;
+    state.digitizeJob.currentPage = index + 1;
+    const disp = document.getElementById('doc-page-display');
+    const total = (state.stagedExam.files && state.stagedExam.files.length) || state.digitizeJob.totalPages || 1;
+    if (disp) disp.innerText = `Trang ${index + 1} / ${total}`;
     renderDocumentPaperPreview();
   }
 
@@ -1862,10 +2099,22 @@
               code: q.code || `EXTRACT-${String(id).padStart(3, '0')}`,
               confidence: conf,
               confidence_score: conf,
+              short_answer_value: cleanShortAnswer(q.short_answer_value),
+              options: (q.options || []).map((o) => ({ ...o, content: cleanOptionAnswer(o.content) }))
             };
           });
           state.digitizeJob.activeQuestionId = state.digitizeJob.questions[0]?.id || 1;
-          state.digitizeJob.totalPages = Math.max(1, Math.ceil(state.digitizeJob.questions.length / 6));
+
+          // Determine true document page count (1 for single image, N for multiple images/pdf)
+          let docTotalPages = 1;
+          if (jobData.preview_images && jobData.preview_images.length > 0) {
+            docTotalPages = jobData.preview_images.length;
+          } else if (state.stagedExam && state.stagedExam.files && state.stagedExam.files.length > 0) {
+            docTotalPages = state.stagedExam.files.length;
+          } else if (jobData.total_pages) {
+            docTotalPages = jobData.total_pages;
+          }
+          state.digitizeJob.totalPages = Math.max(1, docTotalPages);
           state.digitizeJob.currentPage = 1;
           state.stagedExam.status = 'DONE';
 
@@ -2037,7 +2286,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <span class="text-[11px] text-purple-700 mb-1 block">Chuỗi kết quả số / ký tự:</span>
-              <input type="text" id="q-edit-short-val" value="${escapeHtml(q.short_answer_value || '')}" class="w-full text-xs font-mono font-bold rounded-lg border border-purple-300 p-2 bg-white" placeholder="Ví dụ: 12 hoặc -3.5">
+              <input type="text" id="q-edit-short-val" value="${escapeHtml(cleanShortAnswer(q.short_answer_value))}" class="w-full text-xs font-mono font-bold rounded-lg border border-purple-300 p-2 bg-white" placeholder="Ví dụ: 12 hoặc -3.5">
             </div>
             <div>
               <span class="text-[11px] text-purple-700 mb-1 block">Dung sai sai số ($\\pm$):</span>
@@ -2100,7 +2349,7 @@
     const stemPreview = document.getElementById('q-edit-stem-preview');
     if (stemInput && stemPreview) {
       const val = stemInput.value.trim();
-      stemPreview.innerHTML = val ? val : '<span class="text-slate-400 italic">Xem trước nội dung câu hỏi...</span>';
+      stemPreview.innerHTML = val ? formatStemForDisplay(val) : '<span class="text-slate-400 italic">Xem trước nội dung câu hỏi...</span>';
       renderKaTeX(stemPreview);
     }
 
@@ -2108,7 +2357,7 @@
     const expPreview = document.getElementById('q-edit-explanation-preview');
     if (expInput && expPreview) {
       const val = expInput.value.trim();
-      expPreview.innerHTML = val ? `<strong>Hướng dẫn giải:</strong> ${val}` : '<span class="text-slate-400 italic">Xem trước lời giải...</span>';
+      expPreview.innerHTML = val ? `<strong>Hướng dẫn giải:</strong> ${formatStemForDisplay(val)}` : '<span class="text-slate-400 italic">Xem trước lời giải...</span>';
       renderKaTeX(expPreview);
     }
   }
@@ -2125,6 +2374,67 @@
     updateQuestionEditorLivePreview();
   }
 
+  function insertStemTikzDiagram(type) {
+    let snippet = '';
+    if (type === 'rational') {
+      snippet = `\n\\begin{tikzpicture}[scale=0.75]
+  \\draw[->, thick] (-3, 0) -- (3.5, 0) node[right] {$x$};
+  \\draw[->, thick] (0, -2.5) -- (0, 3.5) node[above] {$y$};
+  \\node[below left] at (0, 0) {$O$};
+  \\draw[dashed, red, thick] (1, -2.5) -- (1, 3.5) node[above] {$x=1$};
+  \\draw[dashed, red, thick] (-3, 2) -- (3.5, 2) node[right] {$y=2$};
+  \\draw[domain=-3:0.6, smooth, variable=\\x, blue, thick] plot ({\\x}, {(2*\\x - 1)/(\\x - 1)});
+  \\draw[domain=1.4:3.5, smooth, variable=\\x, blue, thick] plot ({\\x}, {(2*\\x - 1)/(\\x - 1)});
+\\end{tikzpicture}\n`;
+    } else if (type === 'cubic') {
+      snippet = `\n\\begin{tikzpicture}[scale=0.75]
+  \\draw[->, thick] (-2.5, 0) -- (3, 0) node[right] {$x$};
+  \\draw[->, thick] (0, -2.5) -- (0, 3) node[above] {$y$};
+  \\node[below left] at (0, 0) {$O$};
+  \\draw[domain=-2:2.2, smooth, variable=\\x, blue, thick] plot ({\\x}, {(\\x)^3 - 3*(\\x) + 1});
+  \\draw[dashed] (-1, 0) -- (-1, 3) -- (0, 3);
+  \\draw[dashed] (1, 0) -- (1, -1) -- (0, -1);
+  \\filldraw[black] (-1, 3) circle (1.5pt) (1, -1) circle (1.5pt);
+\\end{tikzpicture}\n`;
+    } else if (type === 'variation_table') {
+      snippet = `\n$$\\begin{array}{|c|lcccr|}
+\\hline
+x & -\\infty & & 1 & & +\\infty \\\\
+\\hline
+y' & & + & \\Vert & + & \\\\
+\\hline
+ & & & +\\infty & & 2 \\\\
+y & & \\nearrow & \\Vert & \\nearrow & \\\\
+ & -2 & & -\\infty & & \\\\
+\\hline
+\\end{array}$$\n`;
+    } else if (type === 'table') {
+      snippet = `\n$$\\begin{array}{|c|c|c|c|c|}
+\\hline
+\\text{Khoảng} & [9{,}5; 12{,}5) & [12{,}5; 15{,}5) & [15{,}5; 18{,}5) & [18{,}5; 21{,}5) \\\\
+\\hline
+\\text{Tần số} & 3 & 12 & 15 & 24 \\\\
+\\hline
+\\end{array}$$\n`;
+    } else if (type === 'pyramid') {
+      snippet = `\n\\begin{tikzpicture}[scale=0.8]
+  \\coordinate (A) at (0, 0);
+  \\coordinate (B) at (-1.5, -1.2);
+  \\coordinate (C) at (2, -1.2);
+  \\coordinate (D) at (3.5, 0);
+  \\coordinate (S) at (1, 2.5);
+  \\draw[thick] (S) -- (B) -- (C) -- (D) -- (S) -- (C);
+  \\draw[dashed, thick] (B) -- (A) -- (D) (S) -- (A);
+  \\node[above] at (S) {$S$};
+  \\node[left] at (B) {$B$};
+  \\node[below] at (C) {$C$};
+  \\node[right] at (D) {$D$};
+  \\node[above left] at (A) {$A$};
+\\end{tikzpicture}\n`;
+    }
+    insertStemSymbol(snippet);
+  }
+
   function saveQuestionEdit() {
     if (!state.activeEditingQuestion) return;
     const qId = state.activeEditingQuestion.id;
@@ -2135,17 +2445,24 @@
     q.cognitive_level = document.getElementById('q-edit-cognitive').value;
     q.learning_outcome_code = document.getElementById('q-edit-yccd').value;
     q.learning_outcome_id = q.learning_outcome_code;
-    q.stem = document.getElementById('q-edit-stem').value.trim();
-    q.explanation = document.getElementById('q-edit-explanation').value.trim();
+    q.stem = formatLatexRules(document.getElementById('q-edit-stem').value.trim());
+    q.explanation = formatLatexRules(document.getElementById('q-edit-explanation').value.trim());
 
     if (q.item_format === 'SINGLE_CHOICE' && state.activeEditingQuestion.options) {
-      q.options = JSON.parse(JSON.stringify(state.activeEditingQuestion.options));
+      q.options = JSON.parse(JSON.stringify(state.activeEditingQuestion.options)).map((opt) => ({
+        ...opt,
+        content: formatLatexRules(opt.content)
+      }));
     } else if (q.item_format === 'TRUE_FALSE_GROUP' && state.activeEditingQuestion.sub_statements) {
-      q.sub_statements = JSON.parse(JSON.stringify(state.activeEditingQuestion.sub_statements));
+      q.sub_statements = JSON.parse(JSON.stringify(state.activeEditingQuestion.sub_statements)).map((sub) => ({
+        ...sub,
+        content: formatLatexRules(sub.content),
+        explanation: formatLatexRules(sub.explanation)
+      }));
     } else if (q.item_format === 'SHORT_ANSWER') {
       const valEl = document.getElementById('q-edit-short-val');
       const tolEl = document.getElementById('q-edit-short-tol');
-      if (valEl) q.short_answer_value = valEl.value.trim();
+      if (valEl) q.short_answer_value = cleanShortAnswer(valEl.value);
       if (tolEl) q.tolerance = parseFloat(tolEl.value) || 0.0;
     }
 
@@ -2195,13 +2512,30 @@
   }
 
   function changeViewerPage(delta) {
-    let p = state.digitizeJob.currentPage + delta;
+    const total = (state.stagedExam && state.stagedExam.files && state.stagedExam.files.length > 0)
+      ? state.stagedExam.files.length
+      : (state.digitizeJob.totalPages || 1);
+    let p = (state.digitizeJob.currentPage || 1) + delta;
     if (p < 1) p = 1;
-    if (p > state.digitizeJob.totalPages) p = state.digitizeJob.totalPages;
+    if (p > total) p = total;
     state.digitizeJob.currentPage = p;
 
     const disp = document.getElementById('doc-page-display');
-    if (disp) disp.innerText = `Trang ${p} / ${state.digitizeJob.totalPages}`;
+    if (disp) disp.innerText = `Trang ${p} / ${total}`;
+
+    // If in staged mode, also select staged page
+    if (state.stagedExam && state.stagedExam.status === 'STAGED') {
+      state.stagedExam.activePreviewIndex = p - 1;
+      renderDocumentPaperPreview();
+      showToast(`Chuyển sang Trang ${p}`, 'info');
+      return;
+    }
+
+    // Scroll to the corresponding page in multi-image preview
+    const targetPage = document.getElementById(`doc-preview-page-${p}`);
+    if (targetPage) {
+      targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     showToast(`Chuyển sang Trang ${p}`, 'info');
   }
 
@@ -2340,7 +2674,7 @@
 
           <!-- Question Stem -->
           <div class="text-xs text-slate-800 leading-relaxed font-medium">
-            ${q.stem}
+            ${formatStemForDisplay(q.stem)}
           </div>
       `;
 
@@ -2637,7 +2971,7 @@
             </button>
           </div>
 
-          <div class="font-medium text-slate-900 leading-relaxed">${q.stem}</div>
+          <div class="font-medium text-slate-900 leading-relaxed">${formatStemForDisplay(q.stem)}</div>
 
           ${
             q.options
@@ -2829,7 +3163,7 @@
             <span class="font-bold text-slate-800">Mã ${code} • Câu ${idx + 1} (${q.code}):</span>
             <span class="text-[10px] text-slate-400 font-mono">${q.item_format}</span>
           </div>
-          <div class="text-slate-800 font-medium">${q.stem}</div>
+          <div class="text-slate-800 font-medium">${formatStemForDisplay(q.stem)}</div>
 
           ${
             q.options
@@ -3097,7 +3431,7 @@
   function saveFormulaEditorResult() {
     const input = document.getElementById('modal-latex-input');
     if (!input) return;
-    const newContent = input.value.trim();
+    const newContent = formatLatexRules(input.value.trim());
 
     const { targetType, questionId, field, optionIndex } = state.activeFormulaEdit;
 
@@ -3256,6 +3590,7 @@
     updateModalSubExp,
     updateQuestionEditorLivePreview,
     insertStemSymbol,
+    insertStemTikzDiagram,
     saveQuestionEdit,
     loadSampleExam,
     changeViewerPage,

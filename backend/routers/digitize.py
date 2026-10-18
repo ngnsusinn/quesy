@@ -37,6 +37,7 @@ class DigitizeJobResponse(BaseModel):
     error_message: Optional[str] = None
     preview_url: Optional[str] = None
     preview_images: List[str] = []
+    total_pages: int = 1
     ai_provider: Optional[str] = None
     ai_model: Optional[str] = None
 
@@ -85,9 +86,32 @@ class CommitJobResponse(BaseModel):
     message: str
 
 
+class RenderTikzRequest(BaseModel):
+    tikz_code: str
+
+
+class RenderTikzResponse(BaseModel):
+    success: bool
+    svg: str
+    cached: bool = False
+    error: Optional[str] = None
+
+
 # ==========================================
 # ENDPOINTS
 # ==========================================
+
+@router.post("/render-tikz", response_model=RenderTikzResponse)
+def render_tikz_endpoint(payload: RenderTikzRequest):
+    """Compiles LaTeX TikZ code to SVG vector graphic."""
+    from backend.services.tikz_renderer import render_tikz_to_svg
+    res = render_tikz_to_svg(payload.tikz_code)
+    return RenderTikzResponse(
+        success=res.get("success", False),
+        svg=res.get("svg", ""),
+        cached=res.get("cached", False),
+        error=res.get("error")
+    )
 
 @router.post("/upload", status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
@@ -207,6 +231,17 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
             if f.suffix.lower() in [".png", ".jpg", ".jpeg", ".webp"]:
                 preview_images.append(f"/api/v1/digitize/jobs/{job.id}/files/{f.name}")
 
+    total_pages = 1
+    if preview_images:
+        total_pages = len(preview_images)
+    elif job.file_type.lower() == "pdf" and job_p.exists():
+        try:
+            import pypdf
+            reader = pypdf.PdfReader(str(job_p))
+            total_pages = max(1, len(reader.pages))
+        except Exception:
+            total_pages = 1
+
     return DigitizeJobResponse(
         id=job.id,
         filename=job.filename,
@@ -219,6 +254,7 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
         error_message=job.error_message,
         preview_url=f"/api/v1/digitize/jobs/{job.id}/preview",
         preview_images=preview_images,
+        total_pages=total_pages,
         ai_provider=default_ai_provider_service.provider if default_ai_provider_service.is_configured() else "local_fallback",
         ai_model=default_ai_provider_service.model if default_ai_provider_service.is_configured() else "offline_rule_engine"
     )

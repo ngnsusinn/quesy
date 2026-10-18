@@ -167,8 +167,100 @@ def test_latex_converter():
     mtef_raw = hdr + b"\x01\x02\x00\x79\x00\x02\x00\x3d\x00\x03\x06\x00\x00\x01\x02\x00\x31\x00\x00\x01\x02\x00\x78\x00\x00\x00\x00"
     decoded_mtef = decode_mtef(mtef_raw)
     print(f"Decoded MTEF Formula: {decoded_mtef}")
-    assert "\\frac" in decoded_mtef, "MTEF fraction not decoded"
+    assert "\\dfrac" in decoded_mtef or "\\frac" in decoded_mtef, "MTEF fraction not decoded"
     print("✓ MTEF binary decoding passed")
+
+    # Test 5: Verify 4 New Assessment Digitization Rules
+    # Rule 1: Brackets \left and \right
+    # Rule 2: Decimal commas {,}
+    # Rule 3: \dfrac instead of \frac
+    # Rule 4: \overrightarrow instead of \vec
+    raw_math = r"Cho \vec{u} = (15,25; -3,5), \vec{AB} = \vec a, f(x) = \frac{1}{2}x và khoảng [0; 3)"
+    sanitized_math = sanitize_latex(f"${raw_math}$")
+    print(f"Sanitized Math Rules Output: {sanitized_math}")
+    assert r"\overrightarrow{u}" in sanitized_math, "Rule 4: \\vec must be converted to \\overrightarrow"
+    assert r"\overrightarrow{AB}" in sanitized_math, "Rule 4: \\vec{AB} must be \\overrightarrow{AB}"
+    assert r"15{,}25" in sanitized_math, "Rule 2: Decimal comma must be formatted as {,}"
+    assert r"-3{,}5" in sanitized_math, "Rule 2: Decimal comma must be formatted as {,}"
+    assert r"\dfrac{1}{2}" in sanitized_math, "Rule 3: Fraction must use \\dfrac instead of \\frac"
+    assert r"\left(15{,}25; -3{,}5\right)" in sanitized_math, "Rule 1: Parentheses must use \\left( and \\right)"
+    assert r"\left[0; 3\right)" in sanitized_math, "Rule 1: Brackets must use \\left[ and \\right)"
+
+    # Test 6: Verify Table auto-closing and text mode protection
+    raw_table = (
+        r"Bảng sau: "
+        r"$$\begin{array}{|c|c|}"
+        r"\hline "
+        r"\text{Thời gian \left(phút\right)} & [9{,}5; 12{,}5) \\ "
+        r"\hline "
+        r"\text{Số học sinh} & 3 \\ "
+        r"\hline "
+        r"\end{array} "
+        r"Tứ phân vị thứ nhất $ Q_1 $ là:"
+    )
+    clean_table = sanitize_latex(raw_table)
+    assert r"\end{array}$$" in clean_table, "Unclosed \\begin{array} must be auto-closed with $$"
+    assert r"\text{Thời gian (phút)}" in clean_table, "\\left in \\text{} must be cleaned for KaTeX compatibility"
+    assert r"\left[9{,}5; 12{,}5\right)" in clean_table
+
+    # Test 7: Verify TikZ standalone wrapping and renderer
+    from backend.services.tikz_renderer import wrap_tikz_in_standalone_document
+    tikz_sample = r"\begin{tikzpicture} \draw (0,0) circle (1); \end{tikzpicture}"
+    wrapped_doc = wrap_tikz_in_standalone_document(tikz_sample)
+    assert r"\documentclass[tikz,border=2mm]{standalone}" in wrapped_doc
+    assert r"\begin{document}" in wrapped_doc
+    assert r"\end{document}" in wrapped_doc
+
+    # Test 8: Verify set curly braces normalization (\mathbb{R} \setminus \left\\{1\right\\})
+    raw_set_stem = r"Cho hàm số $y = f(x)$ xác định trên tập $\mathbb{R} \setminus \left\\{1\right\\}$."
+    clean_set_stem = sanitize_latex(raw_set_stem)
+    assert r"\left\{1\right\}" in clean_set_stem, "Double-escaped curly braces must be normalized to single \\left\\{1\\right\\}"
+    assert r"\\{" not in clean_set_stem, "No raw \\\\{ should remain to break KaTeX"
+    assert r"\left\left\{" not in clean_set_stem, "No duplicate \\left\\left\\{ should occur"
+
+    # Test 9: Verify TikZ libraries, Vietnamese transliteration, and auto-clipping
+    from backend.services.tikz_renderer import transliterate_vietnamese_for_latex, auto_clip_tikz_plot
+    raw_tikz_vn = r"\node at (0, 0) {$--- \text{ đường gấp}$};"
+    clean_tikz_vn = transliterate_vietnamese_for_latex(raw_tikz_vn)
+    assert "duong gap" in clean_tikz_vn
+
+    raw_tikz_unclipped = (
+        r"\begin{tikzpicture}[scale=0.7]"
+        r"\draw[->, thick] (-6, 0) -- (4, 0);"
+        r"\draw[->, thick] (0, -2) -- (0, 8);"
+        r"\draw plot (\x, {1/(\x+2)});"
+        r"\end{tikzpicture}"
+    )
+    clipped = auto_clip_tikz_plot(raw_tikz_unclipped)
+    assert r"\clip" in clipped, "Auto-clipping must insert \\clip boundary for coordinate axes"
+
+    # Test 10: Answer values must not use {,} notation
+    from backend.services.ai_provider_service import default_ai_provider_service
+    test_q_json = '''```json
+    {
+      "questions": [
+        {
+          "id": 1,
+          "item_format": "SHORT_ANSWER",
+          "stem": "Tính kết quả",
+          "short_answer_value": "3{,}9",
+          "tolerance": 0.01
+        },
+        {
+          "id": 2,
+          "item_format": "SINGLE_CHOICE",
+          "stem": "Chọn kết quả",
+          "options": [
+            {"label": "A", "content": "$15{,}25$", "is_correct": true}
+          ]
+        }
+      ]
+    }
+    ```'''
+    parsed_qs, _ = default_ai_provider_service._parse_json_result(test_q_json)
+    assert parsed_qs[0]["short_answer_value"] == "3,9", "short_answer_value must not use {,}"
+    assert "15,25" in parsed_qs[1]["options"][0]["content"], "options content must contain 15,25"
+    assert "{,}" not in parsed_qs[1]["options"][0]["content"], "options content must not use {,}"
 
 
 import pytest

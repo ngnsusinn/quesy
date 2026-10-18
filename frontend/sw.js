@@ -1,5 +1,5 @@
-// Quesy Service Worker for Offline Resilience
-const CACHE_NAME = 'quesy-cache-v2026';
+// Quesy Service Worker with Network-First Strategy for Instant Updates & Offline Fallback
+const CACHE_NAME = 'quesy-cache-v2026.6';
 const ASSETS_TO_CACHE = [
   '/',
   '/dashboard',
@@ -40,12 +40,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Network-first with cache fallback for instant UI updates
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -53,12 +51,15 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // If offline and request is HTML navigation, fallback to root index.html
-        if (event.request.mode === 'navigate') {
-          return caches.match('/');
-        }
-      });
-    })
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          if (event.request.mode === 'navigate') {
+            return caches.match('/');
+          }
+          return null;
+        });
+      })
   );
 });
