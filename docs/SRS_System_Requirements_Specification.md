@@ -1,42 +1,39 @@
 # TÀI LIỆU YÊU CẦU HỆ THỐNG (SYSTEM REQUIREMENTS SPECIFICATION - SRS)
-**Hệ thống Quản lý Đề thi & Ngân hàng Câu hỏi Tích hợp AI Số hoá Đề thi (QUESY)**
+**Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 2.0 (Chuẩn hóa toàn diện theo Thông tư 32/2018/TT-BGDĐT)  
+- **Phiên bản:** 2.5 (Tập trung kiến trúc kỹ thuật & Giải pháp tự động hóa khảo thí)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Căn cứ Pháp lý & Khảo thí:**  
-  - Thông tư số 32/2018/TT-BGDĐT (Chương trình Giáo dục phổ thông 2018)  
-  - Thông tư số 22/2021/TT-BGDĐT (Quy định đánh giá học sinh THCS, THPT)  
-  - Quyết định số 764/QĐ-BGDĐT (Cấu trúc định dạng đề thi tốt nghiệp THPT từ năm 2025)  
-- **Ngày phát hành:** 2026-10-14  
-- **Trạng thái:** Sẵn sàng phát triển (Ready for Architecture & Engineering)  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine) và xuất bản ấn phẩm Word OMML 2 cột.  
+- **Ngày phát hành:** 2026-10-18  
+- **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)  
 
 ---
 
 ## 1. GIỚI THIỆU (INTRODUCTION)
 
 ### 1.1. Mục đích Tài liệu (Purpose)
-Tài liệu này đặc tả chi tiết toàn bộ các yêu cầu kỹ thuật, kiến trúc hệ thống và hành vi dữ liệu cho nền tảng **Quesy**. Tài liệu là cam kết kỹ thuật giữa Đội ngũ Phân tích Nghiệp vụ (BA), Kiến trúc sư Giải pháp (Solution Architect), Kỹ sư Phát triển (Devs), Kỹ sư Đảm bảo Chất lượng (QA/QC) và Hội đồng Khảo thí.
+Tài liệu này đặc tả chi tiết toàn bộ các yêu cầu kỹ thuật, kiến trúc hệ thống và hành vi dữ liệu cho nền tảng **Quesy**. Tài liệu đóng vai trò là cam kết kỹ thuật giữa Đội ngũ Phân tích Nghiệp vụ (BA), Kiến trúc sư Giải pháp (Solution Architect), Kỹ sư Phát triển (Devs) và Kỹ sư Đảm bảo Chất lượng (QA/QC).
 
 ### 1.2. Quy ước Tài liệu (Conventions)
 - **BẮT BUỘC (SHALL / MUST):** Yêu cầu kỹ thuật tiên quyết phải đáp ứng (Priority P0).
 - **NÊN CÓ (SHOULD):** Yêu cầu quan trọng cần có trong giai đoạn hiện tại (Priority P1).
 - **CÓ THỂ (MAY):** Tính năng mở rộng nâng cao (Priority P2).
-- Mọi công thức Toán/Khoa học được lưu trữ và truyền nhận dưới dạng chuỗi **LaTeX chuẩn**; render trên giao diện bằng **KaTeX**; xuất bản sang Word bằng mã **OMML (Office Math Markup Language) native**.
+- Mọi công thức Toán/Khoa học được lưu trữ và truyền nhận dưới dạng chuỗi **LaTeX chuẩn**; render trên giao diện bằng **KaTeX**; xuất bản sang Word bằng mã **OMML (Office Math Markup Language) native**; đồ thị và hình học được biên dịch sang **Vector SVG** sắc nét.
 
 ### 1.3. Khách thể Sử dụng (Audience)
 - **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
-- **Kỹ sư AI & Backend:** Xây dựng OCR pipeline, mô hình bóc tách dữ liệu có cấu trúc và thuật toán hoán vị an toàn.
-- **Kỹ sư Frontend:** Phát triển giao diện Studio Hậu kiểm (HITL) cuộn đồng bộ và render KaTeX realtime.
-- **Kỹ sư QA/QC:** Xây dựng ma trận kiểm thử tự động và tiêu chuẩn nghiệm thu.
+- **Kỹ sư AI & Backend:** Xây dựng OCR pipeline, dịch vụ biên dịch TikZ SVG, mô hình bóc tách dữ liệu có cấu trúc và thuật toán hoán vị an toàn.
+- **Kỹ sư Frontend:** Phát triển giao diện Studio Hậu kiểm (HITL) cuộn đồng bộ, hiển thị đồ thị SVG và render KaTeX thời gian thực.
+- **Kỹ sư QA/QC:** Xây dựng ma trận kiểm thử tự động và tiêu chuẩn nghiệm thu (46/46 automated tests).
 
-### 1.4. Phạm vi Sản phẩm (Product Scope)
+### 1.4. Phạm vi Sản phẩm & Bài toán Giải quyết (Product Scope)
 Hệ thống phần mềm dịch vụ Web ứng dụng Trí tuệ Nhân tạo Đa phương thức nhằm:
-1. Tiếp nhận tài liệu đề thi thô (.docx, .doc, .pdf, ảnh), nhận diện layout, bóc tách công thức Toán/Khoa học sang LaTeX, tự động cắt ảnh đồ thị nén WebP, bóc tách đáp án và lời giải.
-2. Quản trị ngân hàng câu hỏi chuẩn hóa theo đúng cấu trúc **Thông tư 32/2018/TT-BGDĐT**: Môn $\rightarrow$ Lớp $\rightarrow$ Mạch nội dung $\rightarrow$ Chủ đề/Chuyên đề $\rightarrow$ Bài học $\rightarrow$ **Yêu cầu cần đạt (YCCĐ)** $\rightarrow$ **Dạng câu hỏi (Dạng bài tập)** $\rightarrow$ Mức độ tư duy (Biết, Hiểu, Vận dụng). **Tuyệt đối không phân chia theo bộ sách giáo khoa**.
-3. Thiết lập Ma trận đề thi và Bản đặc tả đề thi theo chuẩn YCCĐ.
-4. Tự động sinh đề và hoán vị mã đề an toàn (khóa cố định các đáp án phụ thuộc vị trí, bảo toàn cụm câu hỏi chùm).
-5. Xuất bản đề thi Microsoft Word (.docx) chuẩn mẫu in 2 cột kèm công thức OMML gốc, xuất PDF, xuất gói LMS (QTI 2.1) và phân tích chỉ số khảo thí ($p, D$).
+1. **Giải quyết bài toán gõ lại đề thủ công:** Tiếp nhận tài liệu đề thi thô (.docx, .doc, .pdf scan, ảnh chụp), nhận diện layout, bóc tách công thức Toán/Khoa học sang LaTeX, tự động cắt ảnh đồ thị nén WebP, bóc tách đáp án và lời giải.
+2. **Giải quyết bài toán dựng đồ thị hàm số & hình học:** Tự động phát hiện mã nguồn hình học và biên dịch sang vector SVG sắc nét; có cơ chế Auto-clipping khống chế tỷ lệ khung hình hàm phân thức có tiệm cận, hỗ trợ đồ thị trong cả đề bài và 4 phương án trắc nghiệm A, B, C, D.
+3. **Giải quyết bài toán vỡ logic khi trộn đề:** Động cơ Safe Shuffling Engine khóa cố định phương án phụ thuộc vị trí ("Cả A và B") ở đáp án D, bảo toàn bài đọc chung ngữ cảnh và các câu hỏi con đi liền kề nhau.
+4. **Giải quyết bài toán chấm điểm phức tạp:** Tự động chấm điểm dạng câu hỏi Đúng/Sai 4 khẳng định theo thang điểm bậc thang (0.1đ - 0.25đ - 0.5đ - 1.0đ) và quản lý bảng điểm Excel UTF-8 BOM.
+5. **Giải quyết bài toán dàn trang in ấn:** Xuất bản đề thi Microsoft Word (.docx) chuẩn mẫu in 2 cột kèm công thức OMML gốc, xuất PDF in ấn, phiếu soi đáp án trắc nghiệm OMR và đóng gói ZIP 1-click.
 
 ---
 

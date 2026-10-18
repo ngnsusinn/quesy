@@ -1,27 +1,25 @@
 # TÀI LIỆU KỊCH BẢN KIỂM THỬ (TEST CASES SPECIFICATION)
-**Dự án: Hệ thống Quản lý Đề thi & Ngân hàng Câu hỏi Tích hợp AI Số hoá Đề thi (QUESY)**
+**Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 2.0 (Chuẩn hóa toàn diện theo Thông tư 32/2018/TT-BGDĐT)  
+- **Phiên bản:** 2.5 (Tập trung kiểm thử chức năng & Độ tin cậy giải pháp)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Căn cứ Pháp lý & Khảo thí:**  
-  - Thông tư số 32/2018/TT-BGDĐT (Chương trình GDPT 2018)  
-  - Thông tư số 22/2021/TT-BGDĐT (Đánh giá học sinh THCS, THPT)  
-  - Quyết định số 764/QĐ-BGDĐT (Định dạng đề thi tốt nghiệp THPT từ năm 2025)  
-- **Ngày lập:** 2026-10-14  
-- **Môi trường áp dụng:** Staging & Production Verification  
+- **Tổng số kịch bản tự động hóa:** 46 Tests (100% Passed)  
+- **Ngày lập:** 2026-10-18  
+- **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)  
 
 ---
 
 ## 1. TỔNG QUAN KẾ HOẠCH KIỂM THỬ (TEST PLAN OVERVIEW)
 
 ### 1.1. Mục tiêu Kiểm thử
-Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xác các yêu cầu nghiệp vụ trong BRD v2.0, kiến trúc trong SRS v2.0 và hành vi trong FRD v2.0, đặc biệt tập trung vào:
-1. Độ chính xác của AI bóc tách công thức Toán LaTeX, cắt ảnh đồ thị, và **gợi ý Auto-tagging mã Yêu cầu cần đạt (YCCĐ)** theo Thông tư 32/2018/TT-BGDĐT.
-2. Cây phân cấp kiến thức và chuẩn năng lực theo **YCCĐ và Dạng câu hỏi**, kiểm tra **tuyệt đối không phân chia theo bộ sách giáo khoa**.
-3. Thể thức trắc nghiệm mới theo Quyết định 764/QĐ-BGDĐT: **Trắc nghiệm Đúng/Sai 4 khẳng định tính điểm bậc thang** và **Trắc nghiệm Trả lời ngắn**.
-4. Thuật toán **Trộn đề An toàn (Safe Shuffling)**: Đảm bảo không tách rời câu hỏi chùm và không làm biến dạng các đáp án có từ khóa phụ thuộc vị trí ("Cả A và B", "Tất cả các ý trên").
-5. Chất lượng xuất bản file Word 2 cột với công thức native OMML.
+Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xác các yêu cầu nghiệp vụ và giải quyết trọn vẹn các bài toán kỹ thuật thực tế:
+1. Độ chính xác của AI bóc tách công thức Toán LaTeX, giải mã MathType MTEF, và biên dịch đồ thị vector SVG (TikZ/PGFPlots) có Auto-clipping.
+2. Kiểm tra bộ 4 quy tắc chuẩn hóa toán học (ngoặc `\left`/`
+ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phân số `\dfrac`, vectơ `\overrightarrow`).
+3. Xác minh thể thức câu hỏi hiện đại: **Trắc nghiệm Đúng/Sai 4 khẳng định tính điểm bậc thang** và **Trắc nghiệm Trả lời ngắn**.
+4. Thuật toán **Trộn đề An toàn (Safe Shuffling)**: Đảm bảo không tách rời câu hỏi chùm và luôn khóa cố định phương án *"Cả A và B đều đúng"* tại vị trí cuối cùng (D).
+5. Chất lượng xuất bản file Word 2 cột với công thức native OMML và bảng điểm Excel UTF-8 BOM.
 
 ### 1.2. Thang đánh giá Kết quả (Test Result Status)
 - **PASS:** Chức năng hoạt động chính xác theo đúng kết quả kỳ vọng.

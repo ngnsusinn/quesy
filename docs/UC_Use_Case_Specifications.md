@@ -1,13 +1,10 @@
 # TÀI LIỆU ĐẶC TẢ USE CASE (USE CASE SPECIFICATIONS - UC)
-**Hệ thống Quản lý Đề thi & Ngân hàng Câu hỏi Tích hợp AI Số hoá Đề thi (QUESY)**
+**Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 2.0 (Chuẩn hóa toàn diện theo Thông tư 32/2018/TT-BGDĐT)  
-- **Căn cứ Pháp lý & Khảo thí:**  
-  - Thông tư số 32/2018/TT-BGDĐT (Chương trình GDPT 2018)  
-  - Thông tư số 22/2021/TT-BGDĐT (Đánh giá học sinh THCS, THPT)  
-  - Quyết định số 764/QĐ-BGDĐT (Định dạng đề thi tốt nghiệp THPT từ năm 2025)  
-- **Ngày phát hành:** 2026-10-14  
+- **Phiên bản:** 2.5 (Tập trung giải pháp tự động hóa khảo thí)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, dựng đồ thị vector SVG, trộn đề an toàn và xuất bản in ấn.  
+- **Ngày phát hành:** 2026-10-18  
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)  
 
 ---

@@ -1,14 +1,11 @@
 # TÀI LIỆU YÊU CẦU PHI CHỨC NĂNG (NON-FUNCTIONAL REQUIREMENTS - NFR)
-**Hệ thống Quản lý Đề thi & Ngân hàng Câu hỏi Tích hợp AI Số hoá Đề thi (QUESY)**
+**Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 2.0 (Chuẩn hóa toàn diện theo Thông tư 32/2018/TT-BGDĐT)  
+- **Phiên bản:** 2.5 (Tập trung chỉ số chất lượng & Hiệu năng giải pháp)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Căn cứ Pháp lý & Khảo thí:**  
-  - Thông tư số 32/2018/TT-BGDĐT (Chương trình GDPT 2018)  
-  - Thông tư số 22/2021/TT-BGDĐT (Đánh giá học sinh THCS, THPT)  
-  - Nghị định số 13/2023/NĐ-CP (Bảo vệ dữ liệu cá nhân)  
-- **Ngày phát hành:** 2026-10-14  
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ bảo mật dữ liệu đề thi, tính sẵn sàng cao và trải nghiệm người dùng không độ trễ.  
+- **Ngày phát hành:** 2026-10-18  
 
 ---
 

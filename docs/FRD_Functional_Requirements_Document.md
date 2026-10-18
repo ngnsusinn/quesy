@@ -1,31 +1,28 @@
 # TÀI LIỆU ĐẶC TẢ CHỨC NĂNG (FUNCTIONAL REQUIREMENTS DOCUMENT - FRD)
-**Dự án: Hệ thống Quản lý Đề thi & Ngân hàng Câu hỏi Tích hợp AI Số hoá (QUESY)**
+**Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 2.0 (Chuẩn hóa toàn diện theo Thông tư 32/2018/TT-BGDĐT)  
-- **Căn cứ Pháp lý & Khảo thí:**  
-  - Thông tư số 32/2018/TT-BGDĐT (Chương trình GDPT 2018)  
-  - Thông tư số 22/2021/TT-BGDĐT (Đánh giá học sinh THCS, THPT)  
-  - Quyết định số 764/QĐ-BGDĐT (Định dạng đề thi tốt nghiệp THPT từ năm 2025)  
-- **Ngày phát hành:** 2026-10-14  
-- **Trạng thái:** Hoàn thành đặc tả chi tiết  
+- **Phiên bản:** 2.5 (Tập trung năng lực giải pháp & Tự động hóa khảo thí)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, dựng đồ thị vector SVG, trộn đề an toàn và xuất bản in ấn.  
+- **Ngày phát hành:** 2026-10-18  
+- **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành  
 
 ---
 
 ## 1. TỔNG QUAN TÀI LIỆU
 
 ### 1.1. Mục đích
-Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý dữ liệu, giao diện người dùng, điều kiện biên, các API endpoints và quy tắc nghiệp vụ cho từng phân hệ trong hệ thống Quesy, đảm bảo tuân thủ triệt để nguyên tắc khảo thí phát triển năng lực của Thông tư 32/2018/TT-BGDĐT.
+Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý dữ liệu, giao diện người dùng, điều kiện biên, các API endpoints và quy tắc nghiệp vụ cho từng phân hệ trong hệ thống Quesy, giải quyết trực tiếp các khó khăn trong quy trình biên soạn và tổ chức kiểm tra đánh giá.
 
 ### 1.2. Danh mục Phân hệ Chức năng
 - **MOD-01:** Phân hệ Tiếp nhận & Số hóa Đề thi bằng AI (AI Ingestion & Parsing)
 - **MOD-02:** Phân hệ Studio Hậu kiểm Đối chiếu Song song (HITL Review Studio)
-- **MOD-03:** Phân hệ Cây Kiến thức & Chuẩn Yêu cầu Cần đạt (Taxonomy & YCCĐ - TT 32)
-- **MOD-04:** Phân hệ Ngân hàng Câu hỏi & Vòng đời Kiểm duyệt (Item Bank Management)
-- **MOD-05:** Phân hệ Ma trận Đề thi & Bản đặc tả Khảo thí (Exam Matrix & Blueprint)
-- **MOD-06:** Phân hệ Động cơ Sinh Đề & Trộn Mã đề An toàn (Assembly & Shuffling Engine)
-- **MOD-07:** Phân hệ Xuất bản Đề thi Đa định dạng (Publishing & Export Service)
-- **MOD-08:** Phân hệ Khảo thí & Đánh giá Năng lực Hậu kiểm (Item Analytics)
+- **MOD-03:** Phân hệ Bộ Dựng Đồ Thị Vector SVG & Chuẩn Hóa Toán Học (TikZ & LaTeX Sanitizer)
+- **MOD-04:** Phân hệ Ngân hàng Câu hỏi & Phân loại Dạng bài (Item Bank Management)
+- **MOD-05:** Phân hệ Ma trận Đề thi & Rút đề theo Ràng buộc (Exam Matrix & Solver)
+- **MOD-06:** Phân hệ Động cơ Trộn Mã đề An toàn (Safe Shuffling Engine)
+- **MOD-07:** Phân hệ Xuất bản Đề thi Word OMML & In ấn (Publishing & Export Service)
+- **MOD-08:** Phân hệ Chấm điểm Bậc thang & Quản lý Bảng điểm (Grade & Roster Management)
 
 ---
 

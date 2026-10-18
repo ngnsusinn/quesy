@@ -1,26 +1,23 @@
 # BÁO CÁO NGHIÊN CỨU TÍNH KHẢ THI (FEASIBILITY STUDY REPORT - FSR)
-**Dự án: Hệ thống Quản lý Đề thi & Ngân hàng Câu hỏi Tích hợp AI Số hoá Đề thi (QUESY)**
+**Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FSR-01  
-- **Phiên bản:** 2.0 (Chuẩn hóa toàn diện theo Thông tư 32/2018/TT-BGDĐT)  
-- **Căn cứ Pháp lý & Khảo thí:**  
-  - Thông tư số 32/2018/TT-BGDĐT (Chương trình Giáo dục phổ thông 2018)  
-  - Thông tư số 22/2021/TT-BGDĐT (Đánh giá học sinh THCS, THPT)  
-  - Quyết định số 764/QĐ-BGDĐT (Định dạng đề thi tốt nghiệp THPT từ năm 2025)  
-- **Ngày lập:** 2026-10-14  
+- **Phiên bản:** 2.5 (Tập trung giải pháp tự động hóa & Phân tích ROI thực tế)  
+- **Mục tiêu nghiên cứu:** Đánh giá tính khả thi kỹ thuật, hiệu quả kinh tế và giá trị thực tiễn của giải pháp số hóa đề thi tự động, dựng đồ thị vector SVG, trộn đề an toàn và xuất bản in ấn.  
+- **Ngày lập:** 2026-10-18  
 - **Người thực hiện:** Ban Nghiên cứu Giải pháp & Đánh giá Dự án  
-- **Kết luận:** **KHẢ THI CAO - KHUYẾN NGHỊ TRIỂN KHAI (GO DECISION)**  
+- **Kết luận:** **KHẢ THI CAO - KHUYẾN NGHỊ TRIỂN KHAI RỘNG RÃI (GO DECISION)**  
 
 ---
 
 ## 1. TỔNG QUAN BÁO CÁO (EXECUTIVE SUMMARY)
 
-Báo cáo này đánh giá tính khả thi toàn diện của dự án **Quesy** trên 5 khía cạnh trọng yếu trong bối cảnh toàn ngành giáo dục đang triển khai sâu rộng Chương trình GDPT 2018 theo Thông tư 32/2018/TT-BGDĐT:
-1. **Khả thi về Kỹ thuật (Technical Feasibility):** Năng lực AI bóc tách công thức Toán LaTeX, trích xuất hình vẽ, tự động gợi ý mã YCCĐ và trộn đề an toàn.
-2. **Khả thi về Vận hành (Operational Feasibility):** Khả năng tiếp nhận của giáo viên và tích hợp vào quy trình khảo thí đánh giá năng lực thực tế.
-3. **Khả thi về Kinh tế (Economic Feasibility):** Phân tích chi phí đầu tư (CapEx), chi phí vận hành API AI (OpEx), và tỷ suất hoàn vốn (ROI).
-4. **Khả thi về Pháp lý & Bản quyền (Legal Feasibility):** Tuân thủ Thông tư 32, Quyết định 764, Nghị định 13/2023/NĐ-CP và sở hữu trí tuệ đề thi.
-5. **Khả thi về Tiến độ (Schedule Feasibility):** Lộ trình phát triển 24 tuần (6 tháng).
+Báo cáo này đánh giá tính khả thi toàn diện của dự án **Quesy** trên 5 khía cạnh trọng yếu nhằm giải quyết các bài toán cấp bách trong công tác khảo thí:
+1. **Khả thi về Kỹ thuật (Technical Feasibility):** Năng lực AI bóc tách công thức Toán LaTeX, công nghệ biên dịch đồ thị vector SVG (TikZ) tự động có Auto-clipping, và thuật toán trộn đề an toàn (Option Anchor).
+2. **Khả thi về Vận hành (Operational Feasibility):** Trải nghiệm người dùng tinh giản theo Apple HIG, giúp giáo viên làm chủ hệ thống trong 15 phút mà không cần đào tạo phức tạp.
+3. **Khả thi về Kinh tế (Economic Feasibility):** Tiết kiệm 85-90% thời gian biên soạn đề thi, chi phí vận hành API tối ưu nhờ bộ nhớ đệm (Cache) và giải mã cục bộ.
+4. **Khả thi về Pháp lý & Bảo mật (Legal & Security Feasibility):** Đảm bảo an toàn cơ mật đề thi, sở hữu trí tuệ học liệu và bảo vệ dữ liệu học sinh.
+5. **Khả thi về Tiến độ (Schedule Feasibility):** Hệ thống đã hoàn thiện toàn diện với 46 kịch bản kiểm thử tự động đạt 100% PASS.
 
 ---
 
