@@ -44,8 +44,8 @@ function renderFormula(mj, latex, options = {}) {
     clean = clean.slice(1, -1).trim();
   }
 
-  // Common TeX normalizations for MathJax
-  clean = clean.replace(/\\dfrac/g, '\\frac');
+  // National exam standard: All fractions should be rendered in dfrac (displaystyle) for optimal legibility
+  clean = clean.replace(/\\frac\b/g, '\\dfrac');
 
   // 1. Convert to MathML
   let mml = null;
