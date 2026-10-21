@@ -67,28 +67,33 @@ def _get_or_create_worker() -> subprocess.Popen:
     return _worker_proc
 
 
-def _query_worker(req_payload: dict, timeout_s: float = 10.0) -> Optional[dict]:
-    """Sends a single request to the persistent worker and reads the JSON line response."""
+def _query_worker(req_payload: dict, timeout_s: float = 12.0) -> Optional[dict]:
+    """Sends a single request to the persistent worker and reads the JSON line response,
+    with automatic single-attempt retry upon worker desync/crash.
+    """
+    global _worker_proc
     with _worker_lock:
-        try:
-            worker = _get_or_create_worker()
-            req_str = json.dumps(req_payload) + "\n"
-            worker.stdin.write(req_str)
-            worker.stdin.flush()
-            line = worker.stdout.readline()
-            if not line:
-                return None
-            return json.loads(line)
-        except Exception as err:
-            logger.warning(f"MathJax persistent worker communication error: {err}")
-            global _worker_proc
-            if _worker_proc:
-                try:
-                    _worker_proc.terminate()
-                except Exception:
-                    pass
-                _worker_proc = None
-            return None
+        for attempt in range(2):
+            try:
+                worker = _get_or_create_worker()
+                req_str = json.dumps(req_payload) + "\n"
+                worker.stdin.write(req_str)
+                worker.stdin.flush()
+                line = worker.stdout.readline()
+                if not line:
+                    raise RuntimeError("MathJax worker returned empty response line")
+                return json.loads(line)
+            except Exception as err:
+                logger.warning(f"MathJax persistent worker communication error (attempt {attempt+1}/2): {err}")
+                if _worker_proc:
+                    try:
+                        _worker_proc.terminate()
+                    except Exception:
+                        pass
+                    _worker_proc = None
+                if attempt == 1:
+                    return None
+    return None
 
 
 def clean_latex(latex_code: str) -> str:

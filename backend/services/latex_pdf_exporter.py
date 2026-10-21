@@ -94,6 +94,65 @@ def find_browser_executable() -> Optional[Path]:
     return None
 
 
+def clean_math_fallback_text(latex_str: str) -> str:
+    """Safely converts unparseable LaTeX into clean, human-readable Unicode text
+    completely eliminating raw syntax ($...$, \\text{...}) from leaking into print.
+    """
+    clean = (latex_str or "").strip()
+    if clean.startswith("${") and clean.endswith("}$"):
+        clean = clean[2:-2].strip()
+    elif clean.startswith("$$") and clean.endswith("$$"):
+        clean = clean[2:-2].strip()
+    elif clean.startswith("$") and clean.endswith("$"):
+        clean = clean[1:-1].strip()
+
+    # Unwrap \text{...}, \mathrm{...}, \mathbf{...}
+    clean = re.sub(r'\\(?:text|mathrm|textbf|textit|mathbf)\{([^}]*)\}', r'\1', clean)
+
+    replacements = [
+        (r'\\times\b', '×'),
+        (r'\\cdot\b', '·'),
+        (r'\\div\b', '÷'),
+        (r'\\pm\b', '±'),
+        (r'\\mp\b', '∓'),
+        (r'\\leq\b', '≤'),
+        (r'\\le\b', '≤'),
+        (r'\\geq\b', '≥'),
+        (r'\\ge\b', '≥'),
+        (r'\\neq\b', '≠'),
+        (r'\\ne\b', '≠'),
+        (r'\\approx\b', '≈'),
+        (r'\\infty\b', '∞'),
+        (r'\\pi\b', 'π'),
+        (r'\\alpha\b', 'α'),
+        (r'\\beta\b', 'β'),
+        (r'\\gamma\b', 'γ'),
+        (r'\\Delta\b', 'Δ'),
+        (r'\\delta\b', 'δ'),
+        (r'\\in\b', '∈'),
+        (r'\\notin\b', '∉'),
+        (r'\\subset\b', '⊂'),
+        (r'\\supset\b', '⊃'),
+        (r'\\rightarrow\b', '→'),
+        (r'\\Rightarrow\b', '⇒'),
+        (r'\\leftarrow\b', '←'),
+        (r'\\leftrightarrow\b', '↔'),
+        (r'\\left\b', ''),
+        (r'\\right\b', ''),
+        (r'\\,', ' '),
+        (r'\\;', ' '),
+        (r'\\quad\b', '  '),
+    ]
+    for pattern, repl in replacements:
+        clean = re.sub(pattern, repl, clean)
+
+    # Fractions: \dfrac{a}{b} -> (a / b)
+    clean = re.sub(r'\\(?:dfrac|frac)\{([^}]*)\}\{([^}]*)\}', r'(\1 / \2)', clean)
+    clean = re.sub(r'\\([a-zA-Z]+)', r'\1', clean)
+
+    return f'<span class="math-fallback" style="font-family: \'CMU Serif\', serif; font-style: italic; margin: 0 1.5px;">{clean}</span>'
+
+
 def latex_to_inline_svg(latex_str: str, has_trailing_punctuation: bool = False) -> str:
     """Converts a single LaTeX expression to inline MathJax SVG with baseline depth alignment."""
     cleaned = (latex_str or "").strip()
@@ -109,7 +168,7 @@ def latex_to_inline_svg(latex_str: str, has_trailing_punctuation: bool = False) 
 
     res = render_mathjax_equation(cleaned)
     if not res or not res.get("svg"):
-        return f"<code>{latex_str}</code>"
+        return clean_math_fallback_text(latex_str)
 
     svg = res.get("svg", "")
 
@@ -135,6 +194,9 @@ def render_math_html(text: str) -> str:
     # Normalize merged math expressions: ${\left(A\right)}, {\left(B\right)}$
     raw = re.sub(r"(?<!\\)\}\s*,\s*\{", r"}$, ${", raw)
 
+    # Separate colon directly glued to dollar: "là:$" -> "là: $"
+    raw = re.sub(r':(?=\$(?:\{|[^$]))', ': ', raw)
+
     # Strip space before punctuation after math token: "${...} ." -> "${...}."
     raw = re.sub(r'(\$\{[^}]*\}\$|\$[^$]*\$)\s+([.,;:!?])', r'\1\2', raw)
 
@@ -151,7 +213,6 @@ def render_math_html(text: str) -> str:
             or (stripped.startswith("$") and stripped.endswith("$"))
         )
         if is_math and len(stripped) > 2:
-            # Check if next token starts with punctuation
             has_next_punct = False
             if i + 1 < len(tokens):
                 next_tok = tokens[i + 1].lstrip()
@@ -159,7 +220,9 @@ def render_math_html(text: str) -> str:
                     has_next_punct = True
             out.append(latex_to_inline_svg(stripped, has_trailing_punctuation=has_next_punct))
         else:
-            cleaned_text = tok.replace("<", "&lt;").replace(">", "&gt;")
+            # Clean accidental \text{...} lying outside math delimiters
+            cleaned_text = re.sub(r'\\text\{([^}]*)\}', r'\1', tok)
+            cleaned_text = cleaned_text.replace("<", "&lt;").replace(">", "&gt;")
             out.append(cleaned_text)
 
     res = "".join(out)
