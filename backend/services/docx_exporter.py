@@ -359,11 +359,25 @@ def _custom_encode_mtef(expr, base_pt: float = 11.0, raw_latex: Optional[str] = 
     if "\u2223" not in mtef._OPERATOR_CODE:
         mtef._OPERATOR_CODE["\u2223"] = (0x2223, 0x7C)
 
+    # Invisible MathML / Unicode characters that cause black diamond replacement symbols () in MathType
+    INVISIBLE_MATH_CHARS = {
+        "\u2061",  # ApplyFunction
+        "\u2062",  # InvisibleTimes
+        "\u2063",  # InvisibleComma
+        "\u2064",  # InvisiblePlus
+        "\u200b",  # ZERO WIDTH SPACE
+        "\u200c",  # ZERO WIDTH NON-JOINER
+        "\u200d",  # ZERO WIDTH JOINER
+        "\u200e",  # LTR Mark
+        "\u200f",  # RTL Mark
+        "\ufeff",  # ZERO WIDTH NO-BREAK SPACE / BOM
+    }
+
     def _improved_encode_char(char: str) -> bytes:
         if len(char) != 1:
             return b"".join(_improved_encode_char(item) for item in char)
-        if char == "\u00a0":
-            char = " "
+        if char in INVISIBLE_MATH_CHARS or char == "\u00a0":
+            return b"" if char in INVISIBLE_MATH_CHARS else b" "
         if char in mtef._OPERATOR_CODE:
             unicode_code, mt_code = mtef._OPERATOR_CODE[char]
             return bytes([0x02, 0x04, 0x86]) + unicode_code.to_bytes(2, "little") + bytes([mt_code])
@@ -542,6 +556,8 @@ def generate_mathtype_ole(latex_math: str, default_font_size: Union[int, float] 
             mj_res = render_mathjax_equation(clean, generate_png=False)
             if mj_res and mj_res.get("mml"):
                 mml = mj_res["mml"]
+                for inv in ["\u2061", "\u2062", "\u2063", "\u2064", "\u200b", "\ufeff", "&#x2061;", "&#x2062;", "&#x2063;", "&#x2064;"]:
+                    mml = mml.replace(inv, "")
         except Exception:
             pass
         if not mml:
@@ -889,9 +905,12 @@ def add_mathtype_equation_to_paragraph(
             mtef_clean = clean.replace(r"\overrightarrow", r"\vec")
             mj_res = render_mathjax_equation(mtef_clean, font_size_pt=default_font_size, dpi=600, generate_png=True)
             if mj_res and mj_res.get("mml"):
+                mml = mj_res["mml"]
+                for inv in ["\u2061", "\u2062", "\u2063", "\u2064", "\u200b", "\ufeff", "&#x2061;", "&#x2062;", "&#x2063;", "&#x2064;"]:
+                    mml = mml.replace(inv, "")
                 try:
                     import docx_equation
-                    expr = docx_equation.parse_mathml(mj_res["mml"])
+                    expr = docx_equation.parse_mathml(mml)
                     mtef = _custom_encode_mtef(expr, default_font_size, raw_latex=clean)
                     ole_bytes = _build_mathtype_cfb_binary(mtef)
                 except Exception as e:

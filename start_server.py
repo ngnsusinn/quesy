@@ -123,7 +123,7 @@ def setup_and_run():
     print(f"       -> Health check:         http://{host}:{port}/health")
     print("================================================================")
 
-    uvicorn.run("backend.main:app", host=host, port=port, reload=False)
+    uvicorn.run("backend.main:app", host=host, port=port, reload=True)
 
 
 if __name__ == "__main__":
