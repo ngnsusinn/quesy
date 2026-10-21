@@ -761,9 +761,9 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
         for g in glyphs:
             font_obj, fontsize, c, _idx, ox, oy = g[:6]
 
-            # Render tall delimiter fences (\left, \right brackets, braces, parentheses) as vector polygons
+            # Render tall delimiter fences (\left, \right brackets, braces, parentheses) and diagonal arrows as vector polygons
             fam = getattr(font_obj, "family_name", "")
-            if fam.startswith("STIXSize"):
+            if fam.startswith("STIXSize") or c in (0x2197, 0x2198, 0x2196, 0x2199, 0x2191, 0x2193) or (fam == "cmsy10" and c in (37, 38, 39, 40)):
                 try:
                     from matplotlib.path import Path as MplPath
                     font_obj.set_size(fontsize, 72)
