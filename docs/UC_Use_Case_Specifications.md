@@ -205,7 +205,7 @@
 1. Người dùng chọn mẫu template Word và định dạng công thức (`mathtype`, `omml`, hoặc `latex`).
 2. Người dùng nhấn "Xuất gói In ấn (.ZIP)".
 3. Hệ thống tạo các file:
-   - $N$ file đề thi Word (`.docx`) khổ A4 Portrait, công thức toán dạng **MathType 7.0 OLE Vector WMF** (nét căng, click đúp mở MathType 7 để chỉnh sửa) hoặc **OMML native**, tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word native `<w:tbl>`.
+   - $N$ file đề thi Word (`.docx`) khổ A4 Portrait, công thức toán dạng **MathType 7.0 OLE Vector WMF** (100% vector thuần nét căng, stream DSMT7 TeX Input Language, click đúp mở MathType 7 để chỉnh sửa 2 chiều mượt mà không lỗi) hoặc **OMML native**, tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word native `<w:tbl>`.
    - File Bảng ma trận đáp án tổng hợp các mã đề (Excel/CSV UTF-8 BOM + PDF).
    - File Hướng dẫn giải chi tiết từng mã đề.
    - File Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR.

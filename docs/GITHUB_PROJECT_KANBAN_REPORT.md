@@ -90,7 +90,7 @@ Bảng phân rã chi tiết từng chức năng nhỏ (Atomic Single Responsibil
 | **60** | `EX-03` | `[EXPORT-DOCX] Chuyển đổi công thức LaTeX sang OMML native trong Word` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, omml, math` | S |
 | **61** | `EX-04` | `[EXPORT-PDF] Động cơ sinh PDF vector siêu tốc thuần Python (<100ms)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, reportlab, pdf` | S |
 | **62** | `EX-05` | `[EXPORT-PDF] Nạp font Times New Roman Unicode Windows cho ReportLab` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, unicode, fonts` | XS |
-| **63** | `EX-06` | `[EXPORT-DOCX] Xuất bản MathType 7.0 OLE Vector WMF (double-click edit)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, mathtype, wmf` | M |
+| **63** | `EX-06` | `[EXPORT-DOCX] MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Double-Click Edit` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, mathtype, wmf` | M |
 | **64** | `EX-07` | `[EXPORT-DOCX] Dịch vụ MathJax Persistent Worker Engine (~14ms/công thức)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, mathjax, node` | M |
 | **65** | `EX-08` | `[EXPORT-DOCX] Tự động chuyển đổi bảng thống kê \begin{array} sang <w:tbl>` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, table, docx` | S |
 | **66** | `EX-09` | `[EXPORT-DOCX] Xuất bản tài liệu Hướng dẫn giải chi tiết (Word & PDF)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, solution, export` | S |

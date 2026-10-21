@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 2.6 (Tập trung chỉ số chất lượng, MathJax Engine, Vector WMF & Hiệu năng giải pháp)  
+- **Phiên bản:** 2.7 (Tập trung hoàn thiện MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Bảo toàn chỉnh sửa 2 chiều)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều, độ bảo mật dữ liệu đề thi, tính sẵn sàng cao và trải nghiệm người dùng không độ trễ.  
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ bảo mật dữ liệu đề thi, tính sẵn sàng cao và trải nghiệm người dùng không độ trễ.  
 - **Ngày phát hành:** 2026-10-21  
 
 ---
@@ -47,8 +47,8 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 - **NFR-PERF-09 (Độ trễ API thông thường):** Các API truy vấn tìm kiếm câu hỏi theo YCCĐ, lấy danh mục cây bài học/dạng bài có độ trễ $P95 < 200$ ms.
 - **NFR-PERF-10 (Tốc độ Xử lý MathJax Persistent Worker):** Dịch vụ daemon Node.js MathJax chuyển đổi TeX sang MathML / SVG / Vector WMF phải hoàn thành trong **$< 20$ ms/công thức**, bảo đảm không tạo điểm nghẽn (bottleneck) trong tiến trình xuất bản.
 - **NFR-PERF-11 (Thời gian Xuất bản Gói Đề thi ZIP Khảo thí):** Quá trình đóng gói toàn bộ 4 mã đề thi Word kèm bảng đáp án và hướng dẫn giải (khoảng 9 file DOCX) phải hoàn thành trong vòng **$< 10$ giây** (ngân sách NFR).
-- **NFR-QUAL-01 (Độ Sắc nét Tuyệt đối của Công thức MathType):** Công thức toán trong file Word phải đạt chuẩn Vector WMF (`image/x-wmf`) với APM header, giữ nguyên độ nét vector tuyệt đối (zero blur) ở mọi mức thu phóng màn hình và in ấn.
-- **NFR-COMP-01 (Tính Biên tập Hai chiều của MathType OLE):** Đối tượng OLE nhúng trong file `.docx` bắt buộc phải kích hoạt và mở được trong trình soạn thảo MathType 7 thông qua thao tác double-click của người dùng mà không phát sinh bất kỳ lỗi COM/OLE nào.
+- **NFR-QUAL-01 (Độ Sắc nét Tuyệt đối của Công thức MathType - 100% Vector WMF):** Công thức toán trong file Word phải đạt chuẩn Vector WMF (`image/x-wmf`) với APM header, đạt tỷ lệ 100% vector thuần (loại bỏ hoàn toàn fallback raster DIB), giữ nguyên độ nét vector tuyệt đối (zero blur) ở mọi mức thu phóng màn hình và in ấn.
+- **NFR-COMP-01 (Tính Biên tập Hai chiều của MathType OLE - DSMT7 Stream):** Đối tượng OLE nhúng trong file `.docx` bắt buộc phải chứa luồng nhị phân DSMT7 chuẩn với bản ghi `TeX Input Language`, chuẩn hóa embellishment cho toán tử vectơ (`\vec`, `\overrightarrow`), kích hoạt và mở mượt mà trong trình soạn thảo MathType 7 thông qua thao tác double-click của người dùng mà không phát sinh bất kỳ lỗi COM/OLE hay popup cảnh báo thiếu ứng dụng server nào.
 
 ---
 

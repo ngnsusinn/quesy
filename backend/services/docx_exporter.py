@@ -266,13 +266,17 @@ def convert_latex_to_omml(latex_code: str) -> Optional[Any]:
     return None
 
 
-def _custom_mathtype_preamble(mathtype_version: str = "DSMT4", base_pt: float = 11.0) -> bytes:
+def _custom_mathtype_preamble(mathtype_version: str = "DSMT7", base_pt: float = 11.0, raw_latex: Optional[str] = None) -> bytes:
     import docx_equation.mathtype.mtef as mtef
     pref = mtef._equation_preferences()
     if base_pt == 11.0:
         pref = pref.replace(bytes.fromhex("21 2f"), bytes.fromhex("21 1f"))
-    return b"".join([
-        b"\x05\x01\x00\x06\x09" + mathtype_version.encode("ascii") + b"\x00\x01",
+    parts = [
+        b"\x05\x01\x00\x07\x04DSMT7\x00\x01",
+    ]
+    if raw_latex:
+        parts.append(b"f'TeX Input Language\x00" + raw_latex.encode("utf-8") + b"\x00")
+    parts.extend([
         b"\x13WinAllBasicCodePages\x00",
         mtef._font_def(5, "Times New Roman"),
         mtef._font_def(3, "Symbol"),
@@ -280,9 +284,10 @@ def _custom_mathtype_preamble(mathtype_version: str = "DSMT4", base_pt: float = 
         mtef._font_def(4, "MT Extra"),
         pref,
     ])
+    return b"".join(parts)
 
 
-def _custom_encode_mtef(expr, base_pt: float = 11.0) -> bytes:
+def _custom_encode_mtef(expr, base_pt: float = 11.0, raw_latex: Optional[str] = None) -> bytes:
     import docx_equation.mathtype.mtef as mtef
     import unicodedata
 
@@ -304,6 +309,42 @@ def _custom_encode_mtef(expr, base_pt: float = 11.0) -> bytes:
     def _clean_subsup_encode(self):
         tmpl = bytes([0x03, 0x00, 0x1D, 0x00, 0x00, 0x0B])
         return self.base.encode() + tmpl + mtef._line(self.subscript) + mtef._line(self.superscript) + bytes([0x00, 0x0A])
+
+    def _custom_hat_encode(self):
+        body = self.body
+        is_single = False
+        single_char = None
+        if isinstance(body, mtef.Text) and len(body.value) == 1:
+            is_single = True
+            single_char = body.value
+        elif isinstance(body, mtef.Symbol):
+            is_single = True
+            single_char = body.char
+        elif isinstance(body, mtef.Sequence) and len(body.items) == 1:
+            it = body.items[0]
+            if isinstance(it, mtef.Text) and len(it.value) == 1:
+                is_single = True
+                single_char = it.value
+            elif isinstance(it, mtef.Symbol):
+                is_single = True
+                single_char = it.char
+
+        if is_single and self.kind == "vector":
+            base_b = mtef._encode_char(single_char)
+            base_emb = bytes([base_b[0], base_b[1] | 0x01]) + base_b[2:]
+            return base_emb + bytes([0x06, 0x00, 11])
+
+        if self.kind == "vector":
+            return (
+                bytes([0x03, 0x00, 0x1F, 0x02, 0x00, 0x0F, 0x00, 0x01, 0x00, 0x0F, 0x01])
+                + body.encode()
+                + bytes([0x00, 0x02, 0x00, 0x96, 0xD7, 0x20, 0x00])
+            )
+
+        sel = 0x20 if self.kind == "tilde" else 0x21
+        return mtef._template(sel, 0, 0) + mtef._line(body) + b"\x00"
+
+    mtef.Hat.encode = _custom_hat_encode
 
     # Clean character and text encoders: uniform font styles
     KNOWN_FUNCTIONS = {"sin", "cos", "tan", "cot", "log", "ln", "lim", "exp", "min", "max", "arcsin", "arccos", "arctan"}
@@ -350,7 +391,7 @@ def _custom_encode_mtef(expr, base_pt: float = 11.0) -> bytes:
     mtef.Subscript.encode = _clean_subscript_encode
     mtef.Subsup.encode = _clean_subsup_encode
 
-    return _custom_mathtype_preamble("DSMT4", base_pt=float(base_pt)) + b"\x0a" + mtef._line(expr)
+    return _custom_mathtype_preamble("DSMT7", base_pt=float(base_pt), raw_latex=raw_latex) + b"\x0a" + mtef._line(expr)
 
 
 def _build_mathtype_cfb_binary(mtef_bytes: bytes) -> bytes:
@@ -481,27 +522,24 @@ def generate_mathtype_ole(latex_math: str, default_font_size: Union[int, float] 
     clean = clean.replace(r"\setminus", r"\backslash").replace("{,}", ",")
     clean = clean.replace(r"\left", "").replace(r"\right", "")
 
-    # For MTEF binary encoding: strip vector wrappers so MathType's OLE parser does not crash on tmVEC
-    mtef_clean = re.sub(r'\\(?:vec|overrightarrow)\{([^}]+)\}', r'\1', clean)
-
     try:
         import docx_equation
         mml = None
         try:
             from backend.services.mathjax_service import render_mathjax_equation
-            mj_res = render_mathjax_equation(mtef_clean, generate_png=False)
+            mj_res = render_mathjax_equation(clean, generate_png=False)
             if mj_res and mj_res.get("mml"):
                 mml = mj_res["mml"]
         except Exception:
             pass
         if not mml:
             import latex2mathml.converter
-            mml = latex2mathml.converter.convert(mtef_clean)
+            mml = latex2mathml.converter.convert(clean)
         expr = docx_equation.parse_mathml(mml)
-        mtef_bytes = _custom_encode_mtef(expr, base_pt=float(default_font_size))
+        mtef_bytes = _custom_encode_mtef(expr, base_pt=float(default_font_size), raw_latex=clean)
     except Exception:
-        # Fallback to simple DSMT4 MTEF
-        mtef_bytes = _custom_mathtype_preamble("DSMT4", base_pt=float(default_font_size)) + b"\x0a\x01\x00\x02\x00\x83x\x00\x00\x00"
+        # Fallback to simple DSMT7 MTEF
+        mtef_bytes = _custom_mathtype_preamble("DSMT7", base_pt=float(default_font_size), raw_latex=clean) + b"\x0a\x01\x00\x02\x00\x83x\x00\x00\x00"
 
     return _build_mathtype_cfb_binary(mtef_bytes)
 
@@ -531,6 +569,7 @@ UNICODE_TO_SYMBOL = {
     0x2212: 0x2d,  # minus −
     0x2248: 0xbb,  # \approx
     0x2208: 0xce,  # \in
+    0x2209: 0xcf,  # \notin
     0x221e: 0xa5,  # \infty
     0x2192: 0xae,  # \rightarrow
     0x20d7: 0xae,  # combining vector arrow
@@ -540,6 +579,14 @@ UNICODE_TO_SYMBOL = {
     0x2202: 0xb6,  # \partial
     0x222b: 0xf2,  # \int
     0x2205: 0xc6,  # \emptyset
+    0x2229: 0xc7,  # \cap
+    0x222a: 0xc8,  # \cup
+    0x2282: 0xcc,  # \subset
+    0x2286: 0xcd,  # \subseteq
+    0x2200: 0x22,  # \forall
+    0x2203: 0x24,  # \exists
+    0x2220: 0xd0,  # \angle
+    0x22a5: 0x5e,  # \perp
 }
 
 
@@ -562,15 +609,24 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
     """
     try:
         clean = clean_latex
-        m_code = clean.replace(r"\dfrac", r"\frac").replace("{,}", ",")
+        m_code = clean.replace(r"\dfrac", r"\frac").replace("{,}", ",").replace(r"\setminus", r"\backslash")
+        m_code = m_code.replace(r"\overrightarrow", r"\vec").replace(r"\widehat", r"\hat").replace(r"\ne", r"\neq")
         m_code = m_code.replace(r"\left", "").replace(r"\right", "")
+        m_code = m_code.replace(r"\mathbb{R}", "R").replace(r"\mathbb{Z}", "Z").replace(r"\mathbb{N}", "N")
+        m_code = m_code.replace(r"\mid", "|").replace('"', "").replace('"', "").replace(r"\_", "_")
+        m_code = m_code.replace(r"\varnothing", r"\emptyset")
+        m_code = m_code.replace(r"\ge", r"\geq").replace(r"\le", r"\leq")
+        m_code = m_code.strip("$").strip()
 
         from matplotlib.mathtext import MathTextParser
         from matplotlib.font_manager import FontProperties
 
         parser = MathTextParser("path")
         prop = FontProperties(size=default_font_size)
-        w_pt, h_pt, d_pt, glyphs, rects = parser.parse(f"${m_code}$", dpi=72, prop=prop)
+        try:
+            w_pt, h_pt, d_pt, glyphs, rects = parser.parse(m_code, dpi=72, prop=prop)
+        except Exception:
+            w_pt, h_pt, d_pt, glyphs, rects = parser.parse(f"${m_code}$", dpi=72, prop=prop)
 
         # Calculate exact bounding envelope across all glyphs and rects
         all_top_pts = [g[5] + g[1] * 0.75 for g in glyphs] + [r[1] + r[3] for r in rects]
@@ -792,7 +848,7 @@ def add_mathtype_equation_to_paragraph(
                 try:
                     import docx_equation
                     expr = docx_equation.parse_mathml(mj_res["mml"])
-                    mtef = _custom_encode_mtef(expr, default_font_size)
+                    mtef = _custom_encode_mtef(expr, default_font_size, raw_latex=clean)
                     ole_bytes = _build_mathtype_cfb_binary(mtef)
                 except Exception as e:
                     logger.debug(f"MathJax MathML to MTEF error: {e}")

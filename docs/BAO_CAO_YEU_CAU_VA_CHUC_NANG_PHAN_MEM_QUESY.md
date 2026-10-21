@@ -250,9 +250,9 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
      - Thiết lập chuẩn khổ giấy **A4 Portrait (210 x 297 mm)**, lề trang chuẩn $1.5\text{ cm} - 1.8\text{ cm}$, font **Times New Roman** kích cỡ $11\text{ pt}$, giãn dòng $1.15$.
      - Tự động bố cục bảng phách rọc, số báo danh, mã đề thi và tiêu đề chuẩn hóa Sở/Phòng GD&ĐT.
   2. **Công thức Toán MathType 7.0 OLE Object Vector WMF (`math_format="mathtype"`):**
-     - Thay vì xuất ảnh bitmap/PNG gây mờ và vỡ hạt khi in ấn, hệ thống sinh trực tiếp **Vector Windows Metafile (WMF)** chuẩn APM (`magic: 0x9AC6CDD7`, base resolution 1440 DPI, scale 20 twips/pt).
-     - Nhúng luồng OLE Compound File (CFB) với root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `\x01CompObj` mang định danh `MathType 7.0 Equation`, và stream `Equation Native` chứa mã MTEF v5 sinh trực tiếp từ MathJax MathML.
-     - **Tính năng độc quyền:** Cho phép giáo viên click đúp vào bất kỳ công thức nào trong Word để **mở thẳng phần mềm MathType 7 chỉnh sửa công thức 2 chiều**.
+     - Thay vì xuất ảnh bitmap/PNG gây mờ và vỡ hạt khi in ấn, hệ thống sinh trực tiếp **Vector Windows Metafile (WMF)** chuẩn APM (`magic: 0x9AC6CDD7`, base resolution 1440 DPI, scale 32 units/pt). Đạt tỷ lệ $100\%$ vector thuần không có bất kỳ file raster DIB nào.
+     - Nhúng luồng OLE Compound File (CFB) với root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `\x01CompObj` mang định danh `MathType 7.0 Equation`, và stream `Equation Native` chứa mã MTEF v5 định dạng chuẩn DSMT7 kèm bản ghi `TeX Input Language` bảo toàn chuỗi LaTeX gốc và chuẩn hóa embellishment cho toán tử vectơ (`\vec`, `\overrightarrow`).
+     - **Tính năng độc quyền:** Cho phép giáo viên click đúp vào bất kỳ công thức nào trong Word để **mở thẳng phần mềm MathType 7 chỉnh sửa công thức 2 chiều mượt mà, không gặp lỗi OLE activation hay popup cảnh báo thiếu ứng dụng server**.
   3. **Công thức Toán Microsoft Word OMML Native (`<m:oMath>` - `math_format="omml"`):**
      - Chuyển đổi mã TeX sang MathML chuẩn thông qua MathJax, sau đó biên dịch sang định dạng phương trình bản địa Word qua stylesheet `MML2OMML.XSL`.
      - Có cơ chế Fallback tự động tổng hợp OMML thuần Python, bảo đảm chạy ổn định trên mọi môi trường máy chủ Linux/Docker/CI không có bộ Office cài sẵn.

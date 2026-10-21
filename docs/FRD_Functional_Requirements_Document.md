@@ -2,7 +2,7 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 2.5 (Tập trung năng lực giải pháp & Tự động hóa khảo thí)  
+- **Phiên bản:** 2.7 (Tập trung hoàn thiện MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Bảo toàn chỉnh sửa 2 chiều)  
 - **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, dựng đồ thị vector SVG, trộn đề an toàn và xuất bản in ấn.  
 - **Ngày phát hành:** 2026-10-18  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành  
@@ -196,7 +196,7 @@ Hệ thống hỗ trợ 5 thể thức khảo thí:
   - Khổ chuẩn quốc gia: **A4 Portrait (210 x 297 mm)**, lề trang 1.5 cm - 1.8 cm, font Times New Roman 11pt, giãn dòng 1.15.
   - Header chuẩn: Tên trường/sở, môn thi, mã đề thi, bảng điền số báo danh và phách.
 - **Công thức Toán đa định dạng (`math_format`):**
-  - **`mathtype` (Mặc định):** Nhúng đối tượng **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `Equation Native` chứa MTEF v5 sinh từ MathJax MathML). Nét vector tuyệt đối không bị mờ ở mọi mức zoom, **cho phép click đúp mở MathType 7 để chỉnh sửa trực tiếp 2 chiều**.
+  - **`mathtype` (Mặc định):** Nhúng đối tượng **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `Equation Native` chứa MTEF v5 DSMT7 và bản ghi `TeX Input Language`). Chuẩn hóa embellishment vectơ (`\vec`, `\overrightarrow`), đạt độ nét vector tuyệt đối 100% không bị fallback DIB mờ ở mọi mức zoom, **cho phép click đúp mở MathType 7 client để chỉnh sửa trực tiếp 2 chiều không lỗi**.
   - **`omml`:** Phương trình bản địa Microsoft Word (`<m:oMath>`) chuyển đổi từ TeX qua MathJax MathML và XSLT.
   - **`latex`:** Giữ nguyên mã nguồn LaTeX bọc trong cặp `${...}$`.
 - **Tự động chuyển đổi bảng dữ liệu thống kê (`\begin{array}`):**

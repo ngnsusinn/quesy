@@ -193,8 +193,8 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
   - Tiêu đề trường, mã đề, bảng phách căn chỉnh lề chuẩn xác khổ A4 Portrait.
   - Công thức Toán học hiển thị dưới dạng **Word Equation native (OMML `<m:oMath>`)**, có thể click chuột vào chỉnh sửa trực tiếp, chữ nét vector, không bị vỡ hạt như hình ảnh bitmap.
 
-#### TC-EXP-02: Kiểm tra Xuất bản MathType 7.0 OLE Object Vector WMF
-- **Mô tả:** Đảm bảo công thức toán nhúng đối tượng OLE chuẩn MathType 7.0, đạt độ nét vector tuyệt đối và mở sửa được 2 chiều trong MathType client.
+#### TC-EXP-02: Kiểm tra Xuất bản MathType 7.0 OLE Object Vector WMF & Bảo toàn Chỉnh sửa 2 Chiều
+- **Mô tả:** Đảm bảo 100% công thức toán nhúng đối tượng OLE chuẩn MathType 7.0 DSMT7, đạt độ nét vector tuyệt đối (loại bỏ hoàn toàn raster DIB) và mở sửa được 2 chiều trong MathType client không gặp lỗi OLE activation hay popup cảnh báo thiếu ứng dụng server.
 - **Các bước thực hiện:**
   1. Xuất file Word với tham số `math_format="mathtype"`.
   2. Dùng automation PowerShell Word COM kiểm tra thuộc tính các shape:
@@ -202,8 +202,9 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 - **Kết quả kỳ vọng:**
   - `InlineShape.Type = 1` (wdInlineShapeEmbeddedOLEObject).
   - `OLEFormat.ProgID = "Equation.DSMT4"`, `ClassType = "Equation.DSMT4"`.
-  - Hình ảnh đại diện mang định dạng Vector WMF (`image/x-wmf`) chuẩn APM header.
-  - Lệnh `OLEFormat.Open()` thực thi thành công, cửa sổ MathType 7 mở ra bình thường.
+  - Hình ảnh đại diện mang định dạng Vector WMF (`image/x-wmf`) chuẩn APM header, 100% vector thuần (0 file chứa bản ghi raster DIB `0x0b41`).
+  - Stream `Equation Native` chứa MTEF v5 định dạng DSMT7 với bản ghi `TeX Input Language` lưu chuỗi LaTeX gốc và chuẩn hóa embellishment toán tử vectơ.
+  - Lệnh `OLEFormat.Open()` thực thi thành công, cửa sổ MathType 7 mở ra hiển thị công thức chính xác, không xuất hiện popup lỗi server application hay hiển thị chữ "A" cô lập.
 
 #### TC-EXP-03: Tự động chuyển đổi bảng dữ liệu thống kê LaTeX sang Word Table
 - **Mô tả:** Đảm bảo mảng bảng thống kê `\begin{array}` được chuyển thành bảng Word native `<w:tbl>`, không phát sinh lỗi ô đen (black box) khi xuất sang PDF.

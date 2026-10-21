@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 2.6 (Tập trung kiến trúc kỹ thuật, MathJax Engine, MathType OLE Vector WMF & Giải pháp tự động hóa khảo thí)  
+- **Phiên bản:** 2.7 (Tập trung hoàn thiện MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Bảo toàn chỉnh sửa 2 chiều)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine và xuất bản ấn phẩm Word MathType OLE Vector WMF / OMML.  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine và xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML.  
 - **Ngày phát hành:** 2026-10-21  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)  
 
@@ -179,7 +179,8 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 - **Mô tả:** Tạo file Word chuẩn A4 dọc (210 x 297 mm, lề 1.5 - 1.8 cm) chuẩn quy cách Bộ GD&ĐT.
 - **Yêu cầu kỹ thuật:**
   - Header chuẩn trường/kỳ thi/mã đề/bảng phách.
-  - Công thức Toán được nhúng dạng **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, CLSID chuẩn, stream MTEF binary từ MathJax MathML), **cho phép click đúp mở MathType 7 để chỉnh sửa trực tiếp**, hoặc định dạng **OMML native (`<m:oMath>`)**.
+  - Công thức Toán được nhúng dạng **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, CLSID `{0002CE03-0000-0000-C000-000000000046}`, ProgID `Equation.DSMT4`, stream `Equation Native` chứa MTEF v5 DSMT7 và bản ghi `TeX Input Language`). Chuẩn hóa embellishment vectơ (`\vec`, `\overrightarrow`), **cho phép click đúp mở MathType 7 để chỉnh sửa trực tiếp 2 chiều không lỗi**, hoặc định dạng **OMML native (`<m:oMath>`)**.
+  - **100% Vector WMF:** Toàn bộ công thức toán học được chuẩn hóa tiền xử lý qua MathTextParser và bảng ánh xạ Symbol font mở rộng, loại bỏ 100% fallback raster DIB mờ hạt.
   - Tự động phát hiện và chuyển đổi mảng bảng số liệu ghép nhóm `\begin{array}` sang bảng Microsoft Word `<w:tbl>`, loại bỏ hiện tượng ô đen khi xuất sang PDF.
   - Đi kèm file hướng dẫn giải chi tiết và phiếu soi đáp án OMR.
 
