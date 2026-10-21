@@ -58,7 +58,7 @@ jobs:
       - name: Run Pytest Suite
         env:
           PYTHONPATH: .
-          AI_API_KEY: "ci-test-dummy-key"
-          AI_PROVIDER: "mock"
+          AI_PROVIDER: "gemini"
+          AI_API_KEY: ""
         run: |
           python -m pytest -v --durations=10

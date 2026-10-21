@@ -13,5 +13,9 @@ latex2mathml>=3.77.0
 lxml>=5.0.0
 reportlab>=4.0.0
 requests>=2.31.0
+docx-equation>=0.3.0
+olefile>=0.47
+matplotlib>=3.8.0
+numpy>=1.26.0
 
 
