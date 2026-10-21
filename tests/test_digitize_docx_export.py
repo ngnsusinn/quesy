@@ -64,3 +64,28 @@ def test_export_digitized_docx_endpoint():
     assert "${y = \\dfrac{2x-1}{x+1}}$" in full_text_latex
     assert "${x = -1}$" in full_text_latex
     assert "${f(x) = x^2 - 4x + 5}$" in full_text_latex
+
+
+def test_export_digitized_pdf_endpoint():
+    client = TestClient(app)
+    payload = {
+        "title": "Đề Khảo Sát Toán 12 PDF",
+        "questions": [
+            {
+                "id": 1,
+                "item_format": "SINGLE_CHOICE",
+                "stem": "Cho hàm số $y = \\dfrac{2x-1}{x+1}$. Tìm tiệm cận đứng.",
+                "options": [
+                    {"label": "A", "content": "$x = -1$"},
+                    {"label": "B", "content": "$x = 2$"},
+                    {"label": "C", "content": "$y = 2$"},
+                    {"label": "D", "content": "$y = -1$"}
+                ]
+            }
+        ]
+    }
+    response = client.post("/api/v1/digitize/export-pdf", json=payload)
+    assert response.status_code == 200
+    assert response.headers.get("content-type") == "application/pdf"
+    assert len(response.content) > 1000
+    assert response.content[:4] == b"%PDF"

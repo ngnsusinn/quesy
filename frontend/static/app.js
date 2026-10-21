@@ -1768,13 +1768,13 @@
     const startDigitizeBtn = document.getElementById('btn-start-digitize');
     const resetStageBtn = document.getElementById('btn-reset-stage');
     const rightHeaderActions = document.getElementById('studio-right-header-actions');
-    const leftExportDocxBtn = document.getElementById('btn-left-export-docx');
+    const leftExportPdfBtn = document.getElementById('btn-left-export-pdf');
 
     // Staged mode before AI processing
     if (state.stagedExam && state.stagedExam.status === 'STAGED') {
       const count = (state.stagedExam.previews || []).length;
       if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
-      if (leftExportDocxBtn) leftExportDocxBtn.classList.add('hidden');
+      if (leftExportPdfBtn) leftExportPdfBtn.classList.add('hidden');
       if (startDigitizeBtn) startDigitizeBtn.classList.remove('hidden');
       if (resetStageBtn) resetStageBtn.classList.remove('hidden');
       if (statusLabel) statusLabel.innerText = `Đã chọn ${count} tệp (Kiểm tra & Sắp xếp thứ tự trước khi gõ đề)`;
@@ -1796,7 +1796,7 @@
       return;
     } else if (state.stagedExam && state.stagedExam.status === 'PROCESSING') {
       if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
-      if (leftExportDocxBtn) leftExportDocxBtn.classList.add('hidden');
+      if (leftExportPdfBtn) leftExportPdfBtn.classList.add('hidden');
       if (startDigitizeBtn) startDigitizeBtn.classList.add('hidden');
       if (resetStageBtn) resetStageBtn.classList.add('hidden');
       if (statusLabel) statusLabel.innerText = 'AI đang gõ lại và bóc tách đề thi...';
@@ -1814,7 +1814,7 @@
 
     if (questions.length === 0) {
       if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
-      if (leftExportDocxBtn) leftExportDocxBtn.classList.add('hidden');
+      if (leftExportPdfBtn) leftExportPdfBtn.classList.add('hidden');
       if (paginationBox) paginationBox.classList.add('hidden');
       if (avgEl) avgEl.innerText = 'Độ tin cậy TB: --';
       if (statusLabel) statusLabel.innerText = 'AI Parsing: Sẵn sàng (Chưa tải tệp)';
@@ -1834,7 +1834,7 @@
       state.digitizeJob.avgConfidence = 0;
     } else {
       if (rightHeaderActions) rightHeaderActions.classList.remove('hidden');
-      if (leftExportDocxBtn) leftExportDocxBtn.classList.remove('hidden');
+      if (leftExportPdfBtn) leftExportPdfBtn.classList.remove('hidden');
       if (resetStageBtn) resetStageBtn.classList.remove('hidden');
       const sum = questions.reduce((acc, q) => acc + (q.confidence || 0), 0);
       const avg = (sum / questions.length).toFixed(1);
@@ -1906,6 +1906,48 @@
     renderDashboard();
     renderItemBank();
     showToast(`Thành công: Đã lưu ${countAdded} câu hỏi vào Ngân hàng CSDL!`, 'success');
+  }
+
+  async function exportDigitizedToPdf() {
+    const questions = state.digitizeJob.questions || [];
+    if (questions.length === 0) {
+      showToast('Chưa có câu hỏi nào trong đề thi để xuất PDF. Hãy tải tệp hoặc nạp đề mẫu!', 'warning');
+      return;
+    }
+
+    const rawTitle = state.digitizeJob.filename ? state.digitizeJob.filename.replace(/\.[^/.]+$/, '') : 'De_Thi_So_Hoa';
+    showToast('Đang tạo và dàn trang file PDF chuẩn khảo thí quốc gia...', 'info');
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/digitize/export-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: rawTitle,
+          questions: questions
+        })
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Lỗi từ máy chủ khi tạo file PDF');
+      }
+
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${rawTitle}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      showToast('Đã tải xuống đề thi file PDF (.pdf) chuẩn in ấn thành công!', 'success');
+    } catch (err) {
+      console.error('Lỗi xuất file PDF đề thi:', err);
+      showToast(`Không thể xuất file PDF: ${err.message}`, 'error');
+    }
   }
 
   async function exportDigitizedToDocx() {
@@ -3689,6 +3731,7 @@ y & & \\nearrow & \\Vert & \\nearrow & \\\\
     triggerDuplicateCheckDemo,
     closeDuplicateModal,
     confirmSaveAsVariant,
+    exportDigitizedToPdf,
     exportDigitizedToDocx,
     renderDigitizeStudio,
     getState: () => state,

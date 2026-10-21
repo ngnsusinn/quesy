@@ -144,6 +144,11 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 4. `PASSAGE_GROUP`: Câu hỏi chùm (Một đoạn văn bản/ngữ liệu bài đọc cha và các câu hỏi con).
 5. `ESSAY`: Câu hỏi tự luận kèm rubric tiêu chí chấm điểm.
 
+#### SRS-FEAT-04b: Xuất bản PDF Đề thi Trực tiếp từ Số hóa AI (Digitize PDF Publisher)
+- **Mô tả:** Cho phép giáo viên xuất ngay bộ câu hỏi vừa được AI bóc tách ra tệp PDF chuẩn khảo thí quốc gia (`POST /api/v1/digitize/export-pdf` và `GET /api/v1/digitize/jobs/:job_id/export-pdf`).
+- **Quy chuẩn in ấn:** Khổ giấy A4 Portrait (210 x 297 mm), lề trang 1.8 cm, font Times New Roman 11pt, giãn dòng 1.15, dàn trang 1 cột với bảng đáp án thích ứng.
+- **Tạm thời ẩn xuất Word:** Trên giao diện tab số hóa AI (HITL Studio), tạm thời ẩn các nút xuất file Word (.docx) để tập trung hoàn thiện và vận hành luồng xuất bản PDF chất lượng cao.
+
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.
 - **Xử lý:** Tính toán vector embedding (`text-embedding-3-small` hoặc `bge-m3`), so sánh Cosine Distance trong `pgvector`.

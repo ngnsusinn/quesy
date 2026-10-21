@@ -471,6 +471,50 @@ class ExportDocxPayload(BaseModel):
     math_format: Optional[str] = "mathtype"
 
 
+class ExportPdfPayload(BaseModel):
+    title: Optional[str] = "Đề thi số hóa"
+    questions: Optional[List[Dict[str, Any]]] = None
+    math_format: Optional[str] = "mathtype"
+
+
+@router.post("/export-pdf")
+def export_digitized_exam_pdf_endpoint(payload: ExportPdfPayload, db: Session = Depends(get_db)):
+    """POST /api/v1/digitize/export-pdf
+    Exports given digitized questions into a formatted high-fidelity PDF document (.pdf).
+    """
+    from backend.services.docx_exporter import generate_digitized_exam_pdf
+    from backend.config import EXPORTS_DIR
+
+    qs = payload.questions or []
+    if not qs:
+        raise HTTPException(status_code=400, detail="Không có câu hỏi nào để xuất đề thi.")
+
+    title = payload.title or "Đề thi số hóa"
+    clean_title = re.sub(r'[^\w\s-]', '', title).strip().replace(" ", "_")
+    output_filename = f"{clean_title}_{uuid.uuid4().hex[:8]}.pdf"
+    output_path = EXPORTS_DIR / output_filename
+
+    success = generate_digitized_exam_pdf(
+        questions=qs,
+        output_pdf=output_path,
+        title=title,
+        school_name="SỞ GIÁO DỤC VÀ ĐÀO TẠO",
+        subject_name="Toán học",
+        grade="12",
+        variant_code="101",
+        math_format=payload.math_format or "mathtype"
+    )
+
+    if not output_path.exists() or output_path.stat().st_size < 500:
+        raise HTTPException(status_code=500, detail="Không thể tạo file PDF đề thi.")
+
+    return FileResponse(
+        path=str(output_path),
+        filename=output_filename,
+        media_type="application/pdf"
+    )
+
+
 @router.post("/export-docx")
 def export_digitized_exam_docx(payload: ExportDocxPayload, db: Session = Depends(get_db)):
     """POST /api/v1/digitize/export-docx
@@ -561,4 +605,62 @@ def export_job_to_docx(
         path=str(output_path),
         filename=output_filename,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+
+@router.get("/jobs/{job_id}/export-pdf")
+def export_job_to_pdf_endpoint(
+    job_id: str,
+    math_format: str = Query("mathtype", description="mathtype, omml, latex"),
+    db: Session = Depends(get_db)
+):
+    """GET /api/v1/digitize/jobs/:job_id/export-pdf
+    Exports questions extracted in a specific digitize job to PDF.
+    """
+    from backend.services.docx_exporter import generate_digitized_exam_pdf
+    from backend.config import EXPORTS_DIR
+
+    job = db.query(AIDigitizeJob).filter(AIDigitizeJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Không tìm thấy tác vụ số hóa.")
+
+    questions = []
+    if job.extracted_data:
+        if isinstance(job.extracted_data, list):
+            questions = job.extracted_data
+        elif isinstance(job.extracted_data, str):
+            try:
+                parsed = json.loads(job.extracted_data)
+                if isinstance(parsed, str):
+                    parsed = json.loads(parsed)
+                questions = parsed if isinstance(parsed, list) else []
+            except Exception:
+                questions = []
+
+    if not questions:
+        raise HTTPException(status_code=400, detail="Tác vụ chưa có câu hỏi nào được bóc tách.")
+
+    base_name = Path(job.filename or "De_Thi_So_Hoa").stem
+    clean_title = re.sub(r'[^\w\s-]', '', base_name).strip().replace(" ", "_")
+    output_filename = f"{clean_title}.pdf"
+    output_path = EXPORTS_DIR / f"{job_id}_{output_filename}"
+
+    success = generate_digitized_exam_pdf(
+        questions=questions,
+        output_pdf=output_path,
+        title=base_name,
+        school_name="SỞ GIÁO DỤC VÀ ĐÀO TẠO",
+        subject_name="Toán học",
+        grade="12",
+        variant_code="101",
+        math_format=math_format
+    )
+
+    if not output_path.exists() or output_path.stat().st_size < 500:
+        raise HTTPException(status_code=500, detail="Không thể tạo file PDF đề thi.")
+
+    return FileResponse(
+        path=str(output_path),
+        filename=output_filename,
+        media_type="application/pdf"
     )

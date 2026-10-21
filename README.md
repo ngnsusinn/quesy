@@ -48,6 +48,7 @@ Trong công tác biên soạn đề thi và quản lý ngân hàng câu hỏi, g
 * **Đối chiếu song song:** Cột trái xem tài liệu gốc (PDF, ảnh scan, Word), cột phải hiển thị danh sách câu hỏi điện tử tương ứng.
 * **Thao tác 1-Click:** Chỉnh sửa nhanh công thức, đổi đáp án trắc nghiệm chỉ bằng một cú nhấp chuột, kiểm tra trùng lặp câu hỏi bằng AI Vector Cosine Similarity.
 * **Tự động ẩn phân trang:** Giao diện tự động ẩn cụm chuyển trang khi tài liệu chỉ có 1 trang ảnh.
+* **Xuất bản PDF Trực tiếp từ Số hóa AI:** Tích hợp tính năng xuất file PDF trực tiếp (`/api/v1/digitize/export-pdf`) theo chuẩn khảo thí quốc gia A4 Portrait (210 x 297 mm, lề 1.8 cm), dàn trang tự động 1 cột và bảng phương án thích ứng, độ nét vector tuyệt đối; tạm thời ẩn chức năng xuất Word DOCX trong tab số hóa để tập trung vào luồng ấn phẩm PDF hoàn hảo.
 
 ### 2.4. Động Cơ Trộn Đề Thi An Toàn (Safe Shuffling Engine)
 * **Khóa neo vị trí (Option Anchor):** Tự động nhận diện và khóa cố định các phương án như *"Cả A và B đều đúng"*, *"Tất cả các ý trên đều sai"* tại vị trí cuối cùng (D), đảm bảo không bao giờ bị đảo lên A, B, C làm sai lệch đáp án.

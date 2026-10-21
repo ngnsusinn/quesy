@@ -2863,3 +2863,47 @@ def generate_digitized_exam_docx(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(output_path))
     return output_path
+
+
+def generate_digitized_exam_pdf(
+    questions: List[Dict[str, Any]],
+    output_pdf: Path,
+    title: str = "ĐỀ THI KHẢO THÍ",
+    school_name: str = "SỞ GIÁO DỤC VÀ ĐÀO TẠO",
+    subject_name: str = "Toán học",
+    grade: str = "12",
+    variant_code: str = "101",
+    duration: int = 90,
+    math_format: str = "mathtype"
+) -> bool:
+    """Generates an official high-fidelity print-quality PDF for digitized questions.
+    Uses Word COM automation on Windows with ReportLab/Browser fallbacks.
+    """
+    output_pdf = Path(output_pdf).resolve()
+    temp_docx = output_pdf.with_suffix(".temp.docx")
+    try:
+        generate_digitized_exam_docx(
+            questions=questions,
+            output_path=temp_docx,
+            title=title,
+            school_name=school_name,
+            subject_name=subject_name,
+            grade=grade,
+            variant_code=variant_code,
+            duration=duration,
+            math_format=math_format
+        )
+        if temp_docx.exists():
+            # Tier 1: Word COM on Windows
+            if convert_docx_to_pdf(temp_docx, output_pdf):
+                return True
+    except Exception as e:
+        logger.warning(f"generate_digitized_exam_pdf docx conversion failed: {e}")
+    finally:
+        if temp_docx.exists():
+            try:
+                temp_docx.unlink()
+            except Exception:
+                pass
+
+    return output_pdf.exists() and output_pdf.stat().st_size > 1000

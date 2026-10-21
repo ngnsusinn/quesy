@@ -92,6 +92,7 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   - **Sửa nhanh công thức:** Nhấp đúp vào công thức để mở popup soạn thảo LaTeX với live preview KaTeX.
   - **Gán nhanh YCCĐ & Dạng bài:** Dropdown phân loại 6 tầng: Cấp/Khối $\rightarrow$ Môn $\rightarrow$ Mạch nội dung $\rightarrow$ Chủ đề $\rightarrow$ Bài học $\rightarrow$ **YCCĐ (Mã chuẩn TT 32)** $\rightarrow$ **Dạng câu hỏi**.
   - **Lưu vào Ngân hàng:** Nhấn "Lưu toàn bộ vào Ngân hàng" để tạo các câu hỏi ở trạng thái `DRAFT` hoặc `PENDING_REVIEW`.
+  - **Xuất PDF Đề thi Trực tiếp (`FR-02.3`):** Cung cấp nút bấm `Xuất PDF` trên thanh công cụ cả ở khung trái và khung phải, gọi API `POST /api/v1/digitize/export-pdf` tải xuống tệp PDF chuẩn khảo thí quốc gia A4 Portrait (210 x 297 mm, lề 1.8 cm, font Times New Roman 11pt, dòng 1.15) với độ nét vector tuyệt đối; tạm thời ẩn tính năng xuất Word DOCX trong tab số hóa.
 
 ---
 
