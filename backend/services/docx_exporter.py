@@ -205,6 +205,9 @@ def clean_math_expr(text: str) -> str:
     if not text:
         return ""
     s = text.strip()
+    # Strip any enclosing single or double quotes (e.g. "'${...}'")
+    while (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+        s = s[1:-1].strip()
     if s.startswith("${") and s.endswith("}$"):
         s = s[2:-2].strip()
     elif s.startswith("$$") and s.endswith("$$"):
@@ -226,6 +229,8 @@ def clean_math_expr(text: str) -> str:
             s = s[1:-1].strip()
         else:
             break
+    # Promote \frac to \dfrac for full-size professional math exam display
+    s = re.sub(r"(?<![a-zA-Z\\])\\frac(?![a-zA-Z])", r"\\dfrac", s)
     return s
 
 
@@ -544,9 +549,7 @@ def _build_mathtype_cfb_binary(mtef_bytes: bytes) -> bytes:
 def generate_mathtype_ole(latex_math: str, default_font_size: Union[int, float] = 11) -> bytes:
     """Encodes LaTeX formula into compliant MathType 7.0 OLE CFB binary."""
     clean = latex_math.strip().strip("$").strip()
-    clean = clean.replace(r"\dfrac", r"\frac")
     clean = clean.replace(r"\setminus", r"\backslash").replace("{,}", ",")
-    clean = clean.replace(r"\left", "").replace(r"\right", "")
 
     try:
         import docx_equation
@@ -571,6 +574,14 @@ def generate_mathtype_ole(latex_math: str, default_font_size: Union[int, float] 
 
     return _build_mathtype_cfb_binary(mtef_bytes)
 
+
+BLACKBOARD_BOLD_TO_LATIN = {
+    0x211a: ord("Q"),  # \mathbb{Q}
+    0x211d: ord("R"),  # \mathbb{R}
+    0x2124: ord("Z"),  # \mathbb{Z}
+    0x2115: ord("N"),  # \mathbb{N}
+    0x2102: ord("C"),  # \mathbb{C}
+}
 
 UNICODE_TO_SYMBOL = {
     0x03c0: 0x70,  # \pi
@@ -619,11 +630,6 @@ UNICODE_TO_SYMBOL = {
     0x2223: 0x7c,  # \mid (|)
     0x2236: 0x3a,  # \colon (:)
     0x2026: 0x85,  # \dots (…)
-    0x211a: 0x51,  # \mathbb{Q} -> Q
-    0x211d: 0x52,  # \mathbb{R} -> R
-    0x2124: 0x5a,  # \mathbb{Z} -> Z
-    0x2115: 0x4e,  # \mathbb{N} -> N
-    0x2102: 0x43,  # \mathbb{C} -> C
 }
 
 
@@ -646,7 +652,7 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
     """
     try:
         clean = clean_latex
-        m_code = clean.replace(r"\dfrac", r"\frac").replace("{,}", ",")
+        m_code = clean.replace("{,}", ",")
         m_code = re.sub(r"\\setminus(?![a-zA-Z])", r"\\backslash", m_code)
         m_code = re.sub(r"\\middle(?![a-zA-Z])", "", m_code)
         m_code = re.sub(r"\\mid(?![a-zA-Z])", "|", m_code)
@@ -655,10 +661,11 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
         m_code = re.sub(r"\\ne(?![a-zA-Z])", r"\\neq", m_code)
         m_code = re.sub(r"\\le(?![a-zA-Z])", r"\\leq", m_code)
         m_code = re.sub(r"\\ge(?![a-zA-Z])", r"\\geq", m_code)
-        m_code = re.sub(r"\\mathbb\{([A-Za-z])\}", r"\1", m_code)
-        m_code = m_code.replace(r"\mathbb{Q}", "Q").replace(r"\mathbb{R}", "R").replace(r"\mathbb{Z}", "Z").replace(r"\mathbb{N}", "N").replace(r"\mathbb{C}", "C")
+        m_code = re.sub(r"\\mathbb\{([A-Za-z])\}", r"\\mathbf{\1}", m_code)
+        m_code = m_code.replace(r"\mathbb{Q}", r"\mathbf{Q}").replace(r"\mathbb{R}", r"\mathbf{R}").replace(r"\mathbb{Z}", r"\mathbf{Z}").replace(r"\mathbb{N}", r"\mathbf{N}").replace(r"\mathbb{C}", r"\mathbf{C}")
         m_code = m_code.replace('"', "").replace('"', "").replace(r"\_", "_")
         m_code = m_code.replace(r"\varnothing", r"\emptyset")
+        m_code = re.sub(r"(?<![a-zA-Z\\])([a-zA-Z])\(", lambda m: m.group(1) + r"\,(", m_code)
         m_code = m_code.strip("$").strip()
 
         from matplotlib.mathtext import MathTextParser
@@ -684,7 +691,7 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
 
         has_subscript = bool(re.search(r'_[^{\s]|_\{', m_code))
         has_superscript = bool(re.search(r'\^[^{\s]|\^\{', m_code))
-        has_fraction = r"\frac" in m_code
+        has_fraction = r"\frac" in m_code or r"\dfrac" in m_code
 
         min_ascent = default_font_size * 0.80
         min_descent = default_font_size * 0.22
@@ -722,10 +729,14 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
             _build_wmf_rec(0x0209, struct.pack("<I", 0x00000000)), # SETTEXTCOLOR: Black
         ]
 
-        # Pen for fraction bars & lines
+        # Pen for fraction bars & lines (Handle 0)
         pen_w = max(1, int(round(0.8 * SCALE)))
         pen = struct.pack("<HHHI", 0, pen_w, 0, 0x00000000)
         records.append(_build_wmf_rec(0x02fa, pen))  # Handle 0 = Pen
+
+        # Solid black brush for tall delimiter fills (Handle 3)
+        brush = struct.pack("<HIH", 0, 0x00000000, 0)
+        records.append(_build_wmf_rec(0x02fc, brush))  # Handle 3 = Brush
 
         active_font_handle = -1
         cur_font_key = None
@@ -733,12 +744,39 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
         for g in glyphs:
             font_obj, fontsize, c, _idx, ox, oy = g[:6]
 
-            # Remap any big fence/brace codes to standard { and }
-            if c in (0xa9, 0x7b) or (getattr(font_obj, "family_name", "").startswith("STIXSize") and "braceleft" in getattr(font_obj, "postscript_name", "")):
+            # Render tall delimiter fences (\left, \right brackets, braces, parentheses) as vector polygons
+            fam = getattr(font_obj, "family_name", "")
+            if fam.startswith("STIXSize"):
+                try:
+                    from matplotlib.path import Path as MplPath
+                    font_obj.set_size(fontsize, 72)
+                    font_obj.load_char(c)
+                    v_path, codes_path = font_obj.get_path()
+                    mpl_p = MplPath(v_path, codes_path)
+                    polys = mpl_p.to_polygons()
+                    records.append(_build_wmf_rec(0x012d, struct.pack("<H", 0)))  # Select Pen 0
+                    records.append(_build_wmf_rec(0x012d, struct.pack("<H", 3)))  # Select Brush 3
+                    for poly in polys:
+                        if len(poly) < 3:
+                            continue
+                        pts = []
+                        for px, py in poly:
+                            x_u = int(round((ox + px + pad_left) * SCALE))
+                            y_u = int(round((base_y_pt - (oy + py)) * SCALE))
+                            pts.append((x_u, y_u))
+                        poly_data = struct.pack(f"<{len(pts)*2}h", *[coord for pt in pts for coord in pt])
+                        records.append(_build_wmf_rec(0x0324, struct.pack("<H", len(pts)) + poly_data))
+                    continue
+                except Exception:
+                    pass
+
+            # Remap any fence/brace codes to standard { and }
+            if c in (0xa9, 0x7b):
                 c = 123  # '{'
-            elif c in (0xaa, 0x7d) or (getattr(font_obj, "family_name", "").startswith("STIXSize") and "braceright" in getattr(font_obj, "postscript_name", "")):
+            elif c in (0xaa, 0x7d):
                 c = 125  # '}'
 
+            is_bb = c in BLACKBOARD_BOLD_TO_LATIN
             is_sym = c in UNICODE_TO_SYMBOL
             is_alpha = chr(c).isalpha() if 32 <= c <= 126 else False
             style_name = getattr(font_obj, "style_name", "").lower()
@@ -746,7 +784,13 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
             is_bold = "bold" in style_name
             f_weight = 700 if is_bold else 400
 
-            if is_sym:
+            if is_bb:
+                char_b = bytes([BLACKBOARD_BOLD_TO_LATIN[c]])
+                f_name = "Times New Roman"
+                f_charset = 0
+                f_it = False
+                f_weight = 700
+            elif is_sym:
                 char_b = bytes([UNICODE_TO_SYMBOL[c]])
                 f_name = "Symbol"
                 f_charset = 2
@@ -795,14 +839,15 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
 
         if active_font_handle != -1:
             records.append(_build_wmf_rec(0x01f0, struct.pack("<H", active_font_handle)))
-        records.append(_build_wmf_rec(0x01f0, struct.pack("<H", 0)))  # Delete Pen
+        records.append(_build_wmf_rec(0x01f0, struct.pack("<H", 0)))  # Delete Pen 0
+        records.append(_build_wmf_rec(0x01f0, struct.pack("<H", 3)))  # Delete Brush 3
 
         records.append(_build_wmf_rec(0x0000))  # EOF
 
         wmf_recs = b"".join(records)
         total_words = 9 + len(wmf_recs) // 2
         max_rec = max(len(r) // 2 for r in records)
-        wmf_header = struct.pack("<HHHIHIH", 1, 9, 0x0300, total_words, 3, max_rec, 0)
+        wmf_header = struct.pack("<HHHIHIH", 1, 9, 0x0300, total_words, 8, max_rec, 0)
         wmf_body = wmf_header + wmf_recs
 
         inch = 2304
@@ -929,8 +974,7 @@ def add_mathtype_equation_to_paragraph(
     if wmf_res is not None:
         img_bytes, w_pt, h_pt, depth_pt = wmf_res
         img_format = "wmf"
-        if not shift_half_pt:
-            shift_half_pt = -max(0, int(round(depth_pt * 2)))
+        shift_half_pt = -max(0, int(round(depth_pt * 2)))
     else:
         # Fallback to high-DPI MathJax image wrapped in WMF (ensures image/x-wmf MIME)
         try:
@@ -1055,6 +1099,10 @@ def add_math_text_to_paragraph(
     if not text:
         return
 
+    text = text.strip()
+    while (text.startswith("'") and text.endswith("'")) or (text.startswith('"') and text.endswith('"')):
+        text = text[1:-1].strip()
+
     # Normalize merged math expressions like ${\left(SAD\right)}, {\left(SBC\right)}$ -> ${\left(SAD\right)}$, ${\left(SBC\right)}$
     text = re.sub(r"(?<!\\)\}\s*,\s*\{", r"}$, ${", text)
 
@@ -1150,6 +1198,28 @@ def add_math_text_to_paragraph(
 # ---------------------------------------------------------------------------
 # 2. Official Ministry Examination Header & Layout
 # ---------------------------------------------------------------------------
+
+def _configure_document_styles(doc: docx.Document):
+    """Configures Times New Roman 11pt, line spacing 1.15, suppression of spelling squiggles, and vi-VN language."""
+    try:
+        settings_elem = doc.settings.element
+        settings_elem.append(parse_xml(f'<w:hideSpellingErrors {nsdecls("w")}/>'))
+        settings_elem.append(parse_xml(f'<w:hideGrammaticalErrors {nsdecls("w")}/>'))
+    except Exception:
+        pass
+
+    try:
+        norm_style = doc.styles['Normal']
+        norm_style.font.name = 'Times New Roman'
+        norm_style.font.size = Pt(11)
+        norm_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+        norm_style.paragraph_format.line_spacing = 1.15
+        rPr = norm_style.element.get_or_add_rPr()
+        rPr.append(parse_xml(f'<w:noProof {nsdecls("w")}/>'))
+        rPr.append(parse_xml(f'<w:lang {nsdecls("w")} w:val="vi-VN"/>'))
+    except Exception:
+        pass
+
 
 def _set_cell_border(cell, **kwargs):
     """Sets thin borders on a table cell."""
@@ -1348,6 +1418,7 @@ def generate_variant_docx(variant: ExamVariant, output_path: Path, math_format: 
     - Native OMML (<m:oMath>) or MathType OLE equations.
     """
     doc = docx.Document()
+    _configure_document_styles(doc)
 
     # 1. Page Format: Standard A4 Portrait (210 x 297 mm, 1.5 cm margins)
     s1 = doc.sections[0]
@@ -1505,6 +1576,7 @@ def generate_variant_docx(variant: ExamVariant, output_path: Path, math_format: 
 def generate_solution_docx(variant: ExamVariant, output_path: Path, math_format: str = "omml"):
     """Generates a detailed solution document for a variant with OMML equations."""
     doc = docx.Document()
+    _configure_document_styles(doc)
     s = doc.sections[0]
     s.orientation = WD_ORIENT.PORTRAIT
     s.page_width = Mm(210)
@@ -2589,16 +2661,7 @@ def generate_digitized_exam_docx(
     with genuine MathType OLE equations (Equation.DSMT4), adaptive option columns, and embedded TikZ diagrams.
     """
     doc = docx.Document()
-
-    # Configure Normal Style with Times New Roman 11pt, line spacing 1.15
-    try:
-        norm_style = doc.styles['Normal']
-        norm_style.font.name = 'Times New Roman'
-        norm_style.font.size = Pt(11)
-        norm_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
-        norm_style.paragraph_format.line_spacing = 1.15
-    except Exception:
-        pass
+    _configure_document_styles(doc)
 
     # 1. Page Format: Standard A4 Portrait (210 x 297 mm, 1.8 cm margins)
     s1 = doc.sections[0]
