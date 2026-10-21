@@ -349,6 +349,16 @@ def _custom_encode_mtef(expr, base_pt: float = 11.0, raw_latex: Optional[str] = 
     # Clean character and text encoders: uniform font styles
     KNOWN_FUNCTIONS = {"sin", "cos", "tan", "cot", "log", "ln", "lim", "exp", "min", "max", "arcsin", "arccos", "arctan"}
 
+    # Additional operators for MathType MTEF
+    if "\\" not in mtef._OPERATOR_CODE:
+        mtef._OPERATOR_CODE["\\"] = (0x005C, 0x5C)
+    if "\u2216" not in mtef._OPERATOR_CODE:
+        mtef._OPERATOR_CODE["\u2216"] = (0x2216, 0x5C)
+    if "|" not in mtef._OPERATOR_CODE:
+        mtef._OPERATOR_CODE["|"] = (0x007C, 0x7C)
+    if "\u2223" not in mtef._OPERATOR_CODE:
+        mtef._OPERATOR_CODE["\u2223"] = (0x2223, 0x7C)
+
     def _improved_encode_char(char: str) -> bytes:
         if len(char) != 1:
             return b"".join(_improved_encode_char(item) for item in char)
@@ -362,9 +372,11 @@ def _custom_encode_mtef(expr, base_pt: float = 11.0, raw_latex: Optional[str] = 
         elif char.isalpha():
             typeface = 0x83  # fnVARIABLE (Italic math variables)
         elif char in "()[]{}":
-            typeface = 0x96  # fnEXPAND (Fences and grouping brackets matching MathType standard)
+            typeface = 0x82  # fnFUNCTION / Fences and grouping brackets (ensures MathType displays [, ], (, ), {, })
         elif char in ";:":
             typeface = 0x81  # fnTEXT (Punctuation)
+        elif char in "\\|":
+            typeface = 0x86  # fnSYMBOL (Set difference backslash, vertical bars)
         elif char.isspace():
             typeface = 0x86  # fnSYMBOL
         elif unicodedata.category(char).startswith(("S", "M")):
@@ -587,6 +599,15 @@ UNICODE_TO_SYMBOL = {
     0x2203: 0x24,  # \exists
     0x2220: 0xd0,  # \angle
     0x22a5: 0x5e,  # \perp
+    0x2216: 0x5c,  # \setminus (set difference \)
+    0x2223: 0x7c,  # \mid (|)
+    0x2236: 0x3a,  # \colon (:)
+    0x2026: 0x85,  # \dots (…)
+    0x211a: 0x51,  # \mathbb{Q} -> Q
+    0x211d: 0x52,  # \mathbb{R} -> R
+    0x2124: 0x5a,  # \mathbb{Z} -> Z
+    0x2115: 0x4e,  # \mathbb{N} -> N
+    0x2102: 0x43,  # \mathbb{C} -> C
 }
 
 
@@ -609,13 +630,18 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
     """
     try:
         clean = clean_latex
-        m_code = clean.replace(r"\dfrac", r"\frac").replace("{,}", ",").replace(r"\setminus", r"\backslash")
-        m_code = m_code.replace(r"\overrightarrow", r"\vec").replace(r"\widehat", r"\hat").replace(r"\ne", r"\neq")
+        m_code = clean.replace(r"\dfrac", r"\frac").replace("{,}", ",")
+        m_code = re.sub(r"\\setminus(?![a-zA-Z])", r"\\backslash", m_code)
+        m_code = re.sub(r"\\overrightarrow(?![a-zA-Z])", r"\\vec", m_code)
+        m_code = re.sub(r"\\widehat(?![a-zA-Z])", r"\\hat", m_code)
+        m_code = re.sub(r"\\ne(?![a-zA-Z])", r"\\neq", m_code)
+        m_code = re.sub(r"\\le(?![a-zA-Z])", r"\\leq", m_code)
+        m_code = re.sub(r"\\ge(?![a-zA-Z])", r"\\geq", m_code)
         m_code = m_code.replace(r"\left", "").replace(r"\right", "")
-        m_code = m_code.replace(r"\mathbb{R}", "R").replace(r"\mathbb{Z}", "Z").replace(r"\mathbb{N}", "N")
+        m_code = re.sub(r"\\mathbb\{([A-Za-z])\}", r"\1", m_code)
+        m_code = m_code.replace(r"\mathbb{Q}", "Q").replace(r"\mathbb{R}", "R").replace(r"\mathbb{Z}", "Z").replace(r"\mathbb{N}", "N").replace(r"\mathbb{C}", "C")
         m_code = m_code.replace(r"\mid", "|").replace('"', "").replace('"', "").replace(r"\_", "_")
         m_code = m_code.replace(r"\varnothing", r"\emptyset")
-        m_code = m_code.replace(r"\ge", r"\geq").replace(r"\le", r"\leq")
         m_code = m_code.strip("$").strip()
 
         from matplotlib.mathtext import MathTextParser
@@ -624,9 +650,9 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
         parser = MathTextParser("path")
         prop = FontProperties(size=default_font_size)
         try:
-            w_pt, h_pt, d_pt, glyphs, rects = parser.parse(m_code, dpi=72, prop=prop)
-        except Exception:
             w_pt, h_pt, d_pt, glyphs, rects = parser.parse(f"${m_code}$", dpi=72, prop=prop)
+        except Exception:
+            w_pt, h_pt, d_pt, glyphs, rects = parser.parse(m_code, dpi=72, prop=prop)
 
         # Calculate exact bounding envelope across all glyphs and rects
         all_top_pts = [g[5] + g[1] * 0.75 for g in glyphs] + [r[1] + r[3] for r in rects]
@@ -700,7 +726,10 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
                 f_charset = 0
                 f_it = True  # Variables in MathType are ALWAYS Italic
             else:
-                char_b = chr(c).encode("latin-1", errors="replace")
+                try:
+                    char_b = chr(c).encode("cp1252")
+                except Exception:
+                    char_b = chr(c).encode("latin-1", errors="replace")
                 f_name = "Times New Roman"
                 f_charset = 0
                 f_it = False

@@ -130,7 +130,7 @@ ight\}` (bảo vệ căn `\sqrt[...]` và text mode).
 ### BR-06: XUẤT BẢN ẤN PHẨM KHẢO THÍ & CHẤM ĐIỂM HỌC SINH
 - **BR-06.1 Xuất bản Microsoft Word (.docx) chuẩn in ấn & MathType OLE:**
   - Khổ chuẩn A4 Portrait (210 x 297 mm), lề trang chuẩn 1.5 cm - 1.8 cm, font Times New Roman 11pt, giãn dòng 1.15.
-  - Hỗ trợ công thức **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `Equation Native` chứa MTEF v5 DSMT7 và bản ghi `TeX Input Language`), **cho phép click đúp mở MathType 7 để chỉnh sửa trực tiếp 2 chiều không lỗi**. Đạt 100% Vector WMF thuần không dùng ảnh raster DIB mờ hạt.
+  - Hỗ trợ công thức **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `Equation Native` chứa MTEF v5 DSMT7 và bản ghi `TeX Input Language`), **cho phép click đúp mở MathType 7 để chỉnh sửa trực tiếp 2 chiều đồng bộ với Web**. Chuẩn hóa typeface `0x82` bảo toàn toàn bộ dấu ngoặc `[`, `]`, `(`, `)`, `{`, `}`, đạt 100% Vector WMF thuần không dùng ảnh raster DIB mờ hạt và triệt tiêu lỗi dấu `?`.
   - Hỗ trợ định dạng **Microsoft Word OMML native**, chữ vector sắc nét, chỉnh sửa trực tiếp trên Word.
   - Tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word `<w:tbl>`, loại bỏ lỗi hộp đen khi xuất PDF.
   - Gói xuất bản ZIP: $N$ file đề thi Word, file Lời giải chi tiết, file Bảng đáp án tổng hợp (Excel/CSV UTF-8 BOM + PDF), file Phiếu trả lời trắc nghiệm (chuẩn máy chấm OMR).

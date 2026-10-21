@@ -203,8 +203,8 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
   - `InlineShape.Type = 1` (wdInlineShapeEmbeddedOLEObject).
   - `OLEFormat.ProgID = "Equation.DSMT4"`, `ClassType = "Equation.DSMT4"`.
   - Hình ảnh đại diện mang định dạng Vector WMF (`image/x-wmf`) chuẩn APM header, 100% vector thuần (0 file chứa bản ghi raster DIB `0x0b41`).
-  - Stream `Equation Native` chứa MTEF v5 định dạng DSMT7 với bản ghi `TeX Input Language` lưu chuỗi LaTeX gốc và chuẩn hóa embellishment toán tử vectơ.
-  - Lệnh `OLEFormat.Open()` thực thi thành công, cửa sổ MathType 7 mở ra hiển thị công thức chính xác, không xuất hiện popup lỗi server application hay hiển thị chữ "A" cô lập.
+  - Stream `Equation Native` chứa MTEF v5 định dạng DSMT7 với bản ghi `TeX Input Language` lưu chuỗi LaTeX gốc, chuẩn hóa embellishment toán tử vectơ, và sử dụng typeface `0x82` bảo toàn đầy đủ các dấu ngoặc `[`, `]`, `(`, `)`, `{`, `}` khi mở MathType.
+  - Lệnh `OLEFormat.Open()` thực thi thành công, cửa sổ MathType 7 mở ra hiển thị công thức chính xác đồng bộ với nội dung LaTeX trên Web (ví dụ $A = [5; 8)$ hiển thị đầy đủ cả dấu ngoặc `[` và `)` trong MathType), không xuất hiện popup lỗi server application hay hiển thị chữ "A" cô lập.
 
 #### TC-EXP-03: Tự động chuyển đổi bảng dữ liệu thống kê LaTeX sang Word Table
 - **Mô tả:** Đảm bảo mảng bảng thống kê `\begin{array}` được chuyển thành bảng Word native `<w:tbl>`, không phát sinh lỗi ô đen (black box) khi xuất sang PDF.
