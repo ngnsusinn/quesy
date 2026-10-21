@@ -1,219 +1,270 @@
-# QUESY: NỀN TẢNG SỐ HÓA, QUẢN LÝ ĐỀ THI & DỰNG ĐỒ THỊ TOÁN HỌC TỰ ĐỘNG BẰNG AI
+# Quesy: AI-Powered National Assessment & Mathematical Publishing Platform
 
-> **Giải pháp toàn diện giúp giáo viên và các tổ chức giáo dục giải quyết triệt để bài toán gõ lại đề thi thủ công, tự động dựng lại đồ thị vector sắc nét, chuẩn hóa công thức toán học, trộn đề thi an toàn không lỗi logic và xuất bản đề in ấn chuẩn mực chỉ trong vài giây.**
+> **An enterprise-grade assessment platform, AI digitization pipeline, and high-fidelity mathematical publishing engine built strictly for Vietnam's Ministry of Education and Training (MoET) Circular 32/2018/TT-BGDĐT and Decision 764/QĐ-BGDĐT examination standards.**
 
 [![CI Test Suite](https://github.com/ngnsusinn/quesy/actions/workflows/ci.yml/badge.svg)](https://github.com/ngnsusinn/quesy/actions)
-![Python 3.10+](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
-![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%2B%20SQLAlchemy-009688)
-![Frontend](https://img.shields.io/badge/Frontend-Apple%20HIG%20SPA%20%2B%20TailwindCSS%20%2B%20KaTeX-000000)
-![Tests](https://img.shields.io/badge/Pytest-55%2F55%20Passing-brightgreen)
-![Status](https://img.shields.io/badge/Status-Production%20Ready-success)
+![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%2B%20SQLAlchemy-009688?logo=fastapi&logoColor=white)
+![Node.js](https://img.shields.io/badge/Engine-Node.js%2020%20%2B%20MathJax%203-339933?logo=node.js&logoColor=white)
+![Frontend](https://img.shields.io/badge/Frontend-Apple%20HIG%20%2B%20TailwindCSS%20%2B%20KaTeX-000000?logo=apple&logoColor=white)
+![Pytest](https://img.shields.io/badge/Tests-56%2F56%20Passing-brightgreen?logo=pytest&logoColor=white)
+![Standard](https://img.shields.io/badge/Standard-Circular%2032%20%26%20Decision%20764-orange)
 
 ---
 
-## 1. VẤN ĐỀ THỰC TẾ & GIẢI PHÁP ĐỘT PHÁ CỦA QUESY
-
-Trong công tác biên soạn đề thi và quản lý ngân hàng câu hỏi, giáo viên và các hội đồng khảo thí thường xuyên đối mặt với 6 bài toán nan giải:
-
-| # | Vấn đề & Nỗi đau thực tế | Giải pháp giải quyết của Quesy |
-|---|---|---|
-| **1** | **Gõ lại đề thi thủ công tốn hàng giờ:** Giáo viên mất 1.5 - 2 giờ để gõ lại một đề thi từ file PDF scan, ảnh chụp hoặc Word cũ; công thức MathType lỗi thời, vỡ font khi copy-paste. | **AI Ingestion & OCR Thông minh:** Tự động số hóa đa định dạng (PDF scan, ảnh chụp, DOCX), giải mã trực tiếp nhị phân MathType MTEF sang LaTeX chuẩn trong vài giây. |
-| **2** | **Đồ thị & hình vẽ bị bỏ quên hoặc méo mó:** Các công cụ OCR thông thường chỉ đọc chữ thô, bỏ qua hình vẽ; hoặc khi vẽ đồ thị tiệm cận thì toạ độ vọt lên vô cực, làm méo xẹp tỷ lệ khung hình. | **Bộ Dựng Đồ Thị Vector SVG Tự Động (TikZ Engine):** Tự động nhận diện hàm bậc 3, hàm phân thức, hàm trùng phương và biên dịch sang vector SVG sắc nét; có cơ chế **Auto-clipping** tự khống chế khung hình cân đối, hỗ trợ đồ thị trong cả đề bài lẫn 4 đáp án A, B, C, D. |
-| **3** | **Công thức toán học bị lỗi hiển thị (KaTeX Crashes):** Dấu ngoặc lệch cỡ, số thập phân bị hở khoảng cách, dấu gạch chéo tập hợp bị lỗi escape hiển thị chữ đỏ thô. | **Bộ Chuẩn Hóa Toán Học Tự Động:** Tự động chuẩn hóa dấu ngoặc kích thước động (`\left`/`\right`), phân số display `\dfrac`, vectơ `\overrightarrow`, số thập phân `{,}` trong đề và số sạch trong đáp án. |
-| **4** | **Trộn đề làm vỡ logic câu hỏi:** Các phần mềm trộn đề cổ điển hoán vị đáp án khiến câu *"Cả A và B đều đúng"* nhảy lên vị trí A; bài đọc chung bị tách rời khỏi câu hỏi con; các phần thi bị đảo lộn. | **Động cơ Trộn Đề An Toàn (Safe Shuffling Engine):** Khóa neo phương án (Option Anchor - giữ các câu *"Cả A và B"* ở vị trí D), bảo toàn bài đọc chung (Passage Integrity), bảo toàn phân vùng (Section Integrity) và sinh ma trận đối chiếu đáp án tự động. |
-| **5** | **Chấm điểm Đúng/Sai bậc thang phức tạp:** Cấu trúc trắc nghiệm Đúng/Sai 4 khẳng định có cơ chế tính điểm bậc thang (0.1, 0.25, 0.5, 1.0) dễ gây nhầm lẫn và sai sót lớn nếu chấm thủ công. | **Hệ Thống Tự Động Chấm Điểm & Quản Lý Lớp Học:** Chấm điểm tự động theo thuật toán bậc thang, quản lý danh sách học sinh, xuất/nhập bảng điểm Excel UTF-8 BOM và phân tích phổ điểm trực quan. |
-| **6** | **Dàn trang in ấn Word mất nhiều công sức & lỗi mờ công thức:** Giáo viên phải tự căn lề, công thức toán xuất ra dạng ảnh PNG bị vỡ hạt, mờ nhòe, không mở sửa được bằng MathType, hoặc bảng số liệu bị lỗi đen khi xuất PDF. | **Xuất Bản Đa Định Dạng Khảo Thí Chuẩn In Ấn:** Tạo file Word `.docx` khổ A4 chuẩn với công thức **MathType 7.0 OLE Vector WMF** (nét căng tuyệt đối, click đúp mở MathType chỉnh sửa trực tiếp), **Word OMML native**, tự động nhận diện và chuyển đổi bảng LaTeX `\begin{array}` thành bảng Word `<w:tbl>` chống lỗi đen, xuất bản PDF in ấn và phiếu soi đáp án OMR đóng gói trong file ZIP. |
+> [!NOTE]
+> **Bilingual Documentation / Tài liệu Song ngữ:**  
+> This documentation is written primarily in **English** with comprehensive **Vietnamese summaries** for educators, assessment boards, and software engineers in Vietnam.  
+> *Tài liệu này được biên soạn với ngôn ngữ chính là Tiếng Anh, kèm theo các phần tóm tắt và chỉ dẫn Tiếng Việt phục vụ công tác giảng dạy, khảo thí và tích hợp hệ thống tại Việt Nam.*
 
 ---
 
-## 2. CÁC TÍNH NĂNG CỐT LÕI (CORE CAPABILITIES)
+## Table of Contents
 
-### 2.1. Số Hóa Đề Thi & Dựng Đồ Thị Vector Bằng AI
-* **Đa nguồn tài liệu:** Tải lên tệp Word (`.docx`, `.doc`), tài liệu PDF scan nhiều trang hoặc chùm ảnh chụp bài thi.
-* **Tích hợp AI đa nền tảng:** Kết nối linh hoạt Google Gemini, OpenAI GPT-4o, Anthropic Claude, OpenRouter hoặc sử dụng bộ quy tắc phân tích Offline cục bộ.
-* **Bộ dựng đồ thị TikZ sang SVG:** Biên dịch trực tiếp mã nguồn hình học và hàm số sang đồ họa vector SVG sắc nét thông qua dịch vụ Kroki kèm bộ nhớ đệm ổ đĩa (`storage/tikz_cache/`), tải lại tức thì (0ms).
-* **Auto-clipping chống méo tỷ lệ:** Tự động phát hiện phạm vi hệ trục toạ độ để khống chế biên độ vẽ hàm phân thức, đảm bảo đồ thị luôn hiển thị vuông vắn, rõ ràng.
-* **Đồ thị trong đáp án:** Hỗ trợ hiển thị đồ thị độc lập trong từng phương án lựa chọn A, B, C, D dưới dạng thẻ trực quan.
-
-### 2.2. Chuẩn Hóa Công Thức Toán Học Toàn Diện
-* **Quy chuẩn 4 yếu tố toán học:**
-  1. *Dấu ngoặc kích thước động:* Tự động bọc `\left(...\right)`, `\left[...\right]`, `\left\{...\right\}` (bảo vệ căn `\sqrt[...]` và text mode).
-  2. *Số thập phân:* Tự động định dạng dấu phẩy `{,}` trong đề bài để KaTeX không tạo khoảng trống (ví dụ `15{,}25`), đồng thời giữ số sạch ở đáp án (`3,9`, `15,25`).
-  3. *Phân số chuẩn:* Luôn chuyển sang `\dfrac` giúp công thức hiển thị thoáng đẹp.
-  4. *Ký hiệu vectơ:* Chuẩn hóa thành `\overrightarrow{AB}` thay vì `\vec`.
-* **Tự động sửa lỗi bảng số liệu:** Chuyển đổi môi trường `tabular` sang KaTeX `array` và tự động đóng thẻ `$$`.
-* **Bộ Giải mã JSON Kháng lỗi Thoát chuỗi LaTeX (`repair_llm_json`):** Tự động sửa chữa các ký tự escape TeX chưa được nhân đôi (`\dfrac`, `\left`, `\right`, `\hline`, `\text`, `\tan`, `\frac`, `\beta`) trong chuỗi JSON trả về từ Multimodal AI, bảo đảm tỷ lệ bóc tách thành công 100% đối với mọi tệp ảnh và tài liệu chứa công thức phức tạp.
-* **Quy chuẩn CI/CD Tự Động Hóa Toàn Diện (`.github/workflows/ci.yml`):** Đồng bộ môi trường Python 3.13, Node.js 20 (MathJax 3 full, Resvg, KaTeX, Computer Modern), và Chromium Headless cross-platform với cờ `--no-sandbox` bảo đảm 100% test suite `pytest` (56/56 cases) vượt qua trên Ubuntu runner.
-* **Xuất Bản PDF Chuẩn $\LaTeX$ Thuần Túy (`latex_pdf_exporter.py`):**
-  * Định dạng Typography thuần LaTeX: Sử dụng font **Computer Modern Unicode (CMU Serif)** cho toàn bộ đề thi, loại bỏ hoàn toàn font Times New Roman văn phòng thô cứng.
-  * 100% Phân số Chuẩn `\dfrac` (Display Fraction): Toàn bộ phân số được thăng hạng và giữ nguyên chế độ `\dfrac`, cỡ chữ tử số và mẫu số đạt 100% (11pt chuẩn đề thi), vạch phân số sắc nét, khoảng đệm thoáng đãng, tuyệt đối không bị co nhỏ (textstyle).
-  * 100% Vector LaTeX Compilation cho Hình vẽ & Đồ thị TikZ: Mọi sơ đồ, hình học không gian và đồ thị hàm số TikZ/PGFPlots đều được biên dịch trực tiếp từ mã nguồn $\LaTeX$ sang Vector SVG nguyên bản (`dvisvgm`), tuyệt đối KHÔNG chuyển thành ảnh bitmap PNG rồi chèn vào PDF (0% raster images, phóng to 2000% nét căng mịn).
-  * 100% Vector Math: Toàn bộ công thức toán học ($f(x)$, $f'(x)$, $\dfrac{5\pi}{6}$, khoảng đoạn $[0; 2\pi]$) được render vector SVG trực tiếp qua persistent MathJax daemon với đường gióng chân dòng (baseline) thẳng tắp và loại bỏ triệt để khoảng trống trước các dấu chấm/phẩy kết thúc câu.
-  * Khung thông tin thí sinh 3 cột (`Họ tên`, `SBD`, `Phòng thi`) khóa dòng chống rớt dòng chấm lửng; chân trang chuẩn Bộ GD&ĐT: `Trang X - Mã đề thi Y`.
-
-### 2.3. Studio Hậu Kiểm Đối Chiếu Song Song (HITL Studio)
-* **Giao diện tối giản Apple HIG:** Trải nghiệm cuộn mượt mà đơn trục, phản hồi vi mô xúc giác, font chữ Apple sans-serif đồng nhất.
-* **Đối chiếu song song:** Cột trái xem tài liệu gốc (PDF, ảnh scan, Word), cột phải hiển thị danh sách câu hỏi điện tử tương ứng.
-* **Thao tác 1-Click:** Chỉnh sửa nhanh công thức, đổi đáp án trắc nghiệm chỉ bằng một cú nhấp chuột, kiểm tra trùng lặp câu hỏi bằng AI Vector Cosine Similarity.
-* **Tự động ẩn phân trang:** Giao diện tự động ẩn cụm chuyển trang khi tài liệu chỉ có 1 trang ảnh.
-* **Xuất bản PDF Trực tiếp từ Số hóa AI:** Tích hợp tính năng xuất file PDF trực tiếp (`/api/v1/digitize/export-pdf`) theo chuẩn khảo thí quốc gia A4 Portrait (210 x 297 mm, lề 1.8 cm), dàn trang tự động 1 cột và bảng phương án thích ứng, độ nét vector tuyệt đối; tạm thời ẩn chức năng xuất Word DOCX trong tab số hóa để tập trung vào luồng ấn phẩm PDF hoàn hảo.
-
-### 2.4. Động Cơ Trộn Đề Thi An Toàn (Safe Shuffling Engine)
-* **Khóa neo vị trí (Option Anchor):** Tự động nhận diện và khóa cố định các phương án như *"Cả A và B đều đúng"*, *"Tất cả các ý trên đều sai"* tại vị trí cuối cùng (D), đảm bảo không bao giờ bị đảo lên A, B, C làm sai lệch đáp án.
-* **Bảo toàn ngữ cảnh (Passage Integrity):** Các bài đọc chung và chùm câu hỏi liên quan luôn được giữ liền kề nhau trong mọi mã đề hoán vị.
-* **Bảo toàn phân vùng (Section Integrity):** Câu hỏi chỉ hoán vị trong nội bộ từng phần thi, không xáo trộn cấu trúc bài thi.
-* **Ma trận đối chiếu đáp án:** Tự động sinh bảng ánh xạ đáp án chéo giữa các mã đề để giáo viên chấm thi thuận tiện.
-
-### 2.5. Xuất Bản & Chấm Điểm Chuyên Nghiệp
-* **Word DOCX MathType 7.0 OLE Vector WMF:** Xuất bản tài liệu Word chuẩn A4 dọc (210 x 297 mm, lề 1.5 - 1.8 cm) với đối tượng OLE MathType (`Equation.DSMT4`) nhúng ảnh Vector WMF (`image/x-wmf`) chuẩn APM header. 100% công thức đạt chuẩn vector tuyệt đối (zero raster DIB, zero ký tự lỗi `?`), căn thẳng hàng tuyệt đối chân dòng (baseline alignment qua `w:position` khớp chuẩn xác theo `depth_pt`), tự động nâng cấp phân số sang `\dfrac` (cỡ chữ 11pt đầy đủ cho cả tử và mẫu), chuẩn hóa khoảng cách ký tự (kerning/spacing chuẩn MathType: giãn cách toán tử `=`, `+`, `-`, đệm giữa các nhân tử kề nhau, hỗ trợ ký hiệu đạo hàm `f'(x)` chuẩn Symbol `0xa2`, vẽ vector đa giác cho các mũi tên biến thiên `\nearrow`, `\searrow`), bảo toàn và dựng vector đa giác cho các dấu ngoặc co giãn (`\left`, `\right` ngoặc đơn, ngoặc vuông, ngoặc nhọn), đệm kerning chữ nghiêng tránh dính dấu ngoặc (`f(x)` -> `f\,(x)`), chuẩn hóa tập số `\mathbb{R}, \mathbb{Q}, \mathbb{Z}` sang Times New Roman Bold đứng chuẩn xác, lọc bỏ hoàn toàn các ký tự vô hình MathML (`\u2061` ApplyFunction, `\u2062` InvisibleTimes...), tắt gạch chân đỏ kiểm tra chính tả của Word (`w:hideSpellingErrors`, `w:noProof`), quy chuẩn font chữ chuẩn xác theo MathType/ISO (tên hàm `\sin`, `\cos`, `\tan`, `\cot` thẳng đứng Upright, biến số `x`, `y`, `a`, `b` in nghiêng Italic), stream CFB nhị phân DSMT7 chứa bản ghi `TeX Input Language` nguyên bản, **hỗ trợ click đúp mở MathType 7 client để chỉnh sửa 2 chiều mượt mà đồng bộ dữ liệu với Web**.
-* **Word DOCX OMML Native:** Hỗ trợ xuất công thức toán bản địa của Microsoft Word (`<m:oMath>`) qua MathJax MathML và XSLT.
-* **Tự động chuyển đổi bảng thống kê:** Tự động nhận diện mảng bảng số liệu ghép nhóm `\begin{array}` và chuyển đổi thành bảng Word chuẩn `<w:tbl>` có viền nét mảnh, loại bỏ triệt để hiện tượng hộp đen (black box) khi chuyển sang PDF.
-* **MathJax Engine Persistent Worker:** Tích hợp tiến trình nền Node.js MathJax 3/4 xử lý công thức TeX phức tạp chỉ trong ~14 ms/công thức, bảo đảm tốc độ xuất đề siêu tốc.
-* **Gói ấn phẩm ZIP:** Đóng gói trọn bộ đề thi các mã, file đáp án, lời giải chi tiết và phiếu soi đáp án trắc nghiệm OMR.
-* **Quản lý bảng điểm:** Nhập/xuất danh sách học sinh và bảng điểm định dạng CSV/Excel UTF-8 BOM, tự động chấm điểm theo thang điểm bậc thang.
-* **Offline PWA:** Ứng dụng hỗ trợ cài đặt PWA trên máy tính/điện thoại với cơ chế Network-First, sẵn sàng hoạt động cả khi mất kết nối mạng.
+- [Overview](#overview)
+- [Why Quesy? Problem & Solution Matrix](#why-quesy-problem--solution-matrix)
+- [Core Capabilities](#core-capabilities)
+- [System Architecture](#system-architecture)
+- [Getting Started](#getting-started)
+- [Automated Verification & CI/CD Pipeline](#automated-verification--cicd-pipeline)
+- [Vietnamese Executive Summary (Tóm Tắt Dự Án)](#vietnamese-executive-summary-tóm-tắt-dự-án)
 
 ---
 
-## 2. CẤU TRÚC THƯ MỤC DỰ ÁN
+## Overview
+
+**Quesy** is a high-performance assessment management, AI digitization, and mathematical publishing platform. It eliminates hours of manual exam retyping, automates question item classification, compiles mathematical diagrams into native vector graphics, and produces publication-ready examination papers in both **pure LaTeX vector PDF** and **bidirectionally editable MathType 7.0 OLE Word `.docx`** formats.
+
+The platform is strictly tailored to national assessment standards:
+- **Circular 32/2018/TT-BGDĐT:** 6-tier competency-based knowledge taxonomy mapped to Learning Outcomes (Yêu cầu cần đạt - YCCĐ) and Problem Archetypes, strictly independent of commercial textbook series.
+- **Decision 764/QĐ-BGDĐT (Format 2025):** Automated progressive tiered scoring for multi-statement True/False items (0.1 pt for 1 correct, 0.25 pt for 2, 0.5 pt for 3, and 1.0 pt for all 4).
+
+---
+
+## Why Quesy? Problem & Solution Matrix
+
+| # | Real-World Examination Pain Point | Quesy Architectural Solution |
+|:---:|:---|:---|
+| **1** | **Exhausting Manual Retyping:** Teachers spend 1.5–2 hours retyping an exam from scanned PDFs, photos, or legacy Word files; formulas lose formatting and special symbols corrupt during copy-pasting. | **Multimodal AI OCR & MTEF Decoder:** Ingests scanned PDFs, smartphone photos, and Word files in seconds, directly converting binary MathType MTEF streams into standardized KaTeX/LaTeX. |
+| **2** | **Corrupted or Downscaled Formulas:** Exporting exams often shrinks in-text fractions to illegible script sizes, drops brackets, or renders fuzzy raster PNG images that cannot be edited. | **Dual Publishing Engines:** Generates print-ready PDFs with 100% full-size `\dfrac` typography via **CMU Serif**, or Word `.docx` documents containing **genuine MathType 7.0 OLE Vector WMFs** editable via double-click. |
+| **3** | **Rasterized & Blurred Geometry/Plots:** Standard OCR tools either skip coordinate plots entirely or insert low-res raster images with distorted asymptotes and blown-out aspect ratios. | **Vector TikZ/PGFPlots Engine:** Compiles geometry and function plots directly from LaTeX source code into vector SVGs with automatic bounding-box clipping (**zero raster PNGs** in PDF output). |
+| **4** | **Broken Question Logic during Shuffling:** Traditional exam shufflers blindly randomize choices, causing options like *"Both A and B are correct"* to appear at position A, or splitting reading passages from sub-questions. | **Safe Shuffling Engine:** Enforces **Option Anchoring** (keeps meta-choices fixed at choice D), **Passage Integrity**, **Section Integrity**, and generates cross-variant answer keys automatically. |
+| **5** | **Error-Prone Tiered Grading:** Hand-grading 4-statement True/False questions with progressive weights (0.1, 0.25, 0.5, 1.0) leads to frequent human error and grading disputes. | **Automated Grading & Classroom Roster:** Instantly scores submissions according to official decision logic, provides score distribution analytics, and supports UTF-8 BOM Excel/CSV rosters. |
+| **6** | **Black-Box Errors on PDF Tables:** Data tables exported from LaTeX arrays frequently turn into opaque black blocks when converted to Word or printed to PDF. | **Native Word Table Converter:** Automatically detects `\begin{array}` and `\begin{tabular}` blocks and builds native OpenXML `<w:tbl>` elements with clean borders and centered cell alignment. |
+
+---
+
+## Core Capabilities
+
+### 1. Multimodal AI Digitization & LaTeX Repair
+
+- **Universal Document Ingestion:** Parses smartphone photos (`.jpg`, `.png`), multi-page scanned PDFs, and legacy Word documents (`.docx`, `.doc`).
+- **Resilient JSON LaTeX Sanitizer (`repair_llm_json`):** Multimodal Vision models often emit unescaped LaTeX backslashes inside JSON string properties (such as `\dfrac`, `\left`, `\hline`, `\text`). Quesy's dedicated pre-parser automatically repairs unescaped TeX syntax, preventing JSON parse failures and eliminating fallback placeholder questions.
+- **Provider Agnostic:** Connects seamlessly with Google Gemini, OpenAI GPT-4o, Anthropic Claude, OpenRouter, or falls back to an offline rule-based extraction engine when unconfigured.
+
+### 2. Pure LaTeX Vector PDF Publishing
+
+Located in `backend/services/latex_pdf_exporter.py`:
+- **Authentic LaTeX Typography:** Adopts **Computer Modern Unicode (CMU Serif)** across the entire document, completely replacing office-style Times New Roman.
+- **100% Full-Size `\dfrac` Display Fractions:** Automatically promotes all fractions to `\dfrac` (`\displaystyle`), guaranteeing 100% font sizing (11pt) for numerators and denominators without in-line downscaling.
+- **Micro-Typography Spacing:** Employs persistent MathJax SVG rendering with tight horizontal padding (`padX = 15`) and auto-strips leading spaces before trailing punctuation (`.`, `,`, `;`, `:`, `!`, `?`), ensuring periods rest flush on the text baseline.
+- **Official Exam Header & Student Block:** Formats a clean 3-column student metadata table (`Name`, `Candidate ID`, `Exam Room`) on a single line, paired with standard Ministry exam banners and footers (`Page X - Exam Code Y`).
+
+### 3. MathType 7.0 OLE Vector Word Export
+
+Located in `backend/services/docx_exporter.py`:
+- **Genuine OLE Binary Storage:** Synthesizes Compound File Binary (CFB) streams housing `\x01CompObj` (`MathType 7.0 Equation`, root CLSID `{0002CE03-0000-0000-C000-000000000046}`), `\x01Ole`, `\x03ObjInfo` (`0x0004`), and `Equation Native` (MTEF v5 generated from MathJax MathML).
+- **Aldus Placeable Metafile (APM) Header:** Uses pure vector WMF graphics (`magic: 0x9AC6CDD7`, scale 20 twips/pt, 1440 DPI) as the OLE inline preview image. Never uses fuzzy raster PNGs.
+- **Bidirectional Editing:** Double-clicking any equation in Microsoft Word directly opens the MathType 7 desktop equation editor.
+
+### 4. Native TikZ/PGFPlots Vector Diagram Compilation
+
+Located in `backend/services/tikz_renderer.py`:
+- **Direct TeX-to-Vector Compilation:** Uses a dedicated `dvisvgm` pipeline to compile raw `\begin{tikzpicture}` source code into standalone vector SVGs.
+- **Zero Raster PNGs:** Diagrams are embedded as pure vector elements inside the PDF DOM, ensuring lines, asymptotes, coordinates, and labels remain crisp at 2000% zoom.
+- **Auto-Clipping for Rational Functions:** Detects extreme coordinate ranges in rational curves and injects bounding `\clip` rectangles to preserve balanced aspect ratios.
+
+### 5. Safe Shuffling Engine
+
+Located in `backend/services/shuffling_engine.py`:
+- **Option Anchoring (Rule 02):** Automatically identifies options with semantic dependencies (e.g., *"Both A and B are correct"*, *"All of the above"*, or `is_fixed = true`) and locks them strictly to Choice D across all generated variants.
+- **Passage Integrity (Rule 03):** Keeps multi-question reading stems and stimulus passages glued to their corresponding child questions.
+- **Section Integrity:** Shuffles items only within their respective format groups (Single Choice, Multi-Statement True/False, Short Answer).
+- **Master Mapping Key:** Produces an instant answer permutation matrix mapping every shuffled variant code (101, 102, 103, 104...) back to the Master Exam.
+
+### 6. National Curriculum Taxonomy & Progressive Grading
+
+- **Circular 32 Taxonomy:** 6-tier hierarchical classification:
+  $$\text{Grade} \longrightarrow \text{Subject} \longrightarrow \text{Strand} \longrightarrow \text{Topic} \longrightarrow \text{Lesson} \longrightarrow \text{YCCĐ Code} \longrightarrow \text{Problem Archetype}$$
+- **Decision 764 Progressive Scoring Logic:**
+  - 1 correct affirmation: **0.10 point**
+  - 2 correct affirmations: **0.25 point**
+  - 3 correct affirmations: **0.50 point**
+  - 4 correct affirmations: **1.00 point**
+
+### 7. Apple HIG Human-in-the-Loop Studio
+
+Located in `frontend/`:
+- **Single Page Application:** Fast client-side navigation with clean `/path` routing (`/digitize`, `/bank`, `/matrix`, `/shuffler`) registered on FastAPI to prevent 404s on browser reloads.
+- **Dual-Pane Side-by-Side Review:** Compares raw scanned exam pages (left pane) against parsed electronic questions (right pane) in real time.
+- **Tactile Micro-Interactions:** 0.97 active press scale feedback, clean typography, and zero clutter adhering to Apple Human Interface Guidelines.
+
+---
+
+## System Architecture
 
 ```
 quesy/
 ├── backend/
-│   ├── config.py              # Cấu hình môi trường (.env), AI keys & đường dẫn
-│   ├── database.py            # Kết nối SQLAlchemy engine & session factory
-│   ├── models.py              # ORM models (Taxonomy, Questions, Exams, Matrices, Classrooms, Students)
-│   ├── schemas.py             # Pydantic v2 schemas xác thực dữ liệu chặt chẽ
-│   ├── seed_data.py           # Bộ dữ liệu ngân hàng mẫu chuẩn TT 32 môn Toán 12
-│   ├── main.py                # FastAPI app, CORS, SPA routes & mount tĩnh
+│   ├── config.py                  # Environment config (.env), AI tokens, paths
+│   ├── database.py                # SQLAlchemy engine & session factory
+│   ├── models.py                  # ORM Models (Taxonomy, Question, Exam, Matrix)
+│   ├── schemas.py                 # Strict Pydantic v2 validation contracts
+│   ├── seed_data.py               # Pre-populated Circular 32 Mathematics 12 bank
+│   ├── main.py                    # FastAPI application, CORS, SPA routes
 │   ├── routers/
-│   │   ├── taxonomy.py        # API cây kiến thức 6 tầng theo TT 32
-│   │   ├── questions.py       # API CRUD câu hỏi, kiểm tra trùng lặp AI Vector
-│   │   ├── digitize.py        # API Upload đề, AI Parsing pipeline & TikZ renderer
-│   │   ├── matrix.py          # API thiết lập Ma trận đề thi 2 chiều
-│   │   └── exams.py           # API sinh MasterExam, hoán vị mã đề an toàn, xuất ZIP & bảng điểm
+│   │   ├── taxonomy.py            # Circular 32 6-level taxonomy tree endpoints
+│   │   ├── questions.py           # Question CRUD, AI Vector deduplication
+│   │   ├── digitize.py            # AI Ingestion, OCR parsing & PDF export
+│   │   ├── matrix.py              # 2D Assessment blueprint specification
+│   │   └── exams.py               # MasterExam generation, shuffling & scoring
 │   └── services/
-│       ├── ai_provider_service.py # Bộ tích hợp AI đa nền tảng (Gemini / OpenAI / Claude)
-│       ├── ai_parser.py       # Pipeline bóc tách đề thi (DOCX/PDF/Image)
-│       ├── mathjax_service.py # Dịch vụ MathJax TeX-to-MathML, SVG, PNG & baseline
-│       ├── mathjax_worker.js  # Node.js persistent worker chạy MathJax 3/4 + Resvg
-│       ├── tikz_renderer.py   # Dịch vụ biên dịch TikZ/PGFPlots sang SVG qua Kroki + Cache
-│       ├── latex_converter.py # Giải mã MathType MTEF sang LaTeX & KaTeX sanitizer
-│       ├── crop_service.py    # Auto-crop hình học/đồ thị lưu WebP
-│       ├── tagging_service.py # AI Auto-tagging YCCĐ & Cosine similarity deduplication
-│       ├── matrix_solver.py   # Thuật toán rút câu hỏi theo ma trận ràng buộc
-│       ├── shuffling_engine.py# Trộn đề an toàn (Section, Passage, Option Anchor)
-│       ├── excel_exporter.py  # Xuất nhập bảng điểm Excel/CSV UTF-8 BOM theo TT 22
-│       ├── docx_exporter.py   # Xuất bản Word MathType Vector WMF, OMML native & đóng gói ZIP
-│       └── latex_pdf_exporter.py # Xuất bản PDF chuẩn LaTeX thuần (CMU Serif, MathJax SVG vector, 0% lỗi font)
+│       ├── ai_provider_service.py # Multimodal AI connector (Gemini, OpenAI, Claude)
+│       ├── ai_parser.py           # Document ingestion & OCR parsing pipeline
+│       ├── mathjax_service.py     # Persistent MathJax client, caching & baseline metrics
+│       ├── mathjax_worker.js      # Persistent Node.js worker (MathJax 3 + Resvg)
+│       ├── tikz_renderer.py       # TikZ/PGFPlots-to-SVG vector compiler
+│       ├── latex_converter.py     # MathType MTEF-to-LaTeX converter
+│       ├── latex_pdf_exporter.py  # Pure LaTeX PDF compiler (CMU Serif + MathJax SVG)
+│       ├── docx_exporter.py       # MathType 7.0 OLE Vector WMF Word exporter
+│       ├── shuffling_engine.py    # Safe shuffling engine (Option Anchor & Integrity)
+│       └── excel_exporter.py      # UTF-8 BOM Excel/CSV score roster exporter
 ├── frontend/
-│   ├── index.html             # Single Page Application (TailwindCSS, KaTeX, Lucide Icons)
-│   ├── manifest.json          # PWA Web App Manifest
-│   ├── sw.js                  # PWA Service Worker (Network-First Cache)
+│   ├── index.html                 # Apple HIG SPA UI (TailwindCSS, KaTeX, Lucide)
+│   ├── manifest.json              # Progressive Web App (PWA) manifest
+│   ├── sw.js                      # Network-first Service Worker
 │   └── static/
-│       ├── app.js             # State management, SPA router, HITL Studio, TikZ rendering
-│       └── style.css          # Giao diện responsive Apple HIG & Emil Kowalski micro-interactions
-├── docs/                      # Bộ tài liệu đặc tả kỹ thuật tiêu chuẩn phần mềm
-│   ├── BRD_Exam_Management_AI_Digitization.md   # Business Requirements Document v2.0
-│   ├── SRS_System_Requirements_Specification.md  # System Requirements Specification v2.0
-│   ├── FRD_Functional_Requirements_Document.md   # Functional Requirements Document v2.0
-│   ├── UC_Use_Case_Specifications.md            # Use Case Specifications v2.0
-│   ├── NFR_Non_Functional_Requirements.md        # Non-Functional Requirements v2.0
-│   ├── FS_Feasibility_Study_Report.md            # Feasibility Study & ROI Report v2.0
-│   └── TEST_Test_Cases_Specification.md          # Test Cases Specification v2.0
-├── tests/                     # 46 kịch bản kiểm thử tự động toàn diện (Pytest)
-│   ├── test_taxonomy.py
-│   ├── test_rules_shuffling.py
-│   ├── test_deduplication.py
-│   ├── test_docx_export.py
-│   ├── test_api_endpoints.py
-│   ├── test_api_contracts_and_negatives.py
-│   ├── test_ai_pipeline.py
-│   ├── test_cloud_vision_adapter.py
-│   ├── test_excel_roster_import_export.py
-│   ├── test_performance_budgets.py
-│   ├── test_services.py
-│   └── test_e2e_workflow.py
-├── storage/                   # Thư mục lưu trữ tài nguyên
-│   ├── uploads/               # File đề thi gốc tải lên
-│   ├── assets/                # Ảnh đồ thị/hình học cắt ra dạng WebP
-│   ├── tikz_cache/            # Bộ nhớ đệm vector SVG của đồ thị TikZ
-│   └── exports/               # File đề Word và gói ZIP xuất bản
-├── Dockerfile                 # Multi-stage production container
-├── docker-compose.yml         # Container orchestration
-└── start_server.py            # Script khởi động tự động (auto port discovery & kill busy port)
+│       ├── app.js                 # Frontend state machine & API client
+│       ├── style.css              # Apple HIG micro-interactions & responsive styles
+│       └── fonts/cmu-serif/       # Local Computer Modern Unicode TrueType fonts
+├── .github/
+│   └── workflows/
+│       └── ci.yml                 # Automated CI test pipeline (Python 3.13 + Node.js 20)
+├── storage/                       # Local filesystem storage
+│   ├── uploads/                   # Staged source documents & images
+│   ├── assets/                    # Cropped diagram assets (WebP)
+│   ├── tikz_cache/                # Compiled TikZ SVG cache
+│   └── exports/                   # Published Word, PDF, and ZIP exam packages
+├── tests/                         # Comprehensive Pytest test suite (56 cases)
+├── requirements.txt               # Locked Python dependencies
+├── package.json                   # Node.js dependencies for MathJax & Fonts
+└── start_server.py                # Smart server launcher with port auto-discovery
 ```
 
 ---
 
-## 3. HƯỚNG DẪN CÀI ĐẶT & KHỞI CHẠY
+## Getting Started
 
-### 3.1. Cài Đặt Môi Trường
-Yêu cầu **Python 3.10 trở lên** (Đã kiểm thử và tối ưu trên Python 3.13):
+### Prerequisites
 
-```bash
-# Clone repository
-git clone https://github.com/ngnsusinn/quesy.git
-cd quesy
+Ensure you have the following installed on your machine:
+- **Python:** Version 3.10 to 3.13
+- **Node.js:** Version 18.x or 20.x
+- **Google Chrome** or **Chromium Browser** (for headless PDF generation)
 
-# Cài đặt các gói phụ thuộc
-pip install -r requirements.txt
-```
+### Installation
 
-### 3.2. Cấu Hình Biến Môi Trường (Tùy chọn)
-Tạo file `.env` tại thư mục gốc (tham khảo `.env.example`):
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/ngnsusinn/quesy.git
+   cd quesy
+   ```
+
+2. **Install Python dependencies:**
+   ```bash
+   python -m pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+
+3. **Install Node.js dependencies:**
+   ```bash
+   npm install
+   ```
+
+### Environment Configuration
+
+Create a `.env` file in the project root (optional if running in offline mode):
+
 ```env
-# AI Provider (gemini, openai, anthropic, openrouter)
+# AI Multimodal Provider (gemini, openai, anthropic, openrouter)
 AI_PROVIDER=gemini
 AI_MODEL=gemini-1.5-flash
 AI_API_KEY=your_api_key_here
-```
-*Lưu ý: Nếu không cấu hình API Key, hệ thống vẫn hoạt động bình thường với bộ phân giải và xử lý cục bộ (Offline Rule Engine).*
 
-### 3.3. Khởi Chạy Hệ Thống
-Chạy script tự động phát hiện cổng và giải phóng cổng bận:
+# Server host & port (default: 127.0.0.1:8000)
+HOST=127.0.0.1
+PORT=8000
+```
+
+> [!TIP]
+> If `AI_API_KEY` is not provided, Quesy automatically operates in **Offline Mode**, utilizing its built-in rule-based document parser and pre-seeded Circular 32 math bank.
+
+### Running the Application
+
+Launch the application using the smart process runner:
 
 ```bash
 python start_server.py
 ```
 
-Truy cập trên trình duyệt:
-* **Ứng dụng Web Studio:** `http://127.0.0.1:8000` (hoặc `/digitize`, `/bank`, `/matrix`, `/shuffler`)
-* **Tài liệu Swagger API:** `http://127.0.0.1:8000/docs`
-* **Kiểm tra sức khỏe hệ thống:** `http://127.0.0.1:8000/health`
+The launcher automatically validates database tables, seeds Circular 32 taxonomy items, frees busy ports, and starts the API:
+- **Web Studio (Apple HIG UI):** [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- **Interactive Swagger Docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **Health Check Endpoint:** [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 
-### 3.4. Chạy Bằng Docker
+### Docker Deployment
+
+Deploy in production using Docker Compose:
+
 ```bash
-docker-compose up --build
+docker-compose up --build -d
 ```
 
 ---
 
-## 4. BỘ KIỂM THỬ TỰ ĐỘNG (AUTOMATED TEST SUITE)
+## Automated Verification & CI/CD Pipeline
 
-Hệ thống sở hữu bộ kiểm thử tự động toàn diện gồm **46 kịch bản kiểm thử (100% PASSED)**:
+Quesy maintains a strict test suite verifying business logic, API contracts, mathematical typography, and performance budgets:
 
 ```bash
-pytest -v
+python -m pytest -v --durations=10
 ```
 
-### Báo Cáo Kết Quả Kiểm Thử Thực Tế:
-* `test_taxonomy.py`: Xác minh phân cấp cây kiến thức 6 tầng khoa học, chuẩn hóa theo năng lực và tuyệt đối độc lập, không bị ràng buộc bởi các bộ SGK riêng lẻ (PASS).
-* `test_rules_shuffling.py`:
-  * **RULE-01:** Kiểm thử toàn bộ 16 tổ hợp Đúng/Sai 4 khẳng định có tính điểm bậc thang (PASS).
-  * **RULE-02:** Chạy 100 lần hoán vị mã đề, đảm bảo phương án *"Cả A và B đều đúng"* **luôn khóa ở vị trí D trong 100% mã đề** (PASS).
-  * **RULE-03:** Đảm bảo câu hỏi chùm và đoạn văn ngữ cảnh không bị phân tách trong mọi mã đề (PASS).
-* `test_ai_pipeline.py`: Kiểm thử chuyển đổi công thức LaTeX, giải mã MathType MTEF, 4 quy tắc toán học, render đồ thị vector TikZ SVG, bảo vệ text mode và tự động chuẩn hóa dấu ngoặc (PASS).
-* `test_cloud_vision_adapter.py`: Kiểm thử tự động nhận diện AI Provider (Gemini / OpenAI / Claude) và chuẩn hóa cấu trúc JSON (PASS).
-* `test_excel_roster_import_export.py`: Kiểm tra xuất nhập danh sách lớp học và bảng điểm CSV/Excel UTF-8 BOM chuẩn font tiếng Việt (PASS).
-* `test_deduplication.py`: Xác minh thuật toán Cosine Similarity chặn lưu và cảnh báo khi câu hỏi trùng lặp $\ge 0.90$ (PASS).
-* `test_docx_export.py`: Kiểm tra xuất file Word 2 cột với công thức toán OMML OpenXML bản địa (PASS).
-* `test_performance_budgets.py`: Đảm bảo độ trễ phản hồi thuật toán dưới 200ms (PASS).
-* `test_e2e_workflow.py`: Kiểm thử quy trình khép kín end-to-end từ số hóa, tạo ma trận, trộn đề, xuất bản và chấm điểm (PASS).
+### Test Coverage Highlights (56/56 Tests Passing)
+
+- `test_rules_shuffling.py`: Verifies all 16 True/False permutations under progressive grading, ensures Choice D anchoring across 100 shuffling runs, and validates passage integrity.
+- `test_mathjax_service.py` & `test_math_format_export.py`: Validates MTEF binary decoding, vector WMF APM generation, full-size `\dfrac` sizing, and baseline alignment.
+- `test_digitize_docx_export.py`: Tests print-quality PDF export and genuine MathType 7.0 Word generation.
+- `test_performance_budgets.py`: Enforces execution latency budgets (< 200 ms for matrix solving and shuffle generation).
+
+### CI/CD Workflow (`.github/workflows/ci.yml`)
+
+Every pull request and commit to `main` executes a multi-runtime GitHub Actions workflow on `ubuntu-latest`:
+1. Sets up Python 3.13 and Node.js 20.
+2. Installs system graphics dependencies and headless Chromium with `--no-sandbox` flags.
+3. Installs `npm` math packages and `pip` requirements.
+4. Executes the full 56-case test suite with mock AI adapters.
 
 ---
 
-## 5. GIẤY PHÉP & ĐÓNG GÓP
+## Vietnamese Executive Summary (Tóm Tắt Dự Án)
 
-* **Giấy phép:** Phát hành theo giấy phép MIT License mở, tự do sử dụng và triển khai cho giáo viên và các cơ sở giáo dục.
-* **Đóng góp phát triển:** Mọi đóng góp về cải tiến thuật toán, bổ sung mẫu đồ thị TikZ hoặc báo lỗi đều được hoan nghênh qua GitHub Pull Requests và Issues.
+### Quesy là gì?
+**Quesy** là hệ sinh thái phần mềm khảo thí chuyên sâu, số hóa đề thi và quản lý ngân hàng câu hỏi chuẩn quốc gia:
+- **Chuẩn hóa Thông tư 32/2018/TT-BGDĐT:** Cây kiến thức 6 tầng theo Yêu cầu cần đạt (YCCĐ) và Dạng câu hỏi, tuyệt đối không phân chia theo các bộ sách giáo khoa thương mại.
+- **Chuẩn hóa Quyết định 764/QĐ-BGDĐT (Form 2025):** Chấm điểm tự động bậc thang cho câu trắc nghiệm Đúng/Sai 4 khẳng định (0.1đ - 0.25đ - 0.5đ - 1.0đ).
+- **Xuất bản PDF chuẩn $\LaTeX$ thuần túy:** Toàn bộ đề thi in ấn sử dụng font chữ **Computer Modern Unicode (CMU Serif)**, 100% phân số hiển thị dạng **`\dfrac`** to rõ (11pt chuẩn đề thi), công thức toán vector sắc nét tuyệt đối, ôm sát chân dòng chữ.
+- **Biên dịch Đồ thị & Hình học TikZ Vector:** 100% hình vẽ hình học và đồ thị hàm số được biên dịch trực tiếp từ mã nguồn $\LaTeX$ sang Vector SVG nguyên bản (`dvisvgm`), tuyệt đối **không biến thành ảnh raster PNG** (0% ảnh mờ vỡ hạt khi in ấn hay phóng to).
+- **Xuất bản Word MathType 7.0 OLE Vector WMF:** Xuất file `.docx` nhúng OLE Equation Native binary, giáo viên nhấp đúp chuột trong Microsoft Word sẽ mở thẳng MathType 7 để chỉnh sửa 2 chiều bình thường.
+- **Trộn đề thông minh & an toàn:** Khóa cố định các đáp án phụ thuộc (*"Cả A và B đều đúng"*) tại vị trí D, giữ nguyên bài đọc chung và sinh ma trận hoán vị đáp án tự động.
+- **Giao diện Apple HIG:** Trải nghiệm đối chiếu song song mượt mà, phản hồi xúc giác tinh tế, chạy mượt trên cả Web và thiết bị di động (PWA Offline).
