@@ -1021,6 +1021,9 @@ def add_math_text_to_paragraph(
     if not text:
         return
 
+    # Normalize merged math expressions like ${\left(SAD\right)}, {\left(SBC\right)}$ -> ${\left(SAD\right)}$, ${\left(SBC\right)}$
+    text = re.sub(r"(?<!\\)\}\s*,\s*\{", r"}$, ${", text)
+
     tokens = re.split(r"(\$\$\{.*?\}\$\$|\$\$.*?\$\$|\$\\{.*?\\}\$|\$\{.*?\}\$|\$.*?\$)", text, flags=re.DOTALL)
 
     for tok in tokens:
