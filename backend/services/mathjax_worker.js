@@ -79,9 +79,10 @@ function renderFormula(mj, latex, options = {}) {
       const viewBoxStr = adaptor.getAttribute(svgElem, 'viewBox') || '';
       const [minX, minY, vbW, vbH] = viewBoxStr.split(/\s+/).map(Number);
 
-      // Add generous margin/padding to prevent clipping of wide vector arrows or tall brackets
-      const padX = Math.round(vbW * 0.05) + 160;
-      const padY = Math.round(vbH * 0.09) + 160;
+      // Keep padX tight to prevent artificial gaps before sentence-ending punctuation
+      const hasWideArrow = /\\(overrightarrow|overleftrightarrow|underrightarrow|underleftarrow)/.test(latex);
+      const padX = hasWideArrow ? 120 : 15;
+      const padY = Math.round(vbH * 0.05) + 40;
 
       const newMinX = minX - padX;
       const newMinY = minY - padY;

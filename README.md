@@ -43,6 +43,10 @@ Trong công tác biên soạn đề thi và quản lý ngân hàng câu hỏi, g
   4. *Ký hiệu vectơ:* Chuẩn hóa thành `\overrightarrow{AB}` thay vì `\vec`.
 * **Tự động sửa lỗi bảng số liệu:** Chuyển đổi môi trường `tabular` sang KaTeX `array` và tự động đóng thẻ `$$`.
 * **Bộ Giải mã JSON Kháng lỗi Thoát chuỗi LaTeX (`repair_llm_json`):** Tự động sửa chữa các ký tự escape TeX chưa được nhân đôi (`\dfrac`, `\left`, `\right`, `\hline`, `\text`, `\tan`, `\frac`, `\beta`) trong chuỗi JSON trả về từ Multimodal AI, bảo đảm tỷ lệ bóc tách thành công 100% đối với mọi tệp ảnh và tài liệu chứa công thức phức tạp.
+* **Xuất Bản PDF Chuẩn $\LaTeX$ Thuần Túy (`latex_pdf_exporter.py`):**
+  * Định dạng Typography thuần LaTeX: Sử dụng font **Computer Modern Unicode (CMU Serif)** cho toàn bộ đề thi, loại bỏ hoàn toàn font Times New Roman văn phòng thô cứng.
+  * 100% Vector Math: Toàn bộ công thức toán học ($f(x)$, $f'(x)$, $\dfrac{5\pi}{6}$, khoảng đoạn $[0; 2\pi]$) được render vector SVG trực tiếp qua persistent MathJax daemon với đường gióng chân dòng (baseline) thẳng tắp và loại bỏ triệt để khoảng trống trước các dấu chấm/phẩy kết thúc câu.
+  * Khung thông tin thí sinh 3 cột (`Họ tên`, `SBD`, `Phòng thi`) khóa dòng chống rớt dòng chấm lửng; chân trang chuẩn Bộ GD&ĐT: `Trang X - Mã đề thi Y`.
 
 ### 2.3. Studio Hậu Kiểm Đối Chiếu Song Song (HITL Studio)
 * **Giao diện tối giản Apple HIG:** Trải nghiệm cuộn mượt mà đơn trục, phản hồi vi mô xúc giác, font chữ Apple sans-serif đồng nhất.
@@ -97,7 +101,8 @@ quesy/
 │       ├── matrix_solver.py   # Thuật toán rút câu hỏi theo ma trận ràng buộc
 │       ├── shuffling_engine.py# Trộn đề an toàn (Section, Passage, Option Anchor)
 │       ├── excel_exporter.py  # Xuất nhập bảng điểm Excel/CSV UTF-8 BOM theo TT 22
-│       └── docx_exporter.py   # Xuất bản Word MathType Vector WMF, OMML native & đóng gói ZIP
+│       ├── docx_exporter.py   # Xuất bản Word MathType Vector WMF, OMML native & đóng gói ZIP
+│       └── latex_pdf_exporter.py # Xuất bản PDF chuẩn LaTeX thuần (CMU Serif, MathJax SVG vector, 0% lỗi font)
 ├── frontend/
 │   ├── index.html             # Single Page Application (TailwindCSS, KaTeX, Lucide Icons)
 │   ├── manifest.json          # PWA Web App Manifest

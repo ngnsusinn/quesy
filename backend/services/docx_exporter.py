@@ -2877,9 +2877,27 @@ def generate_digitized_exam_pdf(
     math_format: str = "mathtype"
 ) -> bool:
     """Generates an official high-fidelity print-quality PDF for digitized questions.
-    Uses Word COM automation on Windows with ReportLab/Browser fallbacks.
+    Tier 1 (Preferred): Authentic LaTeX-grade PDF engine with CMU Serif typography and MathJax vector SVG.
+    Tier 2 (Fallback): Word COM automation on Windows.
     """
     output_pdf = Path(output_pdf).resolve()
+    try:
+        from backend.services.latex_pdf_exporter import generate_digitized_exam_latex_pdf
+        ok = generate_digitized_exam_latex_pdf(
+            questions=questions,
+            output_pdf=output_pdf,
+            title=title,
+            school_name=school_name,
+            subject_name=subject_name,
+            grade=grade,
+            variant_code=variant_code,
+            duration=duration
+        )
+        if ok and output_pdf.exists() and output_pdf.stat().st_size > 1000:
+            return True
+    except Exception as latex_err:
+        logger.warning(f"generate_digitized_exam_latex_pdf failed: {latex_err}. Falling back to docx COM.")
+
     temp_docx = output_pdf.with_suffix(".temp.docx")
     try:
         generate_digitized_exam_docx(
@@ -2894,7 +2912,6 @@ def generate_digitized_exam_pdf(
             math_format=math_format
         )
         if temp_docx.exists():
-            # Tier 1: Word COM on Windows
             if convert_docx_to_pdf(temp_docx, output_pdf):
                 return True
     except Exception as e:
