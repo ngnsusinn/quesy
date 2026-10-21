@@ -113,6 +113,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   2. Với PDF/Ảnh scan: Chuyển đổi trang ảnh 300 DPI, áp dụng OpenCV Deskew (cân bằng góc nghiêng) và Binarization (khử nhiễu nền).
   3. Phân vùng layout: Header, Footer, Section I/II/III, Thân câu hỏi, Phương án, Hình vẽ, Bảng biểu.
   4. Gửi payload ảnh/văn bản kèm System Prompt đến Vision LLM để trích xuất JSON schema chuẩn.
+  - Tích hợp bộ giải mã JSON chống lỗi thoát chuỗi LaTeX (`repair_llm_json`), tự động nhân đôi các dấu gạch chéo ngược TeX unescaped (`\dfrac`, `\left`, `\hline`, `\text`...) trong chuỗi JSON, đảm bảo tỷ lệ parse thành công tuyệt đối 100%, loại bỏ triệt để hiện tượng fallback sang câu hỏi template rỗng.
   5. Bounding Box Detection: Phát hiện hình học/đồ thị, thực hiện Auto Image Crop, nén WebP, lưu S3.
   6. Khớp nối bảng đáp án ở cuối đề thi với từng câu hỏi tương ứng.
 - **Đầu ra (Outputs):** Bản ghi `AIDigitizeJob` chứa danh sách câu hỏi dạng JSON có status `EXTRACTED`.

@@ -164,6 +164,80 @@ def file_to_base64_data_url(file_path: Union[str, Path]) -> Tuple[str, str]:
     return mime, b64
 
 
+def repair_llm_json(s: str) -> str:
+    """Repairs unescaped LaTeX backslashes and unescaped newlines inside JSON strings
+    so that json.loads always succeeds even when LLM emits raw TeX syntax like \\dfrac, \\left.
+    """
+    start_brace = s.find('{')
+    start_bracket = s.find('[')
+    if start_brace == -1 and start_bracket == -1:
+        return s
+    if start_brace != -1 and (start_bracket == -1 or start_brace < start_bracket):
+        start = start_brace
+        end = s.rfind('}') + 1
+    else:
+        start = start_bracket
+        end = s.rfind(']') + 1
+
+    if end <= start:
+        return s
+
+    s = s[start:end]
+
+    out = []
+    in_string = False
+    i = 0
+    n = len(s)
+
+    while i < n:
+        ch = s[i]
+        if not in_string:
+            if ch == '"':
+                in_string = True
+            out.append(ch)
+            i += 1
+        else:
+            if ch == '"':
+                in_string = False
+                out.append(ch)
+                i += 1
+            elif ch == '\\':
+                if i + 1 >= n:
+                    out.append(r'\\')
+                    i += 1
+                    continue
+                next_ch = s[i + 1]
+
+                # Check for LaTeX commands starting with backslash followed by letters
+                if next_ch in 'ftbrn' and i + 2 < n and s[i + 2].isalpha():
+                    out.append(r'\\')
+                    i += 1
+                elif next_ch in '"\\/bfnrt':
+                    out.append(ch)
+                    out.append(next_ch)
+                    i += 2
+                elif next_ch == 'u' and i + 5 < n and all(c in '0123456789abcdefABCDEF' for c in s[i+2:i+6]):
+                    out.append(s[i:i+6])
+                    i += 6
+                else:
+                    # Invalid escape sequence in JSON (e.g. \d, \l, \s, \c, \h, \a, \{, \})
+                    out.append(r'\\')
+                    i += 1
+            elif ch == '\n':
+                out.append(r'\n')
+                i += 1
+            elif ch == chr(13):  # Carriage return
+                i += 1
+            elif ch == '\t':
+                out.append(r'\t')
+                i += 1
+            else:
+                out.append(ch)
+                i += 1
+
+    return "".join(out)
+
+
 class AIProviderService:
     """Service to send exam documents (text, images, PDFs) to external AI LLM providers."""
 
@@ -402,7 +476,12 @@ class AIProviderService:
                 cleaned = cleaned.rsplit("```", 1)[0]
         cleaned = cleaned.strip()
 
-        data = json.loads(cleaned)
+        try:
+            data = json.loads(cleaned)
+        except Exception as first_err:
+            logger.info(f"Direct JSON parse failed ({first_err}), repairing unescaped LaTeX backslashes...")
+            repaired = repair_llm_json(cleaned)
+            data = json.loads(repaired)
         questions_raw = data.get("questions", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
 
         standardized: List[Dict[str, Any]] = []

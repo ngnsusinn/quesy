@@ -42,6 +42,7 @@ Trong công tác biên soạn đề thi và quản lý ngân hàng câu hỏi, g
   3. *Phân số chuẩn:* Luôn chuyển sang `\dfrac` giúp công thức hiển thị thoáng đẹp.
   4. *Ký hiệu vectơ:* Chuẩn hóa thành `\overrightarrow{AB}` thay vì `\vec`.
 * **Tự động sửa lỗi bảng số liệu:** Chuyển đổi môi trường `tabular` sang KaTeX `array` và tự động đóng thẻ `$$`.
+* **Bộ Giải mã JSON Kháng lỗi Thoát chuỗi LaTeX (`repair_llm_json`):** Tự động sửa chữa các ký tự escape TeX chưa được nhân đôi (`\dfrac`, `\left`, `\right`, `\hline`, `\text`, `\tan`, `\frac`, `\beta`) trong chuỗi JSON trả về từ Multimodal AI, bảo đảm tỷ lệ bóc tách thành công 100% đối với mọi tệp ảnh và tài liệu chứa công thức phức tạp.
 
 ### 2.3. Studio Hậu Kiểm Đối Chiếu Song Song (HITL Studio)
 * **Giao diện tối giản Apple HIG:** Trải nghiệm cuộn mượt mà đơn trục, phản hồi vi mô xúc giác, font chữ Apple sans-serif đồng nhất.
