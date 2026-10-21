@@ -618,9 +618,9 @@ def _build_wmf_rec(func: int, data: bytes = b"") -> bytes:
     return struct.pack("<IH", size_words, func) + data
 
 
-def _create_logfont_record(name: str, height: int, italic: bool = False, charset: int = 0) -> bytes:
+def _create_logfont_record(name: str, height: int, italic: bool = False, charset: int = 0, weight: int = 400) -> bytes:
     face = name.encode("ascii")[:31].ljust(32, b"\x00")
-    return struct.pack("<hhhhhBBBBBBBB", height, 0, 0, 0, 400, 1 if italic else 0, 0, 0, charset, 0, 0, 0, 0) + face
+    return struct.pack("<hhhhhBBBBBBBB", height, 0, 0, 0, weight, 1 if italic else 0, 0, 0, charset, 0, 0, 0, 0) + face
 
 
 def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[int, float] = 11) -> Optional[Tuple[bytes, float, float, float]]:
@@ -632,15 +632,16 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
         clean = clean_latex
         m_code = clean.replace(r"\dfrac", r"\frac").replace("{,}", ",")
         m_code = re.sub(r"\\setminus(?![a-zA-Z])", r"\\backslash", m_code)
+        m_code = re.sub(r"\\middle(?![a-zA-Z])", "", m_code)
+        m_code = re.sub(r"\\mid(?![a-zA-Z])", "|", m_code)
         m_code = re.sub(r"\\overrightarrow(?![a-zA-Z])", r"\\vec", m_code)
         m_code = re.sub(r"\\widehat(?![a-zA-Z])", r"\\hat", m_code)
         m_code = re.sub(r"\\ne(?![a-zA-Z])", r"\\neq", m_code)
         m_code = re.sub(r"\\le(?![a-zA-Z])", r"\\leq", m_code)
         m_code = re.sub(r"\\ge(?![a-zA-Z])", r"\\geq", m_code)
-        m_code = m_code.replace(r"\left", "").replace(r"\right", "")
         m_code = re.sub(r"\\mathbb\{([A-Za-z])\}", r"\1", m_code)
         m_code = m_code.replace(r"\mathbb{Q}", "Q").replace(r"\mathbb{R}", "R").replace(r"\mathbb{Z}", "Z").replace(r"\mathbb{N}", "N").replace(r"\mathbb{C}", "C")
-        m_code = m_code.replace(r"\mid", "|").replace('"', "").replace('"', "").replace(r"\_", "_")
+        m_code = m_code.replace('"', "").replace('"', "").replace(r"\_", "_")
         m_code = m_code.replace(r"\varnothing", r"\emptyset")
         m_code = m_code.strip("$").strip()
 
@@ -652,7 +653,11 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
         try:
             w_pt, h_pt, d_pt, glyphs, rects = parser.parse(f"${m_code}$", dpi=72, prop=prop)
         except Exception:
-            w_pt, h_pt, d_pt, glyphs, rects = parser.parse(m_code, dpi=72, prop=prop)
+            fallback = m_code.replace(r"\left", "").replace(r"\right", "")
+            try:
+                w_pt, h_pt, d_pt, glyphs, rects = parser.parse(f"${fallback}$", dpi=72, prop=prop)
+            except Exception:
+                w_pt, h_pt, d_pt, glyphs, rects = parser.parse(fallback, dpi=72, prop=prop)
 
         # Calculate exact bounding envelope across all glyphs and rects
         all_top_pts = [g[5] + g[1] * 0.75 for g in glyphs] + [r[1] + r[3] for r in rects]
@@ -712,19 +717,29 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
         for g in glyphs:
             font_obj, fontsize, c, _idx, ox, oy = g[:6]
 
+            # Remap any big fence/brace codes to standard { and }
+            if c in (0xa9, 0x7b) or (getattr(font_obj, "family_name", "").startswith("STIXSize") and "braceleft" in getattr(font_obj, "postscript_name", "")):
+                c = 123  # '{'
+            elif c in (0xaa, 0x7d) or (getattr(font_obj, "family_name", "").startswith("STIXSize") and "braceright" in getattr(font_obj, "postscript_name", "")):
+                c = 125  # '}'
+
             is_sym = c in UNICODE_TO_SYMBOL
             is_alpha = chr(c).isalpha() if 32 <= c <= 126 else False
+            style_name = getattr(font_obj, "style_name", "").lower()
+            is_it = "oblique" in style_name or "italic" in style_name
+            is_bold = "bold" in style_name
+            f_weight = 700 if is_bold else 400
 
             if is_sym:
                 char_b = bytes([UNICODE_TO_SYMBOL[c]])
                 f_name = "Symbol"
                 f_charset = 2
-                f_it = False
+                f_it = is_it if c == 0x03c0 else False  # \pi follows italic style, operators remain upright
             elif is_alpha:
                 char_b = chr(c).encode("ascii")
                 f_name = "Times New Roman"
                 f_charset = 0
-                f_it = True  # Variables in MathType are ALWAYS Italic
+                f_it = is_it  # Natural italic from TeX engine: Upright for functions (cos, sin, tan, cot), Italic for variables
             else:
                 try:
                     char_b = chr(c).encode("cp1252")
@@ -732,12 +747,12 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
                     char_b = chr(c).encode("latin-1", errors="replace")
                 f_name = "Times New Roman"
                 f_charset = 0
-                f_it = False
+                f_it = is_it
 
-            font_key = (f_name, round(fontsize, 2), f_it, f_charset)
+            font_key = (f_name, round(fontsize, 2), f_it, f_charset, f_weight)
             if font_key != cur_font_key:
                 f_h = -int(round(fontsize * SCALE))
-                lf_data = _create_logfont_record(f_name, f_h, f_it, f_charset)
+                lf_data = _create_logfont_record(f_name, f_h, f_it, f_charset, f_weight)
                 next_h = 2 if active_font_handle == 1 else 1
                 records.append(_build_wmf_rec(0x02fb, lf_data))
                 records.append(_build_wmf_rec(0x012d, struct.pack("<H", next_h)))
