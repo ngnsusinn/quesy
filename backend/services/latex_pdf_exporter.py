@@ -451,14 +451,16 @@ def generate_digitized_exam_latex_pdf(
       font-size: 10.5pt;
     }}
 
-    .tikz-container {{
+    .tikz-container, .tikz-vector-container {{
       text-align: center;
-      margin: 6px 0;
+      margin: 8px auto;
       page-break-inside: avoid;
     }}
-    .tikz-container img {{
-      max-width: 55%;
+    .tikz-container img, .tikz-vector-container svg {{
+      max-width: 58%;
       height: auto;
+      display: block;
+      margin: 0 auto;
     }}
 
     .footer-end {{
@@ -557,12 +559,20 @@ def generate_digitized_exam_latex_pdf(
             html_content += f'<div class="question-stem"><span class="question-number">Câu {idx + 1}.</span> {render_math_html(pre_text)}</div>\n'
 
             try:
-                from backend.services.tikz_renderer import render_tikz_to_png
-                png_res = render_tikz_to_png(tikz_code)
-                if png_res.get("success") and png_res.get("png_path"):
-                    png_p = Path(png_res["png_path"]).resolve()
-                    img_url = f"file:///{str(png_p).replace(os.sep, '/')}"
-                    html_content += f'<div class="tikz-container"><img src="{img_url}" alt="Diagram"/></div>\n'
+                from backend.services.tikz_renderer import render_tikz_to_svg
+                svg_res = render_tikz_to_svg(tikz_code)
+                if svg_res.get("success") and svg_res.get("svg"):
+                    svg_markup = svg_res["svg"]
+                    svg_markup = re.sub(r'<\?xml[^>]*\?>', '', svg_markup)
+                    svg_markup = re.sub(r'<!--[\s\S]*?-->', '', svg_markup)
+                    html_content += f'<div class="tikz-vector-container">{svg_markup}</div>\n'
+                else:
+                    from backend.services.tikz_renderer import render_tikz_to_png
+                    png_res = render_tikz_to_png(tikz_code)
+                    if png_res.get("success") and png_res.get("png_path"):
+                        png_p = Path(png_res["png_path"]).resolve()
+                        img_url = f"file:///{str(png_p).replace(os.sep, '/')}"
+                        html_content += f'<div class="tikz-container"><img src="{img_url}" alt="Diagram"/></div>\n'
             except Exception as tikz_err:
                 logger.warning(f"Could not render TikZ diagram: {tikz_err}")
 
@@ -591,7 +601,23 @@ def generate_digitized_exam_latex_pdf(
             grid_class = "options-grid-4" if max_len <= 32 else ("options-grid-2" if max_len <= 68 else "options-grid-1")
             html_content += f'<div class="{grid_class}">\n'
             for opt in options:
-                opt_html = render_math_html(opt.get("content", ""))
+                opt_content = opt.get("content", "")
+                opt_tikz = re.search(r'\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}', opt_content)
+                if opt_tikz:
+                    try:
+                        from backend.services.tikz_renderer import render_tikz_to_svg
+                        svg_res = render_tikz_to_svg(opt_tikz.group(0))
+                        if svg_res.get("success") and svg_res.get("svg"):
+                            svg_markup = svg_res["svg"]
+                            svg_markup = re.sub(r'<\?xml[^>]*\?>', '', svg_markup)
+                            svg_markup = re.sub(r'<!--[\s\S]*?-->', '', svg_markup)
+                            opt_html = f'<div class="tikz-vector-container" style="margin: 2px auto;">{svg_markup}</div>'
+                        else:
+                            opt_html = render_math_html(opt_content)
+                    except Exception:
+                        opt_html = render_math_html(opt_content)
+                else:
+                    opt_html = render_math_html(opt_content)
                 html_content += f'  <div class="option-item"><span class="option-label">{opt.get("label")}.</span> {opt_html}</div>\n'
             html_content += '</div>\n'
 

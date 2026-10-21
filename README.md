@@ -46,6 +46,7 @@ Trong công tác biên soạn đề thi và quản lý ngân hàng câu hỏi, g
 * **Xuất Bản PDF Chuẩn $\LaTeX$ Thuần Túy (`latex_pdf_exporter.py`):**
   * Định dạng Typography thuần LaTeX: Sử dụng font **Computer Modern Unicode (CMU Serif)** cho toàn bộ đề thi, loại bỏ hoàn toàn font Times New Roman văn phòng thô cứng.
   * 100% Phân số Chuẩn `\dfrac` (Display Fraction): Toàn bộ phân số được thăng hạng và giữ nguyên chế độ `\dfrac`, cỡ chữ tử số và mẫu số đạt 100% (11pt chuẩn đề thi), vạch phân số sắc nét, khoảng đệm thoáng đãng, tuyệt đối không bị co nhỏ (textstyle).
+  * 100% Vector LaTeX Compilation cho Hình vẽ & Đồ thị TikZ: Mọi sơ đồ, hình học không gian và đồ thị hàm số TikZ/PGFPlots đều được biên dịch trực tiếp từ mã nguồn $\LaTeX$ sang Vector SVG nguyên bản (`dvisvgm`), tuyệt đối KHÔNG chuyển thành ảnh bitmap PNG rồi chèn vào PDF (0% raster images, phóng to 2000% nét căng mịn).
   * 100% Vector Math: Toàn bộ công thức toán học ($f(x)$, $f'(x)$, $\dfrac{5\pi}{6}$, khoảng đoạn $[0; 2\pi]$) được render vector SVG trực tiếp qua persistent MathJax daemon với đường gióng chân dòng (baseline) thẳng tắp và loại bỏ triệt để khoảng trống trước các dấu chấm/phẩy kết thúc câu.
   * Khung thông tin thí sinh 3 cột (`Họ tên`, `SBD`, `Phòng thi`) khóa dòng chống rớt dòng chấm lửng; chân trang chuẩn Bộ GD&ĐT: `Trang X - Mã đề thi Y`.
 
