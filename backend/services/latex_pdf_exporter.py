@@ -245,7 +245,7 @@ def generate_digitized_exam_latex_pdf(
     body {{
       font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif;
       font-size: 11pt;
-      line-height: 1.45;
+      line-height: 1.52;
       color: #000;
       margin: 0;
       padding: 0;
@@ -415,7 +415,6 @@ def generate_digitized_exam_latex_pdf(
     }}
 
     .math-svg svg {{
-      height: 100% !important;
       display: inline !important;
       overflow: visible !important;
     }}
