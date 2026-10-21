@@ -1793,7 +1793,7 @@ def convert_html_to_pdf_browser(html_path: Path, pdf_path: Path) -> bool:
             "--disable-dev-shm-usage",
             "--no-pdf-header-footer",
             f"--print-to-pdf={str(pdf_path.resolve())}",
-            f"file:///{str(html_path.resolve()).replace(os.sep, '/')}"
+            html_path.resolve().as_uri()
         ]
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
         return pdf_path.exists() and pdf_path.stat().st_size > 1000

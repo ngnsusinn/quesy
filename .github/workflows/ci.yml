@@ -24,9 +24,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - name: Install System Dependencies & Chromium
+      - name: Install System Dependencies & Fonts
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -34,14 +33,16 @@ jobs:
             libglib2.0-0 \
             libxml2-dev \
             libxslt1-dev \
-            chromium-browser \
             fonts-dejavu-core \
             fonts-freefont-ttf \
             fonts-liberation
+          if ! command -v google-chrome &> /dev/null && ! command -v chromium &> /dev/null; then
+            sudo apt-get install -y --no-install-recommends chromium-browser || true
+          fi
 
       - name: Install Node.js Dependencies (MathJax Engine & Fonts)
         run: |
-          npm ci || npm install
+          npm install
 
       - name: Install Python Dependencies
         run: |

@@ -682,8 +682,8 @@ def generate_digitized_exam_latex_pdf(
             "--disable-dev-shm-usage",
             "--allow-file-access-from-files",
             "--no-pdf-header-footer",
-            f"--print-to-pdf={str(output_pdf)}",
-            f"file:///{str(temp_html).replace(os.sep, '/')}"
+            f"--print-to-pdf={str(output_pdf.resolve())}",
+            temp_html.resolve().as_uri()
         ]
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
         success = output_pdf.exists() and output_pdf.stat().st_size > 1000
