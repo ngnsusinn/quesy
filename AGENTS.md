@@ -28,3 +28,9 @@
    - Tuân thủ nghiêm ngặt Apple Human Interface Guidelines (HIG) và tương tác vi mô Emil Kowalski.
    - Phản hồi xúc giác tức thì (scale 0.97 khi nhấn), giao diện tối giản, cuộn đồng bộ mượt mà, font chữ sans-serif đồng nhất.
    - Điều hướng SPA với URL sạch (`/path`) và đăng ký đầy đủ route trên FastAPI tránh lỗi 404 khi tải lại trang (F5).
+
+6. **DỌN DẸP & DIỆT TIẾN TRÌNH NỀN (PROCESS CLEANUP & TERMINATION ON TURN COMPLETION):**
+   - **Bắt buộc:** Sau khi hoàn tất quá trình phản hồi, chạy thử nghiệm, kiểm thử hoặc chỉnh sửa mã nguồn:
+     1. Phải chủ động kiểm tra và **tắt/diệt toàn bộ các tiến trình nền (kill background processes)**: máy chủ uvicorn/fastapi trên cổng 8000, worker Node.js mồ côi (`mathjax_worker.js`), và các tiến trình con subprocess.
+     2. **Tuyệt đối không để sót tiến trình chạy ngầm dồn ứ (no leftover background processes)** gây chiếm dụng RAM, rò rỉ tài nguyên hệ thống, hoặc chiếm giữ cổng mạng gây xung đột phiên bản mã nguồn cũ giữa các lượt tương tác của người dùng.
+     3. Mọi tiến trình nền phục vụ kiểm nghiệm chỉ được chạy tạm thời, phải dọn dẹp sạch sẽ trước khi kết thúc lượt phản hồi.
