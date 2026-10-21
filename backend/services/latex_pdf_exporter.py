@@ -13,6 +13,7 @@ import os
 import re
 import json
 import base64
+import shutil
 import logging
 import subprocess
 from pathlib import Path
@@ -24,14 +25,6 @@ from backend.services.mathjax_service import render_mathjax_equation
 logger = logging.getLogger("quesy.latex_pdf_exporter")
 
 FONTS_DIR = BASE_DIR / "frontend" / "static" / "fonts" / "cmu-serif"
-
-# Browser Executable Discovery
-BROWSER_CANDIDATES = [
-    Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
-    Path(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
-    Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
-    Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
-]
 
 _CACHED_FONT_CSS: Optional[str] = None
 
@@ -87,10 +80,45 @@ def get_cmu_font_css() -> str:
 
 
 def find_browser_executable() -> Optional[Path]:
-    """Finds available Edge or Chrome executable for headless PDF generation."""
-    for p in BROWSER_CANDIDATES:
+    """Finds available Chrome or Chromium or Edge executable cross-platform (Windows, Linux, macOS)."""
+    # 1. System PATH lookup (Linux, macOS, standard Windows PATH)
+    for name in ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome", "msedge", "edge"]:
+        found = shutil.which(name)
+        if found:
+            return Path(found)
+
+    # 2. Linux standard locations
+    linux_paths = [
+        Path("/usr/bin/google-chrome"),
+        Path("/usr/bin/google-chrome-stable"),
+        Path("/usr/bin/chromium"),
+        Path("/usr/bin/chromium-browser"),
+        Path("/snap/bin/chromium"),
+    ]
+    for p in linux_paths:
         if p.exists():
             return p
+
+    # 3. Windows standard locations
+    windows_paths = [
+        Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
+        Path(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
+        Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+        Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+    ]
+    for p in windows_paths:
+        if p.exists():
+            return p
+
+    # 4. macOS standard locations
+    mac_paths = [
+        Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+        Path("/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
+    ]
+    for p in mac_paths:
+        if p.exists():
+            return p
+
     return None
 
 
@@ -650,6 +678,8 @@ def generate_digitized_exam_latex_pdf(
             str(browser),
             "--headless",
             "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
             "--allow-file-access-from-files",
             "--no-pdf-header-footer",
             f"--print-to-pdf={str(output_pdf)}",

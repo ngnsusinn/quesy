@@ -43,6 +43,7 @@ Trong công tác biên soạn đề thi và quản lý ngân hàng câu hỏi, g
   4. *Ký hiệu vectơ:* Chuẩn hóa thành `\overrightarrow{AB}` thay vì `\vec`.
 * **Tự động sửa lỗi bảng số liệu:** Chuyển đổi môi trường `tabular` sang KaTeX `array` và tự động đóng thẻ `$$`.
 * **Bộ Giải mã JSON Kháng lỗi Thoát chuỗi LaTeX (`repair_llm_json`):** Tự động sửa chữa các ký tự escape TeX chưa được nhân đôi (`\dfrac`, `\left`, `\right`, `\hline`, `\text`, `\tan`, `\frac`, `\beta`) trong chuỗi JSON trả về từ Multimodal AI, bảo đảm tỷ lệ bóc tách thành công 100% đối với mọi tệp ảnh và tài liệu chứa công thức phức tạp.
+* **Quy chuẩn CI/CD Tự Động Hóa Toàn Diện (`.github/workflows/ci.yml`):** Đồng bộ môi trường Python 3.13, Node.js 20 (MathJax 3 full, Resvg, KaTeX, Computer Modern), và Chromium Headless cross-platform với cờ `--no-sandbox` bảo đảm 100% test suite `pytest` (56/56 cases) vượt qua trên Ubuntu runner.
 * **Xuất Bản PDF Chuẩn $\LaTeX$ Thuần Túy (`latex_pdf_exporter.py`):**
   * Định dạng Typography thuần LaTeX: Sử dụng font **Computer Modern Unicode (CMU Serif)** cho toàn bộ đề thi, loại bỏ hoàn toàn font Times New Roman văn phòng thô cứng.
   * 100% Phân số Chuẩn `\dfrac` (Display Fraction): Toàn bộ phân số được thăng hạng và giữ nguyên chế độ `\dfrac`, cỡ chữ tử số và mẫu số đạt 100% (11pt chuẩn đề thi), vạch phân số sắc nét, khoảng đệm thoáng đãng, tuyệt đối không bị co nhỏ (textstyle).

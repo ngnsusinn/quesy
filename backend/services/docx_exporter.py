@@ -2,6 +2,7 @@ import os
 import io
 import re
 import sys
+import shutil
 import threading
 import ctypes
 import struct
@@ -1736,10 +1737,45 @@ EDGE_BROWSER_PATHS = [
 
 
 def find_browser_executable() -> Optional[Path]:
-    """Finds available Edge or Chrome executable for fast headless PDF rendering."""
-    for p in EDGE_BROWSER_PATHS:
+    """Finds available Edge or Chrome or Chromium executable cross-platform (Windows, Linux, macOS)."""
+    # 1. System PATH lookup (Linux, macOS, standard Windows PATH)
+    for name in ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome", "msedge", "edge"]:
+        found = shutil.which(name)
+        if found:
+            return Path(found)
+
+    # 2. Linux standard locations
+    linux_paths = [
+        Path("/usr/bin/google-chrome"),
+        Path("/usr/bin/google-chrome-stable"),
+        Path("/usr/bin/chromium"),
+        Path("/usr/bin/chromium-browser"),
+        Path("/snap/bin/chromium"),
+    ]
+    for p in linux_paths:
         if p.exists():
             return p
+
+    # 3. Windows standard locations
+    windows_paths = [
+        Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
+        Path(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
+        Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+        Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+    ]
+    for p in windows_paths:
+        if p.exists():
+            return p
+
+    # 4. macOS standard locations
+    mac_paths = [
+        Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+        Path("/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
+    ]
+    for p in mac_paths:
+        if p.exists():
+            return p
+
     return None
 
 
@@ -1753,6 +1789,8 @@ def convert_html_to_pdf_browser(html_path: Path, pdf_path: Path) -> bool:
             str(browser_exe),
             "--headless",
             "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
             "--no-pdf-header-footer",
             f"--print-to-pdf={str(pdf_path.resolve())}",
             f"file:///{str(html_path.resolve()).replace(os.sep, '/')}"

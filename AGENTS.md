@@ -2,11 +2,12 @@
 
 ## 1. NGUYÊN TẮC CỐT LÕI (MANDATORY STANDING RULES)
 
-1. **QUY TẮC ĐỒNG BỘ TÀI LIỆU & COMMIT (DOCS & COMMIT ON EVERY CODE CHANGE):**
+1. **QUY TẮC ĐỒNG BỘ TÀI LIỆU, ĐỐI CHIẾU CI/CD & COMMIT (DOCS, CI/CD & COMMIT ON EVERY CODE CHANGE):**
    - **Bắt buộc:** Sau **bất kỳ** thay đổi, bổ sung, sửa lỗi (bug fix) hay refactor nào trong mã nguồn (`backend/`, `frontend/`, `tests/`):
      1. Phải rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (bao gồm `SRS`, `FRD`, `BRD`, `NFR`, `TEST`, `UC`, `README.md`, v.v.) để phản ánh chính xác trạng thái kỹ thuật mới nhất.
-     2. Chạy toàn bộ test suite (`pytest`) đảm bảo 100% test cases đạt (`55/55 PASSED`).
-     3. Thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+     2. **Bắt buộc đối chiếu và cập nhật cấu hình CI/CD (`.github/workflows/`):** Mỗi khi có thay đổi trong mã nguồn, phải chủ động rà soát xem có phát sinh dependencies mới (Python packages trong `requirements.txt`, npm packages trong `package.json`, font, headless browser/Chromium, biến môi trường `.env`, cờ thực thi...) hay không để cập nhật đồng bộ workflow CI/CD ngay lập tức, bảo đảm 100% test cases vượt qua trên mọi môi trường (Ubuntu/Linux runner).
+     3. Chạy toàn bộ test suite (`pytest`) đảm bảo 100% test cases đạt (`56/56 PASSED`).
+     4. Thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 2. **CHUẨN MỰC KHẢO THÍ QUỐC GIA:**
    - **Thông tư 32/2018/TT-BGDĐT:** Phân cấp cây kiến thức 6 tầng theo Yêu cầu cần đạt (YCCĐ) và Dạng câu hỏi. **Tuyệt đối không phân chia theo các bộ sách giáo khoa thương mại** (như Cánh diều, Kết nối tri thức, Chân trời sáng tạo).
