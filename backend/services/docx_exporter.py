@@ -630,6 +630,9 @@ UNICODE_TO_SYMBOL = {
     0x2223: 0x7c,  # \mid (|)
     0x2236: 0x3a,  # \colon (:)
     0x2026: 0x85,  # \dots (…)
+    0x2032: 0xa2,  # prime ′ (MathType standard)
+    0x2033: 0xb2,  # double prime ″
+    0x2034: 0xb3,  # triple prime ‴
 }
 
 
@@ -665,7 +668,21 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
         m_code = m_code.replace(r"\mathbb{Q}", r"\mathbf{Q}").replace(r"\mathbb{R}", r"\mathbf{R}").replace(r"\mathbb{Z}", r"\mathbf{Z}").replace(r"\mathbb{N}", r"\mathbf{N}").replace(r"\mathbb{C}", r"\mathbf{C}")
         m_code = m_code.replace('"', "").replace('"', "").replace(r"\_", "_")
         m_code = m_code.replace(r"\varnothing", r"\emptyset")
-        m_code = re.sub(r"(?<![a-zA-Z\\])([a-zA-Z])\(", lambda m: m.group(1) + r"\,(", m_code)
+        # 1. Normalize spaces around relational operators (=, <, >, \le, \ge)
+        m_code = re.sub(r"(?<![<>=!\\:])=(?!=)", " = ", m_code)
+        m_code = re.sub(r"(?<![<>=!\\:])<(?![=<])", " < ", m_code)
+        m_code = re.sub(r"(?<![<>=!\\:])>(?![=>])", " > ", m_code)
+
+        # 2. Normalize spaces around binary + and - between operands
+        m_code = re.sub(r"(?<=[a-zA-Z0-9\}\)])\s*\+\s*(?=[a-zA-Z0-9\{\\])", " + ", m_code)
+        m_code = re.sub(r"(?<=[a-zA-Z0-9\}\)])\s*-\s*(?=[a-zA-Z0-9\{\\])", " - ", m_code)
+
+        # 3. Add italic spacing between single letter variable/function or prime and opening paren:
+        m_code = re.sub(r"(?<![a-zA-Z\\])([a-zA-Z]|(?:[a-zA-Z]'+))\s*(\\(?:left\s*)?\()", r"\1\,\2", m_code)
+
+        # 4. Add spacing between adjacent factors: (x+2)(x-1) -> (x+2)\,(x-1) or \right)\left( -> \right)\,\left(
+        m_code = re.sub(r"(\)|\\right\))\s*(\^\{?\d+\}?)?\s*(\(|\\left\()", r"\1\2\,\3", m_code)
+        m_code = re.sub(r"[ \t]+", " ", m_code).strip()
         m_code = m_code.strip("$").strip()
 
         from matplotlib.mathtext import MathTextParser
@@ -775,6 +792,10 @@ def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[in
                 c = 123  # '{'
             elif c in (0xaa, 0x7d):
                 c = 125  # '}'
+
+            # Remap TeX Computer Modern cmsy10 char 48 to Unicode prime 0x2032
+            if getattr(font_obj, "family_name", "") == "cmsy10" and c == 48:
+                c = 0x2032
 
             is_bb = c in BLACKBOARD_BOLD_TO_LATIN
             is_sym = c in UNICODE_TO_SYMBOL
@@ -2584,7 +2605,7 @@ def _add_options_adaptive(
         tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
         tbl.autofit = False
         _remove_table_borders(tbl)
-        col_w = Inches(1.75)  # 4 * 1.75 = 7.0 inches ~ 17.8 cm
+        col_w = Inches(1.70)  # 4 * 1.70 = 6.80 inches ~ 17.3 cm (strictly within page margins)
         for col in tbl.columns:
             col.width = col_w
         for opt_idx, opt in enumerate(options):
@@ -2602,7 +2623,7 @@ def _add_options_adaptive(
         tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
         tbl.autofit = False
         _remove_table_borders(tbl)
-        col_w = Inches(3.5)  # 2 * 3.5 = 7.0 inches
+        col_w = Inches(3.40)  # 2 * 3.40 = 6.80 inches
         for col in tbl.columns:
             col.width = col_w
         for opt_idx, opt in enumerate(options):
