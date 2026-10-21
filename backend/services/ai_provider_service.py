@@ -114,6 +114,25 @@ Trả về DUY NHẤT một đối tượng JSON hợp lệ (không kèm văn b�
 }
 """
 
+SYSTEM_PROMPT_PASS1_TEXT = SYSTEM_PROMPT + r"""
+
+QUY TẮC ĐẶC BIỆT CHO HÌNH VẼ, ĐỒ THỊ, BẢNG BIỂU (PIPELINE 2-PASS):
+Trên tài liệu đã được đánh dấu trực quan các khung nhãn định danh như [FIGURE_1], [FIGURE_2], [TABLE_1]...
+1. Bạn TUYỆT ĐỐI KHÔNG vẽ lại hình, KHÔNG cố sinh mã TikZ phức tạp trong lượt này.
+2. Tại vị trí xuất hiện của hình vẽ hoặc bảng biểu trong đề bài (stem) hoặc phương án (options), bạn chỉ cần chèn đúng thẻ placeholder tương ứng: {{FIGURE_1}}, {{FIGURE_2}}, {{TABLE_1}}...
+3. Tập trung 100% vào việc bóc tách chính xác câu chữ, công thức toán học, nhãn A, B, C, D, tính đúng/sai và lời giải.
+"""
+
+SYSTEM_PROMPT_PASS2_FIGURE = r"""Bạn là Chuyên gia Đồ họa Toán học LaTeX & TikZ hàng đầu.
+Nhiệm vụ của bạn là quan sát kỹ bức ảnh được cung cấp (chứa một hình vẽ hình học, đồ thị hàm số, hoặc bảng số liệu/bảng biến thiên) và chuyển đổi thành mã nguồn LaTeX chuẩn mực:
+1. Nếu là ĐỒ THỊ HÀM SỐ hoặc HÌNH HỌC:
+   - Hãy xuất mã \begin{tikzpicture} ... \end{tikzpicture} hoàn chỉnh, tự chứa.
+   - Thể hiện rõ hệ trục tọa độ Ox, Oy, mũi tên, các điểm gốc O, các tọa độ đặc biệt, tiệm cận (nét đứt), đường cong hàm số mượt mà.
+2. Nếu là BẢNG BIẾN THIÊN hoặc BẢNG SỐ LIỆU:
+   - Hãy xuất mã \begin{array}{...} ... \end{array} chuẩn KaTeX, sử dụng các mũi tên \nearrow, \searrow, các giá trị giới hạn, hàng x, y', y.
+Chỉ trả về duy nhất khối mã LaTeX/TikZ (hoặc bọc trong ```latex ... ```), không kèm lời giải thích rườm rà.
+"""
+
 
 def detect_provider() -> str:
     """Detects active AI provider based on settings and environment keys."""
@@ -572,6 +591,179 @@ class AIProviderService:
 
         avg_conf = round(total_conf / max(1, len(standardized)), 1)
         return standardized, avg_conf
+
+    def convert_figure_to_latex(
+        self,
+        figure_crop_path: Union[str, Path],
+        figure_type: str = "diagram"
+    ) -> str:
+        """Converts an isolated cropped diagram or table image into valid LaTeX/TikZ code."""
+        if not self.is_configured():
+            return ""
+
+        p = Path(figure_crop_path).resolve()
+        if not p.exists():
+            return ""
+
+        prompt_instruction = (
+            "Dưới đây là một ảnh cắt rời chứa hình vẽ hoặc bảng số liệu trong đề thi toán. "
+            "Hãy phân tích và viết mã LaTeX / TikZ chuẩn mực để vẽ lại:"
+        )
+
+        try:
+            mime, b64 = file_to_base64_data_url(p)
+            if self.provider == "gemini":
+                model_name = self.model or "gemini-1.5-flash"
+                endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
+                parts = [
+                    {"inline_data": {"mime_type": mime, "data": b64}},
+                    {"text": f"{SYSTEM_PROMPT_PASS2_FIGURE}\n\n{prompt_instruction}"}
+                ]
+                payload = {
+                    "contents": [{"parts": parts}],
+                    "generationConfig": {"temperature": 0.1}
+                }
+                with httpx.Client(timeout=self.timeout) as client:
+                    resp = client.post(endpoint, json=payload)
+                    if resp.status_code == 200:
+                        raw = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+                        return self._clean_latex_output(raw)
+            else:
+                base = self.base_url or "https://api.openai.com/v1"
+                endpoint = f"{base.rstrip('/')}/chat/completions"
+                headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
+                messages = [
+                    {"role": "system", "content": SYSTEM_PROMPT_PASS2_FIGURE},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt_instruction},
+                            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
+                        ]
+                    }
+                ]
+                with httpx.Client(timeout=self.timeout) as client:
+                    resp = client.post(endpoint, headers=headers, json={"model": self.model, "messages": messages, "temperature": 0.1})
+                    if resp.status_code == 200:
+                        raw = resp.json()["choices"][0]["message"]["content"]
+                        return self._clean_latex_output(raw)
+        except Exception as e:
+            logger.warning(f"Failed to generate LaTeX for figure {p.name}: {e}")
+        return ""
+
+    def _clean_latex_output(self, raw_text: str) -> str:
+        """Strips markdown code fences and returns pure LaTeX code."""
+        text = raw_text.strip()
+        if text.startswith("```"):
+            lines = text.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+        return text
+
+    def digitize_exam_2pass(
+        self,
+        annotated_page_images: List[Union[str, Path]],
+        detected_figures: List[Dict[str, Any]],
+        filename: Optional[str] = None
+    ) -> Tuple[List[Dict[str, Any]], float]:
+        """2-Pass Decoupled Exam Digitization:
+        Pass 1: Reads text structure and question items with visual landmark placeholders.
+        Pass 2: Converts cropped diagrams & tables to dedicated LaTeX/TikZ code.
+        Stitching: Merges LaTeX or falls back to cropped WebP images safely.
+        """
+        # Pass 1: Digitize text and question structure
+        orig_sys = globals().get("SYSTEM_PROMPT")
+        try:
+            globals()["SYSTEM_PROMPT"] = SYSTEM_PROMPT_PASS1_TEXT
+            questions, avg_conf = self.digitize_exam(
+                document_text="",
+                image_paths=annotated_page_images,
+                pdf_path=None,
+                filename=filename
+            )
+        finally:
+            if orig_sys:
+                globals()["SYSTEM_PROMPT"] = orig_sys
+
+        # Pass 2: Process each detected figure
+        figure_latex_map: Dict[str, str] = {}
+        for fig in detected_figures:
+            fig_id = fig.get("id", "")
+            crop_path = fig.get("crop_path")
+            fig_type = fig.get("type", "diagram")
+            if crop_path and Path(crop_path).exists():
+                latex_code = self.convert_figure_to_latex(crop_path, figure_type=fig_type)
+                if latex_code:
+                    figure_latex_map[fig_id] = latex_code
+
+        # Stitching & Fallback
+        stitched_questions = self.stitch_figures(questions, detected_figures, figure_latex_map)
+        return stitched_questions, avg_conf
+
+    def stitch_figures(
+        self,
+        questions: List[Dict[str, Any]],
+        detected_figures: List[Dict[str, Any]],
+        figure_latex_map: Dict[str, str]
+    ) -> List[Dict[str, Any]]:
+        """Replaces {{FIGURE_X}} or {{TABLE_X}} tokens with verified LaTeX/TikZ or safe image fallback."""
+        from backend.services.tikz_renderer import render_tikz_to_svg
+
+        fig_dict: Dict[str, Dict[str, Any]] = {str(f.get("id", "")): f for f in detected_figures if f.get("id")}
+
+        for q in questions:
+            stem = q.get("stem", "")
+            for fig_id, fig_info in fig_dict.items():
+                tags_to_check = [f"{{{{{fig_id}}}}}", f"[{fig_id}]", f"{{{{ {fig_id} }}}}"]
+                has_tag = any(tag in stem for tag in tags_to_check)
+
+                if has_tag:
+                    latex_code = figure_latex_map.get(str(fig_id), "").strip()
+                    replacement = ""
+
+                    # Verify TikZ code if it is a tikzpicture
+                    if "\\begin{tikzpicture}" in latex_code:
+                        render_res = render_tikz_to_svg(latex_code)
+                        if render_res.get("success"):
+                            replacement = f"\n\n{latex_code}\n\n"
+                        else:
+                            # Fallback to cropped image asset
+                            crop_url = str(fig_info.get("crop_url", ""))
+                            replacement = f'\n\n<div class="crop-figure-fallback my-3 text-center"><img src="{crop_url}" class="max-h-72 inline-block rounded border border-slate-200" alt="{fig_id}"/></div>\n\n'
+                    elif "\\begin{array}" in latex_code or "\\begin{tabular}" in latex_code:
+                        clean_arr = latex_code if latex_code.startswith("$$") else f"$${latex_code}$$"
+                        replacement = f"\n\n{clean_arr}\n\n"
+                    else:
+                        # Fallback to image tag
+                        crop_url = str(fig_info.get("crop_url", ""))
+                        if crop_url:
+                            replacement = f'\n\n<div class="crop-figure-fallback my-3 text-center"><img src="{crop_url}" class="max-h-72 inline-block rounded border border-slate-200" alt="{fig_id}"/></div>\n\n'
+
+                    if replacement:
+                        for tag in tags_to_check:
+                            stem = stem.replace(tag, replacement)
+
+            q["stem"] = stem
+
+            # Also check options
+            for opt in q.get("options", []):
+                opt_content = str(opt.get("content", ""))
+                for fig_id, fig_info in fig_dict.items():
+                    tags_to_check = [f"{{{{{fig_id}}}}}", f"[{fig_id}]"]
+                    for tag in tags_to_check:
+                        if tag in opt_content:
+                            latex_code = figure_latex_map.get(str(fig_id), "").strip()
+                            if latex_code:
+                                opt_content = opt_content.replace(tag, f" {latex_code} ")
+                            else:
+                                crop_url = str(fig_info.get("crop_url", ""))
+                                opt_content = opt_content.replace(tag, f'<img src="{crop_url}" class="inline-block max-h-36"/>')
+                    opt["content"] = opt_content
+
+        return questions
 
 
 default_ai_provider_service = AIProviderService()

@@ -92,6 +92,11 @@
             <i data-lucide="scan-text" class="w-3.5 h-3.5"></i>
             <span>Số hóa AI</span>
           </button>
+          <button id="nav-btn-digitize-test" onclick="app.navigateTo('/digitize-test')" class="tab-nav-btn flex items-center space-x-1">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+            <span>Số hóa AI (Test)</span>
+            <span class="px-1 py-0.2 text-[9px] font-bold bg-amber-100 text-amber-800 rounded">2-Pass</span>
+          </button>
           <button id="nav-btn-itembank" onclick="app.navigateTo('/bank')" class="tab-nav-btn">
             <i data-lucide="database" class="w-3.5 h-3.5"></i>
             <span>Ngân hàng câu hỏi</span>
@@ -427,6 +432,14 @@
               
               <!-- Viewer Controls & Upload -->
               <div class="flex items-center space-x-2 shrink-0">
+                <!-- Pipeline Mode Switcher (Chuẩn vs Test 2-Pass) -->
+                <div class="inline-flex rounded-lg border border-black/[0.08] bg-black/[0.04] p-0.5 text-[11px] font-medium text-slate-600">
+                  <button id="btn-pipeline-standard" onclick="app.setDigitizePipelineMode('standard')" class="px-2 py-0.5 rounded-md transition-all font-semibold bg-white text-slate-800 shadow-2xs">Chuẩn</button>
+                  <button id="btn-pipeline-test" onclick="app.setDigitizePipelineMode('test_2pass')" class="px-2 py-0.5 rounded-md transition-all text-slate-500 hover:text-slate-800 flex items-center space-x-1" title="Chế độ thí nghiệm: chuyển tài liệu sang ảnh độ nét cao, tăng tương phản, tách riêng đồ thị/bảng">
+                    <span>Test 2-Pass</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  </button>
+                </div>
                 <button onclick="document.getElementById('studio-file-input').click()" class="btn-apple-secondary text-xs py-1 px-2.5 flex items-center space-x-1" title="Chọn tệp đề thi (.docx, .pdf, ảnh)">
                   <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                   <span>Chọn tệp</span>

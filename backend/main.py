@@ -165,6 +165,7 @@ def get_service_worker():
 @app.get("/", tags=["Frontend"])
 @app.get("/dashboard", tags=["Frontend"])
 @app.get("/digitize", tags=["Frontend"])
+@app.get("/digitize-test", tags=["Frontend"])
 @app.get("/bank", tags=["Frontend"])
 @app.get("/matrix", tags=["Frontend"])
 @app.get("/shuffler", tags=["Frontend"])

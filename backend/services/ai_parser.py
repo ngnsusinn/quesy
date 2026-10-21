@@ -794,3 +794,103 @@ def process_digitize_job(job_id: str):
             db.commit()
     finally:
         db.close()
+
+
+def process_digitize_job_2pass(job_id: str):
+    """Worker task for Experimental 2-Pass Decoupled AI Digitization:
+    Step 1: Converts any document (PDF, Images, DOCX) to high-res page images.
+    Step 2: Enhances contrast, normalizes paper illumination, auto-deskews.
+    Step 3: Segments diagrams, plots, and tables; auto-crops them to storage/assets/.
+    Step 4: AI Pass 1 (Text & Structure) + AI Pass 2 (Diagram-to-LaTeX) + Stitching & Fallback.
+    """
+    if not HAS_DB:
+        logger.error("Database models not available for process_digitize_job_2pass")
+        return
+
+    from backend.services.image_enhancer import convert_document_to_images, enhance_page_image
+    from backend.services.layout_segmenter import detect_and_crop_regions
+
+    db: Session = SessionLocal()
+    job = None
+    try:
+        job = db.query(AIDigitizeJob).filter(AIDigitizeJob.id == job_id).first()
+        if not job:
+            logger.error(f"Job {job_id} not found")
+            return
+
+        job.status = "PROCESSING"
+        db.commit()
+
+        project_root = Path(__file__).resolve().parent.parent.parent
+        uploads_dir = project_root / "storage" / "uploads"
+        assets_dir = project_root / "storage" / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        job_dir = uploads_dir / job_id
+        job_dir.mkdir(parents=True, exist_ok=True)
+
+        # Step 1: Uniform conversion to page images
+        page_images = convert_document_to_images(job.file_path, job_dir, target_dpi=200)
+        if not page_images:
+            p = Path(job.file_path)
+            if p.suffix.lower() in [".png", ".jpg", ".jpeg", ".webp"]:
+                page_images = [p]
+
+        # Step 2 & 3: Enhance pages and segment diagrams / tables
+        enhanced_pages: List[Union[str, Path]] = []
+        all_figures: List[Dict[str, Any]] = []
+
+        for p_idx, page_p in enumerate(page_images):
+            # 2.1 Enhance
+            enh_p = job_dir / f"enhanced_p{p_idx + 1:02d}.jpg"
+            enhanced_page = enhance_page_image(page_p, enh_p, auto_deskew=True)
+            enhanced_pages.append(enhanced_page)
+
+            # 2.2 Segment & Crop
+            ann_p, figures = detect_and_crop_regions(
+                enhanced_page,
+                output_dir=assets_dir,
+                job_id=job_id,
+                page_index=p_idx + 1,
+                start_figure_idx=len(all_figures) + 1
+            )
+            all_figures.extend(figures)
+
+        questions: List[Dict[str, Any]] = []
+        avg_confidence: float = 95.0
+
+        # Step 4: AI 2-Pass Digitization
+        if default_ai_provider_service.is_configured():
+            logger.info(f"Executing 2-Pass AI Digitization ({default_ai_provider_service.provider.upper()}) for job {job_id}")
+            questions, avg_confidence = default_ai_provider_service.digitize_exam_2pass(
+                annotated_page_images=enhanced_pages,
+                detected_figures=all_figures,
+                filename=job.filename
+            )
+        else:
+            logger.info("AI Provider not configured. Running offline simulation for 2-Pass pipeline.")
+            questions, avg_confidence = parse_document_file(job.file_path, job.filename)
+            # If figures detected in offline mode, attach them to questions
+            if all_figures and questions:
+                fig = all_figures[0]
+                crop_url = fig.get("crop_url", "")
+                questions[0]["stem"] += f'\n\n<div class="crop-figure-fallback my-3 text-center"><img src="{crop_url}" class="max-h-72 inline-block rounded border border-slate-200" alt="{fig.get("id")}"/><div class="text-xs text-slate-500 mt-1">Đồ thị / bảng phát hiện tự động ({fig.get("id")})</div></div>'
+
+        # Attach metadata about detected figures
+        for q in questions:
+            q["_pipeline_mode"] = "test_2pass"
+            q["_detected_figures_count"] = len(all_figures)
+
+        job.extracted_data = json.dumps(questions, ensure_ascii=False)
+        job.confidence_score = avg_confidence
+        job.status = "EXTRACTED"
+        db.commit()
+        logger.info(f"2-Pass Job {job_id} completed: {len(questions)} questions, {len(all_figures)} figures detected.")
+    except Exception as e:
+        logger.exception(f"Error in process_digitize_job_2pass ({job_id}): {e}")
+        if job:
+            job.status = "FAILED"
+            job.error_message = str(e)
+            db.commit()
+    finally:
+        db.close()
+

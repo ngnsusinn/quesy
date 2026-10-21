@@ -17,5 +17,7 @@ docx-equation>=0.3.0
 olefile>=0.47
 matplotlib>=3.8.0
 numpy>=1.26.0
+opencv-python>=4.8.0
+pymupdf>=1.23.0
 
 

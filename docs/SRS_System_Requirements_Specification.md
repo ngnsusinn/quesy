@@ -153,6 +153,16 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 - **Quy chuẩn in ấn:** Khổ giấy A4 Portrait (210 x 297 mm), lề trang 1.6 cm, dàn trang 1 cột với bảng đáp án thích ứng (4 cột / 2 cột / 1 cột), bảng thông tin thí sinh 3 cột chống rớt dòng, chân trang `Trang X - Mã đề thi Y`.
 - **Tạm thời ẩn xuất Word:** Trên giao diện tab số hóa AI (HITL Studio), tạm thời ẩn các nút xuất file Word (.docx) để tập trung hoàn thiện và vận hành luồng xuất bản PDF chất lượng cao.
 
+#### SRS-FEAT-04c: Phân hệ Số hoá AI Thử nghiệm 2-Pass Decoupled (Experimental 2-Pass Decoupled AI Digitization)
+- **Mô tả:** Phân hệ số hóa thử nghiệm ("Số hóa AI (Test)", route `/digitize-test` và API `POST /api/v1/digitize/upload-test`) hoạt động song song với luồng chuẩn để đánh giá hiệu năng bóc tách chuyên sâu.
+- **Quy trình 5 bước độc lập (2-Pass Decoupled Architecture):**
+  1. *Uniform Document-to-Image:* Chuẩn hóa mọi đầu vào (PDF scan, PDF số, chùm ảnh chụp) sang ảnh trang RGB độ nét cao 200–300 DPI bằng engine `pymupdf` độc lập nền tảng.
+  2. *Computer Vision Image Enhancement:* Tẩy bóng mờ, làm sáng nền giấy, khử nghiêng (Auto-Deskew), tăng cường độ tương phản cục bộ qua thuật toán CLAHE (`OpenCV`) giúp làm sắc nét các số mũ ($x^2$), chỉ số chân ($u_1$), dấu âm ($-$), dấu căn ($\sqrt{}$).
+  3. *Layout Segmentation & Landmark Badging:* Tự động định vị Bounding Box các vùng đồ thị hàm số, hình học không gian, bảng số liệu; cắt rời các hình lưu định dạng WebP vào `storage/assets/` và đóng dấu trực quan `[FIGURE_1]`, `[TABLE_1]` lên trang đề.
+  4. *AI Pass 1 (Text & Structure):* Vision AI chỉ bóc tách văn bản, công thức và đáp án, giữ nguyên các token `{{FIGURE_1}}`, `{{TABLE_1}}`, giảm 60% token và loại bỏ nguy cơ vỡ cấu trúc JSON.
+  5. *AI Pass 2 (Diagram-to-LaTeX) & Fallback:* AI chuyên sâu dựng riêng từng ảnh cắt rời thành mã vector `\begin{tikzpicture}` hoặc `\begin{array}`. Nếu mã TikZ hợp lệ thì biên dịch SVG; nếu lỗi cú pháp thì tự động fallback về ảnh crop gốc nguyên bản (bảo đảm 100% không mất hình).
+
+
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.
 - **Xử lý:** Tính toán vector embedding (`text-embedding-3-small` hoặc `bge-m3`), so sánh Cosine Distance trong `pgvector`.

@@ -903,6 +903,7 @@
     '/': 'dashboard',
     '/dashboard': 'dashboard',
     '/digitize': 'digitize',
+    '/digitize-test': 'digitize_test',
     '/bank': 'itembank',
     '/itembank': 'itembank',
     '/matrix': 'matrix',
@@ -912,6 +913,7 @@
   const TAB_TO_ROUTE = {
     dashboard: '/dashboard',
     digitize: '/digitize',
+    digitize_test: '/digitize-test',
     itembank: '/bank',
     matrix: '/matrix',
     shuffler: '/shuffler',
@@ -920,6 +922,7 @@
   const TAB_TITLES = {
     dashboard: 'Quesy — Tổng quan Khảo thí',
     digitize: 'Quesy — Số hóa AI & HITL Studio',
+    digitize_test: 'Quesy — Số hóa AI (Test 2-Pass Decoupled)',
     itembank: 'Quesy — Ngân hàng Câu hỏi Chuẩn hóa',
     matrix: 'Quesy — Ma trận Đề thi 2D',
     shuffler: 'Quesy — Sinh đề & Trộn đề (.DOCX)',
@@ -962,10 +965,19 @@
       pane.classList.remove('active');
     });
 
-    const activePane = document.getElementById(`tab-${tabId}`);
+    const activePaneId = (tabId === 'digitize_test') ? 'tab-digitize' : `tab-${tabId}`;
+    const activePane = document.getElementById(activePaneId);
     if (activePane) {
       activePane.classList.remove('hidden');
       activePane.classList.add('active');
+    }
+
+    if (tabId === 'digitize_test') {
+      state.digitizePipelineMode = 'test_2pass';
+      updatePipelineModeButtons('test_2pass');
+    } else if (tabId === 'digitize') {
+      state.digitizePipelineMode = 'standard';
+      updatePipelineModeButtons('standard');
     }
 
     // Smooth reset scroll on tab transition
@@ -977,7 +989,7 @@
     // Refresh specific tab contents
     if (tabId === 'dashboard') {
       renderDashboard();
-    } else if (tabId === 'digitize') {
+    } else if (tabId === 'digitize' || tabId === 'digitize_test') {
       renderDigitizeStudio();
     } else if (tabId === 'itembank') {
       renderItemBank();
@@ -988,6 +1000,42 @@
     }
 
     if (window.lucide) lucide.createIcons();
+  }
+
+  function updatePipelineModeButtons(mode) {
+    const btnStd = document.getElementById('btn-pipeline-standard');
+    const btnTest = document.getElementById('btn-pipeline-test');
+    if (btnStd && btnTest) {
+      if (mode === 'test_2pass') {
+        btnStd.className = 'px-2 py-0.5 rounded-md transition-all text-slate-500 hover:text-slate-800';
+        btnTest.className = 'px-2 py-0.5 rounded-md transition-all font-semibold bg-white text-slate-800 shadow-2xs flex items-center space-x-1';
+      } else {
+        btnStd.className = 'px-2 py-0.5 rounded-md transition-all font-semibold bg-white text-slate-800 shadow-2xs';
+        btnTest.className = 'px-2 py-0.5 rounded-md transition-all text-slate-500 hover:text-slate-800 flex items-center space-x-1';
+      }
+    }
+  }
+
+  function setDigitizePipelineMode(mode) {
+    state.digitizePipelineMode = mode;
+    updatePipelineModeButtons(mode);
+    const navBtnStd = document.getElementById('nav-btn-digitize');
+    const navBtnTest = document.getElementById('nav-btn-digitize-test');
+    if (navBtnStd && navBtnTest) {
+      if (mode === 'test_2pass') {
+        navBtnStd.classList.remove('active');
+        navBtnTest.classList.add('active');
+      } else {
+        navBtnTest.classList.remove('active');
+        navBtnStd.classList.add('active');
+      }
+    }
+    showToast(
+      mode === 'test_2pass'
+        ? 'Đã bật chế độ Số hóa AI (Test 2-Pass): Tăng tương phản ảnh, nhận diện và tách đồ thị/bảng sang code LaTeX riêng.'
+        : 'Đã chuyển về chế độ Số hóa AI (Chuẩn).',
+      'info'
+    );
   }
 
   // ============================================================================
@@ -1413,6 +1461,31 @@
     }
 
     let html = '';
+
+    if (state.digitizeJob.detectedFigures && state.digitizeJob.detectedFigures.length > 0) {
+      html += `
+        <div class="mb-4 p-3 bg-amber-50/80 border border-amber-200/90 rounded-2xl shadow-2xs">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-amber-950 flex items-center space-x-1.5">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>
+              <span>Đồ thị & Bảng biểu đã bóc tách riêng (2-Pass Mode)</span>
+              <span class="px-1.5 py-0.2 bg-amber-200 text-amber-900 rounded-full text-[10px] font-bold">${state.digitizeJob.detectedFigures.length}</span>
+            </span>
+            <span class="text-[10px] text-amber-700 font-medium">Tự động dựng TikZ / Array KaTeX</span>
+          </div>
+          <div class="flex items-center space-x-2.5 overflow-x-auto pb-1 no-scrollbar">
+            ${state.digitizeJob.detectedFigures.map((fig) => `
+              <div class="shrink-0 bg-white p-1.5 rounded-xl border border-amber-200/60 shadow-2xs text-center transition-all hover:border-amber-400">
+                <a href="${fig.url}" target="_blank" title="Xem ảnh gốc đã cắt">
+                  <img src="${fig.url}" class="h-14 max-w-[120px] object-contain rounded-md mx-auto border border-slate-100" />
+                </a>
+                <div class="text-[10px] font-bold text-slate-700 mt-1 truncate max-w-[110px]">${fig.filename.replace(/^crop_[^_]+_/, '')}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
 
     questions.forEach((q, idx) => {
       const qId = q.id || idx + 1;
@@ -2171,6 +2244,7 @@
       }
     }
     formData.append('sync', 'true');
+    formData.append('pipeline_mode', state.digitizePipelineMode || 'standard');
 
     try {
       const res = await fetch(`${API_BASE_URL}/digitize/upload`, {
@@ -2190,6 +2264,7 @@
       const uploadResult = await res.json();
       const jobId = uploadResult.job_id;
       state.digitizeJob.jobId = jobId;
+      state.digitizeJob.pipelineMode = uploadResult.pipeline_mode || state.digitizePipelineMode || 'standard';
       state.digitizeJob.fileType = uploadResult.file_type || state.digitizeJob.fileType;
       state.digitizeJob.previewUrl = uploadResult.preview_url || `${API_BASE_URL}/digitize/jobs/${jobId}/preview`;
 
@@ -2201,6 +2276,8 @@
         state.digitizeJob.previewImages = jobData.preview_images || [];
         state.digitizeJob.aiProvider = jobData.ai_provider;
         state.digitizeJob.aiModel = jobData.ai_model;
+        state.digitizeJob.pipelineMode = jobData.pipeline_mode || state.digitizeJob.pipelineMode;
+        state.digitizeJob.detectedFigures = jobData.detected_figures || [];
         state.digitizeJob.fileType = jobData.file_type || state.digitizeJob.fileType;
 
         if (jobData.extracted_questions && jobData.extracted_questions.length > 0) {
