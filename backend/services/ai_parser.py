@@ -1,4 +1,5 @@
 import re
+import io
 import json
 import logging
 from pathlib import Path
@@ -713,6 +714,44 @@ def process_digitize_job(job_id: str):
                     doc_text = extract_text_from_file(str(p), filename=job.filename)
                 except Exception as ex_err:
                     logger.warning(f"Text pre-extraction for PDF warning: {ex_err}")
+
+                # If PDF text extraction is empty or very short (< 100 chars), this is a scanned/image PDF
+                if len(doc_text.strip()) < 100:
+                    logger.info(f"PDF {p.name} appears to be a scanned document (text length={len(doc_text.strip())}). Extracting full-page images for Vision OCR...")
+                    try:
+                        import pypdf
+                        from PIL import Image
+                        reader = pypdf.PdfReader(str(p))
+                        pdf_job_dir = p.parent / job_id
+                        pdf_job_dir.mkdir(parents=True, exist_ok=True)
+                        extracted_page_imgs = []
+
+                        for page_idx, page in enumerate(reader.pages):
+                            best_img = None
+                            max_area = 0
+                            for img_obj in page.images:
+                                try:
+                                    im = Image.open(io.BytesIO(img_obj.data))
+                                    area = im.width * im.height
+                                    if area > max_area:
+                                        max_area = area
+                                        best_img = im
+                                except Exception:
+                                    pass
+
+                            if best_img is not None and max_area > 200000:
+                                # Scale down if oversized to avoid token limit
+                                if max(best_img.size) > 1600:
+                                    best_img.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+                                page_file = pdf_job_dir / f"page_{page_idx + 1:02d}.jpg"
+                                best_img.convert("RGB").save(page_file, format="JPEG", quality=85)
+                                extracted_page_imgs.append(page_file)
+
+                        if extracted_page_imgs:
+                            image_paths = extracted_page_imgs
+                            logger.info(f"Extracted {len(extracted_page_imgs)} scanned page images for Vision OCR from {p.name}")
+                    except Exception as scan_err:
+                        logger.warning(f"Scanned PDF extraction warning: {scan_err}")
             elif ext in [".docx", ".doc"]:
                 try:
                     doc_text = extract_text_from_file(str(p), filename=job.filename)

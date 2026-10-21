@@ -6,9 +6,10 @@ import re
 from typing import Optional
 from pydantic import BaseModel
 from docx import Document
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Inches, Pt, Mm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.section import WD_ORIENT
 from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import qn, nsdecls
 
@@ -38,7 +39,22 @@ def set_section_columns(section, num_columns: int = 2, space_twips: int = 720):
 def append_omml_equation(paragraph, equation_text: str):
     """Append a native OMML equation (<m:oMath>) to a paragraph."""
     # Clean latex math delimiters if present
-    clean_eq = equation_text.strip("$").strip()
+    clean_eq = equation_text.strip()
+    if clean_eq.startswith("${") and clean_eq.endswith("}$"):
+        clean_eq = clean_eq[2:-2].strip()
+    elif clean_eq.startswith("$$") and clean_eq.endswith("$$"):
+        clean_eq = clean_eq[2:-2].strip()
+    elif clean_eq.startswith("$") and clean_eq.endswith("$"):
+        clean_eq = clean_eq[1:-1].strip()
+    if clean_eq.startswith("{") and clean_eq.endswith("}"):
+        clean_eq = clean_eq[1:-1].strip()
+
+    from backend.services.docx_exporter import convert_latex_to_omml
+    omml_elem = convert_latex_to_omml(clean_eq)
+    if omml_elem is not None:
+        paragraph._p.append(omml_elem)
+        return
+
     omml_xml = (
         f'<m:oMath {nsdecls("m")}>'
         f'<m:r><m:t>{clean_eq}</m:t></m:r>'
@@ -48,7 +64,7 @@ def append_omml_equation(paragraph, equation_text: str):
 
 
 def add_paragraph_with_latex(paragraph, text: str, bold_prefix: Optional[str] = None):
-    """Parse text containing $equation$ segments and render them with OMML equations."""
+    """Parse text containing inline LaTeX formulas (${...}$, $$...$$, or $...$) and render them with OMML equations."""
     if bold_prefix:
         run = paragraph.add_run(bold_prefix)
         run.bold = True
@@ -56,13 +72,19 @@ def add_paragraph_with_latex(paragraph, text: str, bold_prefix: Optional[str] = 
     if not text:
         return
 
-    # Split by inline LaTeX delimiters $...$
-    tokens = re.split(r"(\$.*?\$)", text)
+    # Split by inline LaTeX delimiters ${...}$, $${...}$$, $$...$$, $...$
+    tokens = re.split(r"(\$\$\{.*?\}\$\$|\$\$.*?\$\$|\$\\{.*?\\}\$|\$\{.*?\}\$|\$.*?\$)", text, flags=re.DOTALL)
     for token in tokens:
         if not token:
             continue
-        if token.startswith("$") and token.endswith("$") and len(token) > 1:
-            append_omml_equation(paragraph, token)
+        stripped = token.strip()
+        is_math = (
+            (stripped.startswith("${") and stripped.endswith("}$"))
+            or (stripped.startswith("$$") and stripped.endswith("$$"))
+            or (stripped.startswith("$") and stripped.endswith("$"))
+        )
+        if is_math and len(stripped) > 2:
+            append_omml_equation(paragraph, stripped)
         else:
             paragraph.add_run(token)
 
@@ -84,8 +106,11 @@ def generate_exam_docx(
 
     doc = Document()
 
-    # 1. Page margins
+    # 1. Page Format: Standard A4 Portrait (210 x 297 mm)
     for section in doc.sections:
+        section.orientation = WD_ORIENT.PORTRAIT
+        section.page_width = Mm(210)
+        section.page_height = Mm(297)
         section.top_margin = Inches(0.6)
         section.bottom_margin = Inches(0.6)
         section.left_margin = Inches(0.6)

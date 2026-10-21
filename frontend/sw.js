@@ -1,5 +1,5 @@
 // Quesy Service Worker with Network-First Strategy for Instant Updates & Offline Fallback
-const CACHE_NAME = 'quesy-cache-v2026.6';
+const CACHE_NAME = 'quesy-cache-v2026.8';
 const ASSETS_TO_CACHE = [
   '/',
   '/dashboard',

@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 2.5 (Tập trung chỉ số chất lượng & Hiệu năng giải pháp)  
+- **Phiên bản:** 2.6 (Tập trung chỉ số chất lượng, MathJax Engine, Vector WMF & Hiệu năng giải pháp)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ bảo mật dữ liệu đề thi, tính sẵn sàng cao và trải nghiệm người dùng không độ trễ.  
-- **Ngày phát hành:** 2026-10-18  
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều, độ bảo mật dữ liệu đề thi, tính sẵn sàng cao và trải nghiệm người dùng không độ trễ.  
+- **Ngày phát hành:** 2026-10-21  
 
 ---
 
@@ -41,10 +41,14 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 - **NFR-PERF-05 (Thời gian sinh đề gốc từ ma trận YCCĐ):** Thuật toán tìm kiếm và lấy câu hỏi thỏa mãn ma trận (Constraint Solver) cho đề 50 câu phải hoàn thành trong vòng **$< 3$ giây** trên kho dữ liệu 100.000 câu hỏi.
 - **NFR-PERF-06 (Thời gian trộn đề và sinh 4 mã đề hoán vị):** Quá trình chạy thuật toán hoán vị an toàn, kiểm tra cờ neo vị trí (Option Anchor) và xuất ra ma trận ánh xạ đáp án cho 4 mã đề phải hoàn thành trong **$< 2$ giây**.
 
-### 2.3. Hiệu năng Giao diện & Render Công thức (Frontend Performance)
+### 2.3. Hiệu năng Giao diện, Render Công thức & Xuất bản (Frontend & Engine Performance)
 - **NFR-PERF-07 (Tốc độ render công thức KaTeX):** Trên màn hình Studio Hậu kiểm chứa 50 câu hỏi đầy đủ công thức toán, thời gian render ban đầu (First Contentful Paint) không quá **1.2 giây**; tốc độ khung hình khi cuộn trang (Scrolling Frame Rate) phải duy trì ổn định $\ge 60$ FPS.
 - **NFR-PERF-08 (Độ trễ Đồng bộ Cuộn trang - Synchronized Scrolling):** Khi người dùng chọn câu hỏi bên phải, khung xem tài liệu gốc bên trái cuộn đến vị trí tương ứng với độ trễ phản hồi **$< 100$ ms**.
 - **NFR-PERF-09 (Độ trễ API thông thường):** Các API truy vấn tìm kiếm câu hỏi theo YCCĐ, lấy danh mục cây bài học/dạng bài có độ trễ $P95 < 200$ ms.
+- **NFR-PERF-10 (Tốc độ Xử lý MathJax Persistent Worker):** Dịch vụ daemon Node.js MathJax chuyển đổi TeX sang MathML / SVG / Vector WMF phải hoàn thành trong **$< 20$ ms/công thức**, bảo đảm không tạo điểm nghẽn (bottleneck) trong tiến trình xuất bản.
+- **NFR-PERF-11 (Thời gian Xuất bản Gói Đề thi ZIP Khảo thí):** Quá trình đóng gói toàn bộ 4 mã đề thi Word kèm bảng đáp án và hướng dẫn giải (khoảng 9 file DOCX) phải hoàn thành trong vòng **$< 10$ giây** (ngân sách NFR).
+- **NFR-QUAL-01 (Độ Sắc nét Tuyệt đối của Công thức MathType):** Công thức toán trong file Word phải đạt chuẩn Vector WMF (`image/x-wmf`) với APM header, giữ nguyên độ nét vector tuyệt đối (zero blur) ở mọi mức thu phóng màn hình và in ấn.
+- **NFR-COMP-01 (Tính Biên tập Hai chiều của MathType OLE):** Đối tượng OLE nhúng trong file `.docx` bắt buộc phải kích hoạt và mở được trong trình soạn thảo MathType 7 thông qua thao tác double-click của người dùng mà không phát sinh bất kỳ lỗi COM/OLE nào.
 
 ---
 

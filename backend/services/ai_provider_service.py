@@ -50,7 +50,7 @@ QUY TẮC CÔNG THỨC TOÁN HỌC & KÝ HIỆU (CHUẨN BẮT BUỘC):
    - Trong phần ĐÁP ÁN (options A, B, C, D và short_answer_value): TUYỆT ĐỐI KHÔNG dùng dấu ngoặc nhọn {} cho số thập phân! Viết số thập phân thông thường dạng "15,25" hoặc "3,9" (không viết 15{,}25 hay 3{,}9).
 3. Phân số: BẮT BUỘC dùng \dfrac thay vì \frac (ví dụ: \dfrac{a}{b}, \dfrac{1}{2}, \dfrac{-b}{2a}).
 4. Dấu vectơ: BẮT BUỘC dùng \overrightarrow thay vì \vec (ví dụ: \overrightarrow{u}, \overrightarrow{AB}, \overrightarrow{a}, \overrightarrow{0}).
-- Toàn bộ công thức toán, biến số, phân số, căn thức, vectơ, ma trận, tập hợp, bất phương trình PHẢI được định dạng chuẩn LaTeX/KaTeX đặt trong cặp dấu $...$ (ví dụ: $y = x^3 - 3x + 1$, $\overrightarrow{u} = \left(1; 2; -3\right)$, $\dfrac{a}{b}$, $\mathbb{R}$, $\ge$, $\in$).
+- Toàn bộ công thức toán, biến số, phân số, căn thức, vectơ, ma trận, tập hợp, bất phương trình PHẢI được định dạng chuẩn LaTeX đặt trong cặp dấu ${...}$ (ví dụ: ${y = x^3 - 3x + 1}$, ${\overrightarrow{u} = \left(1; 2; -3\right)}$, ${\dfrac{a}{b}}$, ${\mathbb{R}}$, ${\ge}$, ${\in}$, ${\overrightarrow{IJ} = \dfrac{1}{2}\left(\overrightarrow{CD} + \overrightarrow{AD} + \overrightarrow{DB}\right)}$). BẮT BUỘC bọc công thức trong ${...}$.
 - Tuyệt đối không để sót ký tự rác chữ Hán hay mã nhị phân lỗi.
 
 QUY TẮC NHẬN DIỆN VÀ TÁI TẠO ĐỒ THỊ, HÌNH VẼ, BẢNG BIẾN THIÊN BẰNG TIKZ / ARRAY (CHUẨN BẮT BUỘC):
@@ -58,12 +58,12 @@ QUY TẮC NHẬN DIỆN VÀ TÁI TẠO ĐỒ THỊ, HÌNH VẼ, BẢNG BIẾN TH
    - Khi câu hỏi trong đề thi có chứa Đồ thị hàm số (hàm bậc ba, hàm phân thức, hàm bậc bốn trùng phương, parabol, tương giao đồ thị, đạo hàm f'(x)), Hình học không gian (hình chóp, lăng trụ, nón, trụ, cầu) hoặc Hình học toạ độ Oxy/Oxyz:
    - BẮT BUỘC PHẢI TÁI TẠO LẠI HÌNH VẼ ĐÓ DƯỚI DẠNG MÃ TIKZ \begin{tikzpicture} ... \end{tikzpicture} VÀ NHÚNG TRỰC TIẾP VÀO PHẦN stem (HOẶC VÀO TỪNG PHƯƠNG ÁN options NẾU LÀ CÂU HỎI NHẬN DẠNG ĐỒ THỊ A, B, C, D).
    - QUY TẮC TOÁN HỌC CHÍNH XÁC KHI DỰNG ĐỒ THỊ:
-     + Hàm bậc ba: BẮT BUỘC phải đọc đúng toạ độ các điểm cực đại (x1, y1), cực tiểu (x2, y2), giao điểm Ox, Oy trên đề gốc. Đường cong màu xanh BẮT BUỘC phải đi qua ĐÚNG các điểm cực trị đó và vẽ ĐẦY ĐỦ CẢ 2 NHÁNH từ mép trái sang mép phải hệ trục (không được cắt cụt nhánh bên trái hay bên phải). Có thể dùng plot smooth coordinates qua các điểm toạ độ: \draw[thick, blue, smooth] plot coordinates {(-3, -4) (-2, 0) (-1, 5) (0, 1) (1, 0) (2, -5) (3, 0) (3.5, 4)};
-     + Hàm phân thức bậc nhất trên bậc nhất (y = (ax+b)/(cx+d)): BẮT BUỘC vẽ tiệm cận đứng x = -d/c và tiệm cận ngang y = a/c (nét đứt dashed), vẽ đủ 2 nhánh Hyperbol ở hai phía tiệm cận.
-     + BẮT BUỘC CĂN CHỈNH TỶ LỆ (BOUNDING BOX): Ngay sau \begin{tikzpicture}, BẮT BUỘC dùng lệnh \clip (xmin - 0.5, ymin - 0.5) rectangle (xmax + 0.5, ymax + 0.5); theo đúng phạm vi 2 trục tọa độ, để tránh đồ thị bị kéo giãn vô cực làm méo tỷ lệ khung hình.
-     + Trục toạ độ Oxy: \draw[->, thick] (-4, 0) -- (4.5, 0) node[right] {$x$}; \draw[->, thick] (0, -6) -- (0, 6.5) node[above] {$y$}; \node[below left] at (0, 0) {$O$};
-     + Các điểm toạ độ và đường nét đứt: \draw[dashed] (x, 0) -- (x, y) -- (0, y); \fill (x, y) circle (1.5pt);
-     + Câu hỏi nhận diện đồ thị ở 4 phương án A, B, C, D: Mỗi phương án A, B, C, D trả về khối TikZ thu nhỏ \begin{tikzpicture}[scale=0.25, font=\tiny, >=stealth] ... \end{tikzpicture}.
+     + MÀU SẮC ĐƯỜNG NÉT: Đường cong đồ thị BẮT BUỘC vẽ bằng màu ĐEN: \draw[thick, black, smooth] ..., TUYỆT ĐỐI KHÔNG DÙNG MÀU BLUE HOẶC MÀU KHÁC (đáp ứng chuẩn in ấn thi cử). Các đường tiệm cận, đường dóng tọa độ vẽ bằng nét đứt \draw[dashed, thick] ...
+     + CHỮ VÀ SỐ TRONG ĐỒ THỊ: TOÀN BỘ nhãn trục, gốc tọa độ, số liệu, tên hàm số BẮT BUỘC viết trong LaTeX math mode: \node[below left] at (0,0) {$O$};, node[right] {$x$}, node[above] {$y$}, node[below] {$-4$}, node[left] {$6$}, node {$y=f(x)$}. TUYỆT ĐỐI KHÔNG viết số hay chữ dạng text trần (như {0}, {x}, {y}, {-4}).
+     + ĐỘ PHỦ ĐỒ THỊ (DOMAIN VÀ LIMITS): Đường cong hàm số BẮT BUỘC PHẢI ĐƯỢC VẼ TRÀN HẾT PHẠM VI 2 TRỤC TỌA ĐỘ (từ x_min đến x_max của trục Ox, và vươn sát lên y_max, chìm sát xuống y_min của trục Oy).
+       * Đối với hàm phân thức có tiệm cận đứng x = x0: Nhánh trái vẽ từ mép trái x_min đến (x0 - 0.2); Nhánh phải vẽ từ (x0 + 0.2) đến mép phải x_max. Tuyệt đối không được ngắt cụt lơ lửng đồ thị ở giữa chừng.
+     + KHUNG HÌNH (BOUNDING BOX & CLIP): Khung \clip (xmin - 1.2, ymin - 1.2) rectangle (xmax + 1.2, ymax + 1.2); PHẢI ĐỦ RỘNG để bao trọn toàn bộ các điểm cực trị, nhánh đồ thị, đường dóng nét đứt, mũi tên trục và nhãn tên trục $x, y, O$ mà không bị cắt cụt (crop) mất bất kỳ chi tiết nào.
+     + CÂU HỎI NHẬN DIỆN ĐỒ THỊ Ở 4 PHƯƠNG ÁN A, B, C, D: BẮT BUỘC CẢ 4 HÌNH ĐỀU PHẢI CÓ ĐẦY ĐỦ VẠCH CHIA TỌA ĐỘ VÀ SỐ LIỆU ĐỒNG BỘ ĐỂ ĐỐI CHIẾU (không được hình có số, hình bị mất số). Dùng khối TikZ thu nhỏ \begin{tikzpicture}[scale=0.22, font=\tiny, >=stealth] ... \end{tikzpicture}.
      + TUYỆT ĐỐI KHÔNG bọc thẻ \begin{center} hay \end{center} quanh TikZ (hệ thống tự động căn giữa).
    - TUYỆT ĐỐI KHÔNG BỎ QUA HÌNH VẼ, ĐỒ THỊ! Mọi câu hỏi có hình minh họa đều phải có khối mã TikZ tương ứng để hệ thống biên dịch hiển thị đồ thị vector SVG sắc nét.
 2. BẢNG BIẾN THIÊN & BẢNG SỐ LIỆU:
@@ -172,7 +172,7 @@ class AIProviderService:
         self.api_key = settings.AI_API_KEY
         self.model = get_default_model(self.provider)
         self.base_url = settings.AI_BASE_URL
-        self.timeout = 180.0
+        self.timeout = getattr(settings, "AI_TIMEOUT", 180.0)
 
     def is_configured(self) -> bool:
         """Returns True if an external AI API key is configured."""

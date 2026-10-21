@@ -1181,9 +1181,9 @@
             <div class="w-16 h-16 rounded-2xl bg-black/[0.03] border border-black/[0.06] flex items-center justify-center shadow-xs mb-3 text-brand-600">
               <i data-lucide="file-up" class="w-8 h-8"></i>
             </div>
-            <h4 class="text-sm font-bold text-slate-900 mb-1">Khu Vực Đối Chiếu Đề Thi Gốc</h4>
+            <h4 class="text-sm font-bold text-slate-900 mb-1">Tài Liệu Đề Thi Gốc</h4>
             <p class="text-xs text-slate-500 max-w-sm mb-5 leading-relaxed">
-              Chưa có tệp đề thi nào được nạp. Hãy chọn tệp Word (.docx), PDF hoặc danh sách ảnh để xem trước trực tiếp tài liệu gốc và đối chiếu bóc tách.
+              Chưa có tệp đề thi nào được nạp. Hãy chọn tệp Word (.docx), PDF hoặc danh sách ảnh để xem trước trực tiếp tài liệu gốc.
             </p>
             <div class="flex items-center gap-2">
               <button onclick="document.getElementById('studio-file-input').click()" class="btn-apple-primary">
@@ -1290,13 +1290,13 @@
       if (q.item_format === 'SINGLE_CHOICE' && q.options) {
         html += `<div class="grid grid-cols-2 gap-x-4 gap-y-1 pl-4 mt-2 text-xs">`;
         q.options.forEach((opt) => {
-          html += `<div><strong>${opt.label}.</strong> ${opt.content}</div>`;
+          html += `<div><strong>${opt.label}.</strong> ${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}</div>`;
         });
         html += `</div>`;
       } else if (q.item_format === 'TRUE_FALSE_GROUP' && q.sub_statements) {
         html += `<div class="space-y-1 pl-4 mt-2 text-xs">`;
         q.sub_statements.forEach((sub) => {
-          html += `<div><strong>${sub.label})</strong> ${sub.content}</div>`;
+          html += `<div><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</div>`;
         });
         html += `</div>`;
       } else if (q.item_format === 'SHORT_ANSWER') {
@@ -1476,13 +1476,43 @@
           const hasAnchor = opt.is_fixed || isAnchorPhrase(opt.content);
           const hasTikz = opt.content && (opt.content.includes('tikzpicture') || opt.content.includes('tikz'));
 
-          html += `
-            <div onclick="event.stopPropagation(); app.toggleSingleChoiceAnswer(${qId}, ${optIdx})" class="option-pill ${hasTikz ? 'flex flex-col items-stretch p-2.5' : 'flex items-center justify-between p-2'} rounded-xl border ${correctClass} cursor-pointer hover:border-brand-400 transition-all">
-              <div class="flex items-center justify-between w-full mb-1">
-                <div class="flex items-center space-x-1.5">
-                  <span class="option-letter-badge w-5 h-5 rounded-md flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
-                    ${opt.label}
-                  </span>
+          if (hasTikz) {
+            html += `
+              <div onclick="event.stopPropagation(); app.toggleSingleChoiceAnswer(${qId}, ${optIdx})" class="option-pill flex flex-col items-stretch p-2.5 rounded-xl border ${correctClass} cursor-pointer hover:border-brand-400 transition-all">
+                <div class="flex items-center justify-between w-full mb-1">
+                  <div class="flex items-center space-x-1.5">
+                    <span class="option-letter-badge w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
+                      ${opt.label}
+                    </span>
+                    ${
+                      hasAnchor
+                        ? `<span class="option-anchor-indicator" title="Option Anchor Rule: Khóa cố định tại vị trí D khi trộn đề">
+                            <i data-lucide="anchor" class="w-3 h-3"></i> Khóa D
+                           </span>`
+                        : ''
+                    }
+                  </div>
+                  <button onclick="event.stopPropagation(); app.openFormulaEditorModal('digitize', ${qId}, 'option', ${optIdx})" title="Chỉnh sửa phương án" class="p-1 text-slate-400 hover:text-brand-600 rounded">
+                    <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+                <div class="w-full flex justify-center py-1">
+                  ${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}
+                </div>
+              </div>
+            `;
+          } else {
+            html += `
+              <div onclick="event.stopPropagation(); app.toggleSingleChoiceAnswer(${qId}, ${optIdx})" class="option-pill flex items-center gap-2.5 px-3 py-2 rounded-xl border ${correctClass} cursor-pointer hover:border-brand-400 transition-all">
+                <span class="option-letter-badge w-6 h-6 shrink-0 rounded-lg flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
+                  ${opt.label}
+                </span>
+
+                <div class="flex-1 min-w-0 text-xs text-slate-800 leading-relaxed font-normal">
+                  ${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}
+                </div>
+
+                <div class="flex items-center space-x-1 shrink-0 ml-auto">
                   ${
                     hasAnchor
                       ? `<span class="option-anchor-indicator" title="Option Anchor Rule: Khóa cố định tại vị trí D khi trộn đề">
@@ -1490,17 +1520,13 @@
                          </span>`
                       : ''
                   }
+                  <button onclick="event.stopPropagation(); app.openFormulaEditorModal('digitize', ${qId}, 'option', ${optIdx})" title="Chỉnh sửa phương án" class="p-1 text-slate-400 hover:text-brand-600 hover:bg-black/[0.04] rounded transition-all">
+                    <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                  </button>
                 </div>
-                <button onclick="event.stopPropagation(); app.openFormulaEditorModal('digitize', ${qId}, 'option', ${optIdx})" class="p-1 text-slate-400 hover:text-brand-600">
-                  <i data-lucide="edit-2" class="w-3 h-3"></i>
-                </button>
               </div>
-
-              <div class="w-full ${hasTikz ? 'flex justify-center' : 'text-xs text-slate-800 leading-relaxed'}">
-                ${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}
-              </div>
-            </div>
-          `;
+            `;
+          }
         });
         html += `</div>`;
       } else if (q.item_format === 'TRUE_FALSE_GROUP' && q.sub_statements) {
@@ -1517,7 +1543,7 @@
             <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-white border border-slate-200">
               <div class="flex items-start space-x-1.5 flex-1">
                 <span class="font-bold text-brand-700">${sub.label})</span>
-                <span class="text-slate-800">${sub.content}</span>
+                <span class="text-slate-800">${formatStemForDisplay(sub.content, true)}</span>
               </div>
               <div class="flex items-center space-x-1 shrink-0">
                 <button onclick="event.stopPropagation(); app.toggleTrueFalseAnswer(${qId}, ${subIdx}, true)" class="px-2 py-0.5 rounded text-[11px] font-bold transition-all ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}">
@@ -1742,11 +1768,13 @@
     const startDigitizeBtn = document.getElementById('btn-start-digitize');
     const resetStageBtn = document.getElementById('btn-reset-stage');
     const rightHeaderActions = document.getElementById('studio-right-header-actions');
+    const leftExportDocxBtn = document.getElementById('btn-left-export-docx');
 
     // Staged mode before AI processing
     if (state.stagedExam && state.stagedExam.status === 'STAGED') {
       const count = (state.stagedExam.previews || []).length;
       if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
+      if (leftExportDocxBtn) leftExportDocxBtn.classList.add('hidden');
       if (startDigitizeBtn) startDigitizeBtn.classList.remove('hidden');
       if (resetStageBtn) resetStageBtn.classList.remove('hidden');
       if (statusLabel) statusLabel.innerText = `Đã chọn ${count} tệp (Kiểm tra & Sắp xếp thứ tự trước khi gõ đề)`;
@@ -1768,6 +1796,7 @@
       return;
     } else if (state.stagedExam && state.stagedExam.status === 'PROCESSING') {
       if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
+      if (leftExportDocxBtn) leftExportDocxBtn.classList.add('hidden');
       if (startDigitizeBtn) startDigitizeBtn.classList.add('hidden');
       if (resetStageBtn) resetStageBtn.classList.add('hidden');
       if (statusLabel) statusLabel.innerText = 'AI đang gõ lại và bóc tách đề thi...';
@@ -1785,6 +1814,7 @@
 
     if (questions.length === 0) {
       if (rightHeaderActions) rightHeaderActions.classList.add('hidden');
+      if (leftExportDocxBtn) leftExportDocxBtn.classList.add('hidden');
       if (paginationBox) paginationBox.classList.add('hidden');
       if (avgEl) avgEl.innerText = 'Độ tin cậy TB: --';
       if (statusLabel) statusLabel.innerText = 'AI Parsing: Sẵn sàng (Chưa tải tệp)';
@@ -1804,6 +1834,7 @@
       state.digitizeJob.avgConfidence = 0;
     } else {
       if (rightHeaderActions) rightHeaderActions.classList.remove('hidden');
+      if (leftExportDocxBtn) leftExportDocxBtn.classList.remove('hidden');
       if (resetStageBtn) resetStageBtn.classList.remove('hidden');
       const sum = questions.reduce((acc, q) => acc + (q.confidence || 0), 0);
       const avg = (sum / questions.length).toFixed(1);
@@ -1875,6 +1906,48 @@
     renderDashboard();
     renderItemBank();
     showToast(`Thành công: Đã lưu ${countAdded} câu hỏi vào Ngân hàng CSDL!`, 'success');
+  }
+
+  async function exportDigitizedToDocx() {
+    const questions = state.digitizeJob.questions || [];
+    if (questions.length === 0) {
+      showToast('Chưa có câu hỏi nào trong đề thi để xuất Word. Hãy tải tệp hoặc nạp đề mẫu!', 'warning');
+      return;
+    }
+
+    const rawTitle = state.digitizeJob.filename ? state.digitizeJob.filename.replace(/\.[^/.]+$/, '') : 'De_Thi_So_Hoa';
+    showToast('Đang tạo và dàn trang file Word với công thức toán OMML...', 'info');
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/digitize/export-docx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: rawTitle,
+          questions: questions
+        })
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Lỗi từ máy chủ khi tạo file Word');
+      }
+
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${rawTitle}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      showToast('Đã tải xuống đề thi file Word (.docx) chuẩn in ấn thành công!', 'success');
+    } catch (err) {
+      console.error('Lỗi xuất file Word đề thi:', err);
+      showToast(`Không thể xuất file Word: ${err.message}`, 'error');
+    }
   }
 
   async function commitSingleQuestion(qId) {
@@ -3616,6 +3689,7 @@ y & & \\nearrow & \\Vert & \\nearrow & \\\\
     triggerDuplicateCheckDemo,
     closeDuplicateModal,
     confirmSaveAsVariant,
+    exportDigitizedToDocx,
     renderDigitizeStudio,
     getState: () => state,
   };

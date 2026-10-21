@@ -9,13 +9,13 @@
 ## 1. TỔNG QUAN KẾT QUẢ KIỂM THỬ
 
 Hệ thống đã trải qua quá trình kiểm thử tự động hai tầng:
-1. **Tầng 1 (Unit & Integration Suite - Pytest):** 39/39 test cases đạt (Pass rate 100%, thời gian 8.89s).
+1. **Tầng 1 (Unit & Integration Suite - Pytest):** 55/55 test cases đạt (Pass rate 100%, bao gồm toàn bộ kiểm thử MathJax engine, MathType OLE Vector WMF, OCR và performance budgets).
 2. **Tầng 2 (Live Server End-to-End Loop Test - 5 chu kỳ hoàn chỉnh + Concurrency Stress):** 246/246 lượt test đạt (Pass rate 100%, thời gian 20.45s).
 3. **Tầng 3 (Real Browser DOM & UI Test via CDP):** Xác thực hoạt động mượt mà của Web Studio, không phát sinh bất kỳ lỗi JavaScript runtime nào (`consoleErrors: []`).
 
 | Hạng mục kiểm thử | Số lượng kịch bản | Số lượt thực thi (5 loops) | Đạt (Pass) | Lỗi (Fail) | Tỷ lệ thành công | Thời gian phản hồi TB |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Pytest Unit & Contract Suite** | 39 | 39 | 39 | 0 | **100%** | - |
+| **Pytest Unit, Contract & MathJax Suite** | 55 | 55 | 55 | 0 | **100%** | - |
 | **Hạ tầng & Assets tĩnh (Infrastructure)** | 6 | 30 | 30 | 0 | **100%** | 14.8 ms |
 | **Cây chuẩn hoá Khảo thí (Taxonomy TT32)** | 8 | 40 | 40 | 0 | **100%** | 16.4 ms |
 | **Ngân hàng câu hỏi & Trí tuệ (Question Bank)** | 10 | 50 | 50 | 0 | **100%** | 25.9 ms |
@@ -60,14 +60,16 @@ Hệ thống đã trải qua quá trình kiểm thử tự động hai tầng:
 - **Ma trận đáp án đối sánh (Answer Key Matrix):** Sinh ma trận hoán vị đáp án cho cả 4 mã đề (101, 102, 103, 104) và xuất ra file CSV có header `variant_101`, `variant_102`, `variant_103`, `variant_104`.
 
 ### 2.5. Bộ máy Xuất bản Đa định dạng (Export Engine)
-- **Xuất bản Microsoft Word (.docx):** Thiết lập chuẩn in ấn văn phòng sở/trường (khổ A4, font Times New Roman 11pt, lề 1.5cm, bảng 2 cột đối xứng chuẩn khảo thí). Kích thước file ~38 KB, thời gian sinh ~110 ms.
+- **Xuất bản Microsoft Word (.docx) MathType 7.0 OLE Vector WMF:** Thiết lập chuẩn in ấn văn phòng sở/trường (khổ A4 dọc, font Times New Roman 11pt, lề 1.5 - 1.8 cm). Nhúng đối tượng OLE MathType (`Equation.DSMT4`) với ảnh Vector WMF (`image/x-wmf`) chuẩn APM header, đạt độ nét tuyệt đối ở mọi mức zoom và **click đúp mở MathType 7 sửa được trực tiếp 2 chiều**.
+- **Tự động chuyển đổi bảng thống kê (`\begin{array}`):** Tự động bóc tách các mảng bảng phân phối tần số ghép nhóm sang bảng Word thực tế (`<w:tbl>`), loại bỏ triệt để hiện tượng hộp đen (black box) khi xuất sang PDF.
+- **Dịch vụ MathJax Engine & Persistent Worker:** Tích hợp tiến trình nền Node.js xử lý MathJax 3/4 với bộ gói TeX đầy đủ, xử lý công thức trong ~14 ms, bảo đảm ngân sách hiệu năng NFR xuất gói đề 4 mã đề kèm đáp án $< 5\text{ giây}$.
 - **Xuất bản PDF tốc độ siêu tốc (ReportLab Engine):** Biên dịch trực tiếp không qua trình duyệt cồng kềnh, thời gian xuất PDF chỉ ~50 ms (kích thước ~99 KB).
 - **Xuất bản Gói Đề thi Trọn gói (ZIP Package):**
   - Chứa đầy đủ 4 đề thi Word (.docx) của 4 mã đề.
   - Chứa đầy đủ 4 đề thi PDF của 4 mã đề.
-  - File Ma trận Đáp án tổng hợp (Excel/CSV + PDF).
+  - File Ma trận Đáp án tổng hợp (Excel/CSV UTF-8 BOM + PDF).
   - **Phiếu Trả lời Trắc nghiệm chuẩn 2025 (Blank OMR Bubble Sheet PDF):** Mẫu phiếu trắc nghiệm 3 phần thiết kế sẵn cho học sinh tô chì (Số báo danh, Mã đề thi, Phần I 1-12, Phần II 1-4 a-b-c-d, Phần III 1-6).
-  - Tổng cộng 20 file trong 1 gói ZIP (~1.42 MB), thời gian đóng gói < 1 giây.
+  - Tổng cộng 20 file trong 1 gói ZIP, thời gian đóng gói < 1 giây.
 
 ### 2.6. Động cơ Chấm điểm & Phân tích Khảo thí (Grading & Cohort Psychometrics)
 - **Chấm điểm Đúng/Sai lũy tiến (QĐ 764):** Kiểm tra vét cạn toàn bộ $2^4 = 16$ trường hợp tổ hợp trả lời của học sinh:

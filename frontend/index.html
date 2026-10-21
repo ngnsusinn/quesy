@@ -431,6 +431,10 @@
                   <i data-lucide="upload" class="w-3.5 h-3.5"></i>
                   <span>Chọn tệp</span>
                 </button>
+                <button id="btn-left-export-docx" onclick="app.exportDigitizedToDocx()" class="btn-apple-secondary text-xs py-1 px-2.5 flex items-center space-x-1 hidden" title="Xuất đề thi này ra file Word (.docx)">
+                  <i data-lucide="file-down" class="w-3.5 h-3.5 text-blue-600"></i>
+                  <span>Xuất Word</span>
+                </button>
                 <div id="doc-viewer-pagination" class="flex items-center space-x-1 bg-black/[0.04] rounded-lg p-0.5 border border-black/[0.04] hidden">
                   <button id="doc-page-prev-btn" onclick="app.changeViewerPage(-1)" class="p-1 hover:bg-white rounded text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
                   <span id="doc-page-display" class="px-2 text-[11px] font-semibold text-slate-700">Trang 1 / 1</span>
@@ -483,6 +487,10 @@
                 <button onclick="app.openFormulaEditorModal('new', null)" class="btn-apple-secondary text-xs py-1 px-2.5">
                   <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                   <span>Thêm câu mới</span>
+                </button>
+                <button onclick="app.exportDigitizedToDocx()" class="btn-apple-secondary text-xs py-1 px-2.5 flex items-center space-x-1" title="Xuất đề thi ra file Word (.docx)">
+                  <i data-lucide="file-down" class="w-3.5 h-3.5 text-blue-600"></i>
+                  <span>Xuất Word</span>
                 </button>
                 <button onclick="app.commitExtractedToBank()" id="btn-commit-to-bank" class="btn-apple-success text-xs py-1 px-3 flex items-center space-x-1.5">
                   <i data-lucide="save" class="w-3.5 h-3.5"></i>
@@ -1255,6 +1263,6 @@
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
   <!-- Application Logic JS -->
-  <script src="static/app.js?v=2.0.11"></script>
+  <script src="static/app.js?v=2.0.13"></script>
 </body>
 </html>

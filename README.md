@@ -6,7 +6,7 @@
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%2B%20SQLAlchemy-009688)
 ![Frontend](https://img.shields.io/badge/Frontend-Apple%20HIG%20SPA%20%2B%20TailwindCSS%20%2B%20KaTeX-000000)
-![Tests](https://img.shields.io/badge/Pytest-46%2F46%20Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Pytest-55%2F55%20Passing-brightgreen)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-success)
 
 ---
@@ -22,7 +22,7 @@ Trong công tác biên soạn đề thi và quản lý ngân hàng câu hỏi, g
 | **3** | **Công thức toán học bị lỗi hiển thị (KaTeX Crashes):** Dấu ngoặc lệch cỡ, số thập phân bị hở khoảng cách, dấu gạch chéo tập hợp bị lỗi escape hiển thị chữ đỏ thô. | **Bộ Chuẩn Hóa Toán Học Tự Động:** Tự động chuẩn hóa dấu ngoặc kích thước động (`\left`/`\right`), phân số display `\dfrac`, vectơ `\overrightarrow`, số thập phân `{,}` trong đề và số sạch trong đáp án. |
 | **4** | **Trộn đề làm vỡ logic câu hỏi:** Các phần mềm trộn đề cổ điển hoán vị đáp án khiến câu *"Cả A và B đều đúng"* nhảy lên vị trí A; bài đọc chung bị tách rời khỏi câu hỏi con; các phần thi bị đảo lộn. | **Động cơ Trộn Đề An Toàn (Safe Shuffling Engine):** Khóa neo phương án (Option Anchor - giữ các câu *"Cả A và B"* ở vị trí D), bảo toàn bài đọc chung (Passage Integrity), bảo toàn phân vùng (Section Integrity) và sinh ma trận đối chiếu đáp án tự động. |
 | **5** | **Chấm điểm Đúng/Sai bậc thang phức tạp:** Cấu trúc trắc nghiệm Đúng/Sai 4 khẳng định có cơ chế tính điểm bậc thang (0.1, 0.25, 0.5, 1.0) dễ gây nhầm lẫn và sai sót lớn nếu chấm thủ công. | **Hệ Thống Tự Động Chấm Điểm & Quản Lý Lớp Học:** Chấm điểm tự động theo thuật toán bậc thang, quản lý danh sách học sinh, xuất/nhập bảng điểm Excel UTF-8 BOM và phân tích phổ điểm trực quan. |
-| **6** | **Dàn trang in ấn Word mất nhiều công sức:** Giáo viên phải tự căn lề 2 cột, công thức toán xuất ra không tương thích với trình soạn thảo Microsoft Word Equation bản quyền. | **Xuất Bản 1-Click Chuẩn In Ấn:** Tạo file Word `.docx` 2 cột với công thức toán dạng **Microsoft Word OMML native**, xuất bản PDF in ấn và phiếu soi đáp án trắc nghiệm OMR đóng gói trong file ZIP. |
+| **6** | **Dàn trang in ấn Word mất nhiều công sức & lỗi mờ công thức:** Giáo viên phải tự căn lề, công thức toán xuất ra dạng ảnh PNG bị vỡ hạt, mờ nhòe, không mở sửa được bằng MathType, hoặc bảng số liệu bị lỗi đen khi xuất PDF. | **Xuất Bản Đa Định Dạng Khảo Thí Chuẩn In Ấn:** Tạo file Word `.docx` khổ A4 chuẩn với công thức **MathType 7.0 OLE Vector WMF** (nét căng tuyệt đối, click đúp mở MathType chỉnh sửa trực tiếp), **Word OMML native**, tự động nhận diện và chuyển đổi bảng LaTeX `\begin{array}` thành bảng Word `<w:tbl>` chống lỗi đen, xuất bản PDF in ấn và phiếu soi đáp án OMR đóng gói trong file ZIP. |
 
 ---
 
@@ -56,7 +56,10 @@ Trong công tác biên soạn đề thi và quản lý ngân hàng câu hỏi, g
 * **Ma trận đối chiếu đáp án:** Tự động sinh bảng ánh xạ đáp án chéo giữa các mã đề để giáo viên chấm thi thuận tiện.
 
 ### 2.5. Xuất Bản & Chấm Điểm Chuyên Nghiệp
-* **Word DOCX OMML Native:** Xuất bản tài liệu Word định dạng 2 cột chuẩn in ấn với công thức toán học Microsoft Word Equation nguyên bản, dễ dàng chỉnh sửa tiếp.
+* **Word DOCX MathType 7.0 OLE Vector WMF:** Xuất bản tài liệu Word chuẩn A4 dọc (210 x 297 mm, lề 1.5 - 1.8 cm) với đối tượng OLE MathType (`Equation.DSMT4`) nhúng ảnh Vector WMF (`image/x-wmf`) chuẩn APM header. Công thức đạt độ nét tuyệt đối ở mọi mức zoom và **hỗ trợ click đúp mở MathType 7 để chỉnh sửa trực tiếp**.
+* **Word DOCX OMML Native:** Hỗ trợ xuất công thức toán bản địa của Microsoft Word (`<m:oMath>`) qua MathJax MathML và XSLT.
+* **Tự động chuyển đổi bảng thống kê:** Tự động nhận diện mảng bảng số liệu ghép nhóm `\begin{array}` và chuyển đổi thành bảng Word chuẩn `<w:tbl>` có viền nét mảnh, loại bỏ triệt để hiện tượng hộp đen (black box) khi chuyển sang PDF.
+* **MathJax Engine Persistent Worker:** Tích hợp tiến trình nền Node.js MathJax 3/4 xử lý công thức TeX phức tạp chỉ trong ~14 ms/công thức, bảo đảm tốc độ xuất đề siêu tốc.
 * **Gói ấn phẩm ZIP:** Đóng gói trọn bộ đề thi các mã, file đáp án, lời giải chi tiết và phiếu soi đáp án trắc nghiệm OMR.
 * **Quản lý bảng điểm:** Nhập/xuất danh sách học sinh và bảng điểm định dạng CSV/Excel UTF-8 BOM, tự động chấm điểm theo thang điểm bậc thang.
 * **Offline PWA:** Ứng dụng hỗ trợ cài đặt PWA trên máy tính/điện thoại với cơ chế Network-First, sẵn sàng hoạt động cả khi mất kết nối mạng.
@@ -83,6 +86,8 @@ quesy/
 │   └── services/
 │       ├── ai_provider_service.py # Bộ tích hợp AI đa nền tảng (Gemini / OpenAI / Claude)
 │       ├── ai_parser.py       # Pipeline bóc tách đề thi (DOCX/PDF/Image)
+│       ├── mathjax_service.py # Dịch vụ MathJax TeX-to-MathML, SVG, PNG & baseline
+│       ├── mathjax_worker.js  # Node.js persistent worker chạy MathJax 3/4 + Resvg
 │       ├── tikz_renderer.py   # Dịch vụ biên dịch TikZ/PGFPlots sang SVG qua Kroki + Cache
 │       ├── latex_converter.py # Giải mã MathType MTEF sang LaTeX & KaTeX sanitizer
 │       ├── crop_service.py    # Auto-crop hình học/đồ thị lưu WebP
@@ -90,7 +95,7 @@ quesy/
 │       ├── matrix_solver.py   # Thuật toán rút câu hỏi theo ma trận ràng buộc
 │       ├── shuffling_engine.py# Trộn đề an toàn (Section, Passage, Option Anchor)
 │       ├── excel_exporter.py  # Xuất nhập bảng điểm Excel/CSV UTF-8 BOM theo TT 22
-│       └── docx_exporter.py   # Xuất bản Word 2 cột OMML native & đóng gói ZIP
+│       └── docx_exporter.py   # Xuất bản Word MathType Vector WMF, OMML native & đóng gói ZIP
 ├── frontend/
 │   ├── index.html             # Single Page Application (TailwindCSS, KaTeX, Lucide Icons)
 │   ├── manifest.json          # PWA Web App Manifest

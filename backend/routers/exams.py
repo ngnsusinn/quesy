@@ -371,6 +371,7 @@ def export_variant_pdf(
 def export_variant_docx(
     master_id: str,
     variant_code: str = Query("101", description="Variant code e.g. 101, 102"),
+    math_format: str = Query("mathtype", description="mathtype (OLE MathJax/WMF), omml (MathJax MathML), latex"),
     db: Session = Depends(get_db)
 ):
     """GET /api/v1/exams/:master_id/export-docx
@@ -403,7 +404,7 @@ def export_variant_docx(
     temp_dir.mkdir(parents=True, exist_ok=True)
     docx_path = temp_dir / f"De_Thi_Ma_{variant_code}.docx"
 
-    generate_variant_docx(variant, docx_path)
+    generate_variant_docx(variant, docx_path, math_format=math_format)
     return FileResponse(
         path=str(docx_path),
         filename=docx_path.name,

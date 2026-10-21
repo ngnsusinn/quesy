@@ -85,6 +85,10 @@ class Settings:
     AI_BASE_URL: str = os.getenv("AI_BASE_URL", "")
     AI_MAX_TOKENS: int = int(os.getenv("AI_MAX_TOKENS", "8192"))
     AI_TEMPERATURE: float = float(os.getenv("AI_TEMPERATURE", "0.1"))
+    AI_TIMEOUT: float = float(os.getenv("AI_TIMEOUT", "300.0"))
+
+    # MathJax LaTeX Engine settings
+    USE_MATHJAX: bool = os.getenv("USE_MATHJAX", "true").lower() in ("true", "1", "yes")
 
     # Decision 764/QĐ-BGDĐT Stepwise Scoring Rule for True/False 4-Statement Questions
     # 1 correct = 0.1, 2 correct = 0.25, 3 correct = 0.5, 4 correct = 1.0 (per 1.0 point scale)

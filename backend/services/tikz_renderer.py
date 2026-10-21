@@ -18,6 +18,7 @@ STORAGE_TIKZ_CACHE = Path(__file__).resolve().parent.parent.parent / "storage" /
 STORAGE_TIKZ_CACHE.mkdir(parents=True, exist_ok=True)
 
 KROKI_TIKZ_URL = "https://kroki.io/tikz/svg"
+KROKI_TIKZ_PNG_URL = "https://kroki.io/tikz/png"
 
 
 def transliterate_vietnamese_for_latex(text: str) -> str:
@@ -25,6 +26,43 @@ def transliterate_vietnamese_for_latex(text: str) -> str:
     text = text.replace("đ", "d").replace("Đ", "D")
     nfkd = unicodedata.normalize("NFKD", text)
     return "".join([c for c in nfkd if not unicodedata.combining(c)])
+
+
+def normalize_tikz_exam_standard(tikz_code: str) -> str:
+    """Enforces standard Vietnamese assessment graphic guidelines:
+    1. Line color: All plot curves must be drawn in monochrome black, not blue/red/cyan.
+    2. Labels: All node labels (numbers, axis names, function names) must be in LaTeX math mode ($...$).
+    3. Prevents unwanted cropping: expands overly tight \\clip boundaries with generous margins.
+    """
+    code = tikz_code
+
+    # 1. Colors to black (standard exam papers are monochrome)
+    code = re.sub(r'(\bdraw\s*\[[^\]]*?)\b(?:blue|cyan|red)\b([^\]]*?\])', r'\1black\2', code)
+
+    # 2. Node text normalization to LaTeX math mode
+    def fix_node(m):
+        prefix = m.group(1)
+        inner = m.group(2).strip()
+        if not inner.startswith('$'):
+            if inner in ('0', 'O', 'o'):
+                inner = '$O$'
+            elif re.match(r'^[-\d\.]+$', inner):
+                inner = f'${inner}$'
+            elif inner in ('x', 'y', 'y=f(x)', 'f(x)', 'z', 't', 'u', 'v'):
+                inner = f'${inner}$'
+        return f'{prefix}{{{inner}}}'
+
+    code = re.sub(r'(\bnode\s*(?:\[[^\]]*\])?\s*(?:at\s*\([^)]*\))?\s*)\{([^${}]+)\}', fix_node, code)
+
+    # 3. Prevent premature cropping on existing \clip
+    def expand_clip(m):
+        x1, y1, x2, y2 = float(m.group(1)), float(m.group(2)), float(m.group(3)), float(m.group(4))
+        # Add at least 1.0 padding so points, arrows, and axis labels are never cut off
+        return f'\\clip ({x1 - 1.0:.1f}, {y1 - 1.0:.1f}) rectangle ({x2 + 1.2:.1f}, {y2 + 1.2:.1f});'
+
+    code = re.sub(r'\\clip\s*\(\s*([-\d\.]+)\s*,\s*([-\d\.]+)\s*\)\s*rectangle\s*\(\s*([-\d\.]+)\s*,\s*([-\d\.]+)\s*\);', expand_clip, code)
+
+    return code
 
 
 def auto_clip_tikz_plot(tikz_code: str) -> str:
@@ -44,7 +82,7 @@ def auto_clip_tikz_plot(tikz_code: str) -> str:
         if xs and ys:
             min_x, max_x = min(xs), max(xs)
             min_y, max_y = min(ys), max(ys)
-            clip_cmd = f"  \\clip ({min_x - 0.8:.1f}, {min_y - 0.8:.1f}) rectangle ({max_x + 0.8:.1f}, {max_y + 0.8:.1f});"
+            clip_cmd = f"  \\clip ({min_x - 1.2:.1f}, {min_y - 1.2:.1f}) rectangle ({max_x + 1.2:.1f}, {max_y + 1.2:.1f});"
             # Insert clip immediately after \begin{tikzpicture}[...]
             tikz_code = re.sub(
                 r'(\\begin\{tikzpicture\}(?:\[[^\]]*\])?)',
@@ -65,6 +103,9 @@ def wrap_tikz_in_standalone_document(tikz_code: str) -> str:
 
     # Transliterate any Vietnamese diacritics that cause LaTeX OT1 encoding crash
     clean_tikz = transliterate_vietnamese_for_latex(clean_tikz)
+
+    # Standardize exam colors and labels (black curve, $...$ math nodes, clip protection)
+    clean_tikz = normalize_tikz_exam_standard(clean_tikz)
 
     # Auto-bound extreme aspect ratio plots
     clean_tikz = auto_clip_tikz_plot(clean_tikz)
@@ -137,6 +178,43 @@ def render_tikz_to_svg(tikz_code: str, timeout: float = 12.0) -> Dict[str, Any]:
     except Exception as e:
         logger.warning(f"TikZ rendering network/timeout error: {e}")
         return {"success": False, "svg": "", "error": str(e)}
+
+
+def render_tikz_to_png(tikz_code: str, timeout: float = 12.0) -> Dict[str, Any]:
+    """Compiles TikZ code into PNG raster image using Kroki with local caching for Word (.docx) embedding."""
+    if not tikz_code or not tikz_code.strip():
+        return {"success": False, "png_path": "", "error": "Empty TikZ code"}
+
+    clean_code = tikz_code.strip()
+    code_hash = hashlib.md5(clean_code.encode("utf-8")).hexdigest()
+    cache_file = STORAGE_TIKZ_CACHE / f"{code_hash}.png"
+
+    # 1. Return from disk cache if already compiled
+    if cache_file.exists() and cache_file.stat().st_size > 0:
+        return {"success": True, "png_path": str(cache_file), "cached": True}
+
+    # 2. Compile via Kroki API
+    full_latex_doc = wrap_tikz_in_standalone_document(clean_code)
+
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            resp = client.post(
+                KROKI_TIKZ_PNG_URL,
+                content=full_latex_doc.encode("utf-8"),
+                headers={"Content-Type": "text/plain; charset=utf-8"}
+            )
+
+        if resp.status_code == 200 and resp.content[:8] == b'\x89PNG\r\n\x1a\n':
+            cache_file.write_bytes(resp.content)
+            return {"success": True, "png_path": str(cache_file), "cached": False}
+        else:
+            err_msg = f"Kroki PNG error (HTTP {resp.status_code})"
+            logger.warning(err_msg)
+            return {"success": False, "png_path": "", "error": err_msg}
+
+    except Exception as e:
+        logger.warning(f"TikZ PNG rendering network/timeout error: {e}")
+        return {"success": False, "png_path": "", "error": str(e)}
 
 
 def generate_tikz_fallback_svg(title: str = "Đồ thị TikZ") -> str:

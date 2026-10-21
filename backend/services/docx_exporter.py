@@ -1,20 +1,45 @@
 import os
+import io
 import re
+import sys
+import threading
+import ctypes
+import struct
 import zipfile
 import json
+import hashlib
 import subprocess
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 
 import docx
-from docx.shared import Inches, Pt, Cm, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches, Pt, Cm, Mm, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.enum.section import WD_SECTION
+from docx.enum.section import WD_SECTION, WD_ORIENT
 from docx.oxml import parse_xml
-from docx.oxml.ns import qn, nsdecls
+from docx.oxml.ns import qn, nsdecls, nsmap
+from docx.opc.part import Part
+from docx.opc.packuri import PackURI
 import lxml.etree as etree
+
+from backend.config import settings
+
+try:
+    import matplotlib
+    matplotlib.rcParams['mathtext.fontset'] = 'custom'
+    matplotlib.rcParams['mathtext.rm'] = 'Times New Roman'
+    matplotlib.rcParams['mathtext.it'] = 'Times New Roman:italic'
+    matplotlib.rcParams['mathtext.bf'] = 'Times New Roman:bold'
+    matplotlib.rcParams['mathtext.sf'] = 'Times New Roman'
+    matplotlib.rcParams['mathtext.tt'] = 'Courier New'
+except Exception:
+    pass
+
+# Register VML / Office namespaces for MathType OLE embedding
+nsmap['v'] = 'urn:schemas-microsoft-com:vml'
+nsmap['o'] = 'urn:schemas-microsoft-com:office:office'
 
 try:
     import latex2mathml.converter
@@ -29,8 +54,119 @@ from backend.models import MasterExam, ExamVariant, Question, ExamVariantItem
 STORAGE_EXPORTS_DIR = Path(__file__).resolve().parent.parent.parent / "storage" / "exports"
 STORAGE_EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
+STORAGE_MATH_CACHE = Path(__file__).resolve().parent.parent.parent / "storage" / "math_cache"
+STORAGE_MATH_CACHE.mkdir(parents=True, exist_ok=True)
+
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 MML2OMML_PATH = ASSETS_DIR / "MML2OMML.XSL"
+MATHTYPE_TEMPLATE_PATH = ASSETS_DIR / "mathtype_template.bin"
+
+_MATHTYPE_TEMPLATE_BYTES = None
+
+def _get_mathtype_template_bytes() -> bytes:
+    global _MATHTYPE_TEMPLATE_BYTES
+    if _MATHTYPE_TEMPLATE_BYTES is None:
+        if MATHTYPE_TEMPLATE_PATH.exists():
+            _MATHTYPE_TEMPLATE_BYTES = MATHTYPE_TEMPLATE_PATH.read_bytes()
+        else:
+            _MATHTYPE_TEMPLATE_BYTES = b""
+    return _MATHTYPE_TEMPLATE_BYTES
+
+_MATH_PARSER = None
+
+
+def _get_math_parser():
+    global _MATH_PARSER
+    if _MATH_PARSER is None:
+        try:
+            from matplotlib.mathtext import MathTextParser
+            _MATH_PARSER = MathTextParser('agg')
+        except Exception as e:
+            logger.warning(f"Could not initialize MathTextParser: {e}")
+    return _MATH_PARSER
+
+
+def render_latex_to_mathtype_image(latex_expr: str) -> Optional[Tuple[str, float]]:
+    """Renders LaTeX formula to a high-resolution PNG image (MathType-like appearance)
+    and returns (image_path, height_in_points) for inline embedding into python-docx.
+    Uses disk caching under storage/math_cache.
+    """
+    if not latex_expr or not latex_expr.strip():
+        return None
+
+    clean = latex_expr.strip()
+    while clean.startswith("$"):
+        clean = clean[1:].strip()
+    while clean.endswith("$"):
+        clean = clean[:-1].strip()
+
+    if not clean:
+        return None
+
+    cache_key = hashlib.md5(clean.encode("utf-8")).hexdigest()
+    img_path = STORAGE_MATH_CACHE / f"{cache_key}.png"
+
+    if img_path.exists() and img_path.stat().st_size > 0:
+        try:
+            from PIL import Image
+            with Image.open(img_path) as im:
+                h_pt = max(8.0, min(65.0, (im.height / 200.0) * 72.0))
+                return str(img_path), h_pt
+        except Exception:
+            pass
+
+    # 1. Try Matplotlib MathTextParser (Fast & Offline)
+    parser = _get_math_parser()
+    if parser:
+        try:
+            from PIL import Image
+            import numpy as np
+
+            m_code = clean
+            m_code = m_code.replace(r"\dfrac", r"\frac")
+            m_code = m_code.replace(r"\overrightarrow", r"\vec")
+            m_code = m_code.replace(r"\setminus", r"\backslash")
+            m_code = m_code.replace("{,}", ",")
+            m_code = m_code.replace(r"\left", "").replace(r"\right", "")
+
+            res = parser.parse(f"${m_code}$", dpi=600)
+            arr = res[5].astype(np.float32) / 255.0
+            arr_boosted = np.clip(np.power(arr, 0.45) * 255.0, 0, 255).astype(np.uint8)
+            h, w = arr_boosted.shape
+            rgba = np.zeros((h, w, 4), dtype=np.uint8)
+            rgba[:, :, 3] = arr_boosted
+            im = Image.fromarray(rgba)
+            im.save(str(img_path), format='PNG', dpi=(600, 600))
+            h_pt = max(8.0, min(65.0, (h / 600.0) * 72.0))
+            return str(img_path), h_pt
+        except Exception as e:
+            logger.debug(f"MathTextParser fallback for '{clean[:30]}': {e}")
+
+    # 2. Fallback to Kroki /tikz/png with node
+    try:
+        import httpx
+        from backend.services.tikz_renderer import KROKI_TIKZ_PNG_URL
+        tex_doc = (
+            r"\documentclass[tikz,border=1pt]{standalone}" "\n"
+            r"\usepackage{amsmath,amssymb}" "\n"
+            r"\begin{document}" "\n"
+            r"\begin{tikzpicture}" "\n"
+            rf"\node[inner sep=0pt] at (0,0) {{${clean}$}};" "\n"
+            r"\end{tikzpicture}" "\n"
+            r"\end{document}"
+        )
+        with httpx.Client(timeout=8.0) as client:
+            resp = client.post(KROKI_TIKZ_PNG_URL, content=tex_doc.encode("utf-8"), headers={"Content-Type": "text/plain; charset=utf-8"})
+            if resp.status_code == 200 and resp.content[:8] == b'\x89PNG\r\n\x1a\n':
+                img_path.write_bytes(resp.content)
+                from PIL import Image
+                with Image.open(img_path) as im:
+                    h_pt = max(8.0, min(65.0, (im.height / 200.0) * 72.0))
+                    return str(img_path), h_pt
+    except Exception as e:
+        logger.debug(f"Kroki fallback error: {e}")
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -64,13 +200,53 @@ def _get_xslt_transformer():
     return None
 
 
+def clean_math_expr(text: str) -> str:
+    """Strips math delimiters ($...$, $$...$$, ${...}$, $${...}$$) and single outer enclosing braces."""
+    if not text:
+        return ""
+    s = text.strip()
+    if s.startswith("${") and s.endswith("}$"):
+        s = s[2:-2].strip()
+    elif s.startswith("$$") and s.endswith("$$"):
+        s = s[2:-2].strip()
+    elif s.startswith("$") and s.endswith("$"):
+        s = s[1:-1].strip()
+    while s.startswith("{") and s.endswith("}"):
+        depth = 0
+        is_enclosing = True
+        for idx, ch in enumerate(s):
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0 and idx < len(s) - 1:
+                    is_enclosing = False
+                    break
+        if is_enclosing and depth == 0:
+            s = s[1:-1].strip()
+        else:
+            break
+    return s
+
+
 def convert_latex_to_omml(latex_code: str) -> Optional[Any]:
-    """Converts a LaTeX math expression to a native Word OMML (<m:oMath>) XML element."""
-    if not HAS_LATEX2MATHML:
+    """Converts a LaTeX math expression to a native Word OMML (<m:oMath>) XML element
+    using MathJax (high fidelity, complete TeX package support) with latex2mathml fallback.
+    """
+    clean_code = clean_math_expr(latex_code)
+    if not clean_code:
         return None
 
-    clean_code = latex_code.strip().strip("$")
-    if not clean_code:
+    # 1. Try MathJax engine first (handles \overrightarrow, \dfrac, cases, matrices, etc.)
+    try:
+        from backend.services.mathjax_service import convert_latex_to_omml_mathjax
+        omml_elem = convert_latex_to_omml_mathjax(clean_code)
+        if omml_elem is not None:
+            return omml_elem
+    except Exception as e:
+        logger.debug(f"MathJax OMML conversion error: {e}")
+
+    if not HAS_LATEX2MATHML:
         return None
 
     clean_code = clean_code.replace(r"\mathbb{R}", "R").replace(r"\mathbb{Z}", "Z")
@@ -90,15 +266,660 @@ def convert_latex_to_omml(latex_code: str) -> Optional[Any]:
     return None
 
 
+def _custom_mathtype_preamble(mathtype_version: str = "DSMT4", base_pt: float = 11.0) -> bytes:
+    import docx_equation.mathtype.mtef as mtef
+    pref = mtef._equation_preferences()
+    if base_pt == 11.0:
+        pref = pref.replace(bytes.fromhex("21 2f"), bytes.fromhex("21 1f"))
+    return b"".join([
+        b"\x05\x01\x00\x06\x09" + mathtype_version.encode("ascii") + b"\x00\x01",
+        b"\x13WinAllBasicCodePages\x00",
+        mtef._font_def(5, "Times New Roman"),
+        mtef._font_def(3, "Symbol"),
+        mtef._font_def(5, "Courier New"),
+        mtef._font_def(4, "MT Extra"),
+        pref,
+    ])
+
+
+def _custom_encode_mtef(expr, base_pt: float = 11.0) -> bytes:
+    import docx_equation.mathtype.mtef as mtef
+    import unicodedata
+
+    # Ensure docx_equation does not emit corrupt MTEF bytes or spurious size/style overrides
+    mtef._empty_line = lambda: b"\x01\x01"
+
+    # Clean script encoders matching native MathType 7 byte-for-byte:
+    # 0x0B (SIZE: SUB) is placed immediately after TMPL (before slot line) so kerning and spacing match native MathType
+    null_slot = bytes([0x01, 0x01])  # 2-byte null slot (no END tag per MTEF spec for mtefOPT_LINE_NULL)
+
+    def _clean_superscript_encode(self):
+        tmpl = bytes([0x03, 0x00, 0x1C, 0x00, 0x00, 0x0B])
+        return self.base.encode() + tmpl + null_slot + mtef._line(self.superscript) + bytes([0x00, 0x0A])
+
+    def _clean_subscript_encode(self):
+        tmpl = bytes([0x03, 0x00, 0x1B, 0x00, 0x00, 0x0B])
+        return self.base.encode() + tmpl + mtef._line(self.subscript) + null_slot + bytes([0x00, 0x0A])
+
+    def _clean_subsup_encode(self):
+        tmpl = bytes([0x03, 0x00, 0x1D, 0x00, 0x00, 0x0B])
+        return self.base.encode() + tmpl + mtef._line(self.subscript) + mtef._line(self.superscript) + bytes([0x00, 0x0A])
+
+    # Clean character and text encoders: uniform font styles
+    KNOWN_FUNCTIONS = {"sin", "cos", "tan", "cot", "log", "ln", "lim", "exp", "min", "max", "arcsin", "arccos", "arctan"}
+
+    def _improved_encode_char(char: str) -> bytes:
+        if len(char) != 1:
+            return b"".join(_improved_encode_char(item) for item in char)
+        if char == "\u00a0":
+            char = " "
+        if char in mtef._OPERATOR_CODE:
+            unicode_code, mt_code = mtef._OPERATOR_CODE[char]
+            return bytes([0x02, 0x04, 0x86]) + unicode_code.to_bytes(2, "little") + bytes([mt_code])
+        if char.isdigit() or char in ",.":
+            typeface = 0x88  # fnNUMBER (Numbers and decimal separators in uniform upright style)
+        elif char.isalpha():
+            typeface = 0x83  # fnVARIABLE (Italic math variables)
+        elif char in "()[]{}":
+            typeface = 0x96  # fnEXPAND (Fences and grouping brackets matching MathType standard)
+        elif char in ";:":
+            typeface = 0x81  # fnTEXT (Punctuation)
+        elif char.isspace():
+            typeface = 0x86  # fnSYMBOL
+        elif unicodedata.category(char).startswith(("S", "M")):
+            typeface = 0x86  # fnSYMBOL
+        else:
+            typeface = 0x83
+        code_point = ord(char)
+        if code_point > 0xFFFF:
+            raise ValueError(f"Character outside BMP: {char!r}")
+        return bytes([0x02, 0x00, typeface]) + code_point.to_bytes(2, "little")
+
+    def _text_encode(self) -> bytes:
+        val = self.value
+        if val.lower() in KNOWN_FUNCTIONS:
+            return b"".join(
+                bytes([0x02, 0x00, 0x82]) + ord(c).to_bytes(2, "little")
+                for c in val
+            )
+        return b"".join(_improved_encode_char(c) for c in val)
+
+    mtef._encode_char = _improved_encode_char
+    mtef.Text.encode = _text_encode
+    mtef.Superscript.encode = _clean_superscript_encode
+    mtef.Subscript.encode = _clean_subscript_encode
+    mtef.Subsup.encode = _clean_subsup_encode
+
+    return _custom_mathtype_preamble("DSMT4", base_pt=float(base_pt)) + b"\x0a" + mtef._line(expr)
+
+
+def _build_mathtype_cfb_binary(mtef_bytes: bytes) -> bytes:
+    """Builds a compliant OLE Compound File (CFB) with root CLSID {0002CE03-0000-0000-C000-000000000046}
+    and red-black directory tree for MathType 7.0 equation activation in Microsoft Word.
+    """
+    import docx_equation.mathtype.cfb as cfb
+    import docx_equation.mathtype.ole as ole
+
+    compobj = bytes.fromhex(
+        "0100feff030a0000ffffffff03ce020000000000c000000000000046"
+        "160000004d6174685479706520372e30204571756174696f6e00"
+        "0c0000004d6174685479706520454600"
+        "0f0000004571756174696f6e2e44534d543400"
+        "f439b271000000000000000000000000"
+    )
+    objinfo = bytes.fromhex("000003000400")
+    ole_s = bytes.fromhex("0100000208000000000000000000000000000000")
+    eq_native = ole._equation_native_stream(mtef_bytes)
+
+    streams = {
+        "\x01CompObj": compobj,
+        "\x01Ole": ole_s,
+        "\x03ObjInfo": objinfo,
+        "Equation Native": eq_native,
+    }
+
+    ordered_names = ["\x01Ole", "\x01CompObj", "\x03ObjInfo", "Equation Native"]
+    ordered_streams = [cfb.Stream(name, streams[name], 0) for name in ordered_names]
+
+    mini_stream = bytearray()
+    updated = []
+    mini_fat_entries = []
+
+    for stream in ordered_streams:
+        start = len(mini_stream) // cfb.MINI_SECTOR_SIZE
+        sectors = max(1, cfb.ceil(len(stream.data) / cfb.MINI_SECTOR_SIZE))
+        padded = stream.data + b"\x00" * (sectors * cfb.MINI_SECTOR_SIZE - len(stream.data))
+        mini_stream.extend(padded)
+        for offset in range(sectors):
+            if offset == sectors - 1:
+                mini_fat_entries.append(cfb.ENDOFCHAIN)
+            else:
+                mini_fat_entries.append(start + offset + 1)
+        updated.append(cfb.Stream(stream.name, stream.data, start))
+
+    mini_stream_bytes = cfb._pad(bytes(mini_stream), cfb.SECTOR_SIZE)
+    mini_stream_sector_count = len(mini_stream_bytes) // cfb.SECTOR_SIZE
+    mini_fat_bytes = cfb._pack_sector_entries(mini_fat_entries)
+    mini_fat_sector_count = len(mini_fat_bytes) // cfb.SECTOR_SIZE
+
+    directory_start = 1
+    directory_sector_count = 2
+
+    mini_stream_start = directory_start + directory_sector_count
+    mini_fat_start = mini_stream_start + mini_stream_sector_count
+    fat_sector_index = 0
+    sector_count = 1 + directory_sector_count + mini_stream_sector_count + mini_fat_sector_count
+
+    entries = []
+    # Root Entry (sid 0, points to child 2 = \x01CompObj)
+    root = bytearray(cfb._directory_entry(
+        "Root Entry", object_type=5, color=0, left=cfb.NOSTREAM, right=cfb.NOSTREAM, child=2,
+        start_sector=mini_stream_start, stream_size=len(mini_stream),
+    ))
+    root[80:96] = bytes.fromhex("03 ce 02 00 00 00 00 00 c0 00 00 00 00 00 00 46")
+    entries.append(bytes(root))
+
+    # sid 1: \x01Ole
+    s1 = updated[0]
+    entries.append(cfb._directory_entry(
+        s1.name, object_type=2, color=1, left=cfb.NOSTREAM, right=cfb.NOSTREAM, child=cfb.NOSTREAM,
+        start_sector=s1.start_mini_sector, stream_size=len(s1.data)
+    ))
+
+    # sid 2: \x01CompObj (left=1, right=3)
+    s2 = updated[1]
+    entries.append(cfb._directory_entry(
+        s2.name, object_type=2, color=1, left=1, right=3, child=cfb.NOSTREAM,
+        start_sector=s2.start_mini_sector, stream_size=len(s2.data)
+    ))
+
+    # sid 3: \x03ObjInfo (left=NOSTREAM, right=4)
+    s3 = updated[2]
+    entries.append(cfb._directory_entry(
+        s3.name, object_type=2, color=1, left=cfb.NOSTREAM, right=4, child=cfb.NOSTREAM,
+        start_sector=s3.start_mini_sector, stream_size=len(s3.data)
+    ))
+
+    # sid 4: Equation Native (left=NOSTREAM, right=NOSTREAM)
+    s4 = updated[3]
+    entries.append(cfb._directory_entry(
+        s4.name, object_type=2, color=0, left=cfb.NOSTREAM, right=cfb.NOSTREAM, child=cfb.NOSTREAM,
+        start_sector=s4.start_mini_sector, stream_size=len(s4.data)
+    ))
+
+    while len(entries) % 4 != 0:
+        entries.append(bytes(128))
+    directory_bytes = b"".join(entries)
+
+    fat_entries = [cfb.FREESECT] * (cfb.ceil(sector_count / 128) * 128)
+    fat_entries[fat_sector_index] = cfb.FATSECT
+    for index in range(directory_sector_count):
+        sector = directory_start + index
+        fat_entries[sector] = directory_start + index + 1 if index < directory_sector_count - 1 else cfb.ENDOFCHAIN
+
+    for index in range(mini_stream_sector_count):
+        sector = mini_stream_start + index
+        fat_entries[sector] = mini_stream_start + index + 1 if index < mini_stream_sector_count - 1 else cfb.ENDOFCHAIN
+    for index in range(mini_fat_sector_count):
+        sector = mini_fat_start + index
+        fat_entries[sector] = mini_fat_start + index + 1 if index < mini_fat_sector_count - 1 else cfb.ENDOFCHAIN
+
+    fat_bytes = cfb._pack_sector_entries(fat_entries[:128])
+    header = cfb._header(
+        fat_sector_index=fat_sector_index,
+        directory_start=directory_start,
+        mini_fat_start=mini_fat_start,
+        mini_fat_sector_count=mini_fat_sector_count,
+    )
+    return b"".join([header, fat_bytes, directory_bytes, mini_stream_bytes, mini_fat_bytes])
+
+
+def generate_mathtype_ole(latex_math: str, default_font_size: Union[int, float] = 11) -> bytes:
+    """Encodes LaTeX formula into compliant MathType 7.0 OLE CFB binary."""
+    clean = latex_math.strip().strip("$").strip()
+    clean = clean.replace(r"\dfrac", r"\frac")
+    clean = clean.replace(r"\setminus", r"\backslash").replace("{,}", ",")
+    clean = clean.replace(r"\left", "").replace(r"\right", "")
+
+    # For MTEF binary encoding: strip vector wrappers so MathType's OLE parser does not crash on tmVEC
+    mtef_clean = re.sub(r'\\(?:vec|overrightarrow)\{([^}]+)\}', r'\1', clean)
+
+    try:
+        import docx_equation
+        mml = None
+        try:
+            from backend.services.mathjax_service import render_mathjax_equation
+            mj_res = render_mathjax_equation(mtef_clean, generate_png=False)
+            if mj_res and mj_res.get("mml"):
+                mml = mj_res["mml"]
+        except Exception:
+            pass
+        if not mml:
+            import latex2mathml.converter
+            mml = latex2mathml.converter.convert(mtef_clean)
+        expr = docx_equation.parse_mathml(mml)
+        mtef_bytes = _custom_encode_mtef(expr, base_pt=float(default_font_size))
+    except Exception:
+        # Fallback to simple DSMT4 MTEF
+        mtef_bytes = _custom_mathtype_preamble("DSMT4", base_pt=float(default_font_size)) + b"\x0a\x01\x00\x02\x00\x83x\x00\x00\x00"
+
+    return _build_mathtype_cfb_binary(mtef_bytes)
+
+
+UNICODE_TO_SYMBOL = {
+    0x03c0: 0x70,  # \pi
+    0x03b1: 0x61,  # \alpha
+    0x03b2: 0x62,  # \beta
+    0x03b3: 0x67,  # \gamma
+    0x03b4: 0x64,  # \delta
+    0x03b5: 0x65,  # \epsilon
+    0x03b8: 0x71,  # \theta
+    0x03bb: 0x6c,  # \lambda
+    0x03bc: 0x6d,  # \mu
+    0x03c3: 0x73,  # \sigma
+    0x03c6: 0x6a,  # \phi
+    0x03c9: 0x77,  # \omega
+    0x0394: 0x44,  # \Delta
+    0x03a9: 0x57,  # \Omega
+    0x221a: 0xd6,  # \sqrt
+    0x2264: 0xa3,  # \le
+    0x2265: 0xb3,  # \ge
+    0x2260: 0xb9,  # \ne
+    0x00b1: 0xb1,  # \pm
+    0x00d7: 0xb4,  # \times
+    0x00f7: 0xb8,  # \div
+    0x2212: 0x2d,  # minus −
+    0x2248: 0xbb,  # \approx
+    0x2208: 0xce,  # \in
+    0x221e: 0xa5,  # \infty
+    0x2192: 0xae,  # \rightarrow
+    0x20d7: 0xae,  # combining vector arrow
+    0x21d2: 0xde,  # \Rightarrow
+    0x21d4: 0xdb,  # \Leftrightarrow
+    0x22c5: 0xd7,  # \cdot
+    0x2202: 0xb6,  # \partial
+    0x222b: 0xf2,  # \int
+    0x2205: 0xc6,  # \emptyset
+}
+
+
+def _build_wmf_rec(func: int, data: bytes = b"") -> bytes:
+    if len(data) % 2 != 0:
+        data += b"\x00"
+    size_words = (len(data) + 6) // 2
+    return struct.pack("<IH", size_words, func) + data
+
+
+def _create_logfont_record(name: str, height: int, italic: bool = False, charset: int = 0) -> bytes:
+    face = name.encode("ascii")[:31].ljust(32, b"\x00")
+    return struct.pack("<hhhhhBBBBBBBB", height, 0, 0, 0, 400, 1 if italic else 0, 0, 0, charset, 0, 0, 0, 0) + face
+
+
+def _render_compliant_mathtype_wmf(clean_latex: str, default_font_size: Union[int, float] = 11) -> Optional[Tuple[bytes, float, float, float]]:
+    """Builds a compliant vector Windows Metafile (WMF) in 100% pure Python with MOVETO & TA_UPDATECP.
+    When Microsoft Word exports to PDF, Word parses these records into real selectable vector text.
+    Zero DLL dependencies — runs natively on Linux, Docker, Windows.
+    """
+    try:
+        clean = clean_latex
+        m_code = clean.replace(r"\dfrac", r"\frac").replace("{,}", ",")
+        m_code = m_code.replace(r"\left", "").replace(r"\right", "")
+
+        from matplotlib.mathtext import MathTextParser
+        from matplotlib.font_manager import FontProperties
+
+        parser = MathTextParser("path")
+        prop = FontProperties(size=default_font_size)
+        w_pt, h_pt, d_pt, glyphs, rects = parser.parse(f"${m_code}$", dpi=72, prop=prop)
+
+        # Calculate exact bounding envelope across all glyphs and rects
+        all_top_pts = [g[5] + g[1] * 0.75 for g in glyphs] + [r[1] + r[3] for r in rects]
+        all_bot_pts = [g[5] - g[1] * 0.25 for g in glyphs] + [r[1] for r in rects]
+
+        max_ascent = max(all_top_pts, default=default_font_size * 0.80)
+        max_descent = -min(all_bot_pts, default=-default_font_size * 0.22)
+
+        has_subscript = bool(re.search(r'_[^{\s]|_\{', m_code))
+        has_superscript = bool(re.search(r'\^[^{\s]|\^\{', m_code))
+        has_fraction = r"\frac" in m_code
+
+        min_ascent = default_font_size * 0.80
+        min_descent = default_font_size * 0.22
+
+        if has_fraction:
+            min_ascent = max(min_ascent, default_font_size * 1.10)
+            min_descent = max(min_descent, default_font_size * 0.50)
+        elif has_subscript:
+            # Standard MathType metrics for subscripted formulas (like u_1 = 3, u_6 = -96)
+            min_ascent = max(min_ascent, default_font_size * 1.0)  # 11.0pt
+            min_descent = max(min_descent, default_font_size * 0.455) # 5.0pt
+
+        pad_left = 1.0
+        pad_right = 1.0
+
+        # Ensure at least 0.8pt clearance above the highest glyph and below the lowest glyph
+        effective_ascent = max(max_ascent + 0.8, min_ascent)
+        effective_descent = max(max_descent + 0.8, min_descent)
+
+        new_w_pt = w_pt + pad_left + pad_right
+        new_h_pt = effective_ascent + effective_descent
+        new_d_pt = effective_descent
+        base_y_pt = effective_ascent
+
+        SCALE = 32  # 32 units/pt = 2304 units/inch (matches MathType standard)
+        w_u = max(1, int(round(new_w_pt * SCALE)))
+        h_u = max(1, int(round(new_h_pt * SCALE)))
+
+        records = [
+            _build_wmf_rec(0x0102, struct.pack("<H", 1)),          # SETMAPMODE: MM_TEXT (1)
+            _build_wmf_rec(0x0201, struct.pack("<I", 0x00FFFFFF)), # SETBKCOLOR: White
+            _build_wmf_rec(0x012e, struct.pack("<H", 25)),         # SETTEXTALIGN: TA_UPDATECP (1) | TA_BASELINE (24) = 25
+            _build_wmf_rec(0x020b, struct.pack("<hh", 0, 0)),      # SETWINDOWORG: (0, 0)
+            _build_wmf_rec(0x020c, struct.pack("<hh", h_u, w_u)),  # SETWINDOWEXT: (height, width)
+            _build_wmf_rec(0x0209, struct.pack("<I", 0x00000000)), # SETTEXTCOLOR: Black
+        ]
+
+        # Pen for fraction bars & lines
+        pen_w = max(1, int(round(0.8 * SCALE)))
+        pen = struct.pack("<HHHI", 0, pen_w, 0, 0x00000000)
+        records.append(_build_wmf_rec(0x02fa, pen))  # Handle 0 = Pen
+
+        active_font_handle = -1
+        cur_font_key = None
+
+        for g in glyphs:
+            font_obj, fontsize, c, _idx, ox, oy = g[:6]
+
+            is_sym = c in UNICODE_TO_SYMBOL
+            is_alpha = chr(c).isalpha() if 32 <= c <= 126 else False
+
+            if is_sym:
+                char_b = bytes([UNICODE_TO_SYMBOL[c]])
+                f_name = "Symbol"
+                f_charset = 2
+                f_it = False
+            elif is_alpha:
+                char_b = chr(c).encode("ascii")
+                f_name = "Times New Roman"
+                f_charset = 0
+                f_it = True  # Variables in MathType are ALWAYS Italic
+            else:
+                char_b = chr(c).encode("latin-1", errors="replace")
+                f_name = "Times New Roman"
+                f_charset = 0
+                f_it = False
+
+            font_key = (f_name, round(fontsize, 2), f_it, f_charset)
+            if font_key != cur_font_key:
+                f_h = -int(round(fontsize * SCALE))
+                lf_data = _create_logfont_record(f_name, f_h, f_it, f_charset)
+                next_h = 2 if active_font_handle == 1 else 1
+                records.append(_build_wmf_rec(0x02fb, lf_data))
+                records.append(_build_wmf_rec(0x012d, struct.pack("<H", next_h)))
+                if active_font_handle != -1:
+                    records.append(_build_wmf_rec(0x01f0, struct.pack("<H", active_font_handle)))
+                active_font_handle = next_h
+                cur_font_key = font_key
+
+            x_u = int(round((ox + pad_left) * SCALE))
+            y_u = int(round((base_y_pt - oy) * SCALE))
+
+            records.append(_build_wmf_rec(0x0214, struct.pack("<hh", y_u, x_u)))
+            ext_data = struct.pack("<hhhh", 0, 0, len(char_b), 0) + char_b
+            records.append(_build_wmf_rec(0x0a32, ext_data))
+
+        if rects:
+            records.append(_build_wmf_rec(0x012d, struct.pack("<H", 0)))
+            for rx, ry, rw, rh in rects:
+                x1 = int(round((rx + pad_left) * SCALE))
+                x2 = int(round((rx + rw + pad_left) * SCALE))
+                y_bar = int(round((base_y_pt - ry - rh * 0.5) * SCALE))
+                poly_data = struct.pack("<Hhhhh", 2, x1, y_bar, x2, y_bar)
+                records.append(_build_wmf_rec(0x0325, poly_data))
+
+        if active_font_handle != -1:
+            records.append(_build_wmf_rec(0x01f0, struct.pack("<H", active_font_handle)))
+        records.append(_build_wmf_rec(0x01f0, struct.pack("<H", 0)))  # Delete Pen
+
+        records.append(_build_wmf_rec(0x0000))  # EOF
+
+        wmf_recs = b"".join(records)
+        total_words = 9 + len(wmf_recs) // 2
+        max_rec = max(len(r) // 2 for r in records)
+        wmf_header = struct.pack("<HHHIHIH", 1, 9, 0x0300, total_words, 3, max_rec, 0)
+        wmf_body = wmf_header + wmf_recs
+
+        inch = 2304
+        apm_no_cs = struct.pack("<IHhhhhHI", 0x9ac6cdd7, 0, 0, 0, w_u, h_u, inch, 0)
+        words = struct.unpack("<10H", apm_no_cs)
+        cs = 0
+        for w_val in words:
+            cs ^= w_val
+        apm_header = apm_no_cs + struct.pack("<H", cs)
+        return apm_header + wmf_body, new_w_pt, new_h_pt, new_d_pt
+    except Exception as e:
+        logger.debug(f"Pure vector WMF fallback for '{clean_latex[:30]}': {e}")
+        return None
+
+
+def _bitmap_to_wmf(png_bytes: bytes, w_pt: float, h_pt: float) -> bytes:
+    """Wraps a high-DPI raster image into a compliant Windows Metafile (WMF) with APM header.
+    Ensures Microsoft Word treats the OLE presentation as image/x-wmf, binding ProgID=Equation.DSMT4.
+    """
+    from PIL import Image
+    im = Image.open(io.BytesIO(png_bytes))
+    bg = Image.new('RGB', im.size, (255, 255, 255))
+    if im.mode in ('RGBA', 'LA'):
+        bg.paste(im, mask=im.split()[-1])
+    else:
+        bg.paste(im)
+
+    bmp_buf = io.BytesIO()
+    bg.save(bmp_buf, format='BMP')
+    bmp_bytes = bmp_buf.getvalue()
+    dib_bytes = bmp_bytes[14:]
+
+    w_px, h_px = bg.size
+    SCALE = 20  # 20 twips/pt
+    w_u = min(32767, max(1, int(round(w_pt * SCALE))))
+    h_u = min(32767, max(1, int(round(h_pt * SCALE))))
+
+    rec_mapmode = struct.pack('<IH', 4, 0x0102) + struct.pack('<H', 1)
+    rec_winorg = struct.pack('<IH', 5, 0x020b) + struct.pack('<hh', 0, 0)
+    rec_winext = struct.pack('<IH', 5, 0x020c) + struct.pack('<hh', h_u, w_u)
+
+    params = struct.pack(
+        '<I8h',
+        0x00CC0020,  # SRCCOPY
+        h_px, w_px, 0, 0,
+        h_u, w_u, 0, 0
+    )
+    dib_rec_data = params + dib_bytes
+    if len(dib_rec_data) % 2 != 0:
+        dib_rec_data += b'\x00'
+    rec_dib_words = (len(dib_rec_data) + 6) // 2
+    rec_dib = struct.pack('<IH', rec_dib_words, 0x0b41) + dib_rec_data
+    rec_eof = struct.pack('<IH', 3, 0x0000)
+
+    records = rec_mapmode + rec_winorg + rec_winext + rec_dib + rec_eof
+    total_words = 9 + len(records) // 2
+    max_rec_words = rec_dib_words
+
+    wmf_header = struct.pack('<HHHIHIH', 1, 9, 0x0300, total_words, 0, max_rec_words, 0)
+    wmf_body = wmf_header + records
+
+    inch = 1440
+    apm_no_cs = struct.pack('<IH4hHI', 0x9AC6CDD7, 0, 0, 0, w_u, h_u, inch, 0)
+    words = struct.unpack('<10H', apm_no_cs)
+    cs = 0
+    for w in words:
+        cs ^= w
+    apm_header = apm_no_cs + struct.pack('<H', cs)
+
+    return apm_header + wmf_body
+
+
+def add_mathtype_equation_to_paragraph(
+    paragraph: docx.text.paragraph.Paragraph,
+    latex_expr: str,
+    default_font_size: Union[int, float] = 11,
+    use_mathjax: bool = True,
+) -> bool:
+    """Inserts a genuine MathType OLE Object (<w:object> with ProgID="Equation.DSMT4",
+    v:shape, v:imagedata, and w:position baseline alignment) into the paragraph run.
+    Uses pure-Python vector WMF for crisp display and selectable text in PDF, with MathJax MathML
+    MTEF encoding so formulas open and edit natively in MathType 7.
+    """
+    clean = clean_math_expr(latex_expr)
+    if not clean:
+        return False
+
+    part = paragraph.part
+    ole_bytes = None
+    img_format = "wmf"
+    img_bytes = None
+    w_pt, h_pt, depth_pt = 0.0, 0.0, 0.0
+    shift_half_pt = 0
+
+    # 1. Generate MTEF and MathType 7.0 OLE Binary using MathJax MathML
+    should_use_mathjax = use_mathjax and getattr(settings, "USE_MATHJAX", True)
+    if should_use_mathjax:
+        try:
+            from backend.services.mathjax_service import render_mathjax_equation
+            mtef_clean = clean.replace(r"\overrightarrow", r"\vec")
+            mj_res = render_mathjax_equation(mtef_clean, font_size_pt=default_font_size, dpi=600, generate_png=True)
+            if mj_res and mj_res.get("mml"):
+                try:
+                    import docx_equation
+                    expr = docx_equation.parse_mathml(mj_res["mml"])
+                    mtef = _custom_encode_mtef(expr, default_font_size)
+                    ole_bytes = _build_mathtype_cfb_binary(mtef)
+                except Exception as e:
+                    logger.debug(f"MathJax MathML to MTEF error: {e}")
+            if mj_res and mj_res.get("shift_half_pt"):
+                shift_half_pt = mj_res["shift_half_pt"]
+        except Exception as e:
+            logger.debug(f"MathJax renderer fallback: {e}")
+
+    # Fallback OLE binary if not created yet
+    if not ole_bytes:
+        ole_bytes = generate_mathtype_ole(clean, default_font_size=default_font_size)
+
+    # 2. Generate vector WMF (crisp vector rendering in Word & PDF)
+    wmf_res = _render_compliant_mathtype_wmf(clean, default_font_size=default_font_size)
+    if wmf_res is not None:
+        img_bytes, w_pt, h_pt, depth_pt = wmf_res
+        img_format = "wmf"
+        if not shift_half_pt:
+            shift_half_pt = -max(0, int(round(depth_pt * 2)))
+    else:
+        # Fallback to high-DPI MathJax image wrapped in WMF (ensures image/x-wmf MIME)
+        try:
+            from backend.services.mathjax_service import render_mathjax_equation
+            mj_res = render_mathjax_equation(clean, font_size_pt=default_font_size, dpi=600, generate_png=True)
+            if mj_res and mj_res.get("png_bytes"):
+                w_pt = mj_res["w_pt"]
+                h_pt = mj_res["h_pt"]
+                depth_pt = mj_res["depth_pt"]
+                if not shift_half_pt:
+                    shift_half_pt = mj_res.get("shift_half_pt", -max(0, int(round(depth_pt * 2))))
+                img_bytes = _bitmap_to_wmf(mj_res["png_bytes"], w_pt, h_pt)
+                img_format = "wmf"
+        except Exception as e:
+            logger.debug(f"Fallback bitmap WMF error: {e}")
+
+    if not img_bytes:
+        return False
+
+    if not ole_bytes:
+        ole_bytes = generate_mathtype_ole(clean, default_font_size=default_font_size)
+
+    try:
+        pkg = part.package
+        # 3. Add image part to document
+        if img_format == "wmf":
+            img_idx = sum(1 for p in pkg.parts if '/word/media/image' in p.partname) + 1
+            img_uri = PackURI(f'/word/media/image{img_idx}.wmf')
+            img_part = Part(img_uri, 'image/x-wmf', img_bytes)
+            pkg.parts.append(img_part)
+            rId_img = part.relate_to(img_part, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image')
+        else:
+            rId_img, img_part = part.get_or_add_image(io.BytesIO(img_bytes))
+
+        # 4. Add OLE part to package
+        ole_idx = sum(1 for p in pkg.parts if 'oleObject' in p.partname) + 1
+        ole_uri = PackURI(f'/word/embeddings/oleObject{ole_idx}.bin')
+        ole_part = Part(ole_uri, 'application/vnd.openxmlformats-officedocument.oleObject', ole_bytes)
+        pkg.parts.append(ole_part)
+        rId_ole = part.relate_to(ole_part, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject')
+
+        # Dimensions & baseline shift
+        dxa = int(round(w_pt * 20))
+        dya = int(round(h_pt * 20))
+        if not shift_half_pt:
+            shift_half_pt = -max(0, int(round(depth_pt * 2)))
+
+        shape_id = f"_x0000_i{1025 + ole_idx}"
+        obj_id = f"_{hashlib.md5(clean.encode()).hexdigest()[:10]}"
+
+        # XML Run with genuine MathType OLE Object & VML shapetype (defined once per document part)
+        has_shapetype = getattr(part, "_has_vml_shapetype_t75", False)
+        shapetype_xml = ""
+        if not has_shapetype:
+            part._has_vml_shapetype_t75 = True
+            shapetype_xml = (
+                f'    <v:shapetype {nsdecls("v")} {nsdecls("o")} id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f">\n'
+                f'      <v:stroke joinstyle="miter"/>\n'
+                f'      <v:formulas>\n'
+                f'        <v:f eqn="if lineDrawn pixelLineWidth 0"/>\n'
+                f'        <v:f eqn="sum @0 1 0"/>\n'
+                f'        <v:f eqn="sum 0 0 @1"/>\n'
+                f'        <v:f eqn="prod @2 1 2"/>\n'
+                f'        <v:f eqn="prod @3 21600 pixelWidth"/>\n'
+                f'        <v:f eqn="prod @3 21600 pixelHeight"/>\n'
+                f'        <v:f eqn="sum @0 0 1"/>\n'
+                f'        <v:f eqn="prod @6 1 2"/>\n'
+                f'        <v:f eqn="prod @7 21600 pixelWidth"/>\n'
+                f'        <v:f eqn="sum @8 21600 0"/>\n'
+                f'        <v:f eqn="prod @7 21600 pixelHeight"/>\n'
+                f'        <v:f eqn="sum @10 21600 0"/>\n'
+                f'      </v:formulas>\n'
+                f'      <v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/>\n'
+                f'      <o:lock v:ext="edit" aspectratio="t"/>\n'
+                f'    </v:shapetype>\n'
+            )
+
+        run_xml = (
+            f'<w:r {nsdecls("w")}>\n'
+            f'  <w:rPr><w:position w:val="{shift_half_pt}"/></w:rPr>\n'
+            f'  <w:object w:dxaOrig="{dxa}" w:dyaOrig="{dya}">\n'
+            f'{shapetype_xml}'
+            f'    <v:shape {nsdecls("v")} {nsdecls("o")} {nsdecls("r")} id="{shape_id}" type="#_x0000_t75" style="width:{w_pt:.2f}pt;height:{h_pt:.2f}pt" o:ole="">\n'
+            f'      <v:imagedata r:id="{rId_img}" o:title=""/>\n'
+            f'    </v:shape>\n'
+            f'    <o:OLEObject {nsdecls("o")} {nsdecls("r")} Type="Embed" ProgID="Equation.DSMT4" ShapeID="{shape_id}" DrawAspect="Content" ObjectID="{obj_id}" r:id="{rId_ole}"/>\n'
+            f'  </w:object>\n'
+            f'</w:r>\n'
+        )
+        r_elem = parse_xml(run_xml)
+        paragraph._p.append(r_elem)
+        return True
+    except Exception as e:
+        logger.warning(f"Error creating MathType OLE object in docx: {e}")
+        return False
+
+
 def add_math_text_to_paragraph(
     paragraph: docx.text.paragraph.Paragraph,
     text: str,
     bold_prefix: Optional[str] = None,
     italic_prefix: Optional[str] = None,
-    default_font_size: int = 11,
+    default_font_size: Union[int, float] = 11,
+    math_format: str = "mathtype",
 ):
-    """Parses text containing inline LaTeX formulas ($...$ or $$...$$) and inserts
-    runs with native Word OMML (<m:oMath>) equations seamlessly alongside plain text.
+    """Parses text containing inline LaTeX formulas (${...}$, $$...$$, or $...$) and inserts
+    runs with genuine MathType OLE equations (math_format="mathtype", default), native Word OMML
+    (<m:oMath>) equations (math_format="omml"), or raw LaTeX code enclosed in ${...}$ (math_format="latex").
     """
     if bold_prefix and isinstance(bold_prefix, str):
         r_pre = paragraph.add_run(bold_prefix)
@@ -115,33 +936,93 @@ def add_math_text_to_paragraph(
     if not text:
         return
 
-    tokens = re.split(r"(\$\$.*?\$\$|\$.*?\$)", text, flags=re.DOTALL)
+    tokens = re.split(r"(\$\$\{.*?\}\$\$|\$\$.*?\$\$|\$\\{.*?\\}\$|\$\{.*?\}\$|\$.*?\$)", text, flags=re.DOTALL)
 
     for tok in tokens:
         if not tok:
             continue
-        if tok.startswith("$") and tok.endswith("$"):
-            omml_elem = convert_latex_to_omml(tok)
-            if omml_elem is not None:
-                paragraph._p.append(omml_elem)
-            else:
-                clean_expr = tok.strip("$").strip()
-                try:
-                    omml_fallback = parse_xml(
-                        f'<m:oMath {nsdecls("m")}>'
-                        f'<m:r><m:rPr><w:rFonts {nsdecls("w")} w:ascii="Cambria Math" w:hAnsi="Cambria Math"/></m:rPr><m:t>{clean_expr}</m:t></m:r>'
-                        f'</m:oMath>'
+        stripped = tok.strip()
+        is_math = (
+            (stripped.startswith("${") and stripped.endswith("}$"))
+            or (stripped.startswith("$$") and stripped.endswith("$$"))
+            or (stripped.startswith("$") and stripped.endswith("$"))
+        )
+        if is_math and len(stripped) > 2:
+            clean_expr = clean_math_expr(stripped)
+            if math_format == "latex":
+                r_math = paragraph.add_run(f"${{{clean_expr}}}$")
+                r_math.font.name = "Times New Roman"
+                r_math.font.size = Pt(default_font_size)
+            elif math_format in ("image", "mathtype"):
+                ok = add_mathtype_equation_to_paragraph(
+                    paragraph, clean_expr, default_font_size=default_font_size, use_mathjax=True
+                )
+                if not ok:
+                    omml_elem = convert_latex_to_omml(clean_expr)
+                    if omml_elem is not None:
+                        paragraph._p.append(omml_elem)
+                    else:
+                        r_math = paragraph.add_run(clean_expr)
+                        r_math.font.italic = True
+                        r_math.font.name = "Times New Roman"
+                        r_math.font.size = Pt(default_font_size)
+            else:  # "omml" (MathML chuẩn Word / MathType)
+                omml_elem = convert_latex_to_omml(clean_expr)
+                if omml_elem is not None:
+                    paragraph._p.append(omml_elem)
+                else:
+                    ok = add_mathtype_equation_to_paragraph(
+                        paragraph, clean_expr, default_font_size=default_font_size, use_mathjax=True
                     )
-                    paragraph._p.append(omml_fallback)
-                except Exception:
-                    r_math = paragraph.add_run(clean_expr)
-                    r_math.font.italic = True
+                    if not ok:
+                        try:
+                            omml_fallback = parse_xml(
+                                f'<m:oMath {nsdecls("m")}>'
+                                f'<m:r><m:rPr><w:rFonts {nsdecls("w")} w:ascii="Cambria Math" w:hAnsi="Cambria Math"/></m:rPr><m:t>{clean_expr}</m:t></m:r>'
+                                f'</m:oMath>'
+                            )
+                            paragraph._p.append(omml_fallback)
+                        except Exception:
+                            r_math = paragraph.add_run(clean_expr)
+                            r_math.font.italic = True
+                            r_math.font.name = "Times New Roman"
+                            r_math.font.size = Pt(default_font_size)
+        else:
+            stripped = tok.strip()
+            if stripped.startswith("\\") and any(
+                cmd in stripped for cmd in ("\\frac", "\\sqrt", "\\vec", "\\overrightarrow", "\\dfrac", "\\alpha", "\\beta")
+            ):
+                clean_expr = clean_math_expr(stripped)
+                if math_format == "latex":
+                    r_math = paragraph.add_run(f"${{{clean_expr}}}$")
                     r_math.font.name = "Times New Roman"
                     r_math.font.size = Pt(default_font_size)
-        else:
-            r_txt = paragraph.add_run(tok)
-            r_txt.font.name = "Times New Roman"
-            r_txt.font.size = Pt(default_font_size)
+                elif math_format in ("image", "mathtype"):
+                    ok = add_mathtype_equation_to_paragraph(
+                        paragraph, clean_expr, default_font_size=default_font_size, use_mathjax=True
+                    )
+                    if not ok:
+                        omml_elem = convert_latex_to_omml(clean_expr)
+                        if omml_elem is not None:
+                            paragraph._p.append(omml_elem)
+                        else:
+                            r_math = paragraph.add_run(clean_expr)
+                            r_math.font.italic = True
+                            r_math.font.name = "Times New Roman"
+                            r_math.font.size = Pt(default_font_size)
+                else:
+                    omml_elem = convert_latex_to_omml(clean_expr)
+                    if omml_elem is not None:
+                        paragraph._p.append(omml_elem)
+                    else:
+                        r_math = paragraph.add_run(clean_expr)
+                        r_math.font.italic = True
+                        r_math.font.name = "Times New Roman"
+                        r_math.font.size = Pt(default_font_size)
+            else:
+                r_txt = paragraph.add_run(tok)
+                r_txt.font.name = "Times New Roman"
+                r_txt.font.size = Pt(default_font_size)
 
 
 # ---------------------------------------------------------------------------
@@ -183,6 +1064,7 @@ def _setup_exam_header(
     grade: str,
     variant_code: str,
     duration: int = 90,
+    compact_student_info: bool = False,
 ):
     """Generates the official Ministry of Education standard examination header:
     - Left column: School/Department name, Official Exam designation, Page count notice.
@@ -237,6 +1119,23 @@ def _setup_exam_header(
     r_dur.font.italic = True
     r_dur.font.size = Pt(9.5)
     r_dur.font.name = "Times New Roman"
+
+    if compact_student_info:
+        p_info = doc.add_paragraph()
+        p_info.paragraph_format.space_before = Pt(6)
+        p_info.paragraph_format.space_after = Pt(4)
+        r_info = p_info.add_run(f"Họ và tên thí sinh: .................................................................... Số báo danh: ................ Mã đề thi: {variant_code}")
+        r_info.font.name = "Times New Roman"
+        r_info.font.size = Pt(10)
+
+        p_div = doc.add_paragraph()
+        p_div.paragraph_format.space_before = Pt(2)
+        p_div.paragraph_format.space_after = Pt(8)
+        p_div.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r_line = p_div.add_run("────────────────────────────────────────────────────────────────────────")
+        r_line.font.size = Pt(8)
+        r_line.font.color.rgb = RGBColor(160, 160, 160)
+        return
 
     # Variant Code Box
     p_var_wrap = doc.add_paragraph()
@@ -320,16 +1219,19 @@ def _set_section_1_column(section):
         sectPr.append(cols_elem)
 
 
-def generate_variant_docx(variant: ExamVariant, output_path: Path):
+def generate_variant_docx(variant: ExamVariant, output_path: Path, math_format: str = "omml"):
     """Generates an official Ministry format .docx exam paper for a specific variant:
     - Official header (School name, Exam title, Subject, Grade, Variant code box, Student info, Phách).
     - 2-column layout for question content.
-    - Native OMML (<m:oMath>) equations.
+    - Native OMML (<m:oMath>) or MathType OLE equations.
     """
     doc = docx.Document()
 
-    # 1. Page Margins (1.5 cm all around to maximize 2-column space)
+    # 1. Page Format: Standard A4 Portrait (210 x 297 mm, 1.5 cm margins)
     s1 = doc.sections[0]
+    s1.orientation = WD_ORIENT.PORTRAIT
+    s1.page_width = Mm(210)
+    s1.page_height = Mm(297)
     s1.top_margin = Cm(1.5)
     s1.bottom_margin = Cm(1.5)
     s1.left_margin = Cm(1.5)
@@ -413,13 +1315,13 @@ def generate_variant_docx(variant: ExamVariant, output_path: Path):
             p_pass = doc.add_paragraph()
             p_pass.paragraph_format.left_indent = Inches(0.15)
             p_pass.paragraph_format.space_after = Pt(4)
-            add_math_text_to_paragraph(p_pass, p_content, default_font_size=10)
+            add_math_text_to_paragraph(p_pass, p_content, default_font_size=10, math_format=math_format)
 
         # Question Stem with Native OMML Equations
         p_q = doc.add_paragraph()
         p_q.paragraph_format.space_before = Pt(4)
         p_q.paragraph_format.space_after = Pt(2)
-        add_math_text_to_paragraph(p_q, q.stem, bold_prefix=f"Câu {item.variant_order_index}: ", default_font_size=10.5)
+        add_math_text_to_paragraph(p_q, q.stem, bold_prefix=f"Câu {item.variant_order_index}: ", default_font_size=10.5, math_format=math_format)
 
         # Render options or sub-statements
         if q.item_format == "SINGLE_CHOICE" and q.options:
@@ -440,20 +1342,20 @@ def generate_variant_docx(variant: ExamVariant, output_path: Path):
                 p_opt.paragraph_format.left_indent = Inches(0.2)
                 p_opt.paragraph_format.space_after = Pt(1.5)
                 content = orig_opt.content if orig_opt else ""
-                add_math_text_to_paragraph(p_opt, content, bold_prefix=f"{lbl}. ", default_font_size=10.5)
+                add_math_text_to_paragraph(p_opt, content, bold_prefix=f"{lbl}. ", default_font_size=10.5, math_format=math_format)
 
         elif q.item_format == "TRUE_FALSE_GROUP" and q.sub_statements:
             for sub in q.sub_statements:
                 p_sub = doc.add_paragraph()
                 p_sub.paragraph_format.left_indent = Inches(0.2)
                 p_sub.paragraph_format.space_after = Pt(1.5)
-                add_math_text_to_paragraph(p_sub, sub.content, bold_prefix=f"{sub.label}) ", default_font_size=10)
+                add_math_text_to_paragraph(p_sub, sub.content, bold_prefix=f"{sub.label}) ", default_font_size=10, math_format=math_format)
 
         elif q.item_format == "SHORT_ANSWER":
             p_ans = doc.add_paragraph()
             p_ans.paragraph_format.left_indent = Inches(0.2)
             p_ans.paragraph_format.space_after = Pt(4)
-            add_math_text_to_paragraph(p_ans, "................................................................", italic_prefix="Đáp số: ", default_font_size=10)
+            add_math_text_to_paragraph(p_ans, "................................................................", italic_prefix="Đáp số: ", default_font_size=10, math_format=math_format)
 
     # 3. Section 3: Return to 1 Column for Footer / End Note
     s3 = doc.add_section(WD_SECTION.CONTINUOUS)
@@ -478,10 +1380,13 @@ def generate_variant_docx(variant: ExamVariant, output_path: Path):
     doc.save(output_path)
 
 
-def generate_solution_docx(variant: ExamVariant, output_path: Path):
+def generate_solution_docx(variant: ExamVariant, output_path: Path, math_format: str = "omml"):
     """Generates a detailed solution document for a variant with OMML equations."""
     doc = docx.Document()
     s = doc.sections[0]
+    s.orientation = WD_ORIENT.PORTRAIT
+    s.page_width = Mm(210)
+    s.page_height = Mm(297)
     s.top_margin = Cm(1.5)
     s.bottom_margin = Cm(1.5)
     s.left_margin = Cm(1.5)
@@ -513,7 +1418,7 @@ def generate_solution_docx(variant: ExamVariant, output_path: Path):
         p_q = doc.add_paragraph()
         p_q.paragraph_format.space_before = Pt(8)
         p_q.paragraph_format.space_after = Pt(2)
-        add_math_text_to_paragraph(p_q, q.stem, bold_prefix=f"Câu {item.variant_order_index}: ")
+        add_math_text_to_paragraph(p_q, q.stem, bold_prefix=f"Câu {item.variant_order_index}: ", math_format=math_format)
 
         # Show Answer Key
         p_k = doc.add_paragraph()
@@ -527,7 +1432,7 @@ def generate_solution_docx(variant: ExamVariant, output_path: Path):
             p_exp = doc.add_paragraph()
             p_exp.paragraph_format.left_indent = Inches(0.2)
             p_exp.paragraph_format.space_after = Pt(4)
-            add_math_text_to_paragraph(p_exp, q.explanation, italic_prefix="Lời giải chi tiết: ")
+            add_math_text_to_paragraph(p_exp, q.explanation, italic_prefix="Lời giải chi tiết: ", math_format=math_format)
 
     doc.save(output_path)
 
@@ -536,6 +1441,9 @@ def generate_answer_sheet_docx(master: MasterExam, variants: List[ExamVariant], 
     """Generates an Answer Key Matrix overview Word document."""
     doc = docx.Document()
     s = doc.sections[0]
+    s.orientation = WD_ORIENT.PORTRAIT
+    s.page_width = Mm(210)
+    s.page_height = Mm(297)
     s.top_margin = Cm(1.5)
     s.bottom_margin = Cm(1.5)
     s.left_margin = Cm(1.5)
@@ -1455,3 +2363,297 @@ def compute_item_analytics(
         "defective_questions_count": defective_count,
         "items": items_report
     }
+
+
+def _add_options_adaptive(
+    doc: docx.Document,
+    options: List[Dict[str, Any]],
+    default_font_size: Union[int, float] = 11,
+    math_format: str = "mathtype"
+):
+    """Lays out 4 choices (A, B, C, D) adaptively like standard Vietnamese exam papers:
+    - 4 columns across 1 line if all options are short (<= 18 chars, no TikZ)
+    - 2 columns x 2 rows if options are medium (<= 38 chars, no TikZ)
+    - 1 column (4 paragraphs) if options are long or contain TikZ diagrams
+    """
+    if not options:
+        return
+
+    # Check if any option has tikz or is long
+    has_tikz = any(re.search(r'\\begin\{tikzpicture\}', opt.get("content", "")) for opt in options)
+    clean_contents = [re.sub(r'[\$\s\\]', '', opt.get("content", "")) for opt in options]
+    max_len = max((len(c) for c in clean_contents), default=0)
+
+    if not has_tikz and max_len <= 18 and len(options) == 4:
+        # Layout 4 options across 1 line in a borderless table
+        tbl = doc.add_table(rows=1, cols=4)
+        tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+        tbl.autofit = False
+        _remove_table_borders(tbl)
+        col_w = Inches(1.75)  # 4 * 1.75 = 7.0 inches ~ 17.8 cm
+        for col in tbl.columns:
+            col.width = col_w
+        for opt_idx, opt in enumerate(options):
+            lbl = opt.get("label", chr(65 + opt_idx))
+            cell = tbl.cell(0, opt_idx)
+            cell.width = col_w
+            p = cell.paragraphs[0]
+            p.paragraph_format.space_before = Pt(1)
+            p.paragraph_format.space_after = Pt(2)
+            add_math_text_to_paragraph(p, opt.get("content", ""), bold_prefix=f"{lbl}. ", default_font_size=default_font_size, math_format=math_format)
+
+    elif not has_tikz and max_len <= 38 and len(options) == 4:
+        # Layout 2 options per row (2 rows x 2 cols) in a borderless table
+        tbl = doc.add_table(rows=2, cols=2)
+        tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+        tbl.autofit = False
+        _remove_table_borders(tbl)
+        col_w = Inches(3.5)  # 2 * 3.5 = 7.0 inches
+        for col in tbl.columns:
+            col.width = col_w
+        for opt_idx, opt in enumerate(options):
+            r_idx = opt_idx // 2
+            c_idx = opt_idx % 2
+            lbl = opt.get("label", chr(65 + opt_idx))
+            cell = tbl.cell(r_idx, c_idx)
+            cell.width = col_w
+            p = cell.paragraphs[0]
+            p.paragraph_format.space_before = Pt(1)
+            p.paragraph_format.space_after = Pt(2)
+            add_math_text_to_paragraph(p, opt.get("content", ""), bold_prefix=f"{lbl}. ", default_font_size=default_font_size, math_format=math_format)
+
+    else:
+        # Layout 1 option per line (paragraphs)
+        for opt_idx, opt in enumerate(options):
+            lbl = opt.get("label", chr(65 + opt_idx))
+            content = opt.get("content", "")
+            p_opt = doc.add_paragraph()
+            p_opt.paragraph_format.left_indent = Inches(0.2)
+            p_opt.paragraph_format.space_before = Pt(1)
+            p_opt.paragraph_format.space_after = Pt(2)
+            p_opt.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+            p_opt.paragraph_format.line_spacing = 1.15
+
+            opt_tikz = re.search(r'\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}', content)
+            if opt_tikz:
+                r_lbl = p_opt.add_run(f"{lbl}. ")
+                r_lbl.font.bold = True
+                r_lbl.font.name = "Times New Roman"
+                r_lbl.font.size = Pt(default_font_size)
+                try:
+                    from backend.services.tikz_renderer import render_tikz_to_png
+                    png_res = render_tikz_to_png(opt_tikz.group(0))
+                    if png_res.get("success") and png_res.get("png_path"):
+                        doc.add_picture(png_res["png_path"], width=Inches(2.2))
+                except Exception:
+                    pass
+            else:
+                add_math_text_to_paragraph(p_opt, content, bold_prefix=f"{lbl}. ", default_font_size=default_font_size, math_format=math_format)
+
+
+def generate_digitized_exam_docx(
+    questions: List[Dict[str, Any]],
+    output_path: Path,
+    title: str = "ĐỀ THI KHẢO THÍ",
+    school_name: str = "SỞ GIÁO DỤC VÀ ĐÀO TẠO",
+    subject_name: str = "Toán học",
+    grade: str = "12",
+    variant_code: str = "101",
+    duration: int = 90,
+    math_format: str = "mathtype"
+) -> Path:
+    """Generates an official single-column Word .docx document for a list of digitized questions,
+    matching standard Vietnamese examination format (top-to-bottom layout like PDF exam papers),
+    with genuine MathType OLE equations (Equation.DSMT4), adaptive option columns, and embedded TikZ diagrams.
+    """
+    doc = docx.Document()
+
+    # Configure Normal Style with Times New Roman 11pt, line spacing 1.15
+    try:
+        norm_style = doc.styles['Normal']
+        norm_style.font.name = 'Times New Roman'
+        norm_style.font.size = Pt(11)
+        norm_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+        norm_style.paragraph_format.line_spacing = 1.15
+    except Exception:
+        pass
+
+    # 1. Page Format: Standard A4 Portrait (210 x 297 mm, 1.8 cm margins)
+    s1 = doc.sections[0]
+    s1.orientation = WD_ORIENT.PORTRAIT
+    s1.page_width = Mm(210)
+    s1.page_height = Mm(297)
+    s1.top_margin = Cm(1.5)
+    s1.bottom_margin = Cm(1.5)
+    s1.left_margin = Cm(1.8)
+    s1.right_margin = Cm(1.8)
+
+    # 2. Header in Section 1 (Single column, with compact student info matching PDF)
+    _setup_exam_header(
+        doc=doc,
+        school_name=school_name,
+        exam_title=title,
+        subject_name=subject_name,
+        grade=grade,
+        variant_code=variant_code,
+        duration=duration,
+        compact_student_info=True
+    )
+
+    section_titles = {
+        1: "PHẦN I. Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.",
+        2: "PHẦN II. Thí sinh trả lời từ câu 1 đến 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.",
+        3: "PHẦN III. Thí sinh trả lời từ câu 1 đến câu 6. Câu trắc nghiệm trả lời ngắn.",
+        4: "PHẦN IV. Tự luận.",
+    }
+
+    current_section = None
+
+    for idx, q in enumerate(questions):
+        fmt = q.get("item_format", "SINGLE_CHOICE")
+        sec = 1
+        if fmt == "SINGLE_CHOICE":
+            sec = 1
+        elif fmt == "TRUE_FALSE_GROUP":
+            sec = 2
+        elif fmt == "SHORT_ANSWER":
+            sec = 3
+        else:
+            sec = 4
+
+        # Section Header Banner
+        if sec != current_section:
+            current_section = sec
+            sec_heading = doc.add_paragraph()
+            sec_heading.paragraph_format.space_before = Pt(12)
+            sec_heading.paragraph_format.space_after = Pt(4)
+            r_sec = sec_heading.add_run(section_titles.get(sec, f"PHẦN {sec}."))
+            r_sec.font.bold = True
+            r_sec.font.size = Pt(11)
+            r_sec.font.name = "Times New Roman"
+
+        # Question Stem & Diagram / Table
+        stem = q.get("stem", "")
+        # Check if stem contains TikZ diagram
+        tikz_match = re.search(r'\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}', stem)
+        # Check if stem contains LaTeX table array
+        table_match = re.search(r'(\$\$)?\\begin\{(?:array|tabular)\}(?:\{[^}]*\})?(.*?)\\end\{(?:array|tabular)\}(\$\$)?', stem, re.DOTALL)
+
+        if tikz_match:
+            tikz_code = tikz_match.group(0)
+            pre_text = stem[:tikz_match.start()].strip()
+            post_text = stem[tikz_match.end():].strip()
+
+            p_q = doc.add_paragraph()
+            p_q.paragraph_format.space_before = Pt(4)
+            p_q.paragraph_format.space_after = Pt(2)
+            add_math_text_to_paragraph(p_q, pre_text, bold_prefix=f"Câu {idx + 1}. ", default_font_size=11, math_format=math_format)
+
+            # Insert TikZ Diagram
+            try:
+                from backend.services.tikz_renderer import render_tikz_to_png
+                png_res = render_tikz_to_png(tikz_code)
+                if png_res.get("success") and png_res.get("png_path"):
+                    p_img = doc.add_paragraph()
+                    p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    p_img.paragraph_format.space_before = Pt(2)
+                    p_img.paragraph_format.space_after = Pt(2)
+                    doc.add_picture(png_res["png_path"], width=Inches(2.8))
+            except Exception as img_err:
+                logger.warning(f"Could not render TikZ for docx: {img_err}")
+
+            if post_text:
+                p_post = doc.add_paragraph()
+                p_post.paragraph_format.space_before = Pt(2)
+                p_post.paragraph_format.space_after = Pt(2)
+                add_math_text_to_paragraph(p_post, post_text, default_font_size=11, math_format=math_format)
+
+        elif table_match:
+            pre_text = stem[:table_match.start()].strip()
+            post_text = stem[table_match.end():].strip()
+
+            p_q = doc.add_paragraph()
+            p_q.paragraph_format.space_before = Pt(4)
+            p_q.paragraph_format.space_after = Pt(2)
+            add_math_text_to_paragraph(p_q, pre_text, bold_prefix=f"Câu {idx + 1}. ", default_font_size=11, math_format=math_format)
+
+            # Parse array rows and columns into a clean native Word table
+            body = table_match.group(2).strip()
+            lines = body.split(r"\\")
+            grid = []
+            for line in lines:
+                cleaned = line.replace(r"\hline", "").strip()
+                if not cleaned:
+                    continue
+                cells = [c.strip() for c in cleaned.split("&")]
+                grid.append(cells)
+
+            if grid:
+                tbl = doc.add_table(rows=len(grid), cols=len(grid[0]))
+                tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+                for r_idx, row_cells in enumerate(grid):
+                    for c_idx, cell_text in enumerate(row_cells):
+                        cell = tbl.cell(r_idx, c_idx)
+                        _set_cell_border(cell, top="single", bottom="single", left="single", right="single", sz="4")
+                        cp = cell.paragraphs[0]
+                        cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        cp.paragraph_format.space_before = Pt(2)
+                        cp.paragraph_format.space_after = Pt(2)
+                        ct = cell_text
+                        if ct.startswith(r"\text{") and ct.endswith("}"):
+                            ct = ct[6:-1].strip()
+                        elif not ct.startswith("$"):
+                            ct = f"${ct}$"
+                        add_math_text_to_paragraph(cp, ct, default_font_size=10.5, math_format=math_format)
+
+            if post_text:
+                p_post = doc.add_paragraph()
+                p_post.paragraph_format.space_before = Pt(2)
+                p_post.paragraph_format.space_after = Pt(2)
+                add_math_text_to_paragraph(p_post, post_text, default_font_size=11, math_format=math_format)
+
+        else:
+            p_q = doc.add_paragraph()
+            p_q.paragraph_format.space_before = Pt(4)
+            p_q.paragraph_format.space_after = Pt(2)
+            add_math_text_to_paragraph(p_q, stem, bold_prefix=f"Câu {idx + 1}. ", default_font_size=11, math_format=math_format)
+
+        # Options / Sub-statements
+        if fmt == "SINGLE_CHOICE" and q.get("options"):
+            _add_options_adaptive(doc, q.get("options", []), default_font_size=11, math_format=math_format)
+
+        elif fmt == "TRUE_FALSE_GROUP" and q.get("sub_statements"):
+            for sub in q.get("sub_statements", []):
+                p_sub = doc.add_paragraph()
+                p_sub.paragraph_format.left_indent = Inches(0.25)
+                p_sub.paragraph_format.space_before = Pt(1)
+                p_sub.paragraph_format.space_after = Pt(1.5)
+                add_math_text_to_paragraph(p_sub, sub.get("content", ""), bold_prefix=f"{sub.get('label')}) ", default_font_size=11, math_format=math_format)
+
+        elif fmt == "SHORT_ANSWER":
+            p_ans = doc.add_paragraph()
+            p_ans.paragraph_format.left_indent = Inches(0.25)
+            p_ans.paragraph_format.space_before = Pt(1)
+            p_ans.paragraph_format.space_after = Pt(4)
+            add_math_text_to_paragraph(p_ans, "................................................................", italic_prefix="Đáp số: ", default_font_size=11, math_format=math_format)
+
+    # Footer Note
+    p_end = doc.add_paragraph()
+    p_end.paragraph_format.space_before = Pt(16)
+    p_end.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r_end = p_end.add_run("─────────────────── HẾT ───────────────────")
+    r_end.font.bold = True
+    r_end.font.size = Pt(11)
+    r_end.font.name = "Times New Roman"
+
+    p_super = doc.add_paragraph()
+    p_super.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_super.paragraph_format.space_after = Pt(6)
+    r_sup = p_super.add_run("Thí sinh không được sử dụng tài liệu. Cán bộ coi thi không giải thích gì thêm.")
+    r_sup.font.italic = True
+    r_sup.font.size = Pt(10)
+    r_sup.font.name = "Times New Roman"
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(str(output_path))
+    return output_path

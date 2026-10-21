@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 2.5 (Tập trung kiến trúc kỹ thuật & Giải pháp tự động hóa khảo thí)  
+- **Phiên bản:** 2.6 (Tập trung kiến trúc kỹ thuật, MathJax Engine, MathType OLE Vector WMF & Giải pháp tự động hóa khảo thí)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine) và xuất bản ấn phẩm Word OMML 2 cột.  
-- **Ngày phát hành:** 2026-10-18  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine và xuất bản ấn phẩm Word MathType OLE Vector WMF / OMML.  
+- **Ngày phát hành:** 2026-10-21  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)  
 
 ---
@@ -19,13 +19,13 @@ Tài liệu này đặc tả chi tiết toàn bộ các yêu cầu kỹ thuật,
 - **BẮT BUỘC (SHALL / MUST):** Yêu cầu kỹ thuật tiên quyết phải đáp ứng (Priority P0).
 - **NÊN CÓ (SHOULD):** Yêu cầu quan trọng cần có trong giai đoạn hiện tại (Priority P1).
 - **CÓ THỂ (MAY):** Tính năng mở rộng nâng cao (Priority P2).
-- Mọi công thức Toán/Khoa học được lưu trữ và truyền nhận dưới dạng chuỗi **LaTeX chuẩn**; render trên giao diện bằng **KaTeX**; xuất bản sang Word bằng mã **OMML (Office Math Markup Language) native**; đồ thị và hình học được biên dịch sang **Vector SVG** sắc nét.
+- Mọi công thức Toán/Khoa học được lưu trữ và truyền nhận dưới dạng chuỗi **LaTeX chuẩn**; render trên giao diện bằng **KaTeX**; xuất bản sang Word bằng **MathType 7.0 OLE Vector WMF** (hỗ trợ double-click edit), mã **OMML native**, hoặc **LaTeX raw**; đồ thị và hình học được biên dịch sang **Vector SVG** sắc nét.
 
 ### 1.3. Khách thể Sử dụng (Audience)
 - **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
-- **Kỹ sư AI & Backend:** Xây dựng OCR pipeline, dịch vụ biên dịch TikZ SVG, mô hình bóc tách dữ liệu có cấu trúc và thuật toán hoán vị an toàn.
+- **Kỹ sư AI & Backend:** Xây dựng OCR pipeline, dịch vụ biên dịch TikZ SVG, MathJax Persistent Engine và thuật toán hoán vị an toàn.
 - **Kỹ sư Frontend:** Phát triển giao diện Studio Hậu kiểm (HITL) cuộn đồng bộ, hiển thị đồ thị SVG và render KaTeX thời gian thực.
-- **Kỹ sư QA/QC:** Xây dựng ma trận kiểm thử tự động và tiêu chuẩn nghiệm thu (46/46 automated tests).
+- **Kỹ sư QA/QC:** Xây dựng ma trận kiểm thử tự động và tiêu chuẩn nghiệm thu (55/55 automated tests).
 
 ### 1.4. Phạm vi Sản phẩm & Bài toán Giải quyết (Product Scope)
 Hệ thống phần mềm dịch vụ Web ứng dụng Trí tuệ Nhân tạo Đa phương thức nhằm:
@@ -33,7 +33,7 @@ Hệ thống phần mềm dịch vụ Web ứng dụng Trí tuệ Nhân tạo Đ
 2. **Giải quyết bài toán dựng đồ thị hàm số & hình học:** Tự động phát hiện mã nguồn hình học và biên dịch sang vector SVG sắc nét; có cơ chế Auto-clipping khống chế tỷ lệ khung hình hàm phân thức có tiệm cận, hỗ trợ đồ thị trong cả đề bài và 4 phương án trắc nghiệm A, B, C, D.
 3. **Giải quyết bài toán vỡ logic khi trộn đề:** Động cơ Safe Shuffling Engine khóa cố định phương án phụ thuộc vị trí ("Cả A và B") ở đáp án D, bảo toàn bài đọc chung ngữ cảnh và các câu hỏi con đi liền kề nhau.
 4. **Giải quyết bài toán chấm điểm phức tạp:** Tự động chấm điểm dạng câu hỏi Đúng/Sai 4 khẳng định theo thang điểm bậc thang (0.1đ - 0.25đ - 0.5đ - 1.0đ) và quản lý bảng điểm Excel UTF-8 BOM.
-5. **Giải quyết bài toán dàn trang in ấn:** Xuất bản đề thi Microsoft Word (.docx) chuẩn mẫu in 2 cột kèm công thức OMML gốc, xuất PDF in ấn, phiếu soi đáp án trắc nghiệm OMR và đóng gói ZIP 1-click.
+5. **Giải quyết bài toán dàn trang in ấn & độ nét công thức:** Xuất bản đề thi Microsoft Word (.docx) chuẩn khổ A4 Portrait với công thức **MathType 7.0 OLE Vector WMF** (nét căng, click đúp mở MathType chỉnh sửa được ngay), **OMML native**, tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word `<w:tbl>` chống lỗi đen, xuất PDF in ấn, phiếu soi đáp án OMR và đóng gói ZIP 1-click.
 
 ---
 
@@ -97,7 +97,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 - **Storage Service Interface:** S3-compatible API (MinIO / AWS S3) lưu trữ tài liệu gốc và ảnh cắt WebP.
 - **AI Vision LLM Interface:** Kết nối qua RESTful/gRPC với Gemini 1.5 Flash/Pro, GPT-4o hoặc local Qwen2-VL.
 - **Vector Search Engine:** `pgvector` thực hiện tìm kiếm tương đồng câu hỏi qua Cosine Similarity.
-- **Export Converter Service:** Microservice Python (`python-docx`, `latex2mathml`) xuất file Word OMML native.
+- **Export Converter Service:** Microservice Python (`python-docx`, `backend/services/mathjax_service.py`) xuất file Word MathType 7.0 OLE Vector WMF, OMML native và PDF in ấn.
 
 ---
 
@@ -175,9 +175,13 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 
 ### 4.4. Phân hệ Xuất bản & Đánh giá Khảo thí (Publisher & Analytics)
 
-#### SRS-FEAT-09: Xuất bản Đề thi Word (.docx) Chuẩn Mẫu In
-- **Mô tả:** Tạo file Word 2 cột chuẩn form của Bộ GD&ĐT.
-- **Yêu cầu kỹ thuật:** Header chuẩn trường/kỳ thi/mã đề/bảng phách; bố cục 2 cột cân bằng; công thức Toán được biên dịch sang mã **OMML native (`<m:oMath>`)**; đi kèm file hướng dẫn giải chi tiết và phiếu soi đáp án OMR.
+#### SRS-FEAT-09: Xuất bản Đề thi Word (.docx) Chuẩn Mẫu In & MathType OLE
+- **Mô tả:** Tạo file Word chuẩn A4 dọc (210 x 297 mm, lề 1.5 - 1.8 cm) chuẩn quy cách Bộ GD&ĐT.
+- **Yêu cầu kỹ thuật:**
+  - Header chuẩn trường/kỳ thi/mã đề/bảng phách.
+  - Công thức Toán được nhúng dạng **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, CLSID chuẩn, stream MTEF binary từ MathJax MathML), **cho phép click đúp mở MathType 7 để chỉnh sửa trực tiếp**, hoặc định dạng **OMML native (`<m:oMath>`)**.
+  - Tự động phát hiện và chuyển đổi mảng bảng số liệu ghép nhóm `\begin{array}` sang bảng Microsoft Word `<w:tbl>`, loại bỏ hiện tượng ô đen khi xuất sang PDF.
+  - Đi kèm file hướng dẫn giải chi tiết và phiếu soi đáp án OMR.
 
 #### SRS-FEAT-10: Thống kê Khảo thí Hậu kiểm (Item Psychometrics)
 - **Mô tả:** Tự động tính toán các chỉ số chất lượng câu hỏi khi có điểm thi:
@@ -240,4 +244,4 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 | **SRS-FEAT-04** | Unit Test logic điểm | Chấm điểm câu Đúng/Sai 4 ý: Đúng 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ. |
 | **SRS-FEAT-05** | Test tích hợp | Câu hỏi có cosine similarity $\ge 0.90$ phải kích hoạt chặn lưu và hiển thị modal cảnh báo trùng lặp. |
 | **SRS-FEAT-08** | Unit Test thuật toán | Chạy 1.000 lần sinh mã đề hoán vị: $0\%$ câu hỏi chùm bị tách rời; $0\%$ phương án có cờ `is_fixed` bị đảo khỏi vị trí cố định. |
-| **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng OMML bản địa, căn chỉnh 2 cột không bị tràn lề. |
+| **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng MathType 7.0 OLE Vector WMF nét căng tuyệt đối, click đúp mở MathType 7 sửa được trực tiếp; bảng số liệu dạng native table không bị lỗi đen khi xuất PDF; khổ A4 dọc chuẩn. |

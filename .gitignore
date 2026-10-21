@@ -28,6 +28,10 @@ venv.bak/
 .coverage.*
 htmlcov/
 .tox/
+
+# Node modules
+node_modules/
+package-lock.json
 .nox/
 nosetests.xml
 coverage.xml
@@ -60,6 +64,7 @@ storage/test_*.py
 storage/*.json
 storage/loop_test_report.json
 storage/tikz_cache/
+storage/math_cache/
 
 # IDE & Editor files
 .vscode/
@@ -70,7 +75,7 @@ storage/tikz_cache/
 *.swo
 *~
 
-# Operating System files
+# Operating System & Office lock files
 .DS_Store
 .DS_Store?
 ._*
@@ -79,11 +84,32 @@ storage/tikz_cache/
 ehthumbs.db
 Thumbs.db
 desktop.ini
+~$*
+~$*.docx
+~$*.xlsx
+~$*.pptx
 
-# Large reference document files
+# Large reference document files & test files
 thong-tu-32-2018-tt-bgddt-ban-hanh-chuong-trinh-giao-duc-pho-thong-moi_d79a0783f6_f3b32480ba.pdf
 *.pdf.tmp
+test-file/
+export_flow_inspection/
 
-# Log files
+# Temporary test artifacts
+test_*.png
+test_*.docx
+test_*.wmf
+test_*.html
+test_*.pdf
+*.tmp
+
+# Storage caches
+storage/cache/
+storage/*.db-journal
+
+# Log & Debug files
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

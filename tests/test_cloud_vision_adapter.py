@@ -14,11 +14,17 @@ from backend.services.ai_provider_service import (
 
 def test_ai_provider_service_initialization():
     """Checks provider service defaults and configuration check."""
-    service = AIProviderService()
-    # Without API keys in test environment, is_configured should return False
-    assert isinstance(service.is_configured(), bool)
-    assert service.provider in ("gemini", "openai", "claude", "openrouter", "custom")
-    assert service.timeout == 180.0
+    from backend.config import settings
+    orig_timeout = settings.AI_TIMEOUT
+    try:
+        settings.AI_TIMEOUT = 180.0
+        service = AIProviderService()
+        # Without API keys in test environment, is_configured should return False
+        assert isinstance(service.is_configured(), bool)
+        assert service.provider in ("gemini", "openai", "claude", "openrouter", "custom")
+        assert service.timeout == 180.0
+    finally:
+        settings.AI_TIMEOUT = orig_timeout
 
 
 def test_provider_detection_and_default_model():

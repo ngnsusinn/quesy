@@ -3,9 +3,9 @@
 **Dự án:** Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học  
 **Tên mã dự án (Project Code):** QUESY  
 **Mục tiêu cốt lõi:** Giải quyết triệt để các rào cản và nút thắt cổ chai trong quy trình số hóa đề thi, tự động tái tạo đồ thị vector, chuẩn hóa công thức toán học, trộn đề an toàn chống vỡ logic và xuất bản ấn phẩm khảo thí in ấn chuyên nghiệp.  
-**Phiên bản (Version):** 2.5 (Tập trung giải pháp nghiệp vụ & Tự động hóa khảo thí)  
+**Phiên bản (Version):** 2.6 (Tập trung giải pháp nghiệp vụ, MathJax Engine, MathType OLE Vector WMF & Tự động hóa khảo thí)  
 **Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
-**Ngày phát hành:** 2026-10-18  
+**Ngày phát hành:** 2026-10-21  
 
 ---
 
@@ -15,7 +15,8 @@
 |:---|:---|:---|:---|:---|
 | 1.0 | 2026-10-14 | BA Team | Khởi tạo tài liệu BRD ban đầu | PM |
 | 2.0 | 2026-10-15 | BA Team | Tích hợp cấu trúc đa dạng câu hỏi và cây phân loại năng lực | PM |
-| **2.5** | 2026-10-18 | BA Team & Tech Lead | **Tái cơ cấu toàn diện tài liệu theo định hướng Giải pháp & Giá trị thực tế**: Tích hợp bộ dựng đồ thị vector SVG TikZ/PGFPlots tự động có Auto-clipping, 4 quy tắc toán học KaTeX, động cơ Safe Shuffling (Option Anchor), chấm điểm bậc thang và xuất bản Word OMML native. | Ban Giám đốc & PM |
+| 2.5 | 2026-10-18 | BA Team & Tech Lead | Tái cơ cấu toàn diện tài liệu theo định hướng Giải pháp & Giá trị thực tế: Tích hợp bộ dựng đồ thị vector SVG TikZ/PGFPlots tự động có Auto-clipping, 4 quy tắc toán học KaTeX, động cơ Safe Shuffling (Option Anchor), chấm điểm bậc thang và xuất bản Word OMML native. | Ban Giám đốc & PM |
+| **2.6** | 2026-10-21 | BA Team & Tech Lead | **Tích hợp chuẩn xuất bản MathType 7.0 OLE Vector WMF (double-click editable)**, dịch vụ MathJax Persistent Worker Engine (~14ms/công thức), và chuyển đổi bảng thống kê `\begin{array}` thành Word Table `<w:tbl>` chống lỗi đen PDF. | Ban Giám đốc & PM |
 
 ---
 
@@ -36,7 +37,7 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 - **Tự động hóa 100% quá trình số hóa đề thi:** Biến tài liệu giấy, PDF scan và Word cũ thành ngân hàng câu hỏi điện tử chuẩn KaTeX và đồ họa vector SVG chỉ trong vài giây.
 - **Tái tạo đồ thị chuẩn xác tuyệt đối:** Dựng lại hoàn hảo đồ thị hàm bậc ba, hàm phân thức, hàm trùng phương và hình học không gian có cơ chế Auto-clipping khống chế tỷ lệ khung hình, hiển thị cả ở đề bài lẫn 4 phương án trắc nghiệm A, B, C, D.
 - **Bảo toàn logic đề thi khi hoán vị:** Động cơ Safe Shuffling Engine giữ nguyên bài đọc chung, khóa cố định phương án phụ thuộc vị trí ở đáp án D và sinh ma trận đối chiếu đáp án tự động.
-- **Xuất bản ấn phẩm chuyên nghiệp 1-click:** Xuất file Word 2 cột với công thức Microsoft Word OMML nguyên bản, xuất PDF in ấn và phiếu soi đáp án trắc nghiệm OMR.
+- **Xuất bản ấn phẩm chuyên nghiệp 1-click:** Xuất file Word A4 Portrait với công thức **MathType 7.0 OLE Vector WMF** (nét căng, click đúp mở MathType sửa được ngay) hoặc **Word OMML native**, xuất PDF in ấn và phiếu soi đáp án trắc nghiệm OMR.
 
 ---
 
@@ -126,10 +127,12 @@ ight\}` (bảo vệ căn `\sqrt[...]` và text mode).
 ---
 
 ### BR-06: XUẤT BẢN ẤN PHẨM KHẢO THÍ & CHẤM ĐIỂM HỌC SINH
-- **BR-06.1 Xuất bản Microsoft Word (.docx) 2 cột chuẩn in ấn:**
-  - Bố cục 2 cột (Two-column layout) tiết kiệm giấy in.
-  - Công thức toán học chuyển sang định dạng **Microsoft Word OMML (Office Math Markup Language) native**, chữ vector sắc nét, chỉnh sửa trực tiếp trên Word.
-  - Gói xuất bản ZIP: $N$ file đề thi Word, file Lời giải chi tiết, file Bảng đáp án tổng hợp, file Phiếu trả lời trắc nghiệm (chuẩn máy chấm OMR).
+- **BR-06.1 Xuất bản Microsoft Word (.docx) chuẩn in ấn & MathType OLE:**
+  - Khổ chuẩn A4 Portrait (210 x 297 mm), lề trang chuẩn 1.5 cm - 1.8 cm, font Times New Roman 11pt, giãn dòng 1.15.
+  - Hỗ trợ công thức **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, CLSID chuẩn, stream MTEF binary từ MathJax MathML), **cho phép click đúp mở MathType 7 để chỉnh sửa trực tiếp 2 chiều**.
+  - Hỗ trợ định dạng **Microsoft Word OMML native**, chữ vector sắc nét, chỉnh sửa trực tiếp trên Word.
+  - Tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word `<w:tbl>`, loại bỏ lỗi hộp đen khi xuất PDF.
+  - Gói xuất bản ZIP: $N$ file đề thi Word, file Lời giải chi tiết, file Bảng đáp án tổng hợp (Excel/CSV UTF-8 BOM + PDF), file Phiếu trả lời trắc nghiệm (chuẩn máy chấm OMR).
 - **BR-06.2 Chấm điểm bậc thang & Quản lý bảng điểm:**
   - Tự động tính điểm dạng câu hỏi Đúng/Sai 4 khẳng định theo thang điểm bậc thang: Đúng 1 ý: 0.1đ; Đúng 2 ý: 0.25đ; Đúng 3 ý: 0.5đ; Đúng cả 4 ý: 1.0đ.
   - Quản lý danh sách lớp học và học sinh, xuất/nhập bảng điểm định dạng CSV/Excel UTF-8 BOM chuẩn tiếng Việt.

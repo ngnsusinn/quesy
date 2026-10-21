@@ -185,14 +185,43 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 ### TEST SUITE 07: XUẤT BẢN FILE WORD 2 CỘT & IN ẤN
 
 #### TC-EXP-01: Kiểm tra Bố cục và Định dạng Công thức OMML trong file Word
-- **Mô tả:** Đảm bảo file Word `.docx` xuất ra đạt chuẩn quy cách in ấn của Bộ GD&ĐT.
+- **Mô tả:** Đảm bảo file Word `.docx` xuất ra đạt chuẩn quy cách in ấn của Bộ GD&ĐT với công thức OMML.
 - **Các bước thực hiện:**
-  1. Chọn mã đề 101, bấm "Xuất bản file Word (.docx)".
+  1. Chọn mã đề 101, chọn math_format="omml", bấm "Xuất bản file Word (.docx)".
   2. Mở file tải về trên Microsoft Word 2016 / 365.
 - **Kết quả kỳ vọng:**
-  - Tiêu đề trường, mã đề, bảng phách căn chỉnh lề chuẩn xác.
-  - Phần nội dung câu hỏi được chia 2 cột đều nhau (Two-column layout).
-  - Công thức Toán học hiển thị dưới dạng **Word Equation native (OMML)**, có thể click chuột vào chỉnh sửa trực tiếp, chữ nét vector, không bị vỡ hạt như hình ảnh bitmap.
+  - Tiêu đề trường, mã đề, bảng phách căn chỉnh lề chuẩn xác khổ A4 Portrait.
+  - Công thức Toán học hiển thị dưới dạng **Word Equation native (OMML `<m:oMath>`)**, có thể click chuột vào chỉnh sửa trực tiếp, chữ nét vector, không bị vỡ hạt như hình ảnh bitmap.
+
+#### TC-EXP-02: Kiểm tra Xuất bản MathType 7.0 OLE Object Vector WMF
+- **Mô tả:** Đảm bảo công thức toán nhúng đối tượng OLE chuẩn MathType 7.0, đạt độ nét vector tuyệt đối và mở sửa được 2 chiều trong MathType client.
+- **Các bước thực hiện:**
+  1. Xuất file Word với tham số `math_format="mathtype"`.
+  2. Dùng automation PowerShell Word COM kiểm tra thuộc tính các shape:
+     `$doc.InlineShapes.Item(1).OLEFormat.ProgID` và thực thi `$shape.OLEFormat.Open()`.
+- **Kết quả kỳ vọng:**
+  - `InlineShape.Type = 1` (wdInlineShapeEmbeddedOLEObject).
+  - `OLEFormat.ProgID = "Equation.DSMT4"`, `ClassType = "Equation.DSMT4"`.
+  - Hình ảnh đại diện mang định dạng Vector WMF (`image/x-wmf`) chuẩn APM header.
+  - Lệnh `OLEFormat.Open()` thực thi thành công, cửa sổ MathType 7 mở ra bình thường.
+
+#### TC-EXP-03: Tự động chuyển đổi bảng dữ liệu thống kê LaTeX sang Word Table
+- **Mô tả:** Đảm bảo mảng bảng thống kê `\begin{array}` được chuyển thành bảng Word native `<w:tbl>`, không phát sinh lỗi ô đen (black box) khi xuất sang PDF.
+- **Các bước thực hiện:**
+  1. Đề thi chứa câu hỏi thống kê với bảng ghép nhóm (như Câu 2 đề Nghệ An).
+  2. Xuất sang Word và convert sang PDF qua Word COM / máy in ảo.
+- **Kết quả kỳ vọng:**
+  - Bảng hiển thị dạng bảng Word thực tế căn giữa, có viền nét mảnh (`border sz="4"`).
+  - Xuất sang PDF hiển thị nền trắng chữ đen sắc nét, hoàn toàn không có ô chữ nhật đen che khuất.
+
+#### TC-EXP-04: Kiểm thử Hiệu năng & Ổn định Dịch vụ MathJax Engine
+- **Mô tả:** Đo kiểm tốc độ sinh công thức và bộ nhớ đệm qua Persistent Worker Node.js.
+- **Các bước thực hiện:**
+  1. Chạy test suite `test_performance_budgets.py::test_perf_budget_docx_and_zip_export`.
+  2. Kiểm tra bộ nhớ đệm đĩa cứng `storage/cache/mathjax/` và RAM LRU.
+- **Kết quả kỳ vọng:**
+  - Thời gian xử lý trung bình $< 20\text{ ms}$/công thức.
+  - Toàn bộ gói đề thi 4 mã đề kèm đáp án sinh xong trong $< 5\text{ giây}$ (ngân sách NFR $< 10\text{ giây}$).
 
 ---
 

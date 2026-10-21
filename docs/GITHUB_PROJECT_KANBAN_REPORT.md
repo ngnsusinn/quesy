@@ -16,7 +16,7 @@
 │  • Tổng số công việc vi mô (Micro-Tasks):  56 Tasks                         │
 │  • Đã hoàn thành & Đã kiểm thử (Done):     43 Tasks (100% Cốt lõi) [x]      │
 │  • Kế hoạch mở rộng (Roadmap / Backlog):   13 Tasks (Chấm OMR, Excel & PK)  │
-│  • Tỷ lệ kiểm thử tự động (Test Suite):    39 / 39 Tests (100% Passed)      │
+│  • Tỷ lệ kiểm thử tự động (Test Suite):    55 / 55 Tests (100% Passed)      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,30 +90,26 @@ Bảng phân rã chi tiết từng chức năng nhỏ (Atomic Single Responsibil
 | **60** | `EX-03` | `[EXPORT-DOCX] Chuyển đổi công thức LaTeX sang OMML native trong Word` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, omml, math` | S |
 | **61** | `EX-04` | `[EXPORT-PDF] Động cơ sinh PDF vector siêu tốc thuần Python (<100ms)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, reportlab, pdf` | S |
 | **62** | `EX-05` | `[EXPORT-PDF] Nạp font Times New Roman Unicode Windows cho ReportLab` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, unicode, fonts` | XS |
-| **63** | `EX-06` | `[EXPORT-DOCX] Xuất bản tài liệu Hướng dẫn giải chi tiết (Word & PDF)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, solution, export` | S |
-| **64** | `EX-07` | `[EXPORT-CSV] Xuất bản Bảng đáp án tổng hợp (Word, PDF, CSV)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, csv, matrix` | S |
-| **65** | `EX-08` | `[EXPORT-DOCX] API GET /api/v1/exams/{id}/export-docx tải lẻ file Word` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, docx` | S |
-| **66** | `EX-09` | `[EXPORT-PDF] API GET /api/v1/exams/{id}/export-pdf tải lẻ file PDF` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, pdf` | S |
-| **67** | `EX-10` | `[EXPORT-ZIP] API GET /api/v1/exams/{id}/export-zip hỗ trợ all/docx/pdf` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, zip` | S |
-| **68** | `EX-11` | `[FRONTEND] Cơ chế tải Blob Client-side dập tắt lỗi Unknown Server Error` | **Done [x]** | `Phase 6: Publishing & Operations` | `frontend, blob, download` | S |
-| **69** | `EX-12` | `[EXPORT-OMR] Xuất bản Mẫu Phiếu trả lời trắc nghiệm OMR trắng 2025` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, omr, export` | S |
-| **69** | `SO-01` | `[SERVER] Script start_server.py tự động giải phóng socket cổng 8000` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, socket, devops` | S |
-| **70** | `SO-02` | `[SERVER] Route /favicon.ico trả về HTTP 204 chống lỗi console` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, favicon` | XS |
-| **71** | `SO-03` | `[FRONTEND] Bổ sung cache-buster ?v=... chống lưu cache script cũ` | **Done [x]** | `Phase 6: Publishing & Operations` | `frontend, cache-buster, html` | XS |
-| **72** | `SO-04` | `[TESTING] Bộ test suite tự động 39 test cases bao phủ toàn diện` | **Done [x]** | `Phase 6: Publishing & Operations` | `testing, pytest, e2e` | M |
-| **73** | `GM-01` | `[GRADING] ORM Model Classroom & StudentRoster quản lý lớp của giáo viên` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `backend, model, grading` | S |
-| **74** | `GM-02` | `[GRADING] Bảng nhập điểm nhanh dạng lưới câu hỏi x học sinh trên UI` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `frontend, grading, grid` | S |
-| **75** | `GM-03` | `[GRADING] Nhập / Xuất bảng điểm lớp học từ file Excel (.xlsx / .csv)` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `backend, excel, grading` | S |
-| **76** | `GM-04` | `[OMR] Thuật toán OpenCV căn chỉnh 4 mốc định vị góc phiếu thi 2025` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `backend, opencv, omr` | S |
-| **77** | `GM-05` | `[OMR] Thuật toán nhận diện điểm tô chì 2B cho cả 3 phần thi` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `backend, opencv, bubble` | S |
-| **78** | `GM-06` | `[OMR] API POST /api/v1/grading/scan-omr chấm tự động theo mã đề` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `backend, api, grading` | S |
-| **79** | `GM-07` | `[OMR] Giao diện chấm thi trực tiếp bằng Camera / Webcam máy tính` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `frontend, webcam, omr` | S |
-| **80** | `GM-08` | `[ANALYTICS] Biểu đồ thống kê phân phổ điểm lớp học (Histogram & Điểm TB)` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `frontend, chart, analytics` | S |
-| **81** | `AI-08` | `[OCR] Adapter Cloud Vision API (Gemini 1.5/Claude) cho đề thi mờ` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `backend, ai, cloud` | S |
-| **82** | `AI-09` | `[OCR] Adapter DocTR cục bộ hỗ trợ OCR offline không cần mạng` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `backend, ocr, local` | S |
-| **84** | `PK-01` | `[WEB-PWA] Hỗ trợ chế độ Web Ngoại tuyến (Offline PWA / Service Worker)` | **Todo [ ]** | `Phase 7: Web Teacher Grading` | `frontend, pwa, offline` | S |
-| **84** | `PK-02` | `[DEVOPS] Viết Dockerfile đa tầng & docker-compose cho máy tính giáo viên` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `devops, docker, container` | S |
-| **85** | `PK-03` | `[DEVOPS] Thiết lập pipeline GitHub Actions CI tự động kiểm thử` | **Todo [ ]** | `Phase 7: Teacher Grading & Roadmap` | `devops, github-actions, ci` | XS |
+| **63** | `EX-06` | `[EXPORT-DOCX] Xuất bản MathType 7.0 OLE Vector WMF (double-click edit)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, mathtype, wmf` | M |
+| **64** | `EX-07` | `[EXPORT-DOCX] Dịch vụ MathJax Persistent Worker Engine (~14ms/công thức)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, mathjax, node` | M |
+| **65** | `EX-08` | `[EXPORT-DOCX] Tự động chuyển đổi bảng thống kê \begin{array} sang <w:tbl>` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, table, docx` | S |
+| **66** | `EX-09` | `[EXPORT-DOCX] Xuất bản tài liệu Hướng dẫn giải chi tiết (Word & PDF)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, solution, export` | S |
+| **67** | `EX-10` | `[EXPORT-CSV] Xuất bản Bảng đáp án tổng hợp (Word, PDF, CSV UTF-8 BOM)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, csv, matrix` | S |
+| **68** | `EX-11` | `[EXPORT-DOCX] API GET /api/v1/exams/{id}/export-docx tải lẻ file Word` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, docx` | S |
+| **69** | `EX-12` | `[EXPORT-PDF] API GET /api/v1/exams/{id}/export-pdf tải lẻ file PDF` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, pdf` | S |
+| **70** | `EX-13` | `[EXPORT-ZIP] API GET /api/v1/exams/{id}/export-zip hỗ trợ all/docx/pdf` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, zip` | S |
+| **71** | `EX-14` | `[FRONTEND] Cơ chế tải Blob Client-side dập tắt lỗi Unknown Server Error` | **Done [x]** | `Phase 6: Publishing & Operations` | `frontend, blob, download` | S |
+| **72** | `EX-15` | `[EXPORT-OMR] Xuất bản Mẫu Phiếu trả lời trắc nghiệm OMR trắng 2025` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, omr, export` | S |
+| **73** | `SO-01` | `[SERVER] Script start_server.py tự động giải phóng socket cổng 8000` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, socket, devops` | S |
+| **74** | `SO-02` | `[SERVER] Route /favicon.ico trả về HTTP 204 chống lỗi console` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, favicon` | XS |
+| **75** | `SO-03` | `[FRONTEND] Bổ sung cache-buster ?v=... chống lưu cache script cũ` | **Done [x]** | `Phase 6: Publishing & Operations` | `frontend, cache-buster, html` | XS |
+| **76** | `SO-04` | `[TESTING] Bộ test suite tự động 55 test cases bao phủ toàn diện` | **Done [x]** | `Phase 6: Publishing & Operations` | `testing, pytest, e2e` | M |
+| **77** | `GM-01` | `[GRADING] ORM Model Classroom & StudentRoster quản lý lớp của giáo viên` | **Done [x]** | `Phase 7: Teacher Grading & Roadmap` | `backend, model, grading` | S |
+| **78** | `GM-02` | `[GRADING] Bảng nhập điểm nhanh dạng lưới câu hỏi x học sinh trên UI` | **Done [x]** | `Phase 7: Teacher Grading & Roadmap` | `frontend, grading, grid` | S |
+| **79** | `GM-03` | `[GRADING] Nhập / Xuất bảng điểm lớp học từ file Excel (.xlsx / .csv)` | **Done [x]** | `Phase 7: Teacher Grading & Roadmap` | `backend, excel, grading` | S |
+| **80** | `PK-01` | `[WEB-PWA] Hỗ trợ chế độ Web Ngoại tuyến (Offline PWA / Service Worker)` | **Done [x]** | `Phase 7: Web Teacher Grading` | `frontend, pwa, offline` | S |
+| **81** | `PK-02` | `[DEVOPS] Viết Dockerfile đa tầng & docker-compose cho máy tính giáo viên` | **Done [x]** | `Phase 7: Teacher Grading & Roadmap` | `devops, docker, container` | S |
+| **82** | `PK-03` | `[DEVOPS] Thiết lập pipeline GitHub Actions CI tự động kiểm thử` | **Done [x]** | `Phase 7: Teacher Grading & Roadmap` | `devops, github-actions, ci` | XS |
 
 ---
 

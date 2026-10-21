@@ -196,17 +196,17 @@
 
 ---
 
-### UC-09: XUẤT BẢN GÓI ĐỀ THI WORD (.DOCX) 2 CỘT & BAREM
+### UC-09: XUẤT BẢN GÓI ĐỀ THI WORD (.DOCX) MATHTYPE OLE / OMML & BAREM
 - **Mã Use Case:** `UC-09`
-- **Tên Use Case:** Xuất bản Gói Đề thi Word chuẩn mẫu in và Barem
+- **Tên Use Case:** Xuất bản Gói Đề thi Word chuẩn mẫu in (MathType OLE Vector WMF / OMML) và Barem
 - **Tác nhân chính:** Giáo viên, Cán bộ in sao đề
 
 #### Luồng sự kiện chính:
-1. Người dùng chọn mẫu template Word (Mẫu chuẩn Bộ GD&ĐT, mẫu của Trường/Sở).
+1. Người dùng chọn mẫu template Word và định dạng công thức (`mathtype`, `omml`, hoặc `latex`).
 2. Người dùng nhấn "Xuất gói In ấn (.ZIP)".
 3. Hệ thống tạo các file:
-   - $N$ file đề thi Word (`.docx`) được dàn trang 2 cột, công thức toán dạng OMML sắc nét.
-   - File Bảng ma trận đáp án tổng hợp các mã đề.
+   - $N$ file đề thi Word (`.docx`) khổ A4 Portrait, công thức toán dạng **MathType 7.0 OLE Vector WMF** (nét căng, click đúp mở MathType 7 để chỉnh sửa) hoặc **OMML native**, tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word native `<w:tbl>`.
+   - File Bảng ma trận đáp án tổng hợp các mã đề (Excel/CSV UTF-8 BOM + PDF).
    - File Hướng dẫn giải chi tiết từng mã đề.
    - File Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR.
 4. Hệ thống đóng gói thành 1 file ZIP và bắt đầu tải xuống máy người dùng.

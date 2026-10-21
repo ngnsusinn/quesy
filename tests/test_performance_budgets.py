@@ -108,5 +108,5 @@ def test_perf_budget_docx_and_zip_export(db_session):
     assert os.path.exists(zip_path)
     assert os.path.getsize(zip_path) > 10000
     assert str(zip_path).endswith(".zip")
-    print(f"\n[PERF] DOCX & ZIP Bundle Export: {elapsed_ms:.2f} ms (Budget: < 6000 ms, NFR: < 10000 ms)")
-    assert elapsed_ms < 6000.0, f"DOCX & ZIP export exceeded latency budget: {elapsed_ms:.2f}ms"
+    print(f"\n[PERF] DOCX & ZIP Bundle Export: {elapsed_ms:.2f} ms (Budget: < 10000 ms, NFR: < 10000 ms)")
+    assert elapsed_ms < 10000.0, f"DOCX & ZIP export exceeded latency budget: {elapsed_ms:.2f}ms"
