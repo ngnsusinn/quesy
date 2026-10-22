@@ -238,7 +238,11 @@ def test_tkz_tab_variation_table_compilation():
     # 3. Render to SVG (reads from cache or Kroki)
     res = render_tikz_to_svg(normalized)
     assert res.get("success") is True
-    assert "<svg" in res.get("svg", "")
+    svg_out = res.get("svg", "")
+    assert "<svg" in svg_out
+    assert "\ue030" not in svg_out, "PUA prime must be converted to standard Unicode prime"
+    assert "&#x2032;" in svg_out or "′" in svg_out, "Derivative prime must be preserved in SVG"
+    assert "font-style: italic" in svg_out, "Math italic font style must be applied to text.f2"
 
 
 def test_convert_variation_array_to_tkz_tab():

@@ -724,8 +724,28 @@
           const data = await res.json();
           if (data.success && data.svg) {
             wrap.setAttribute('data-rendered', 'true');
+
+            // Extract and register @font-face rules into document head so Chromium loads TeX fonts
+            const fontFaceMatches = data.svg.match(/@font-face\{[^{}]*\}/g);
+            if (fontFaceMatches) {
+              let globalFontStyle = document.getElementById('quesy-tikz-embedded-fonts');
+              if (!globalFontStyle) {
+                globalFontStyle = document.createElement('style');
+                globalFontStyle.id = 'quesy-tikz-embedded-fonts';
+                document.head.appendChild(globalFontStyle);
+              }
+              fontFaceMatches.forEach((rule) => {
+                const normRule = rule.replace(/application\/x-font-woff/g, 'font/woff');
+                if (!globalFontStyle.textContent.includes(normRule.substring(0, 45))) {
+                  globalFontStyle.textContent += '\n' + normRule;
+                }
+              });
+            }
+
+            let cleanSvg = data.svg.replace(/\ue030/g, '&#x2032;');
+
             if (wrap.classList.contains('tikz-option-wrapper')) {
-              let cleanSvg = data.svg.replace(/<svg(\s[^>]*)>/i, '<svg class="max-w-full h-auto max-h-48 object-contain mx-auto" $1>');
+              cleanSvg = cleanSvg.replace(/<svg(\s[^>]*)>/i, '<svg class="max-w-full h-auto max-h-48 object-contain mx-auto" $1>');
               wrap.innerHTML = `
                 <div class="overflow-x-auto max-w-full w-full flex justify-center py-1">
                   ${cleanSvg}
@@ -733,7 +753,7 @@
               `;
             } else {
               // Clean and enhance SVG styling for responsive web display
-              let cleanSvg = data.svg.replace(/<svg(\s[^>]*)>/i, '<svg class="max-w-full h-auto max-h-80 object-contain shadow-2xs rounded-lg bg-white p-2" $1>');
+              cleanSvg = cleanSvg.replace(/<svg(\s[^>]*)>/i, '<svg class="max-w-full h-auto max-h-80 object-contain shadow-2xs rounded-lg bg-white p-2" $1>');
 
               wrap.innerHTML = `
                 <div class="w-full flex items-center justify-between text-[11px] font-bold text-slate-500 mb-2 border-b border-slate-200/60 pb-1">

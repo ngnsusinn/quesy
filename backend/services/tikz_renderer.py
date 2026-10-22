@@ -150,6 +150,40 @@ def wrap_tikz_in_standalone_document(tikz_code: str) -> str:
     return doc
 
 
+def post_process_tikz_svg(svg_content: str) -> str:
+    """Enhances SVG output from dvisvgm:
+    1. Replaces PUA prime code \\ue030 with universal math prime ′ (&#x2032;).
+    2. Normalizes font MIME types from application/x-font-woff to font/woff.
+    3. Adds font-style: italic and robust serif fallbacks (CMU Serif, Times New Roman) to math italic classes.
+    """
+    if not svg_content:
+        return svg_content
+    s = svg_content
+    s = s.replace("\ue030", "&#x2032;")
+    s = s.replace("application/x-font-woff", "font/woff")
+    s = re.sub(
+        r"(text\.f2\s*\{[^}]*font-family:\s*cmmi10)([^}]*\})",
+        r"\1, 'CMU Serif', 'Times New Roman', serif; font-style: italic\2",
+        s
+    )
+    s = re.sub(
+        r"(text\.f3\s*\{[^}]*font-family:\s*cmr10)([^}]*\})",
+        r"\1, 'CMU Serif', 'Times New Roman', serif\2",
+        s
+    )
+    s = re.sub(
+        r"(text\.f1\s*\{[^}]*font-family:\s*cmsy7)([^}]*\})",
+        r"\1, 'CMU Serif', 'Times New Roman', serif\2",
+        s
+    )
+    s = re.sub(
+        r"(text\.f0\s*\{[^}]*font-family:\s*cmsy10)([^}]*\})",
+        r"\1, 'CMU Serif', 'Times New Roman', serif\2",
+        s
+    )
+    return s
+
+
 def render_tikz_to_svg(tikz_code: str, timeout: float = 12.0) -> Dict[str, Any]:
     """Compiles TikZ code into SVG using Kroki with local caching."""
     if not tikz_code or not tikz_code.strip():
@@ -164,7 +198,7 @@ def render_tikz_to_svg(tikz_code: str, timeout: float = 12.0) -> Dict[str, Any]:
         try:
             svg_content = cache_file.read_text(encoding="utf-8")
             if svg_content and "<svg" in svg_content:
-                return {"success": True, "svg": svg_content, "cached": True}
+                return {"success": True, "svg": post_process_tikz_svg(svg_content), "cached": True}
         except Exception as e:
             logger.warning(f"Error reading TikZ cache: {e}")
 
@@ -186,6 +220,8 @@ def render_tikz_to_svg(tikz_code: str, timeout: float = 12.0) -> Dict[str, Any]:
                 svg_text = re.sub(r'<\?xml.*?\?>', '', svg_text).strip()
             if "<!DOCTYPE" in svg_text:
                 svg_text = re.sub(r'<!DOCTYPE.*?>', '', svg_text).strip()
+
+            svg_text = post_process_tikz_svg(svg_text)
 
             # Cache to disk
             if "<svg" in svg_text:

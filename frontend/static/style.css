@@ -538,3 +538,23 @@ select:focus, input[type="text"]:focus, input[type="number"]:focus, textarea:foc
     transform: translateY(0) scale(1);
   }
 }
+
+/* --- LaTeX TikZ Vector Diagram Math Typography --- */
+.tikz-diagram-wrapper text.f2,
+.tikz-vector-container text.f2 {
+  font-family: cmmi10, 'CMU Serif', 'Times New Roman', serif !important;
+  font-style: italic !important;
+}
+.tikz-diagram-wrapper text.f3,
+.tikz-vector-container text.f3 {
+  font-family: cmr10, 'CMU Serif', 'Times New Roman', serif !important;
+  font-style: normal !important;
+}
+.tikz-diagram-wrapper text.f1,
+.tikz-vector-container text.f1 {
+  font-family: cmsy7, 'CMU Serif', 'Times New Roman', serif !important;
+}
+.tikz-diagram-wrapper text.f0,
+.tikz-vector-container text.f0 {
+  font-family: cmsy10, 'CMU Serif', 'Times New Roman', serif !important;
+}

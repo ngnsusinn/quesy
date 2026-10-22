@@ -531,6 +531,20 @@ def generate_digitized_exam_latex_pdf(
       display: block;
       margin: 0 auto;
     }}
+    .tikz-vector-container text.f2 {{
+      font-family: cmmi10, 'CMU Serif', 'Times New Roman', serif !important;
+      font-style: italic !important;
+    }}
+    .tikz-vector-container text.f3 {{
+      font-family: cmr10, 'CMU Serif', 'Times New Roman', serif !important;
+      font-style: normal !important;
+    }}
+    .tikz-vector-container text.f1 {{
+      font-family: cmsy7, 'CMU Serif', 'Times New Roman', serif !important;
+    }}
+    .tikz-vector-container text.f0 {{
+      font-family: cmsy10, 'CMU Serif', 'Times New Roman', serif !important;
+    }}
 
     .footer-end {{
       text-align: center;
