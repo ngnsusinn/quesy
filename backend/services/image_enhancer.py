@@ -239,24 +239,24 @@ def enhance_page_image(
         if auto_deskew:
             img = _deskew_image(img)
 
-        # 2. Illumination Normalization (Background Division)
+        # 2. Illumination Normalization (Background Division & Bleed-Through Suppression)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # Morphological dilation with large kernel estimates local page background
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (31, 31))
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (35, 35))
         bg = cv2.morphologyEx(gray, cv2.MORPH_DILATE, kernel)
-        # Avoid division by zero
         bg = np.maximum(bg, 1)
         normalized = cv2.divide(gray, bg, scale=255)
 
-        # 3. CLAHE (Contrast Limited Adaptive Histogram Equalization)
-        clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
-        enhanced = clahe.apply(normalized)
+        # Whiten paper background (suppresses faint bleed-through from reverse side of thin exam paper)
+        clean = np.where(normalized > 200, 255, normalized)
+        # Contrast stretch remaining dark foreground ink
+        enhanced = ((np.clip(clean, 0, 200) / 200.0) * 255).astype(np.uint8)
 
-        # 4. Mild Unsharp Masking to crisp up math strokes
-        gaussian = cv2.GaussianBlur(enhanced, (0, 0), 2.0)
-        unsharp = cv2.addWeighted(enhanced, 1.35, gaussian, -0.35, 0)
+        # 3. Mild Unsharp Masking to crisp up math strokes without haloing
+        gaussian = cv2.GaussianBlur(enhanced, (0, 0), 1.5)
+        unsharp = cv2.addWeighted(enhanced, 1.2, gaussian, -0.2, 0)
 
-        # 5. Convert back to RGB and save with high quality
+        # 4. Save enhanced image with high JPEG quality
         cv2.imwrite(str(out_p), unsharp, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
         return out_p
     except Exception as cv_err:
