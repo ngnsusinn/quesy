@@ -492,6 +492,7 @@ def generate_digitized_exam_latex_pdf(
       padding: 4px 10px;
       text-align: center;
       font-size: 10.5pt;
+      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif;
     }}
 
     /* Variation Table (Bảng biến thiên): Clean borders, no boxes cutting through arrows */
@@ -500,6 +501,7 @@ def generate_digitized_exam_latex_pdf(
       border-collapse: collapse;
       border: none;
       page-break-inside: avoid;
+      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif;
     }}
     .variation-table td {{
       border: none;
@@ -507,6 +509,7 @@ def generate_digitized_exam_latex_pdf(
       text-align: center;
       font-size: 10.5pt;
       min-width: 26px;
+      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif;
     }}
     .variation-table tr.row-x td {{
       border-bottom: 0.9px solid #000;
@@ -531,19 +534,25 @@ def generate_digitized_exam_latex_pdf(
       display: block;
       margin: 0 auto;
     }}
-    .tikz-vector-container text.f2 {{
-      font-family: cmmi10, 'CMU Serif', 'Times New Roman', serif !important;
+    .tikz-vector-container svg text,
+    .tikz-vector-container svg tspan {{
+      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
+    }}
+    .tikz-vector-container svg text.f2,
+    .tikz-vector-container svg [class*="f2"] {{
+      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
       font-style: italic !important;
     }}
-    .tikz-vector-container text.f3 {{
-      font-family: cmr10, 'CMU Serif', 'Times New Roman', serif !important;
+    .tikz-vector-container svg text.f3,
+    .tikz-vector-container svg [class*="f3"] {{
+      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
       font-style: normal !important;
     }}
-    .tikz-vector-container text.f1 {{
-      font-family: cmsy7, 'CMU Serif', 'Times New Roman', serif !important;
-    }}
-    .tikz-vector-container text.f0 {{
-      font-family: cmsy10, 'CMU Serif', 'Times New Roman', serif !important;
+    .tikz-vector-container svg text.f1,
+    .tikz-vector-container svg [class*="f1"],
+    .tikz-vector-container svg text.f0,
+    .tikz-vector-container svg [class*="f0"] {{
+      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
     }}
 
     .footer-end {{

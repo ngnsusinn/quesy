@@ -743,6 +743,7 @@
             }
 
             let cleanSvg = data.svg.replace(/\ue030/g, '&#x2032;');
+            cleanSvg = cleanSvg.replace(/'Times New Roman'/g, "'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif");
 
             if (wrap.classList.contains('tikz-option-wrapper')) {
               cleanSvg = cleanSvg.replace(/<svg(\s[^>]*)>/i, '<svg class="max-w-full h-auto max-h-48 object-contain mx-auto" $1>');

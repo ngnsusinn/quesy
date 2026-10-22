@@ -154,32 +154,45 @@ def post_process_tikz_svg(svg_content: str) -> str:
     """Enhances SVG output from dvisvgm:
     1. Replaces PUA prime code \\ue030 with universal math prime ′ (&#x2032;).
     2. Normalizes font MIME types from application/x-font-woff to font/woff.
-    3. Adds font-style: italic and robust serif fallbacks (CMU Serif, Times New Roman) to math italic classes.
+    3. Unifies all diagram and table text with authentic LaTeX CMU Serif typography (CMU Serif, Latin Modern Roman, Computer Modern).
+    4. Enforces font-style: italic on math italic variables (text.f2 / cmmi10).
     """
     if not svg_content:
         return svg_content
     s = svg_content
     s = s.replace("\ue030", "&#x2032;")
     s = s.replace("application/x-font-woff", "font/woff")
+
+    cmu_font_family = "'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif"
+
+    # Replace class-specific font rules with CMU Serif
     s = re.sub(
-        r"(text\.f2\s*\{[^}]*font-family:\s*cmmi10)([^}]*\})",
-        r"\1, 'CMU Serif', 'Times New Roman', serif; font-style: italic\2",
+        r"text\.f2\s*\{[^}]*\}",
+        rf"text.f2 {{ font-family: cmmi10, {cmu_font_family} !important; font-style: italic !important; font-size: 9.96px; }}",
         s
     )
     s = re.sub(
-        r"(text\.f3\s*\{[^}]*font-family:\s*cmr10)([^}]*\})",
-        r"\1, 'CMU Serif', 'Times New Roman', serif\2",
+        r"text\.f3\s*\{[^}]*\}",
+        rf"text.f3 {{ font-family: cmr10, {cmu_font_family} !important; font-style: normal !important; font-size: 9.96px; }}",
         s
     )
     s = re.sub(
-        r"(text\.f1\s*\{[^}]*font-family:\s*cmsy7)([^}]*\})",
-        r"\1, 'CMU Serif', 'Times New Roman', serif\2",
+        r"text\.f1\s*\{[^}]*\}",
+        rf"text.f1 {{ font-family: cmsy7, {cmu_font_family} !important; font-size: 6.97px; }}",
         s
     )
     s = re.sub(
-        r"(text\.f0\s*\{[^}]*font-family:\s*cmsy10)([^}]*\})",
-        r"\1, 'CMU Serif', 'Times New Roman', serif\2",
+        r"text\.f0\s*\{[^}]*\}",
+        rf"text.f0 {{ font-family: cmsy10, {cmu_font_family} !important; font-size: 9.96px; }}",
         s
+    )
+
+    # Add default typography rule for all text/tspan in the SVG
+    s = re.sub(
+        r"(<style[^>]*>)",
+        rf"\1\ntext, tspan {{ font-family: {cmu_font_family}; }}\n",
+        s,
+        count=1
     )
     return s
 

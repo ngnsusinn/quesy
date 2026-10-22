@@ -539,22 +539,81 @@ select:focus, input[type="text"]:focus, input[type="number"]:focus, textarea:foc
   }
 }
 
-/* --- LaTeX TikZ Vector Diagram Math Typography --- */
+/* --- Authentic LaTeX CMU Serif Font Declarations --- */
+@font-face {
+  font-family: 'CMU Serif';
+  src: url('/static/fonts/cmu-serif/cmu-serif-500-roman.woff2') format('woff2'),
+       url('/static/fonts/cmu-serif/cmu-serif-500-roman.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'CMU Serif';
+  src: url('/static/fonts/cmu-serif/cmu-serif-700-roman.woff2') format('woff2'),
+       url('/static/fonts/cmu-serif/cmu-serif-700-roman.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'CMU Serif';
+  src: url('/static/fonts/cmu-serif/cmu-serif-500-italic.woff2') format('woff2'),
+       url('/static/fonts/cmu-serif/cmu-serif-500-italic.ttf') format('truetype');
+  font-weight: normal;
+  font-style: italic;
+}
+@font-face {
+  font-family: 'CMU Serif';
+  src: url('/static/fonts/cmu-serif/cmu-serif-700-italic.woff2') format('woff2'),
+       url('/static/fonts/cmu-serif/cmu-serif-700-italic.ttf') format('truetype');
+  font-weight: bold;
+  font-style: italic;
+}
+
+/* --- LaTeX TikZ Vector Diagram & Table Math Typography --- */
+.tikz-diagram-wrapper svg text,
+.tikz-diagram-wrapper svg tspan,
+.tikz-vector-container svg text,
+.tikz-vector-container svg tspan {
+  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
+}
 .tikz-diagram-wrapper text.f2,
-.tikz-vector-container text.f2 {
-  font-family: cmmi10, 'CMU Serif', 'Times New Roman', serif !important;
+.tikz-diagram-wrapper [class*="f2"],
+.tikz-vector-container text.f2,
+.tikz-vector-container [class*="f2"] {
+  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
   font-style: italic !important;
 }
 .tikz-diagram-wrapper text.f3,
-.tikz-vector-container text.f3 {
-  font-family: cmr10, 'CMU Serif', 'Times New Roman', serif !important;
+.tikz-diagram-wrapper [class*="f3"],
+.tikz-vector-container text.f3,
+.tikz-vector-container [class*="f3"] {
+  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
   font-style: normal !important;
 }
 .tikz-diagram-wrapper text.f1,
-.tikz-vector-container text.f1 {
-  font-family: cmsy7, 'CMU Serif', 'Times New Roman', serif !important;
-}
+.tikz-diagram-wrapper [class*="f1"],
+.tikz-vector-container text.f1,
+.tikz-vector-container [class*="f1"],
 .tikz-diagram-wrapper text.f0,
-.tikz-vector-container text.f0 {
-  font-family: cmsy10, 'CMU Serif', 'Times New Roman', serif !important;
+.tikz-diagram-wrapper [class*="f0"],
+.tikz-vector-container text.f0,
+.tikz-vector-container [class*="f0"] {
+  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
+}
+
+/* Exam Tables & Variation Tables in Studio */
+.exam-table, .variation-table {
+  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
+}
+.exam-table td, .exam-table th, .variation-table td, .variation-table th {
+  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
+}
+
+/* Question Cards & Preview Math Typography */
+.hitl-question-card,
+#q-edit-stem-preview,
+#q-edit-explanation-preview,
+.master-exam-stem,
+.variant-exam-stem {
+  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif;
 }
