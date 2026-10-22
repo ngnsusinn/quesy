@@ -156,7 +156,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 #### SRS-FEAT-04c: Phân hệ Số hoá AI Trực tiếp Thống nhất (Unified End-to-End Inline AI Digitization)
 - **Mô tả:** Hệ thống áp dụng luồng số hóa trực tiếp toàn trang thống nhất (Unified End-to-End Vision Pipeline). Toàn bộ nội dung đề thi (văn bản câu hỏi, phương án trắc nghiệm, công thức toán học, bảng biến thiên $\\begin{array}$ và đồ thị hàm số TikZ) được Multimodal Vision AI nhận diện và nhúng trực tiếp, đầy đủ vào trường `stem` và `options` của câu hỏi theo chuẩn KaTeX hiển thị mượt mà.
 - **Quy chuẩn hiển thị:**
-  1. *Bảng biến thiên & Bảng số liệu:* Được sinh mã trực tiếp dạng mảng LaTeX KaTeX `\begin{array}{...} ... \end{array}` đặt trực tiếp bên trong câu hỏi, không cắt rời thành ảnh riêng lẻ hay để sót thẻ giữ chỗ placeholder `{{TABLE_X}}`.
+  1. *Bảng biến thiên & Bảng số liệu:* Được sinh mã trực tiếp dạng vector TikZ package `tkz-tab` (`\tkzTabInit`, `\tkzTabLine`, `\tkzTabVar`) hoặc mảng LaTeX KaTeX `\begin{array}{...} ... \end{array}` đặt trực tiếp bên trong câu hỏi, không cắt rời thành ảnh riêng lẻ hay để sót thẻ giữ chỗ placeholder `{{TABLE_X}}`. Hệ thống tự động biên dịch SVG vector sắc nét không vỡ hạt.
   2. *Đồ thị hàm số & Hình học:* Được mô tả chính xác bằng khối mã vector `\begin{tikzpicture}` tự chứa, hiển thị trực quan ngay tại vị trí câu hỏi tương ứng.
   3. *Chuẩn hóa chữ hoa/thường phương án:* Tự động loại bỏ tiền tố nhãn lặp lại `A. `, chỉ viết hoa ký tự đầu tiên của phương án (sentence case), không viết hoa toàn bộ cả câu phương án.
   4. *Thanh tiến trình thời gian thực (Real-time Progress Tracker):* Cập nhật tiến độ từng bước trực quan từ khâu tiếp nhận file, phân tích cấu trúc đến khi hoàn tất.

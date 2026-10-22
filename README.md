@@ -7,7 +7,7 @@
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%2B%20SQLAlchemy-009688?logo=fastapi&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Engine-Node.js%2020%20%2B%20MathJax%203-339933?logo=node.js&logoColor=white)
 ![Frontend](https://img.shields.io/badge/Frontend-Apple%20HIG%20%2B%20TailwindCSS%20%2B%20KaTeX-000000?logo=apple&logoColor=white)
-![Pytest](https://img.shields.io/badge/Tests-63%2F63%20Passing-brightgreen?logo=pytest&logoColor=white)
+![Pytest](https://img.shields.io/badge/Tests-64%2F64%20Passing-brightgreen?logo=pytest&logoColor=white)
 ![Standard](https://img.shields.io/badge/Standard-Circular%2032%20%26%20Decision%20764-orange)
 
 ---
@@ -242,9 +242,9 @@ Quesy maintains a strict test suite verifying business logic, API contracts, mat
 python -m pytest -v --durations=10
 ```
 
-### Test Coverage Highlights (63/63 Tests Passing)
+### Test Coverage Highlights (64/64 Tests Passing)
 
-- `test_digitize_2pass.py`: Verifies uniform page rasterization (PyMuPDF), OpenCV CLAHE contrast enhancement, precision layout diagram/table segmentation, option text sentence case normalization, and parallel 2-pass AI figure stitching & safety fallback.
+- `test_digitize_2pass.py`: Verifies uniform page rasterization (PyMuPDF), OpenCV CLAHE contrast enhancement, precision layout diagram/table segmentation, option text sentence case normalization, parallel 2-pass AI figure stitching & safety fallback, and TikZ `tkz-tab` variation table vector compilation.
 - `test_rules_shuffling.py`: Verifies all 16 True/False permutations under progressive grading, ensures Choice D anchoring across 100 shuffling runs, and validates passage integrity.
 - `test_mathjax_service.py` & `test_math_format_export.py`: Validates MTEF binary decoding, vector WMF APM generation, full-size `\dfrac` sizing, and baseline alignment.
 - `test_digitize_docx_export.py`: Tests print-quality PDF export and genuine MathType 7.0 Word generation.
@@ -256,7 +256,7 @@ Every pull request and commit to `main` executes a multi-runtime GitHub Actions 
 1. Sets up Python 3.13 and Node.js 20.
 2. Installs system graphics dependencies and headless Chromium with `--no-sandbox` flags.
 3. Installs `npm` math packages and `pip` requirements.
-4. Executes the full 63-case test suite with mock AI adapters.
+4. Executes the full 64-case test suite with mock AI adapters.
 
 ---
 

@@ -121,6 +121,7 @@ def wrap_tikz_in_standalone_document(tikz_code: str) -> str:
         "\\usepackage{pgfplots}\n"
         "\\pgfplotsset{compat=1.18}\n"
         "\\usetikzlibrary{patterns,patterns.meta,arrows.meta,calc,intersections,decorations.pathmorphing,decorations.shapes,angles,quotes,shapes.geometric}\n"
+        "\\usepackage{tkz-tab}\n"
         "\\begin{document}\n"
         f"{clean_tikz}\n"
         "\\end{document}\n"

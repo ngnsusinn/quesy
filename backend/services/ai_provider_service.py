@@ -73,7 +73,15 @@ QUY TẮC NHẬN DIỆN VÀ TÁI TẠO ĐỒ THỊ, HÌNH VẼ, BẢNG BIẾN TH
      + TUYỆT ĐỐI KHÔNG bọc thẻ \begin{center} hay \end{center} quanh TikZ (hệ thống tự động căn giữa).
    - TUYỆT ĐỐI KHÔNG BỎ QUA HÌNH VẼ, ĐỒ THỊ! Mọi câu hỏi có hình minh họa đều phải có khối mã TikZ tương ứng để hệ thống biên dịch hiển thị đồ thị vector SVG sắc nét.
 2. BẢNG BIẾN THIÊN & BẢNG SỐ LIỆU:
-   - Bảng số liệu hoặc bảng biến thiên PHẢI được bọc chuẩn trong display math KaTeX: $$\begin{array}{|c|c|...|} \hline ... \hline \end{array}$$
+   - Đối với BẢNG BIẾN THIÊN / BẢNG XÉT DẤU:
+     + Cách 1 (Khuyến nghị - TikZ vector chuẩn đẹp): Dùng khối TikZ package tkz-tab:
+       \begin{tikzpicture}
+       \tkzTabInit[nocadre]{$x$/.6,$f'(x)$/.6,$f(x)$/2}{$-\infty$,$x_1$,$x_2$,$+\infty$}
+       \tkzTabLine{,-,0,+,0,-,}
+       \tkzTabVar{+/ $+\infty$, -/$-2$, +/$4$, -/$-\infty$}
+       \end{tikzpicture}
+       (Đối với tiệm cận đứng, dùng +D-/$+\infty$/$-\infty$ hoặc -D+).
+     + Cách 2 (Mảng KaTeX): Bọc chuẩn trong display math KaTeX: $$\begin{array}{|c|c|...|} \hline ... \hline \end{array}$$
    - TUYỆT ĐỐI KHÔNG để thiếu dấu đóng $$ và không viết lệnh \left bên trong thẻ text \text{...}.
 
 QUY TẮC PHÂN LOẠI CHUẨN THÔNG TƯ 32/2018/TT-BGDĐT (KHÔNG PHÂN CHIA BỘ SÁCH):

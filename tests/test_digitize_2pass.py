@@ -215,3 +215,25 @@ def test_normalize_option_text():
     assert normalize_option_text("D. TẤT CẢ CÁC ĐÁP ÁN ĐỀU ĐÚNG") == "Tất cả các đáp án đều đúng"
     assert normalize_option_text("x = 2") == "x = 2"
 
+
+def test_tkz_tab_variation_table_compilation():
+    """Verifies TikZ tkz-tab variation table document wrapping and rendering support."""
+    from backend.services.tikz_renderer import wrap_tikz_in_standalone_document, render_tikz_to_svg
+
+    tkz_tab_snippet = r"""\begin{tikzpicture}
+\tkzTabInit[nocadre]{$x$/.6,$f'(x)$/.6,$f(x)$/2}
+{$-\infty$,$1$,$3$,$+\infty$}
+\tkzTabLine{,-,0,+,0,-,}
+\tkzTabVar{+/ $+\infty$, -/$-2$, +/$4$, -/$-\infty$}
+\end{tikzpicture}"""
+
+    wrapped_doc = wrap_tikz_in_standalone_document(tkz_tab_snippet)
+    assert r"\usepackage{tkz-tab}" in wrapped_doc
+    assert r"\tkzTabInit" in wrapped_doc
+
+    # Render to SVG (reads from cache or Kroki)
+    res = render_tikz_to_svg(tkz_tab_snippet)
+    assert res.get("success") is True
+    assert "<svg" in res.get("svg", "")
+
+
