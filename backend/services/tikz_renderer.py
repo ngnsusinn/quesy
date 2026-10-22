@@ -62,6 +62,27 @@ def normalize_tikz_exam_standard(tikz_code: str) -> str:
 
     code = re.sub(r'\\clip\s*\(\s*([-\d\.]+)\s*,\s*([-\d\.]+)\s*\)\s*rectangle\s*\(\s*([-\d\.]+)\s*,\s*([-\d\.]+)\s*\);', expand_clip, code)
 
+    # 4. Standardize \tkzTabInit row labels to LaTeX math mode ($...$)
+    # Prevents font mismatch between letters (upright text) and numbers (math font), and prevents missing prime ' in f'(x)
+    def fix_tkz_tab_init(m):
+        prefix = m.group(1)
+        rows_str = m.group(2)
+        items = []
+        for pair in rows_str.split(','):
+            pair = pair.strip()
+            if '/' in pair:
+                lbl, h = pair.split('/', 1)
+                lbl = lbl.strip()
+                h = h.strip()
+                if not lbl.startswith('$'):
+                    lbl = f'${lbl}$'
+                items.append(f'{lbl}/{h}')
+            else:
+                items.append(pair)
+        return f'{prefix}{{{",".join(items)}}}'
+
+    code = re.sub(r'(\\tkzTabInit(?:\[[^\]]*\])?)\s*\{([^}]+)\}', fix_tkz_tab_init, code)
+
     return code
 
 

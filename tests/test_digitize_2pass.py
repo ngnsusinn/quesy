@@ -217,23 +217,28 @@ def test_normalize_option_text():
 
 
 def test_tkz_tab_variation_table_compilation():
-    """Verifies TikZ tkz-tab variation table document wrapping and rendering support."""
-    from backend.services.tikz_renderer import wrap_tikz_in_standalone_document, render_tikz_to_svg
+    """Verifies TikZ tkz-tab variation table document wrapping, label math-mode normalization, and rendering support."""
+    from backend.services.tikz_renderer import wrap_tikz_in_standalone_document, render_tikz_to_svg, normalize_tikz_exam_standard
 
-    tkz_tab_snippet = r"""\begin{tikzpicture}
-\tkzTabInit[nocadre]{$x$/.6,$f'(x)$/.6,$f(x)$/2}
+    # 1. Test auto-fixing raw un-delimited labels: x/.6, f'(x)/.6 -> $x$/.6, $f'(x)$/.6
+    raw_snippet = r"""\begin{tikzpicture}
+\tkzTabInit[nocadre]{x/.6, f'(x)/.6, f(x)/2}
 {$-\infty$,$1$,$3$,$+\infty$}
 \tkzTabLine{,-,0,+,0,-,}
 \tkzTabVar{+/ $+\infty$, -/$-2$, +/$4$, -/$-\infty$}
 \end{tikzpicture}"""
+    normalized = normalize_tikz_exam_standard(raw_snippet)
+    assert r"{$x$/.6,$f'(x)$/.6,$f(x)$/2}" in normalized
 
-    wrapped_doc = wrap_tikz_in_standalone_document(tkz_tab_snippet)
+    # 2. Test document wrapper includes tkz-tab package
+    wrapped_doc = wrap_tikz_in_standalone_document(normalized)
     assert r"\usepackage{tkz-tab}" in wrapped_doc
     assert r"\tkzTabInit" in wrapped_doc
 
-    # Render to SVG (reads from cache or Kroki)
-    res = render_tikz_to_svg(tkz_tab_snippet)
+    # 3. Render to SVG (reads from cache or Kroki)
+    res = render_tikz_to_svg(normalized)
     assert res.get("success") is True
     assert "<svg" in res.get("svg", "")
+
 
 
