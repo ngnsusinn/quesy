@@ -72,20 +72,25 @@ QUY TẮC NHẬN DIỆN VÀ TÁI TẠO ĐỒ THỊ, HÌNH VẼ, BẢNG BIẾN TH
      + CÂU HỎI NHẬN DIỆN ĐỒ THỊ Ở 4 PHƯƠNG ÁN A, B, C, D: BẮT BUỘC CẢ 4 HÌNH ĐỀU PHẢI CÓ ĐẦY ĐỦ VẠCH CHIA TỌA ĐỘ VÀ SỐ LIỆU ĐỒNG BỘ ĐỂ ĐỐI CHIẾU (không được hình có số, hình bị mất số). Dùng khối TikZ thu nhỏ \begin{tikzpicture}[scale=0.22, font=\tiny, >=stealth] ... \end{tikzpicture}.
      + TUYỆT ĐỐI KHÔNG bọc thẻ \begin{center} hay \end{center} quanh TikZ (hệ thống tự động căn giữa).
    - TUYỆT ĐỐI KHÔNG BỎ QUA HÌNH VẼ, ĐỒ THỊ! Mọi câu hỏi có hình minh họa đều phải có khối mã TikZ tương ứng để hệ thống biên dịch hiển thị đồ thị vector SVG sắc nét.
-2. BẢNG BIẾN THIÊN & BẢNG SỐ LIỆU:
-   - Đối với BẢNG BIẾN THIÊN / BẢNG XÉT DẤU:
-     + Cách 1 (Khuyến nghị - TikZ vector chuẩn đẹp): Dùng khối TikZ package tkz-tab:
-       \begin{tikzpicture}
-       \tkzTabInit[nocadre]{$x$/.6,$f'(x)$/.6,$f(x)$/2}{$-\infty$,$x_1$,$x_2$,$+\infty$}
-       \tkzTabLine{,-,0,+,0,-,}
-       \tkzTabVar{+/ $+\infty$, -/$-2$, +/$4$, -/$-\infty$}
-       \end{tikzpicture}
-       (Đối với tiệm cận đứng, dùng +D-/$+\infty$/$-\infty$ hoặc -D+).
-     + Cách 2 (Mảng KaTeX): Dùng display math KaTeX: $$\begin{array}{c|ccccccc} \hline ... \hline \end{array}$$
-   - QUY TẮC VẠCH ĐỨNG '|' TRONG BẢNG BIẾN THIÊN:
-     + Trong bảng biến thiên, chỉ có DUY NHẤT 1 vạch đứng ngăn cách sau cột nhãn đầu tiên (c|ccccccc).
-     + TUYỆT ĐỐI KHÔNG đặt vạch đứng '|' giữa các mốc giá trị x hay giữa -\infty và các số của hàm số liên tục, kể cả khi trên ảnh đề thi gốc giáo viên lỡ in nhầm đường viền ô bảng Word.
-     + Vạch đứng đôi '||' chỉ xuất hiện DUY NHẤT tại điểm gián đoạn / tiệm cận đứng của hàm phân thức.
+2. BẢNG BIẾN THIÊN & BẢNG XÉT DẤU (BẮT BUỘC 100% DÙNG TIKZ PACKAGE TKZ-TAB):
+   - Khi đề bài có Bảng biến thiên hoặc Bảng xét dấu:
+   - BẮT BUỘC 100% PHẢI TÁI TẠO BẰNG MÃ TIKZ SỬ DỤNG GÓI tkz-tab (TUYỆT ĐỐI KHÔNG DÙNG \begin{array} HAY \begin{tabular}):
+     \begin{tikzpicture}
+     \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]{$x$/.6,$f'(x)$/.6,$f(x)$/2}{$-\infty$,$x_1$,$x_2$,$+\infty$}
+     \tkzTabLine{,-,0,+,0,-,}
+     \tkzTabVar{+/ $+\infty$, -/$-2$, +/$4$, -/$-\infty$}
+     \end{tikzpicture}
+   - Mọi nhãn dòng ($x, f'(x), f(x), y', y$) BẮT BUỘC bọc trong cặp dấu $...$ để đồng bộ font chữ nghiêng toán học.
+   - Đối với hàm phân thức có tiệm cận đứng / gián đoạn:
+     \begin{tikzpicture}
+     \tikzset{double style/.append style = {double distance=2.5pt}}
+     \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.4]{$x$/.6,$y'$/.6,$y$/2}{$-\infty$,$x_0$,$+\infty$}
+     \tkzTabLine{,+,d,+,}
+     \tkzTabVar{-/$y_1$, +D-/$+\infty$/$-\infty$, +/$y_2$}
+     \end{tikzpicture}
+   - Tuyệt đối không dùng \begin{array} cho bảng biến thiên vì sẽ làm đứt gãy mũi tên và vỡ khung bảng.
+3. BẢNG SỐ LIỆU THỐNG KÊ (BẢNG GHÉP NHÓM, BẢNG TẦN SỐ):
+   - Chỉ dùng mảng KaTeX \begin{array}{|c|c|c|...|} \hline ... \hline \end{array} cho bảng số liệu thống kê (không có mũi tên biến thiên).
    - TUYỆT ĐỐI KHÔNG để thiếu dấu đóng $$ và không viết lệnh \left bên trong thẻ text \text{...}.
 
 QUY TẮC PHÂN LOẠI CHUẨN THÔNG TƯ 32/2018/TT-BGDĐT (KHÔNG PHÂN CHIA BỘ SÁCH):

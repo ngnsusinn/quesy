@@ -241,4 +241,29 @@ def test_tkz_tab_variation_table_compilation():
     assert "<svg" in res.get("svg", "")
 
 
+def test_convert_variation_array_to_tkz_tab():
+    """Verifies that legacy or AI-generated \\begin{array} variation tables are automatically converted to native TikZ tkz-tab."""
+    from backend.services.latex_converter import convert_variation_array_to_tkz_tab, sanitize_latex
+
+    array_stem = r"""Cho hàm số ${y = f\left(x\right)}$ liên tục trên ${\mathbb{R}}$ và có bảng biến thiên sau:
+$$\begin{array}{|c|ccccccc|} \hline x & -\infty & & -2 & & 1 & & +\infty \\ \hline f'\left(x\right) & & + & 0 & - & 0 & + & \\ \hline & & & 4 & & & & +\infty \\ f\left(x\right) & & \nearrow & & \searrow & & \nearrow & \\ & -\infty & & & & -1 & & \\ \hline \end{array}$$
+Điểm cực đại của đồ thị hàm số là:"""
+
+    converted = convert_variation_array_to_tkz_tab(array_stem)
+    assert r"\begin{tikzpicture}" in converted
+    assert r"\tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]" in converted
+    assert r"{$x$/.6, $f'(x)$/.6, $f(x)$/2}" in converted
+    assert r"{$-\infty$,$-2$,$1$,$+\infty$}" in converted
+    assert r"\tkzTabLine{,+,0,-,0,+,}" in converted
+    assert r"\tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}" in converted
+    assert r"\end{tikzpicture}" in converted
+
+    # Test through end-to-end sanitize_latex pipeline
+    sanitized = sanitize_latex(array_stem)
+    assert r"\begin{tikzpicture}" in sanitized
+    assert r"\tkzTabInit" in sanitized
+    assert r"\begin{array}" not in sanitized
+
+
+
 

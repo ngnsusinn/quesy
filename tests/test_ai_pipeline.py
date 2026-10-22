@@ -168,12 +168,18 @@ def test_latex_converter():
     decoded_mtef = decode_mtef(mtef_raw)
     print(f"Decoded MTEF Formula: {decoded_mtef}")
 
-    # Test 5: Variation table array normalization (strip rogue internal and outer '|')
+    # Test 5: Variation table array normalization (auto-upgrades to TikZ tkz-tab)
+    from backend.services.latex_converter import clean_variation_array
     raw_array = r"$$\begin{array}{|c|ccccccc|} \hline x & -\infty & & -2 & & 1 & & +\infty \\ \hline f'(x) & & + & 0 & - & 0 & + & \\ \hline f(x) & & \nearrow & & \searrow & & \nearrow & \\ \hline \end{array}$$"
+    cleaned_array_only = clean_variation_array(raw_array)
+    assert r"\begin{array}{c|ccccccc}" in cleaned_array_only
+    assert r"|c|" not in cleaned_array_only
+
     cleaned_array = sanitize_latex(raw_array)
-    assert r"\begin{array}{c|ccccccc}" in cleaned_array
+    assert r"\begin{tikzpicture}" in cleaned_array
+    assert r"\tkzTabInit" in cleaned_array
     assert r"|c|" not in cleaned_array
-    print("✓ Variation table array column normalization passed")
+    print("✓ Variation table array column normalization & TikZ upgrade passed")
     assert "\\dfrac" in decoded_mtef or "\\frac" in decoded_mtef, "MTEF fraction not decoded"
     print("✓ MTEF binary decoding passed")
 

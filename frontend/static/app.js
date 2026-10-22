@@ -771,6 +771,101 @@
     }
   }
 
+  function convertVariationArrayToTkzTab(text) {
+    if (!text || typeof text !== 'string' || (!text.includes('\\nearrow') && !text.includes('\\searrow'))) return text;
+
+    const pattern = /(?:\$\$\s*)?\\begin\{(?:array|tabular)\}(?:\{[^}]*\})?([\s\S]*?)\\end\{(?:array|tabular)\}(?:\s*\$\$)?/g;
+    return text.replace(pattern, (match, body) => {
+      if (!body.includes('\\nearrow') && !body.includes('\\searrow') && !body.includes('\\infty')) {
+        return match;
+      }
+      const rawLines = body.split('\\\\').map((l) => l.replace(/\\hline/g, '').trim()).filter(Boolean);
+      if (rawLines.length < 2) return match;
+
+      const grid = rawLines.map((l) => l.split('&').map((c) => c.trim()));
+      const rowX = grid[0];
+      const nodesX = rowX.slice(1).map((c) => c.replace(/\$/g, '').trim()).filter(Boolean);
+      if (!nodesX.length) return match;
+
+      const stdNodesX = nodesX.map((nx) => nx.startsWith('$') ? nx : `$${nx}$`);
+      let lblX = '$x$';
+      let lblFprime = "$f'(x)$";
+      let lblF = '$f(x)$';
+
+      const rawLbl0 = (rowX[0] || '').replace(/\$/g, '').trim();
+      if (rawLbl0 && !rawLbl0.includes('x')) lblX = `$${rawLbl0}$`;
+
+      let hasDerivativeRow = false;
+      const signs = [];
+      if (grid.length >= 2) {
+        const row1 = grid[1];
+        const rawLbl1 = (row1[0] || '').replace(/\$/g, '').trim();
+        if (rawLbl1.includes("f'") || rawLbl1.includes("y'") || rawLbl1.includes("g'")) {
+          hasDerivativeRow = true;
+          if (rawLbl1.includes("f'")) lblFprime = "$f'(x)$";
+          else if (rawLbl1.includes("y'")) lblFprime = "$y'$";
+          else if (rawLbl1.includes("g'")) lblFprime = "$g'(x)$";
+
+          for (const c of row1.slice(1)) {
+            const cleanC = c.replace(/\$/g, '').trim();
+            if (['+', '-', '0', 'd', 'z', 't', '|', '||', '\\Vert'].includes(cleanC)) {
+              signs.push(['|', '||', '\\Vert'].includes(cleanC) ? 'd' : cleanC);
+            }
+          }
+        }
+      }
+
+      const varRowStart = hasDerivativeRow ? 2 : 1;
+      const varRows = grid.slice(varRowStart);
+      const hasAsymptote = body.includes('\\Vert') || body.includes('||');
+
+      const nNodes = nodesX.length;
+      const nodeValues = {};
+      const nodeAsymptoteVals = {};
+
+      varRows.forEach((row, rIdx) => {
+        const cells = row.slice(1);
+        cells.forEach((cell, cIdx) => {
+          const cleanC = cell.replace(/\$/g, '').trim();
+          if (!cleanC || ['\\nearrow', '\\searrow', '\\Vert', '||', '|', 'f(x)', 'y', "f'(x)", "y'"].includes(cleanC)) {
+            return;
+          }
+          const totalCols = cells.length;
+          let nodeIdx = totalCols >= 2 * nNodes - 1 ? Math.round(cIdx / 2) : Math.round(cIdx * (nNodes - 1) / Math.max(1, totalCols - 1));
+          nodeIdx = Math.max(0, Math.min(nNodes - 1, nodeIdx));
+          const isUpper = rIdx === 0 || (rIdx === 1 && cleanC.includes('+\\infty'));
+
+          if (!nodeValues[nodeIdx]) {
+            nodeValues[nodeIdx] = { val: cleanC, isUpper };
+          } else {
+            nodeAsymptoteVals[nodeIdx] = { v1: nodeValues[nodeIdx].val, v2: cleanC };
+          }
+        });
+      });
+
+      const tabVars = [];
+      for (let i = 0; i < nNodes; i++) {
+        if (nodeAsymptoteVals[i]) {
+          tabVars.push(`+D-/$${nodeAsymptoteVals[i].v1}$/$${nodeAsymptoteVals[i].v2}$`);
+        } else if (nodeValues[i]) {
+          const prefix = nodeValues[i].isUpper ? '+' : '-';
+          tabVars.push(`${prefix}/$${nodeValues[i].val}$`);
+        } else {
+          const prefix = i % 2 === 1 ? '+' : '-';
+          tabVars.push(`${prefix}/$ $`);
+        }
+      }
+
+      let lineStr = signs.length >= 3 ? signs.join(',') : (nNodes === 4 ? '+,0,-,0,+' : (nNodes === 3 ? '-,0,+' : '+,0,-'));
+      if (!lineStr.startsWith(',')) lineStr = ',' + lineStr;
+      if (!lineStr.endsWith(',')) lineStr = lineStr + ',';
+
+      const optStyle = hasAsymptote ? '  \\tikzset{double style/.append style = {double distance=2.5pt}}\n' : '';
+
+      return `\n\n\\begin{tikzpicture}\n${optStyle}  \\tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]\n  {${lblX}/.6, ${lblFprime}/.6, ${lblF}/2}\n  {${stdNodesX.join(',')}}\n  \\tkzTabLine{${lineStr}}\n  \\tkzTabVar{${tabVars.join(',')}}\n\\end{tikzpicture}\n\n`;
+    });
+  }
+
   /**
    * Standardizes math strings adhering to Vietnam High School assessment rules:
    * 1. Brackets: \left and \right for (, ), [, ], \{, \}
@@ -781,6 +876,9 @@
   function formatLatexRules(text) {
     if (!text || typeof text !== 'string') return text;
     let res = text;
+
+    // 0. Auto-convert legacy variation array to TikZ tkz-tab
+    res = convertVariationArrayToTkzTab(res);
 
     // 1. Auto-close \begin{array}...\end{array} if opened with $$ but missing closing $$
     res = res.replace(/(\$\$\s*\\begin\{(?:array|matrix|pmatrix|bmatrix|vmatrix|cases)\}[\s\S]*?\\end\{(?:array|matrix|pmatrix|bmatrix|vmatrix|cases)\})(?!\s*\$\$)/g, (m, p1) => p1 + '$$');
@@ -2552,6 +2650,7 @@
     }
   }
 
+  let _livePreviewTimer = null;
   function updateQuestionEditorLivePreview() {
     const stemInput = document.getElementById('q-edit-stem');
     const stemPreview = document.getElementById('q-edit-stem-preview');
@@ -2567,6 +2666,26 @@
       const val = expInput.value.trim();
       expPreview.innerHTML = val ? `<strong>Hướng dẫn giải:</strong> ${formatStemForDisplay(val)}` : '<span class="text-slate-400 italic">Xem trước lời giải...</span>';
       renderKaTeX(expPreview);
+    }
+
+    clearTimeout(_livePreviewTimer);
+    _livePreviewTimer = setTimeout(() => {
+      if (stemPreview) renderTikzDiagrams(stemPreview);
+      if (expPreview) renderTikzDiagrams(expPreview);
+    }, 200);
+  }
+
+  function standardizeModalStemToTkz() {
+    const stemInput = document.getElementById('q-edit-stem');
+    if (!stemInput) return;
+    const current = stemInput.value;
+    const converted = convertVariationArrayToTkzTab(current);
+    if (converted !== current) {
+      stemInput.value = converted;
+      updateQuestionEditorLivePreview();
+      showToast('Đã chuyển đổi bảng biến thiên sang TikZ tkz-tab thành công!', 'success');
+    } else {
+      showToast('Nội dung đã ở chuẩn TikZ hoặc không chứa bảng biến thiên legacy.', 'info');
     }
   }
 
@@ -2605,17 +2724,22 @@
   \\filldraw[black] (-1, 3) circle (1.5pt) (1, -1) circle (1.5pt);
 \\end{tikzpicture}\n`;
     } else if (type === 'variation_table') {
-      snippet = `\n$$\\begin{array}{|c|lcccr|}
-\\hline
-x & -\\infty & & 1 & & +\\infty \\\\
-\\hline
-y' & & + & \\Vert & + & \\\\
-\\hline
- & & & +\\infty & & 2 \\\\
-y & & \\nearrow & \\Vert & \\nearrow & \\\\
- & -2 & & -\\infty & & \\\\
-\\hline
-\\end{array}$$\n`;
+      snippet = `\n\\begin{tikzpicture}
+\\tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
+{$x$/.6, $f'(x)$/.6, $f(x)$/2}
+{$-\\infty$, $-2$, $1$, $+\\infty$}
+\\tkzTabLine{,+,0,-,0,+,}
+\\tkzTabVar{-/$-\\infty$, +/$4$, -/$-1$, +/$+\\infty$}
+\\end{tikzpicture}\n`;
+    } else if (type === 'variation_table_asymptote') {
+      snippet = `\n\\begin{tikzpicture}
+\\tikzset{double style/.append style = {double distance=2.5pt}}
+\\tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.4]
+{$x$/.6, $y'$/.6, $y$/2}
+{$-\\infty$, $1$, $+\\infty$}
+\\tkzTabLine{,+,d,+,}
+\\tkzTabVar{-/$2$, +D-/$+\\infty$/$-\\infty$, +/$2$}
+\\end{tikzpicture}\n`;
     } else if (type === 'table') {
       snippet = `\n$$\\begin{array}{|c|c|c|c|c|}
 \\hline
@@ -3799,6 +3923,7 @@ y & & \\nearrow & \\Vert & \\nearrow & \\\\
     updateQuestionEditorLivePreview,
     insertStemSymbol,
     insertStemTikzDiagram,
+    standardizeModalStemToTkz,
     saveQuestionEdit,
     loadSampleExam,
     changeViewerPage,

@@ -113,22 +113,203 @@ SUBSCRIPT_MAP: Dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
+# 1.5 Variation Table Array to Native TikZ tkz-tab Converter
+# ---------------------------------------------------------------------------
+
+def convert_variation_array_to_tkz_tab(text: str) -> str:
+    """Converts legacy \\begin{array} variation tables into native TikZ tkz-tab code."""
+    if not text or (r"\nearrow" not in text and r"\searrow" not in text):
+        return text
+
+    pattern = re.compile(
+        r'(?:\$\$\s*)?\\begin\{(?:array|tabular)\}(?:\{[^}]*\})?(.*?)\\end\{(?:array|tabular)\}(?:\s*\$\$)?',
+        re.DOTALL
+    )
+
+    def _convert_match(m):
+        full_match = m.group(0)
+        body = m.group(1).strip()
+        if not any(k in body for k in (r"\nearrow", r"\searrow", r"\infty", r"f'", r"y'")):
+            return full_match
+
+        raw_lines = [l.strip() for l in body.split(r'\\')]
+        lines = []
+        for l in raw_lines:
+            cleaned = re.sub(r'\\hline', '', l).strip()
+            if cleaned:
+                lines.append(cleaned)
+
+        if len(lines) < 2:
+            return full_match
+
+        grid = []
+        for l in lines:
+            cells = [c.strip() for c in l.split('&')]
+            grid.append(cells)
+
+        # 1. Row 0: x values
+        row_x = grid[0]
+        nodes_x = []
+        for c in row_x[1:]:
+            clean_c = c.replace('$', '').strip()
+            if clean_c:
+                nodes_x.append(clean_c)
+
+        if not nodes_x:
+            return full_match
+
+        std_nodes_x = []
+        for nx in nodes_x:
+            if not nx.startswith('$'):
+                std_nodes_x.append(f"${nx}$")
+            else:
+                std_nodes_x.append(nx)
+
+        lbl_x = "$x$"
+        lbl_fprime = "$f'(x)$"
+        lbl_f = "$f(x)$"
+
+        raw_lbl_0 = row_x[0].replace('$', '').strip()
+        if raw_lbl_0:
+            if 'x' in raw_lbl_0:
+                lbl_x = "$x$"
+            else:
+                lbl_x = f"${raw_lbl_0}$"
+
+        has_derivative_row = False
+        signs = []
+        if len(grid) >= 2:
+            row_1 = grid[1]
+            raw_lbl_1 = row_1[0].replace('$', '').strip()
+            if any(k in raw_lbl_1 for k in ("f'", "y'", "g'")):
+                has_derivative_row = True
+                if "f'" in raw_lbl_1:
+                    lbl_fprime = "$f'(x)$"
+                elif "y'" in raw_lbl_1:
+                    lbl_fprime = "$y'$"
+                elif "g'" in raw_lbl_1:
+                    lbl_fprime = "$g'(x)$"
+                for c in row_1[1:]:
+                    clean_c = c.replace('$', '').strip()
+                    if clean_c in ('+', '-', '0', 'd', 'z', 't', '|', '||', r'\Vert'):
+                        if clean_c in ('|', '||', r'\Vert'):
+                            signs.append('d')
+                        else:
+                            signs.append(clean_c)
+                    elif clean_c:
+                        signs.append(clean_c)
+
+        var_row_start = 2 if has_derivative_row else 1
+        var_rows = grid[var_row_start:]
+        has_asymptote = any(r'\Vert' in l or '||' in l for l in lines)
+
+        n_nodes = len(nodes_x)
+        node_values = {}
+        node_asymptote_vals = {}
+
+        for r_idx, row in enumerate(var_rows):
+            cells = row[1:]
+            for c_idx, cell in enumerate(cells):
+                clean_c = cell.replace('$', '').strip()
+                if not clean_c or clean_c in (r'\nearrow', r'\searrow', r'\Vert', '||', '|', 'f(x)', 'y', r"f'(x)", r"y'"):
+                    continue
+
+                total_cols = len(cells)
+                if total_cols >= 2 * n_nodes - 1:
+                    node_idx = round(c_idx / 2)
+                else:
+                    node_idx = round(c_idx * (n_nodes - 1) / max(1, total_cols - 1))
+
+                node_idx = max(0, min(n_nodes - 1, node_idx))
+                is_upper = (r_idx == 0 or (r_idx == 1 and '+\\infty' in clean_c))
+
+                if node_idx not in node_values:
+                    node_values[node_idx] = (clean_c, is_upper)
+                else:
+                    prev_val, prev_up = node_values[node_idx]
+                    node_asymptote_vals[node_idx] = (prev_val, clean_c)
+
+        tab_vars = []
+        for i in range(n_nodes):
+            if i in node_asymptote_vals:
+                v1, v2 = node_asymptote_vals[i]
+                tab_vars.append(f"+D-/${v1}$/${v2}$")
+            elif i in node_values:
+                val, is_up = node_values[i]
+                prefix = "+" if is_up else "-"
+                tab_vars.append(f"{prefix}/${val}$")
+            else:
+                prefix = "+" if (i % 2 == 1) else "-"
+                tab_vars.append(f"{prefix}/$ $")
+
+        valid_signs = [s for s in signs if s in ('+', '-', '0', 'd', 'z', 't')]
+        if len(valid_signs) >= 3:
+            line_str = ",".join(valid_signs)
+            if not line_str.startswith(','): line_str = ',' + line_str
+            if not line_str.endswith(','): line_str = line_str + ','
+        else:
+            if n_nodes == 4:
+                line_str = ",+,0,-,0,+,"
+            elif n_nodes == 3:
+                line_str = ",-,0,+,"
+            elif n_nodes == 5:
+                line_str = ",-,0,+,0,-,0,+,"
+            else:
+                line_str = ",+,0,-,"
+
+        var_str = ",".join(tab_vars)
+
+        opt_style = ""
+        if has_asymptote:
+            opt_style = "  \\tikzset{double style/.append style = {double distance=2.5pt}}\n"
+
+        tkz = (
+            "\n\n\\begin{tikzpicture}\n"
+            f"{opt_style}"
+            "  \\tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]\n"
+            f"  {{{lbl_x}/.6, {lbl_fprime}/.6, {lbl_f}/2}}\n"
+            f"  {{{','.join(std_nodes_x)}}}\n"
+            f"  \\tkzTabLine{{{line_str}}}\n"
+            f"  \\tkzTabVar{{{var_str}}}\n"
+            "\\end{tikzpicture}\n\n"
+        )
+        return tkz
+
+    return pattern.sub(_convert_match, text)
+
+
+def clean_variation_array(latex_str: str) -> str:
+    """Normalizes variation table array column specifications.
+    Removes outer vertical bars | and rogue internal bars between interval values,
+    leaving strictly ONE vertical divider after the first label column (e.g. c|ccccccc).
+    """
+    def _clean_cols(m):
+        col_spec = m.group(1).strip()
+        body = m.group(2)
+        if any(sym in body for sym in (r"\nearrow", r"\searrow", r"-\infty", r"+\infty", r"\infty", r"f'", r"y'")):
+            pure_cols = col_spec.replace("|", "").strip()
+            norm_col = pure_cols[0] + "|" + pure_cols[1:] if pure_cols else "c|ccccccc"
+            return f"\\begin{{array}}{{{norm_col}}}{body}\\end{{array}}"
+        return m.group(0)
+
+    return re.sub(r'\\begin\{array\}\{([^}]+)\}([\s\S]*?)\\end\{array\}', _clean_cols, latex_str)
+
+
+# ---------------------------------------------------------------------------
 # 2. LaTeX Sanitization & Normalization
 # ---------------------------------------------------------------------------
 
 def sanitize_latex(text: str) -> str:
     """
     Sanitize and normalize LaTeX formulas and surrounding Vietnamese educational text.
-    - Standardizes inline delimiters to $...$ and block delimiters to $$...$$.
-    - Replaces unicode math symbols with standard LaTeX macros.
-    - Normalizes unicode superscripts/subscripts.
-    - Automatically adds backslashes to standard math functions (sin, cos, ln, lim, etc.).
-    - Fixes malformed commands and delimiter spacing.
-    """
+    - Standardizes inline delimiters to $...$ and block delimiters to $$...$$.\n    - Replaces unicode math symbols with standard LaTeX macros.\n    - Normalizes unicode superscripts/subscripts.\n    - Automatically adds backslashes to standard math functions (sin, cos, ln, lim, etc.).\n    - Fixes malformed commands and delimiter spacing.\n    """
     if not text:
         return ""
 
     s = text
+
+    # -1. Automatically convert any legacy/AI \\begin{array} variation table into native TikZ tkz-tab
+    s = convert_variation_array_to_tkz_tab(s)
 
     # 0. Clean off any redundant \begin{center} and \end{center} tags
     s = re.sub(r'\\+(?:begin|end)\{center\}', '', s)
@@ -172,20 +353,7 @@ def sanitize_latex(text: str) -> str:
     )
 
     # 3.5 Normalize variation table array column specs: strip outer and rogue internal vertical bars '|'
-    # Ensures variation tables have strictly ONE vertical separator after the label column (e.g. c|ccccccc)
-    def clean_variation_array(m):
-        col_spec = m.group(1).strip()
-        body = m.group(2)
-        if any(sym in body for sym in (r"\nearrow", r"\searrow", r"-\infty", r"+\infty", r"\infty", r"f'", r"y'")):
-            pure_cols = col_spec.replace("|", "").strip()
-            if pure_cols:
-                norm_col = pure_cols[0] + "|" + pure_cols[1:]
-            else:
-                norm_col = "c|ccccccc"
-            return f"\\begin{{array}}{{{norm_col}}}{body}\\end{{array}}"
-        return m.group(0)
-
-    s = re.sub(r'\\begin\{array\}\{([^}]+)\}([\s\S]*?)\\end\{array\}', clean_variation_array, s)
+    s = clean_variation_array(s)
 
     # 4. Handle unicode superscripts and subscripts outside or inside math
     for uni, repl in SUPERSCRIPT_MAP.items():
