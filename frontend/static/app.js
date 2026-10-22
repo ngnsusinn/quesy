@@ -634,7 +634,21 @@
 
   function cleanOptionAnswer(text) {
     if (!text || typeof text !== 'string') return text || '';
-    return text.replace(/\{,\}/g, ',');
+    let s = text.replace(/\{,\}/g, ',').trim();
+    // Strip redundant leading option letter prefix like "A. 1" -> "1"
+    s = s.replace(/^[A-Da-d][\.\)\:\-\/]\s*/, '').trim();
+
+    // If the non-math text is all uppercase, convert to sentence case (only capitalize first character)
+    const parts = s.split(/(\$[^\$]+\$)/);
+    for (let i = 0; i < parts.length; i++) {
+      if (!parts[i].startsWith('$') && parts[i].trim().length > 2) {
+        const letters = parts[i].match(/[a-zA-ZÀ-ỹ]/g);
+        if (letters && letters.every((c) => c === c.toUpperCase())) {
+          parts[i] = parts[i].charAt(0).toUpperCase() + parts[i].slice(1).toLowerCase();
+        }
+      }
+    }
+    return parts.join('').trim();
   }
 
   function formatStemForDisplay(text, isOption = false) {
@@ -1406,17 +1420,34 @@
 
     // 2. If processing
     if (state.stagedExam && state.stagedExam.status === 'PROCESSING') {
+      const pct = state.digitizeJob.progressPercent || 15;
+      const stage = state.digitizeJob.progressStage || 'Đang tiền xử lý và bóc tách đề thi bằng AI...';
+      const is2Pass = state.digitizePipelineMode === 'test_2pass' || state.digitizeJob.pipelineMode === 'test_2pass';
       container.innerHTML = `
-        <div class="min-h-[440px] flex flex-col items-center justify-center p-8 text-center apple-card space-y-4">
+        <div class="min-h-[440px] flex flex-col items-center justify-center p-8 text-center apple-card space-y-5">
           <div class="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shadow-xs text-brand-600 animate-spin">
             <i data-lucide="loader-2" class="w-7 h-7"></i>
           </div>
-          <h3 class="text-base font-bold text-slate-900">
-            Đang Gõ Lại & Bóc Tách Đề Thi Bằng AI...
-          </h3>
-          <p class="text-xs text-slate-500 max-w-md leading-relaxed">
-            Hệ thống AI đang phân tích cấu trúc 3 phần (QĐ 764), bóc tách công thức Toán học KaTeX và phân loại YCCĐ (TT 32). Vui lòng đợi trong giây lát...
-          </p>
+          <div class="space-y-1">
+            <h3 class="text-base font-bold text-slate-900 flex items-center justify-center space-x-2">
+              <span>Đang Gõ Lại & Bóc Tách Đề Thi...</span>
+              ${is2Pass ? '<span class="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded-md">2-Pass Mode</span>' : ''}
+            </h3>
+            <p class="text-xs text-slate-500 max-w-md leading-relaxed" id="digitize-stage-desc">
+              ${escapeHtml(stage)}
+            </p>
+          </div>
+          
+          <!-- Sleek Real-Time Progress Bar -->
+          <div class="w-full max-w-md space-y-2">
+            <div class="w-full bg-slate-200/80 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200 shadow-inner">
+              <div id="digitize-progress-bar" class="h-full bg-gradient-to-r from-brand-600 via-indigo-600 to-emerald-500 transition-all duration-300 rounded-full" style="width: ${pct}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-600 px-1">
+              <span id="digitize-stage-label" class="truncate max-w-[280px]">${escapeHtml(stage)}</span>
+              <span id="digitize-progress-val" class="font-mono text-brand-600">${pct}%</span>
+            </div>
+          </div>
         </div>
       `;
       if (window.lucide) lucide.createIcons();
@@ -2219,6 +2250,99 @@
     showToast('Đã hủy và xóa tài liệu đã chọn.', 'info');
   }
 
+  let digitizePollInterval = null;
+
+  function pollJobProgress(jobId) {
+    if (digitizePollInterval) {
+      clearInterval(digitizePollInterval);
+      digitizePollInterval = null;
+    }
+
+    digitizePollInterval = setInterval(async () => {
+      try {
+        const jobRes = await fetch(`${API_BASE_URL}/digitize/jobs/${jobId}`);
+        if (!jobRes.ok) return;
+
+        const jobData = await jobRes.json();
+        const pct = jobData.progress_percent !== undefined ? jobData.progress_percent : 20;
+        const stage = jobData.progress_stage || 'Đang bóc tách đề thi...';
+
+        state.digitizeJob.progressPercent = pct;
+        state.digitizeJob.progressStage = stage;
+
+        // Smoothly update DOM progress elements directly
+        const pBar = document.getElementById('digitize-progress-bar');
+        const pVal = document.getElementById('digitize-progress-val');
+        const sLabel = document.getElementById('digitize-stage-label');
+        const sDesc = document.getElementById('digitize-stage-desc');
+
+        if (pBar) pBar.style.width = `${pct}%`;
+        if (pVal) pVal.innerText = `${pct}%`;
+        if (sLabel) sLabel.innerText = stage;
+        if (sDesc) sDesc.innerText = stage;
+
+        if (jobData.status === 'EXTRACTED') {
+          clearInterval(digitizePollInterval);
+          digitizePollInterval = null;
+
+          state.stagedExam.status = 'DONE';
+          state.digitizeJob.status = 'EXTRACTED';
+          state.digitizeJob.previewUrl = jobData.preview_url || state.digitizeJob.previewUrl;
+          state.digitizeJob.previewImages = jobData.preview_images || [];
+          state.digitizeJob.aiProvider = jobData.ai_provider;
+          state.digitizeJob.aiModel = jobData.ai_model;
+          state.digitizeJob.pipelineMode = jobData.pipeline_mode || state.digitizeJob.pipelineMode;
+          state.digitizeJob.detectedFigures = jobData.detected_figures || [];
+          state.digitizeJob.fileType = jobData.file_type || state.digitizeJob.fileType;
+
+          if (jobData.extracted_questions && jobData.extracted_questions.length > 0) {
+            state.digitizeJob.questions = jobData.extracted_questions.map((q, idx) => {
+              const id = q.id || idx + 1;
+              const rawConf = q.confidence_score !== undefined ? q.confidence_score : (q.confidence !== undefined ? q.confidence : 95);
+              const conf = rawConf <= 1.0 ? Math.round(rawConf * 100) : Math.round(rawConf);
+              return {
+                ...q,
+                id: id,
+                code: q.code || `EXTRACT-${String(id).padStart(3, '0')}`,
+                confidence: conf,
+                confidence_score: conf,
+                short_answer_value: cleanShortAnswer(q.short_answer_value),
+                options: (q.options || []).map((o) => ({ ...o, content: cleanOptionAnswer(o.content) }))
+              };
+            });
+            state.digitizeJob.activeQuestionId = state.digitizeJob.questions[0]?.id || 1;
+          }
+
+          let docTotalPages = 1;
+          if (jobData.preview_images && jobData.preview_images.length > 0) {
+            docTotalPages = jobData.preview_images.length;
+          } else if (state.stagedExam && state.stagedExam.files && state.stagedExam.files.length > 0) {
+            docTotalPages = state.stagedExam.files.length;
+          } else if (jobData.total_pages) {
+            docTotalPages = jobData.total_pages;
+          }
+          state.digitizeJob.totalPages = Math.max(1, docTotalPages);
+          state.digitizeJob.currentPage = 1;
+
+          renderDigitizeStudio();
+          const aiNote = (jobData.ai_provider && jobData.ai_provider !== 'local_fallback')
+            ? ` qua AI (${jobData.ai_provider.toUpperCase()} - ${jobData.ai_model})`
+            : '';
+          showToast(`Đã gõ lại và bóc tách thành công ${state.digitizeJob.questions.length} câu hỏi${aiNote}!`, 'success');
+        } else if (jobData.status === 'FAILED') {
+          clearInterval(digitizePollInterval);
+          digitizePollInterval = null;
+          state.stagedExam.status = 'STAGED';
+          state.digitizeJob.status = 'FAILED';
+          renderDigitizeStudio();
+          showToast(`Lỗi khi gõ đề: ${jobData.error_message || 'Xử lý file thất bại.'}`, 'error');
+        }
+      } catch (pollErr) {
+        console.warn('Progress poll tick error:', pollErr);
+      }
+    }, 700);
+  }
+
   async function startAIDigitize() {
     const files = state.stagedExam.files;
     if (!files || files.length === 0) {
@@ -2228,12 +2352,14 @@
 
     state.stagedExam.status = 'PROCESSING';
     state.digitizeJob.status = 'PROCESSING';
+    state.digitizeJob.progressPercent = 10;
+    state.digitizeJob.progressStage = 'Đang tải tệp lên máy chủ...';
     renderDigitizeStudio();
 
     const isMulti = files.length > 1;
     const displayName = isMulti ? `${files.length} trang ảnh đề thi` : files[0].name;
 
-    showToast(`Đang tải lên và gửi sang AI để gõ lại đề thi: ${displayName}...`, 'info');
+    showToast(`Đang tải lên và khởi động gõ lại đề: ${displayName}...`, 'info');
 
     const formData = new FormData();
     if (files.length === 1) {
@@ -2243,7 +2369,7 @@
         formData.append('files', f);
       }
     }
-    formData.append('sync', 'true');
+    formData.append('sync', 'false');
     formData.append('pipeline_mode', state.digitizePipelineMode || 'standard');
 
     try {
@@ -2268,65 +2394,12 @@
       state.digitizeJob.fileType = uploadResult.file_type || state.digitizeJob.fileType;
       state.digitizeJob.previewUrl = uploadResult.preview_url || `${API_BASE_URL}/digitize/jobs/${jobId}/preview`;
 
-      // Fetch job status and questions
-      const jobRes = await fetch(`${API_BASE_URL}/digitize/jobs/${jobId}`);
-      if (jobRes.ok) {
-        const jobData = await jobRes.json();
-        state.digitizeJob.previewUrl = jobData.preview_url || state.digitizeJob.previewUrl;
-        state.digitizeJob.previewImages = jobData.preview_images || [];
-        state.digitizeJob.aiProvider = jobData.ai_provider;
-        state.digitizeJob.aiModel = jobData.ai_model;
-        state.digitizeJob.pipelineMode = jobData.pipeline_mode || state.digitizeJob.pipelineMode;
-        state.digitizeJob.detectedFigures = jobData.detected_figures || [];
-        state.digitizeJob.fileType = jobData.file_type || state.digitizeJob.fileType;
-
-        if (jobData.extracted_questions && jobData.extracted_questions.length > 0) {
-          state.digitizeJob.questions = jobData.extracted_questions.map((q, idx) => {
-            const id = q.id || idx + 1;
-            const rawConf = q.confidence_score !== undefined ? q.confidence_score : (q.confidence !== undefined ? q.confidence : 95);
-            const conf = rawConf <= 1.0 ? Math.round(rawConf * 100) : Math.round(rawConf);
-            return {
-              ...q,
-              id: id,
-              code: q.code || `EXTRACT-${String(id).padStart(3, '0')}`,
-              confidence: conf,
-              confidence_score: conf,
-              short_answer_value: cleanShortAnswer(q.short_answer_value),
-              options: (q.options || []).map((o) => ({ ...o, content: cleanOptionAnswer(o.content) }))
-            };
-          });
-          state.digitizeJob.activeQuestionId = state.digitizeJob.questions[0]?.id || 1;
-
-          // Determine true document page count (1 for single image, N for multiple images/pdf)
-          let docTotalPages = 1;
-          if (jobData.preview_images && jobData.preview_images.length > 0) {
-            docTotalPages = jobData.preview_images.length;
-          } else if (state.stagedExam && state.stagedExam.files && state.stagedExam.files.length > 0) {
-            docTotalPages = state.stagedExam.files.length;
-          } else if (jobData.total_pages) {
-            docTotalPages = jobData.total_pages;
-          }
-          state.digitizeJob.totalPages = Math.max(1, docTotalPages);
-          state.digitizeJob.currentPage = 1;
-          state.stagedExam.status = 'DONE';
-
-          const aiNote = (jobData.ai_provider && jobData.ai_provider !== 'local_fallback')
-            ? ` qua AI (${jobData.ai_provider.toUpperCase()} - ${jobData.ai_model})`
-            : '';
-          showToast(`Đã gõ lại và bóc tách thành công ${state.digitizeJob.questions.length} câu hỏi${aiNote}!`, 'success');
-        } else if (jobData.status === 'FAILED') {
-          throw new Error(jobData.error_message || 'Xử lý file thất bại trên máy chủ.');
-        } else {
-          showToast(`Đã xử lý xong tệp nhưng chưa phát hiện câu hỏi nào.`, 'warning');
-        }
-      } else {
-        throw new Error(`Không lấy được trạng thái tác vụ (HTTP ${jobRes.status})`);
-      }
+      // Start live progress polling
+      pollJobProgress(jobId);
     } catch (err) {
-      console.warn('AI digitize error:', err);
-      showToast(`Lỗi khi gõ đề: ${err.message}`, 'error');
+      console.warn('AI digitize upload error:', err);
+      showToast(`Lỗi khi khởi chạy: ${err.message}`, 'error');
       state.stagedExam.status = 'STAGED';
-    } finally {
       renderDigitizeStudio();
     }
   }

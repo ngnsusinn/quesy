@@ -809,6 +809,7 @@ def process_digitize_job_2pass(job_id: str):
 
     from backend.services.image_enhancer import convert_document_to_images, enhance_page_image
     from backend.services.layout_segmenter import detect_and_crop_regions
+    from backend.routers.digitize import set_job_progress
 
     db: Session = SessionLocal()
     job = None
@@ -820,6 +821,7 @@ def process_digitize_job_2pass(job_id: str):
 
         job.status = "PROCESSING"
         db.commit()
+        set_job_progress(job_id, 15, "Đang chuẩn hóa tài liệu sang ảnh độ nét cao (200 DPI)...")
 
         project_root = Path(__file__).resolve().parent.parent.parent
         uploads_dir = project_root / "storage" / "uploads"
@@ -834,6 +836,8 @@ def process_digitize_job_2pass(job_id: str):
             p = Path(job.file_path)
             if p.suffix.lower() in [".png", ".jpg", ".jpeg", ".webp"]:
                 page_images = [p]
+
+        set_job_progress(job_id, 35, f"Đang tiền xử lý: Tẩy nền, khử nghiêng & tăng tương phản CLAHE ({len(page_images)} trang)...")
 
         # Step 2 & 3: Enhance pages and segment diagrams / tables
         enhanced_pages: List[Union[str, Path]] = []
@@ -855,18 +859,23 @@ def process_digitize_job_2pass(job_id: str):
             )
             all_figures.extend(figures)
 
+        set_job_progress(job_id, 55, f"Phân đoạn hoàn tất: Phát hiện {len(all_figures)} đồ thị/bảng. Bắt đầu AI Pass 1...")
+
         questions: List[Dict[str, Any]] = []
         avg_confidence: float = 95.0
 
         # Step 4: AI 2-Pass Digitization
         if default_ai_provider_service.is_configured():
+            set_job_progress(job_id, 70, f"AI Pass 1: Đang bóc tách văn bản, câu hỏi và đáp án...")
             logger.info(f"Executing 2-Pass AI Digitization ({default_ai_provider_service.provider.upper()}) for job {job_id}")
+            set_job_progress(job_id, 85, f"AI Pass 2: Đang dựng mã TikZ/Array song song cho {len(all_figures)} hình...")
             questions, avg_confidence = default_ai_provider_service.digitize_exam_2pass(
                 annotated_page_images=enhanced_pages,
                 detected_figures=all_figures,
                 filename=job.filename
             )
         else:
+            set_job_progress(job_id, 75, "Đang phân tích cấu trúc đề thi (chế độ cục bộ)...")
             logger.info("AI Provider not configured. Running offline simulation for 2-Pass pipeline.")
             questions, avg_confidence = parse_document_file(job.file_path, job.filename)
             # If figures detected in offline mode, attach them to questions
@@ -874,6 +883,8 @@ def process_digitize_job_2pass(job_id: str):
                 fig = all_figures[0]
                 crop_url = fig.get("crop_url", "")
                 questions[0]["stem"] += f'\n\n<div class="crop-figure-fallback my-3 text-center"><img src="{crop_url}" class="max-h-72 inline-block rounded border border-slate-200" alt="{fig.get("id")}"/><div class="text-xs text-slate-500 mt-1">Đồ thị / bảng phát hiện tự động ({fig.get("id")})</div></div>'
+
+        set_job_progress(job_id, 96, "Đang ghép nối đồ thị, chuẩn hóa phân số và hoàn tất...")
 
         # Attach metadata about detected figures
         for q in questions:
@@ -884,6 +895,7 @@ def process_digitize_job_2pass(job_id: str):
         job.confidence_score = avg_confidence
         job.status = "EXTRACTED"
         db.commit()
+        set_job_progress(job_id, 100, f"Hoàn tất bóc tách {len(questions)} câu hỏi và {len(all_figures)} hình!")
         logger.info(f"2-Pass Job {job_id} completed: {len(questions)} questions, {len(all_figures)} figures detected.")
     except Exception as e:
         logger.exception(f"Error in process_digitize_job_2pass ({job_id}): {e}")

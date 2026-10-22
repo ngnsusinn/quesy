@@ -23,6 +23,16 @@ STORAGE_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 STORAGE_ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "storage" / "assets"
 STORAGE_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
+# In-memory thread-safe progress tracker for real-time frontend status updates
+JOB_PROGRESS: Dict[str, Dict[str, Any]] = {}
+
+def set_job_progress(job_id: str, percent: int, stage_text: str):
+    """Updates live progress percentage and description for an AIDigitizeJob."""
+    JOB_PROGRESS[job_id] = {
+        "percent": max(0, min(100, int(percent))),
+        "stage": stage_text
+    }
+
 
 # ==========================================
 # PYDANTIC SCHEMAS
@@ -45,6 +55,8 @@ class DigitizeJobResponse(BaseModel):
     ai_model: Optional[str] = None
     pipeline_mode: Optional[str] = "standard"
     detected_figures: Optional[List[Dict[str, Any]]] = []
+    progress_percent: Optional[int] = 0
+    progress_stage: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -307,6 +319,13 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
             "url": f"/api/v1/digitize/assets/{asset_f.name}"
         })
 
+    # Retrieve live progress metrics
+    prog = JOB_PROGRESS.get(job.id, {})
+    default_pct = 100 if job.status == "EXTRACTED" else (0 if job.status == "PENDING" else 45)
+    progress_percent = prog.get("percent", default_pct)
+    default_stg = "Hoàn tất bóc tách!" if job.status == "EXTRACTED" else ("Đang xử lý đề thi..." if job.status == "PROCESSING" else "Chờ xử lý")
+    progress_stage = prog.get("stage", default_stg)
+
     return DigitizeJobResponse(
         id=job.id,
         filename=job.filename,
@@ -323,7 +342,9 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
         ai_provider=default_ai_provider_service.provider if default_ai_provider_service.is_configured() else "local_fallback",
         ai_model=default_ai_provider_service.model if default_ai_provider_service.is_configured() else "offline_rule_engine",
         pipeline_mode=mode,
-        detected_figures=detected_figures
+        detected_figures=detected_figures,
+        progress_percent=progress_percent,
+        progress_stage=progress_stage
     )
 
 

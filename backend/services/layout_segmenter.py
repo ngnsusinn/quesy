@@ -66,11 +66,15 @@ def detect_and_crop_regions(
         h_page, w_page = img.shape[:2]
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # 1. Detect Tables via Horizontal and Vertical Grid Segments
-        table_boxes = _detect_table_grids(gray)
+        # Exclusion boundaries: top 6.5% (header) and bottom 6.5% (footer)
+        header_y = int(h_page * 0.065)
+        footer_y = int(h_page * 0.935)
 
-        # 2. Detect Diagrams and Coordinate Plots
-        diagram_boxes = _detect_diagram_contours(gray, table_boxes, w_page, h_page)
+        # 1. Detect Tables via Grid Intersections (Must have >= 4 grid intersections)
+        table_boxes = _detect_table_grids(gray, header_y, footer_y, w_page, h_page)
+
+        # 2. Detect Mathematical Diagrams (Must have continuous non-text graphic curves/axes)
+        diagram_boxes = _detect_diagram_contours(gray, table_boxes, header_y, footer_y, w_page, h_page)
 
         # 3. Combine and sort all regions top-to-bottom, left-to-right (Reading Order)
         raw_regions: List[Dict[str, Any]] = []
@@ -163,22 +167,32 @@ def detect_and_crop_regions(
         return annotated_page_p, detected_figures
 
 
-def _detect_table_grids(gray: np.ndarray) -> List[Tuple[int, int, int, int]]:
-    """Detects table structures through horizontal and vertical grid line intersection."""
+def _detect_table_grids(
+    gray: np.ndarray,
+    header_y: int,
+    footer_y: int,
+    w_page: int,
+    h_page: int
+) -> List[Tuple[int, int, int, int]]:
+    """Detects genuine table structures through horizontal and vertical grid line intersections.
+    Rejects isolated fraction lines, underlines, and header/footer metadata frames.
+    """
     boxes: List[Tuple[int, int, int, int]] = []
     try:
-        # Binary inverse threshold
         thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 5)
 
-        # Detect horizontal lines
-        h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (35, 1))
+        # Detect horizontal lines (min length 40px)
+        h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 1))
         h_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, h_kernel)
 
-        # Detect vertical lines
-        v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 35))
+        # Detect vertical lines (min length 30px)
+        v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 30))
         v_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, v_kernel)
 
-        # Table structure is the combination of horizontal and vertical grids
+        # Intersections of horizontal and vertical lines: a true table has intersections >= 4
+        intersections = cv2.bitwise_and(h_lines, v_lines)
+
+        # Table structure is combination of horizontal and vertical grids
         table_mask = cv2.add(h_lines, v_lines)
         table_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
         table_mask = cv2.dilate(table_mask, table_kernel, iterations=2)
@@ -186,8 +200,24 @@ def _detect_table_grids(gray: np.ndarray) -> List[Tuple[int, int, int, int]]:
         contours, _ = cv2.findContours(table_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for c in contours:
             x, y, w, h = cv2.boundingRect(c)
-            # Filter table by minimum size (must be at least 160px wide and 55px tall)
-            if w > 160 and h > 55 and (w * h) > 12000:
+
+            # 1. Skip header and footer zones
+            if y < header_y or (y + h) > footer_y:
+                continue
+
+            # 2. Minimum size constraints: width >= 170px, height >= 55px
+            if w < 170 or h < 55 or (w * h) < 14000:
+                continue
+
+            # 3. Maximum size: cannot occupy entire page width/height
+            if w > (w_page * 0.92) or h > (h_page * 0.65):
+                continue
+
+            # 4. Strict Intersection Check: Verify this region contains real grid intersections
+            crop_intersections = intersections[y:y+h, x:x+w]
+            num_intersections, _, _, _ = cv2.connectedComponentsWithStats(crop_intersections)
+            # Must have at least 4 intersection points (e.g. 2x2 cells minimum)
+            if num_intersections - 1 >= 4:
                 boxes.append((x, y, w, h))
     except Exception as e:
         logger.debug(f"Table detection skipped: {e}")
@@ -197,21 +227,25 @@ def _detect_table_grids(gray: np.ndarray) -> List[Tuple[int, int, int, int]]:
 def _detect_diagram_contours(
     gray: np.ndarray,
     excluded_boxes: List[Tuple[int, int, int, int]],
+    header_y: int,
+    footer_y: int,
     w_page: int,
     h_page: int
 ) -> List[Tuple[int, int, int, int]]:
-    """Detects geometric figures, function plots, and coordinate axes."""
+    """Detects geometric figures, function plots, and coordinate axes.
+    Rejects text paragraphs, single formula lines, and headers/footers.
+    """
     boxes: List[Tuple[int, int, int, int]] = []
     try:
-        # Gaussian blur + Otsu threshold
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
 
-        # Mask out already detected tables
+        # Mask out header, footer, and already detected tables
+        cv2.rectangle(thresh, (0, 0), (w_page, header_y), 0, -1)
+        cv2.rectangle(thresh, (0, footer_y), (w_page, h_page), 0, -1)
         for ex, ey, ew, eh in excluded_boxes:
-            cv2.rectangle(thresh, (max(0, ex - 5), max(0, ey - 5)), (min(w_page, ex + ew + 5), min(h_page, ey + eh + 5)), 0, -1)
+            cv2.rectangle(thresh, (max(0, ex - 6), max(0, ey - 6)), (min(w_page, ex + ew + 6), min(h_page, ey + eh + 6)), 0, -1)
 
-        # Close small gaps in line drawings
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
         closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
@@ -223,14 +257,39 @@ def _detect_diagram_contours(
             area = w * h
             aspect_ratio = float(w) / max(1, h)
 
-            # Criteria for diagrams/plots (unlike normal text lines which are wide and short):
-            # 1. Minimum width > 110px and height > 90px
-            # 2. Area > 14,000 px^2
-            # 3. Aspect ratio between 0.35 and 2.8 (square-ish / boxy)
-            # 4. Less than 85% of total page width/height (avoid capturing whole page border)
-            if w > 110 and h > 90 and area > 14000:
-                if 0.35 <= aspect_ratio <= 2.8 and w < (w_page * 0.88) and h < (h_page * 0.65):
-                    candidate_boxes.append((x, y, w, h))
+            # Basic dimensions for educational math diagrams:
+            # Width >= 120px, Height >= 100px, Area >= 16,000 px^2
+            if w < 120 or h < 100 or area < 16000:
+                continue
+
+            # Must not be an elongated single-line paragraph or full-bleed banner
+            if not (0.35 <= aspect_ratio <= 2.8):
+                continue
+            if w > (w_page * 0.88) or h > (h_page * 0.65):
+                continue
+            if y < header_y or (y + h) > footer_y:
+                continue
+
+            # Advanced Stroke Analysis: Differentiate 2D diagram graphics from text paragraphs
+            crop_thresh = thresh[y:y+h, x:x+w]
+            num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(crop_thresh)
+
+            if num_labels <= 1:
+                continue
+
+            # Compute maximum diagonal length of connected stroke components in this box
+            max_component_diagonal = 0.0
+            for comp_idx in range(1, num_labels):
+                comp_w = stats[comp_idx, cv2.CC_STAT_WIDTH]
+                comp_h = stats[comp_idx, cv2.CC_STAT_HEIGHT]
+                diag = (comp_w ** 2 + comp_h ** 2) ** 0.5
+                if diag > max_component_diagonal:
+                    max_component_diagonal = diag
+
+            # Text letters are tiny (max diagonal < 45px).
+            # Diagrams (coordinate axes, parabola, geometric shapes) have long continuous strokes (diagonal >= 55px).
+            if max_component_diagonal >= 55.0:
+                candidate_boxes.append((x, y, w, h))
 
         boxes = _merge_close_boxes(candidate_boxes, max_distance=28)
     except Exception as e:

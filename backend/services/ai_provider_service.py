@@ -6,6 +6,7 @@ Conforms to MoET Circular 32/2018/TT-BGDĐT and Decision 764/QĐ-BGDĐT (format 
 
 import os
 import io
+import re
 import json
 import base64
 import logging
@@ -50,7 +51,12 @@ QUY TẮC CÔNG THỨC TOÁN HỌC & KÝ HIỆU (CHUẨN BẮT BUỘC):
    - Trong phần ĐÁP ÁN (options A, B, C, D và short_answer_value): TUYỆT ĐỐI KHÔNG dùng dấu ngoặc nhọn {} cho số thập phân! Viết số thập phân thông thường dạng "15,25" hoặc "3,9" (không viết 15{,}25 hay 3{,}9).
 3. Phân số: BẮT BUỘC dùng \dfrac thay vì \frac (ví dụ: \dfrac{a}{b}, \dfrac{1}{2}, \dfrac{-b}{2a}).
 4. Dấu vectơ: BẮT BUỘC dùng \overrightarrow thay vì \vec (ví dụ: \overrightarrow{u}, \overrightarrow{AB}, \overrightarrow{a}, \overrightarrow{0}).
-- Toàn bộ công thức toán, biến số, phân số, căn thức, vectơ, ma trận, tập hợp, bất phương trình PHẢI được định dạng chuẩn LaTeX đặt trong cặp dấu ${...}$ (ví dụ: ${y = x^3 - 3x + 1}$, ${\overrightarrow{u} = \left(1; 2; -3\right)}$, ${\dfrac{a}{b}}$, ${\mathbb{R}}$, ${\ge}$, ${\in}$, ${\overrightarrow{IJ} = \dfrac{1}{2}\left(\overrightarrow{CD} + \overrightarrow{AD} + \overrightarrow{DB}\right)}$). BẮT BUỘC bọc công thức trong ${...}$.
+5. QUY TẮC CHỮ HOA/THƯỜNG CỦA PHƯƠNG ÁN (OPTIONS):
+   - Trường 'content' của phương án KHÔNG được lặp lại tiền tố nhãn 'A.', 'B.', 'C.', 'D.' (chỉ ghi content: '1' hoặc '$x = 1$', TUYỆT ĐỐI KHÔNG ghi content: 'A. 1'). Nhãn 'A', 'B', 'C', 'D' được lưu riêng ở trường 'label'.
+   - Chỉ in hoa chữ cái đầu câu của phương án, TUYỆT ĐỐI KHÔNG VIẾT IN HOA TOÀN BỘ cả câu (ví dụ: viết 'Hàm số đồng biến trên khoảng...' thay vì 'HÀM SỐ ĐỒNG BIẾN TRÊN KHOẢNG...').
+- Toàn bộ công thức toán, biến số, phân số, căn thức, vectơ, ma trận, tập hợp, bất phương trình PHẢI được định dạng chuẩn LaTeX đặt trong cặp dấu ${...}$ (ví dụ: ${y = x^3 - 3x + 1}$, ${\overrightarrow{u} = \left(1; 2; -3
+ight)}$, ${\dfrac{a}{b}}$, ${\mathbb{R}}$, ${\ge}$, ${\in}$, ${\overrightarrow{IJ} = \dfrac{1}{2}\left(\overrightarrow{CD} + \overrightarrow{AD} + \overrightarrow{DB}
+ight)}$). BẮT BUỘC bọc công thức trong ${...}$.
 - Tuyệt đối không để sót ký tự rác chữ Hán hay mã nhị phân lỗi.
 
 QUY TẮC NHẬN DIỆN VÀ TÁI TẠO ĐỒ THỊ, HÌNH VẼ, BẢNG BIẾN THIÊN BẰNG TIKZ / ARRAY (CHUẨN BẮT BUỘC):
@@ -255,6 +261,27 @@ def repair_llm_json(s: str) -> str:
                 i += 1
 
     return "".join(out)
+
+
+def normalize_option_text(text: str) -> str:
+    """Cleans option text:
+    1. Removes redundant leading label prefixes ('A. ', 'A) ', 'A - ') to avoid 'A. A. 1'.
+    2. Converts accidental ALL-CAPS text to standard sentence case (only capitalize first character).
+    """
+    if not text:
+        return ""
+    s = text.strip()
+    # Strip leading label prefix like "A. ", "A) ", "a. ", "A - "
+    s = re.sub(r'^[A-Da-d][\.\)\:\-\/]\s*', '', s).strip()
+
+    # If the non-math text is all uppercase, convert to sentence case
+    parts = re.split(r'(\$[^\$]+\$)', s)
+    for idx, part in enumerate(parts):
+        if not part.startswith('$') and len(part.strip()) > 2:
+            letters = [c for c in part if c.isalpha()]
+            if letters and all(c.isupper() for c in letters):
+                parts[idx] = part[0].upper() + part[1:].lower()
+    return "".join(parts).strip()
 
 
 class AIProviderService:
@@ -557,6 +584,8 @@ class AIProviderService:
                     c = sanitize_latex(repair_math_delimiters(str(opt.get("content", ""))))
                     # Do not use {,} brackets for decimal numbers in answers
                     c = c.replace("{,}", ",")
+                    # Normalize option text: strip redundant "A. " and normalize all-caps
+                    c = normalize_option_text(c)
                     lbl = opt.get("label", chr(65 + o_idx))
                     opts.append({
                         "label": lbl,
@@ -688,16 +717,34 @@ class AIProviderService:
             if orig_sys:
                 globals()["SYSTEM_PROMPT"] = orig_sys
 
-        # Pass 2: Process each detected figure
+        # Pass 2: Process all detected figures in parallel to maximize speed
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
         figure_latex_map: Dict[str, str] = {}
-        for fig in detected_figures:
-            fig_id = fig.get("id", "")
-            crop_path = fig.get("crop_path")
-            fig_type = fig.get("type", "diagram")
-            if crop_path and Path(crop_path).exists():
-                latex_code = self.convert_figure_to_latex(crop_path, figure_type=fig_type)
-                if latex_code:
-                    figure_latex_map[fig_id] = latex_code
+        valid_figures = [
+            fig for fig in detected_figures
+            if fig.get("crop_path") and Path(str(fig["crop_path"])).exists()
+        ]
+
+        if valid_figures:
+            max_workers = min(6, len(valid_figures))
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_to_fig = {
+                    executor.submit(
+                        self.convert_figure_to_latex,
+                        fig["crop_path"],
+                        fig.get("type", "diagram")
+                    ): fig for fig in valid_figures
+                }
+                for future in as_completed(future_to_fig):
+                    fig = future_to_fig[future]
+                    fig_id = str(fig.get("id", ""))
+                    try:
+                        latex_code = future.result()
+                        if latex_code:
+                            figure_latex_map[fig_id] = latex_code
+                    except Exception as ex:
+                        logger.warning(f"Parallel figure conversion error for {fig_id}: {ex}")
 
         # Stitching & Fallback
         stitched_questions = self.stitch_figures(questions, detected_figures, figure_latex_map)

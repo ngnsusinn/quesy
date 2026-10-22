@@ -176,12 +176,14 @@ def test_api_upload_test_endpoint_and_assets():
     assert data["pipeline_mode"] == "test_2pass"
     job_id = data["job_id"]
 
-    # 2. Check job status returns pipeline_mode and detected_figures
+    # 2. Check job status returns pipeline_mode, detected_figures, and live progress
     status_res = client.get(f"/api/v1/digitize/jobs/{job_id}")
     assert status_res.status_code == 200
     status_data = status_res.json()
     assert status_data["pipeline_mode"] == "test_2pass"
     assert isinstance(status_data["detected_figures"], list)
+    assert "progress_percent" in status_data
+    assert "progress_stage" in status_data
 
     # 3. Test asset serving endpoint
     # Create dummy asset in storage/assets/
@@ -198,3 +200,18 @@ def test_api_upload_test_endpoint_and_assets():
     # Clean up test asset
     if test_asset.exists():
         test_asset.unlink()
+
+
+def test_normalize_option_text():
+    """Verifies multiple choice option text normalization:
+    1. Removes redundant leading label prefixes ('A. ', 'A) ').
+    2. Converts accidental all-caps text to sentence case while preserving math.
+    """
+    from backend.services.ai_provider_service import normalize_option_text
+
+    assert normalize_option_text("A. 1") == "1"
+    assert normalize_option_text("B) $y = x^2 - 1$") == "$y = x^2 - 1$"
+    assert normalize_option_text("C. HÀM SỐ ĐỒNG BIẾN TRÊN KHOẢNG (0; 1)") == "Hàm số đồng biến trên khoảng (0; 1)"
+    assert normalize_option_text("D. TẤT CẢ CÁC ĐÁP ÁN ĐỀU ĐÚNG") == "Tất cả các đáp án đều đúng"
+    assert normalize_option_text("x = 2") == "x = 2"
+
