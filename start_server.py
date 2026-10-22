@@ -41,7 +41,7 @@ def find_pid_by_port(port: int) -> list:
     return list(set(pids))
 
 
-def free_port(port: int) -> bool:
+def free_port(port: int, host: str = "127.0.0.1") -> bool:
     """Attempts to kill processes occupying the port."""
     pids = find_pid_by_port(port)
     if not pids:
@@ -55,7 +55,15 @@ def free_port(port: int) -> bool:
         except Exception as e:
             print(f"    -> Không thể tắt PID {pid}: {e}")
             success = False
-    return success and not is_port_in_use(port)
+
+    # Allow Windows TCP stack a brief moment (up to 1.5s) to release socket
+    import time
+    for _ in range(8):
+        if not is_port_in_use(port, host):
+            return True
+        time.sleep(0.2)
+
+    return not is_port_in_use(port, host)
 
 
 def find_next_available_port(start_port: int = 8000, max_attempts: int = 20, host: str = "127.0.0.1") -> int:

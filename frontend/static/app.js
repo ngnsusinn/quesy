@@ -788,6 +788,16 @@
     // 2. Auto-wrap \begin{array}...\end{array} if not wrapped in $$ at all
     res = res.replace(/(?<!\$\$)(?<!\$)\\begin\{(array|matrix|pmatrix|bmatrix|vmatrix|cases)\}([\s\S]*?)\\end\{\1\}(?!\$\$)(?!\$)/g, (m, env, inner) => `$$\\begin{${env}}${inner}\\end{${env}}$$`);
 
+    // 2.5 Normalize variation table array column specs: strip rogue vertical bars '|' and outer borders
+    res = res.replace(/\\begin\{array\}\{([^}]+)\}([\s\S]*?)\\end\{array\}/g, (m, colSpec, body) => {
+      if (body.includes('\\nearrow') || body.includes('\\searrow') || body.includes('-\\infty') || body.includes('+\\infty')) {
+        let pureCols = colSpec.replace(/\|/g, '').trim();
+        let normCol = pureCols ? pureCols[0] + '|' + pureCols.slice(1) : 'c|ccccccc';
+        return `\\begin{array}{${normCol}}${body}\\end{array}`;
+      }
+      return m;
+    });
+
     const processMath = (mathInner) => {
       let m = mathInner;
 

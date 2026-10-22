@@ -260,22 +260,29 @@ def render_math_html(text: str) -> str:
 
 
 def convert_latex_table_to_html(table_latex: str) -> str:
-    """Converts a LaTeX array or tabular environment into a clean, bordered HTML table."""
+    """Converts a LaTeX array or tabular environment into a clean HTML table.
+    Specializes between statistical data tables (bordered) and variation tables (clean lines, no cell boxes).
+    """
     body_match = re.search(r'\\begin\{(?:array|tabular)\}(?:\{[^}]*\})?(.*?)\\end\{(?:array|tabular)\}', table_latex, re.DOTALL)
     if not body_match:
         return ""
 
     body = body_match.group(1).strip()
+    is_variation_table = any(k in body for k in [r"\nearrow", r"\searrow", r"\infty", r"-\infty", r"+\infty", r"f'", r"y'"])
     lines = body.split(r"\\")
     rows_html = []
 
-    for line in lines:
+    for r_idx, line in enumerate(lines):
         cleaned_line = line.replace(r"\hline", "").strip()
         if not cleaned_line:
             continue
         cells = [c.strip() for c in cleaned_line.split("&")]
         cells_html = []
         for cell in cells:
+            if not cell:
+                # Empty cell stays empty: prevents $$ from appearing in empty cells!
+                cells_html.append("<td></td>")
+                continue
             if cell.startswith(r"\text{") and cell.endswith("}"):
                 c_content = cell[6:-1].strip()
             elif not cell.startswith("$"):
@@ -284,13 +291,21 @@ def convert_latex_table_to_html(table_latex: str) -> str:
                 c_content = cell
             rendered_cell = render_math_html(c_content)
             cells_html.append(f"<td>{rendered_cell}</td>")
-        rows_html.append(f"<tr>{''.join(cells_html)}</tr>")
+
+        tr_class = ""
+        if is_variation_table:
+            if r_idx == 0:
+                tr_class = ' class="row-x"'
+            elif r_idx == 1:
+                tr_class = ' class="row-fprime"'
+        rows_html.append(f"<tr{tr_class}>{''.join(cells_html)}</tr>")
 
     if not rows_html:
         return ""
 
+    tbl_class = "variation-table" if is_variation_table else "exam-table"
     return f"""
-    <table class="exam-table">
+    <table class="{tbl_class}">
       {''.join(rows_html)}
     </table>
     """
@@ -479,6 +494,32 @@ def generate_digitized_exam_latex_pdf(
       font-size: 10.5pt;
     }}
 
+    /* Variation Table (Bảng biến thiên): Clean borders, no boxes cutting through arrows */
+    .variation-table {{
+      margin: 10px auto;
+      border-collapse: collapse;
+      border: none;
+      page-break-inside: avoid;
+    }}
+    .variation-table td {{
+      border: none;
+      padding: 3px 10px;
+      text-align: center;
+      font-size: 10.5pt;
+      min-width: 26px;
+    }}
+    .variation-table tr.row-x td {{
+      border-bottom: 0.9px solid #000;
+    }}
+    .variation-table tr.row-fprime td {{
+      border-bottom: 0.9px solid #000;
+    }}
+    .variation-table td:first-child {{
+      border-right: 0.9px solid #000;
+      padding-right: 14px;
+      font-weight: bold;
+    }}
+
     .tikz-container, .tikz-vector-container {{
       text-align: center;
       margin: 8px auto;
@@ -575,7 +616,7 @@ def generate_digitized_exam_latex_pdf(
         # Check for TikZ diagram
         tikz_match = re.search(r'\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}', stem)
         # Check for LaTeX table array
-        table_match = re.search(r'(\\$\$)?\\begin\{(?:array|tabular)\}(?:\{[^}]*\})?(.*?)\\end\{(?:array|tabular)\}(\\$\$)?', stem, re.DOTALL)
+        table_match = re.search(r'(?:\$\$\s*)?\\begin\{(?:array|tabular)\}(?:\{[^}]*\})?(.*?)\\end\{(?:array|tabular)\}(?:\s*\$\$)?', stem, re.DOTALL)
 
         html_content += f'<div class="question-block">\n'
 
@@ -610,6 +651,9 @@ def generate_digitized_exam_latex_pdf(
         elif table_match:
             pre_text = stem[:table_match.start()].strip()
             post_text = stem[table_match.end():].strip()
+            # Clean off any stray $$ delimiter left at edges
+            pre_text = re.sub(r'\$\$\s*$', '', pre_text).strip()
+            post_text = re.sub(r'^\s*\$\$', '', post_text).strip()
             table_latex = table_match.group(0)
 
             html_content += f'<div class="question-stem"><span class="question-number">Câu {idx + 1}.</span> {render_math_html(pre_text)}</div>\n'
