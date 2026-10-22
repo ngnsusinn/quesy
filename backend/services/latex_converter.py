@@ -171,6 +171,22 @@ def sanitize_latex(text: str) -> str:
         s
     )
 
+    # 3.5 Normalize variation table array column specs: strip outer and rogue internal vertical bars '|'
+    # Ensures variation tables have strictly ONE vertical separator after the label column (e.g. c|ccccccc)
+    def clean_variation_array(m):
+        col_spec = m.group(1).strip()
+        body = m.group(2)
+        if any(sym in body for sym in (r"\nearrow", r"\searrow", r"-\infty", r"+\infty", r"\infty", r"f'", r"y'")):
+            pure_cols = col_spec.replace("|", "").strip()
+            if pure_cols:
+                norm_col = pure_cols[0] + "|" + pure_cols[1:]
+            else:
+                norm_col = "c|ccccccc"
+            return f"\\begin{{array}}{{{norm_col}}}{body}\\end{{array}}"
+        return m.group(0)
+
+    s = re.sub(r'\\begin\{array\}\{([^}]+)\}([\s\S]*?)\\end\{array\}', clean_variation_array, s)
+
     # 4. Handle unicode superscripts and subscripts outside or inside math
     for uni, repl in SUPERSCRIPT_MAP.items():
         if uni in s:

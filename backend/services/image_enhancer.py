@@ -171,7 +171,7 @@ def _convert_docx_to_page_images(
             f"--print-to-pdf={str(temp_pdf.resolve())}",
             temp_html.resolve().as_uri()
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=25)
         if temp_pdf.exists() and temp_pdf.stat().st_size > 1000:
             doc = pymupdf.open(str(temp_pdf))
             pages = []

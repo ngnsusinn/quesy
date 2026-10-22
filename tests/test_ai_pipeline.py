@@ -167,6 +167,13 @@ def test_latex_converter():
     mtef_raw = hdr + b"\x01\x02\x00\x79\x00\x02\x00\x3d\x00\x03\x06\x00\x00\x01\x02\x00\x31\x00\x00\x01\x02\x00\x78\x00\x00\x00\x00"
     decoded_mtef = decode_mtef(mtef_raw)
     print(f"Decoded MTEF Formula: {decoded_mtef}")
+
+    # Test 5: Variation table array normalization (strip rogue internal and outer '|')
+    raw_array = r"$$\begin{array}{|c|ccccccc|} \hline x & -\infty & & -2 & & 1 & & +\infty \\ \hline f'(x) & & + & 0 & - & 0 & + & \\ \hline f(x) & & \nearrow & & \searrow & & \nearrow & \\ \hline \end{array}$$"
+    cleaned_array = sanitize_latex(raw_array)
+    assert r"\begin{array}{c|ccccccc}" in cleaned_array
+    assert r"|c|" not in cleaned_array
+    print("✓ Variation table array column normalization passed")
     assert "\\dfrac" in decoded_mtef or "\\frac" in decoded_mtef, "MTEF fraction not decoded"
     print("✓ MTEF binary decoding passed")
 

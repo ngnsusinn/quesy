@@ -81,7 +81,11 @@ QUY TẮC NHẬN DIỆN VÀ TÁI TẠO ĐỒ THỊ, HÌNH VẼ, BẢNG BIẾN TH
        \tkzTabVar{+/ $+\infty$, -/$-2$, +/$4$, -/$-\infty$}
        \end{tikzpicture}
        (Đối với tiệm cận đứng, dùng +D-/$+\infty$/$-\infty$ hoặc -D+).
-     + Cách 2 (Mảng KaTeX): Bọc chuẩn trong display math KaTeX: $$\begin{array}{|c|c|...|} \hline ... \hline \end{array}$$
+     + Cách 2 (Mảng KaTeX): Dùng display math KaTeX: $$\begin{array}{c|ccccccc} \hline ... \hline \end{array}$$
+   - QUY TẮC VẠCH ĐỨNG '|' TRONG BẢNG BIẾN THIÊN:
+     + Trong bảng biến thiên, chỉ có DUY NHẤT 1 vạch đứng ngăn cách sau cột nhãn đầu tiên (c|ccccccc).
+     + TUYỆT ĐỐI KHÔNG đặt vạch đứng '|' giữa các mốc giá trị x hay giữa -\infty và các số của hàm số liên tục, kể cả khi trên ảnh đề thi gốc giáo viên lỡ in nhầm đường viền ô bảng Word.
+     + Vạch đứng đôi '||' chỉ xuất hiện DUY NHẤT tại điểm gián đoạn / tiệm cận đứng của hàm phân thức.
    - TUYỆT ĐỐI KHÔNG để thiếu dấu đóng $$ và không viết lệnh \left bên trong thẻ text \text{...}.
 
 QUY TẮC PHÂN LOẠI CHUẨN THÔNG TƯ 32/2018/TT-BGDĐT (KHÔNG PHÂN CHIA BỘ SÁCH):

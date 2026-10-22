@@ -685,7 +685,7 @@ def generate_digitized_exam_latex_pdf(
             f"--print-to-pdf={str(output_pdf.resolve())}",
             temp_html.resolve().as_uri()
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=25)
         success = output_pdf.exists() and output_pdf.stat().st_size > 1000
         return success
     except Exception as e:

@@ -1795,7 +1795,7 @@ def convert_html_to_pdf_browser(html_path: Path, pdf_path: Path) -> bool:
             f"--print-to-pdf={str(pdf_path.resolve())}",
             html_path.resolve().as_uri()
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=12)
         return pdf_path.exists() and pdf_path.stat().st_size > 1000
     except Exception as e:
         logger.warning(f"Browser HTML-to-PDF conversion failed: {e}")
@@ -2301,7 +2301,7 @@ try {{
     $word.Quit()
 }}
 """
-            res = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], capture_output=True, text=True, timeout=12)
+            res = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=12)
             if pdf_p.exists() and pdf_p.stat().st_size > 1000:
                 return True
         except Exception as e:
@@ -2781,7 +2781,7 @@ def generate_digitized_exam_docx(
         # Check if stem contains TikZ diagram
         tikz_match = re.search(r'\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}', stem)
         # Check if stem contains LaTeX table array
-        table_match = re.search(r'(\$\$)?\\begin\{(?:array|tabular)\}(?:\{[^}]*\})?(.*?)\\end\{(?:array|tabular)\}(\$\$)?', stem, re.DOTALL)
+        table_match = re.search(r'(?:\$\$\s*)?\\begin\{(?:array|tabular)\}(?:\{[^}]*\})?(.*?)\\end\{(?:array|tabular)\}(?:\s*\$\$)?', stem, re.DOTALL)
 
         if tikz_match:
             tikz_code = tikz_match.group(0)
@@ -2815,6 +2815,9 @@ def generate_digitized_exam_docx(
         elif table_match:
             pre_text = stem[:table_match.start()].strip()
             post_text = stem[table_match.end():].strip()
+            # Clean off any stray $$ delimiter left at edges
+            pre_text = re.sub(r'\$\$\s*$', '', pre_text).strip()
+            post_text = re.sub(r'^\s*\$\$', '', post_text).strip()
 
             p_q = doc.add_paragraph()
             p_q.paragraph_format.space_before = Pt(4)
@@ -2822,7 +2825,8 @@ def generate_digitized_exam_docx(
             add_math_text_to_paragraph(p_q, pre_text, bold_prefix=f"Câu {idx + 1}. ", default_font_size=11, math_format=math_format)
 
             # Parse array rows and columns into a clean native Word table
-            body = table_match.group(2).strip()
+            body = table_match.group(1).strip()
+            is_variation_table = any(k in body for k in [r"\nearrow", r"\searrow", r"\infty", r"-\infty", r"+\infty"])
             lines = body.split(r"\\")
             grid = []
             for line in lines:
@@ -2838,12 +2842,21 @@ def generate_digitized_exam_docx(
                 for r_idx, row_cells in enumerate(grid):
                     for c_idx, cell_text in enumerate(row_cells):
                         cell = tbl.cell(r_idx, c_idx)
-                        _set_cell_border(cell, top="single", bottom="single", left="single", right="single", sz="4")
+                        if is_variation_table:
+                            # Standard variation table borders: only horizontal dividers and right line of label column
+                            b_bottom = "single" if r_idx in (0, 1) else "none"
+                            b_right = "single" if c_idx == 0 else "none"
+                            _set_cell_border(cell, top="none", bottom=b_bottom, left="none", right=b_right, sz="4")
+                        else:
+                            _set_cell_border(cell, top="single", bottom="single", left="single", right="single", sz="4")
                         cp = cell.paragraphs[0]
                         cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
                         cp.paragraph_format.space_before = Pt(2)
                         cp.paragraph_format.space_after = Pt(2)
-                        ct = cell_text
+                        ct = cell_text.strip()
+                        if not ct:
+                            # CRUCIAL: Empty cell stays empty! Never wrap into $$!
+                            continue
                         if ct.startswith(r"\text{") and ct.endswith("}"):
                             ct = ct[6:-1].strip()
                         elif not ct.startswith("$"):
