@@ -78,16 +78,16 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 ### 2.3. FR-02.1: Không Gian Soạn Thảo Đề Thi 3 Ngăn (3-Pane Workspace)
 - **Màn hình liên quan:** `SCR-COMPOSER-STUDIO`
 - **Bố cục giao diện:**
-  - **Khung bên trái (30%):** Trợ lý Soạn thảo AI (assistant-ui clone) với hội thoại tương tác, các chip gợi ý nhanh và nút 1-click "Chèn vào con trỏ", "Thay thế", "Sao chép".
-  - **Khung ở giữa (40%):** Trình soạn thảo mã nguồn LaTeX với số dòng (gutter), phím tắt thụt lề Tab, tự động đóng ngoặc, thanh chèn ký hiệu toán học nhanh và cấu trúc hình học TikZ/tkz-tab.
-  - **Khung bên phải (30%):** Bản xem trước PDF Trực tiếp (Live PDF Preview) biên dịch tức thì qua Chromium Headless với font Computer Modern Unicode (CMU Serif) thuần $\LaTeX$.
+  - **Khung bên trái (30%):** Trợ lý Soạn thảo AI (assistant-ui clone) với hội thoại tương tác, các chip gợi ý nhanh (`+ ex_test`, `+ BBT tkz-tab`, `+ Đúng/Sai QĐ 764`, `+ Trả lời ngắn`) và nút 1-click "Chèn vào con trỏ", "Thay thế", "Sao chép".
+  - **Khung ở giữa (40%):** Trình soạn thảo mã nguồn LaTeX với số dòng (gutter), phím tắt thụt lề Tab, tự động đóng ngoặc, thanh chèn ký hiệu toán học nhanh và các nút snippet chuẩn gói `ex_test.sty` (`+ ex (4 PA)`, `+ ex (Đ/S)`, `+ ex (Điền số)`, `+ immini`, `+ BBT tkz-tab`).
+  - **Khung bên phải (30%):** Bản xem trước PDF Trực tiếp (Live PDF Preview) biên dịch tức thì qua Tectonic XeTeX Engine (Docker container trên host ARM) hoặc Chromium Headless với font Computer Modern Unicode (CMU Serif) thuần $\LaTeX$.
 
 ### 2.4. FR-02.2: Tự Động Biên Dịch, Lưu Trữ Cục Bộ & Xuất Bản Đề Thi
 - **Hành vi thao tác:**
   - **Tự động biên dịch (Auto-compile):** Tự động biên dịch sau khi ngừng gõ 800ms hoặc nhấn phím tắt `Ctrl+S` / `Cmd+S`.
   - **Lưu trữ tự động (Local Storage Persistence):** Tự động lưu bản nháp văn bản và hội thoại vào `localStorage`, khôi phục nguyên vẹn khi tải lại trang (F5).
-  - **Nạp mẫu đề thi chuẩn:** Cung cấp sẵn các mẫu: Đề thi Chuẩn Thông tư 32 (3 phần), Chuyên đề Bảng biến thiên tkz-tab, Chuyên đề Hình học không gian TikZ, Tài liệu mới.
-  - **Lưu vào Ngân hàng:** Trích xuất các câu hỏi từ mã LaTeX sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table) chỉ với 1 click.
+  - **Nạp mẫu đề thi chuẩn:** Cung cấp sẵn các mẫu: Đề thi Chuẩn Quốc Gia 2025 (`ex_test` v3.3), Đề thi Chuẩn Thông tư 32 (3 phần), Chuyên đề Bảng biến thiên tkz-tab, Chuyên đề Hình học không gian TikZ, Tài liệu mới.
+  - **Lưu vào Ngân hàng:** Trích xuất các câu hỏi từ mã LaTeX sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table) chỉ với 1 click, hỗ trợ đồng thời cả cú pháp `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`).
   - **Tải tệp PDF & .TEX:** Xuất bản tệp PDF vector-crisp 100% font CMU Serif và tệp nguồn LaTeX `.tex`.
 
 ---

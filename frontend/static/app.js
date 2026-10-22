@@ -3927,6 +3927,10 @@
       '\\sqrt{x}': '\\sqrt{x}',
       '\\overrightarrow{u}': '\\overrightarrow{u}',
       '\\in \\mathbb{R}': '\\in \\mathbb{R}',
+      'extest_ex': `\\begin{ex}\nCho hàm số $y = f(x)$... Mệnh đề nào sau đây đúng?\n\\choice\n{\\True Phương án A}\n{Phương án B}\n{Phương án C}\n{Phương án D}\n\\begin{loigiai}\nLời giải chi tiết cho câu hỏi.\n\\end{loigiai}\n\\end{ex}\n`,
+      'extest_choiceTF': `\\begin{ex}\nCho hàm số $y = f(x)$... Xét tính đúng/sai của các khẳng định sau:\n\\choiceTF\n{\\True Khẳng định a) đúng.}\n{Khẳng định b) sai.}\n{\\True Khẳng định c) đúng.}\n{Khẳng định d) sai.}\n\\begin{loigiai}\n\\begin{itemchoice}\n\\itemch Lời giải ý a.\n\\itemch Lời giải ý b.\n\\itemch Lời giải ý c.\n\\itemch Lời giải ý d.\n\\end{itemchoice}\n\\end{loigiai}\n\\end{ex}\n`,
+      'extest_shortans': `\\begin{ex}\nTính giá trị của biểu thức $P = ...$\n\\shortans{12}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n`,
+      'extest_immini': `\\immini{\n  Nội dung câu hỏi đặt ở đây...\n  \\choice\n  {\\True $A$}\n  {$B$}\n  {$C$}\n  {$D$}\n}{\n  \\begin{tikzpicture}[scale=0.6, >=stealth]\n    \\draw[->] (-2.5,0) -- (2.5,0) node[right] {$x$};\n    \\draw[->] (0,-2.5) -- (0,2.5) node[above] {$y$};\n    \\node[below left] at (0,0) {$O$};\n  \\end{tikzpicture}\n}\n`,
       'tkz_tab': `\\begin{tikzpicture}\n  \\tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]\n  {$x$/.6, $f'(x)$/.6, $f(x)$/2}\n  {$-\\infty$,$-2$,$1$,$+\\infty$}\n  \\tkzTabLine{,+,0,-,0,+,}\n  \\tkzTabVar{-/$-\\infty$,+/$4$,-/$-1$,+/$+\\infty$}\n\\end{tikzpicture}\n`,
       'tikz_cubic': `\\begin{tikzpicture}[scale=0.65, >=stealth]\n  \\clip (-3.8, -5.5) rectangle (4.2, 5.5);\n  \\draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};\n  \\draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};\n  \\node[below left] at (0, 0) {$O$};\n  \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};\n  \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};\n  \\draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n  \\fill (-1, 4) circle (1.5pt);\n  \\fill (2, -3) circle (1.5pt);\n\\end{tikzpicture}\n`,
       'tikz_rational': `\\begin{tikzpicture}[scale=0.7, >=stealth]\n  \\clip (-4.5, -4.5) rectangle (4.5, 5.5);\n  \\draw[->, thick] (-4.2, 0) -- (4.2, 0) node[right] {$x$};\n  \\draw[->, thick] (0, -4.2) -- (0, 5.2) node[above] {$y$};\n  \\node[below left] at (0, 0) {$O$};\n  \\draw[dashed, thick] (1, -4.2) -- (1, 5.2) node[above] {$x=1$};\n  \\draw[dashed, thick] (-4.2, 2) -- (4.2, 2) node[right] {$y=2$};\n  \\draw[thick, black, smooth, domain=-4:0.7, samples=80] plot (\\x, {(2*\\x - 1)/(\\x - 1)});\n  \\draw[thick, black, smooth, domain=1.3:4, samples=80] plot (\\x, {(2*\\x - 1)/(\\x - 1)});\n\\end{tikzpicture}\n`,
@@ -3965,6 +3969,8 @@
       const editor = document.getElementById('composer-editor-input');
       if (savedContent && savedContent.trim()) {
         this.currentLatex = savedContent;
+      } else if (this.templates['ex_test_standard_exam']) {
+        this.currentLatex = this.templates['ex_test_standard_exam'].latex;
       } else if (this.templates['circular_32_full_exam']) {
         this.currentLatex = this.templates['circular_32_full_exam'].latex;
       } else {

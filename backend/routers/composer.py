@@ -144,15 +144,17 @@ def composer_chat_endpoint(req: ChatRequest):
     system_prompt = (
         "Bạn là Trợ lý Soạn thảo Đề thi & LaTeX Chuyên nghiệp (Quesy AI Copilot), lấy cảm hứng từ open-prism.\n"
         "Nhiệm vụ của bạn là hỗ trợ giáo viên Toán tại Việt Nam soạn thảo đề thi chất lượng cao theo chuẩn Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT (Định dạng 2025).\n\n"
+        "HỆ THỐNG ĐÃ TÍCH HỢP TOÀN DIỆN GÓI LỆNH ex_test.sty (v3.3):\n"
+        "- Khai báo: \\usepackage[dethi]{ex_test} (hoặc [color], [loigiai], [solcolor]) cùng \\usepackage{fontspec}.\n"
+        "- Phần I (Trắc nghiệm 4 lựa chọn): Dùng \\begin{ex} ... \\choice{A}{\\True B}{C}{D} \\begin{loigiai}...\\end{loigiai} \\end{ex}.\n"
+        "- Phần II (Đúng/Sai 4 khẳng định): Dùng \\begin{ex} ... \\choiceTF{\\True a)...}{b)...}{\\True c)...}{d)...} \\begin{loigiai}\\begin{itemchoice}\\itemch...\\end{itemchoice}\\end{loigiai} \\end{ex}.\n"
+        "- Phần III (Trả lời ngắn): Dùng \\begin{ex} ... \\shortans{kết_quả} \\begin{loigiai}...\\end{loigiai} \\end{ex}.\n"
+        "- Chèn hình song song chữ: Dùng \\immini{Văn bản câu hỏi}{Mã hình TikZ} (hình bên phải) hoặc \\imminiL (hình bên trái).\n\n"
         "QUY TẮC BẮT BUỘC:\n"
-        "1. Luôn sử dụng mã LaTeX chuẩn với font CMU Serif / Computer Modern.\n"
+        "1. Luôn sử dụng mã LaTeX chuẩn với font CMU Serif / Computer Modern (dùng \\usepackage{fontspec}).\n"
         "2. Bảng biến thiên BẮT BUỘC dùng TikZ package tkz-tab (\\tkzTabInit, \\tkzTabLine, \\tkzTabVar). Không dùng \\begin{array} cho bảng biến thiên!\n"
         "3. Đồ thị hàm số và hình học BẮT BUỘC dùng khối \\begin{tikzpicture} ... \\end{tikzpicture}.\n"
-        "4. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n"
-        "5. Cấu trúc đề thi 3 phần chuẩn QĐ 764:\n"
-        "   - PHẦN I: Trắc nghiệm 4 lựa chọn (A, B, C, D)\n"
-        "   - PHẦN II: Trắc nghiệm Đúng/Sai 4 ý (a, b, c, d)\n"
-        "   - PHẦN III: Trắc nghiệm Trả lời ngắn\n\n"
+        "4. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n\n"
         "HƯỚNG DẪN TRẢ LỜI:\n"
         "- Trả lời ngắn gọn, súc tích bằng tiếng Việt.\n"
         "- Đưa ra mã LaTeX hoàn chỉnh trong khối ```latex ... ``` để giáo viên có thể bấm 1-click chèn vào tài liệu."
@@ -200,7 +202,35 @@ def composer_chat_endpoint(req: ChatRequest):
     # Smart offline / local fallback generator if AI provider is unconfigured or network failed
     user_msg_lower = req.message.lower()
 
-    if any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "cực trị")):
+    if any(k in user_msg_lower for k in ("ex_test", "extest", "gói ex", "lệnh ex")):
+        latex_snippet = r"""\begin{ex}[Đề Khảo sát 2026]
+Cho hàm số $y = f(x)$ xác định và liên tục trên $\mathbb{R}$ có bảng biến thiên:
+\begin{tikzpicture}
+  \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
+  {$x$/.6, $f'(x)$/.6, $f(x)$/2}
+  {$-\infty$,$-2$,$1$,$+\infty$}
+  \tkzTabLine{,+,0,-,0,+,}
+  \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
+\end{tikzpicture}
+Số điểm cực trị của hàm số đã cho là:
+\choice
+{\True $2$}
+{$1$}
+{$0$}
+{$3$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 điểm $x = -2$ và $x = 1$, do đó hàm số có $2$ điểm cực trị.
+\end{loigiai}
+\end{ex}"""
+        reply = (
+            "Dưới đây là mẫu câu hỏi theo chuẩn gói lệnh **`ex_test.sty` (v3.3)**:\n\n"
+            f"```latex\n{latex_snippet}\n```\n\n"
+            "- Lệnh `\\choice` tự động chia cột và nhận diện phương án đúng có tiền tố `\\True`.\n"
+            "- Môi trường `\\begin{loigiai}...\\end{loigiai}` tự động ẩn/hiện tùy theo cấu hình `[dethi]`, `[color]`, hoặc `[loigiai]`."
+        )
+        return ChatResponse(reply=reply, suggested_latex=latex_snippet)
+
+    elif any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "cực trị")):
         latex_snippet = r"""\textbf{Câu hỏi.} Cho hàm số $y = f(x)$ liên tục trên $\mathbb{R}$ có bảng biến thiên:
 \begin{tikzpicture}
   \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]

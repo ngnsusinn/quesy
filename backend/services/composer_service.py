@@ -37,6 +37,108 @@ STORAGE_COMPOSER_CACHE.mkdir(parents=True, exist_ok=True)
 # ---------------------------------------------------------------------------
 
 TEMPLATES: Dict[str, Dict[str, str]] = {
+    "ex_test_standard_exam": {
+        "title": "Đề thi Chuẩn Quốc Gia 2025 (Gói ex_test v3.3)",
+        "description": "Đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn (\\choice), Đúng/Sai (\\choiceTF), Trả lời ngắn (\\shortans), chèn hình \\immini.",
+        "latex": r"""\documentclass[12pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz,tkz-tab}
+\usepackage[dethi]{ex_test}
+
+\begin{document}
+
+\begin{center}
+  \textbf{\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\
+  \textbf{\large MÔN THI: TOÁN HỌC}\\
+  \textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}
+\end{center}
+\vspace{0.4cm}
+
+\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
+\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
+\begin{ex}
+\immini{
+  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.
+  Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+  \choice
+  {\True $(-\infty; -1)$}
+  {$(-1; 2)$}
+  {$(0; 2)$}
+  {$(-\infty; 2)$}
+}{
+  \begin{tikzpicture}[scale=0.55, >=stealth]
+    \draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};
+    \draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};
+    \node[below left] at (0, 0) {$O$};
+    \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};
+    \draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};
+    \draw[thick, smooth, domain=-2.3:3.1] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
+    \fill (-1, 3) circle (1.5pt);
+    \fill (2, -2) circle (1.5pt);
+  \end{tikzpicture}
+}
+\begin{loigiai}
+Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\infty; -1)$ và $(2; +\infty)$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Cho hàm số $y = f(x)$ có bảng biến thiên:
+\begin{tikzpicture}
+  \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
+  {$x$/.6, $f'(x)$/.6, $f(x)$/2}
+  {$-\infty$,$-2$,$1$,$+\infty$}
+  \tkzTabLine{,+,0,-,0,+,}
+  \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
+\end{tikzpicture}
+Điểm cực đại của đồ thị hàm số là:
+\choice
+{$(1; -1)$}
+{\True $(-2; 4)$}
+{$(-2; -1)$}
+{$(1; 4)$}
+\begin{loigiai}
+Tại $x = -2$, $f'(x)$ đổi dấu từ dương sang âm và $f(-2) = 4$. Do đó điểm cực đại là $(-2; 4)$.
+\end{loigiai}
+\end{ex}
+
+\section*{PHẦN II. Câu trắc nghiệm Đúng/Sai}
+\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+
+\begin{ex}
+Cho hàm số $y = f(x) = x^3 - 3x^2 + 2$. Xét tính đúng sai của các khẳng định sau:
+\choiceTF
+{\True Hàm số đạt cực đại tại điểm $x = 0$.}
+{Giá trị cực tiểu của hàm số bằng $2$.}
+{\True Điểm uốn của đồ thị hàm số là $I(1; 0)$.}
+{Hàm số đồng biến trên toàn bộ tập xác định $\mathbb{R}$.}
+\begin{loigiai}
+Ta có $y' = 3x^2 - 6x = 3x(x - 2)$.
+\begin{itemchoice}
+\itemch Đúng. Qua $x = 0$, $y'$ đổi dấu từ $+$ sang $-$.
+\itemch Sai. Giá trị cực tiểu $y(2) = -2$.
+\itemch Đúng. $y'' = 6x - 6 = 0 \Leftrightarrow x = 1 \Rightarrow y(1) = 0$.
+\itemch Sai. Hàm số nghịch biến trên $(0; 2)$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}
+
+\section*{PHẦN III. Câu trắc nghiệm trả lời ngắn}
+\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+
+\begin{ex}
+Một vật thể chuyển động với vận tốc $v(t) = 3t^2 + 2t$ (m/s). Tính quãng đường vật đi được từ thời điểm $t = 0$ (s) đến $t = 2$ (s).
+\shortans{12}
+\begin{loigiai}
+$s = \int_{0}^{2} (3t^2 + 2t)\,\mathrm{d}t = \left. (t^3 + t^2) \right|_0^2 = 12\text{ (m)}$.
+\end{loigiai}
+\end{ex}
+
+\end{document}
+"""
+    },
     "circular_32_full_exam": {
         "title": "Đề thi Chuẩn Thông tư 32 (Định dạng 2025)",
         "description": "Đề thi đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn, Đúng/Sai 4 ý (QĐ 764), và Trả lời ngắn.",
@@ -462,6 +564,15 @@ def compile_with_tectonic(
     with tempfile.TemporaryDirectory(prefix="tectonic_build_") as tmp_dir:
         tmp_dir_path = Path(tmp_dir)
 
+        # Copy local bundled packages (e.g. ex_test.sty) into build directory
+        for p in [
+            Path(__file__).resolve().parent.parent / "templates" / "ex_test.sty",
+            Path(__file__).resolve().parent.parent.parent / "storage" / "latex_packages" / "ex_test.sty"
+        ]:
+            if p.exists():
+                shutil.copy2(p, tmp_dir_path / "ex_test.sty")
+                break
+
         # Mock missing images referenced in \\includegraphics so xdvipdfmx never halts on missing image
         blank_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\x0bIDATx\x9cc`\x00\x00\x00\x06\x00\x010\x948/\x00\x00\x00\x00IEND\xaeB`\x82"
         for m in re.finditer(r'\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}', raw):
@@ -663,8 +774,117 @@ def compile_latex_to_pdf(
 # ---------------------------------------------------------------------------
 
 def extract_questions_from_latex(latex_source: str) -> List[Dict[str, Any]]:
-    """Parses questions from LaTeX text into Quesy Question Bank format."""
+    """Parses questions from LaTeX text into Quesy Question Bank format.
+    Supports both ex_test syntax (\\begin{ex} ... \\end{ex}) and classic (\\textbf{Câu X.}).
+    """
     questions: List[Dict[str, Any]] = []
+
+    # 1. Check for ex_test syntax (\begin{ex} ... \end{ex})
+    ex_blocks = re.findall(r'\\begin\{ex\}(?:\[[^\]]*\])?([\s\S]*?)\\end\{ex\}', latex_source)
+    if ex_blocks:
+        for block in ex_blocks:
+            block = block.strip()
+            # Separate loigiai if present
+            lg_match = re.search(r'\\begin\{loigiai\}([\s\S]*?)\\end\{loigiai\}', block)
+            explanation = lg_match.group(1).strip() if lg_match else ""
+            main_block = re.sub(r'\\begin\{loigiai\}[\s\S]*?\\end\{loigiai\}', '', block).strip()
+
+            # A. Check for \choice
+            choice_match = re.search(r'\\choice(?:\[[^\]]*\])?\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}', main_block)
+            if choice_match:
+                stem = main_block[:choice_match.start()].strip()
+                # Unwrap \immini{stem}{fig} if present
+                im_match = re.match(r'\\immini(?:L)?\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}', stem)
+                if im_match:
+                    stem = im_match.group(1).strip() + "\n" + im_match.group(2).strip()
+
+                options = []
+                for idx, lbl in enumerate(["A", "B", "C", "D"]):
+                    raw_opt = choice_match.group(idx + 1).strip()
+                    is_correct = r"\True" in raw_opt
+                    clean_opt = re.sub(r'\\True\s*', '', raw_opt).strip()
+                    options.append({
+                        "label": lbl,
+                        "content": clean_opt,
+                        "is_correct": is_correct,
+                        "is_fixed": False
+                    })
+                if not any(o["is_correct"] for o in options):
+                    options[0]["is_correct"] = True
+
+                questions.append({
+                    "item_format": "SINGLE_CHOICE",
+                    "stem": stem,
+                    "options": options,
+                    "explanation": explanation,
+                    "cognitive_level": "RECOGNITION",
+                    "learning_outcome_code": "TOAN12.GT.01"
+                })
+                continue
+
+            # B. Check for \choiceTF
+            tf_match = re.search(r'\\choiceTF(?:\[[^\]]*\])?\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}', main_block)
+            if tf_match:
+                stem = main_block[:tf_match.start()].strip()
+                im_match = re.match(r'\\immini(?:L)?\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}', stem)
+                if im_match:
+                    stem = im_match.group(1).strip() + "\n" + im_match.group(2).strip()
+
+                sub_statements = []
+                for idx, lbl in enumerate(["a", "b", "c", "d"]):
+                    raw_sub = tf_match.group(idx + 1).strip()
+                    is_true = r"\True" in raw_sub
+                    clean_sub = re.sub(r'\\True\s*', '', raw_sub).strip()
+                    clean_sub = re.sub(r'^[a-d]\)\s*', '', clean_sub).strip()
+                    sub_statements.append({
+                        "label": lbl,
+                        "content": clean_sub,
+                        "is_true": is_true,
+                        "explanation": ""
+                    })
+                questions.append({
+                    "item_format": "TRUE_FALSE_GROUP",
+                    "stem": stem,
+                    "sub_statements": sub_statements,
+                    "explanation": explanation,
+                    "cognitive_level": "COMPREHENSION",
+                    "learning_outcome_code": "TOAN12.GT.01"
+                })
+                continue
+
+            # C. Check for \shortans or \SA
+            sa_match = re.search(r'\\(?:shortans|SA)(?:\[[^\]]*\])?\{([^}]+)\}', main_block)
+            if sa_match:
+                sa_val = sa_match.group(1).strip()
+                stem = re.sub(r'\\(?:shortans|SA)(?:\[[^\]]*\])?\{[^}]+\}', '', main_block).strip()
+                im_match = re.match(r'\\immini(?:L)?\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}', stem)
+                if im_match:
+                    stem = im_match.group(1).strip() + "\n" + im_match.group(2).strip()
+
+                questions.append({
+                    "item_format": "SHORT_ANSWER",
+                    "stem": stem,
+                    "short_answer_value": sa_val,
+                    "tolerance": 0.0,
+                    "explanation": explanation,
+                    "cognitive_level": "APPLICATION",
+                    "learning_outcome_code": "TOAN12.GT.01"
+                })
+                continue
+
+            # D. Generic fallback
+            questions.append({
+                "item_format": "SHORT_ANSWER",
+                "stem": main_block,
+                "short_answer_value": "1",
+                "tolerance": 0.0,
+                "explanation": explanation,
+                "cognitive_level": "APPLICATION",
+                "learning_outcome_code": "TOAN12.GT.01"
+            })
+        return questions
+
+    # 2. Classic \textbf{Câu X.} parsing
     blocks = re.split(r'(?=\\textbf\{Câu\s+\d+\.\})', latex_source)
 
     for block in blocks:

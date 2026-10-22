@@ -18,6 +18,7 @@ def test_composer_templates():
     assert "templates" in data
     assert len(data["templates"]) >= 3
     template_ids = [t["id"] for t in data["templates"]]
+    assert "ex_test_standard_exam" in template_ids
     assert "circular_32_full_exam" in template_ids
     assert "variation_table_calculus" in template_ids
     assert "geometry_3d" in template_ids
@@ -100,3 +101,41 @@ d) Giá trị nhỏ nhất bằng 0.
     data = res.json()
     assert data["success"] is True
     assert data["count"] >= 2
+
+
+def test_composer_extest_syntax_save_to_bank():
+    """Verify extracting questions from ex_test LaTeX syntax into Question Bank."""
+    extest_code = r"""\begin{ex}
+Cho hàm số $y = f(x)$ có bảng biến thiên. Số điểm cực trị là:
+\choice
+{\True $2$}
+{$1$}
+{$0$}
+{$3$}
+\begin{loigiai}
+Hàm số bậc ba có 2 cực trị.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Các khẳng định sau đúng hay sai?
+\choiceTF
+{\True Hàm số liên tục trên khoảng $(0; 1)$.}
+{Đạo hàm cấp 1 luôn âm.}
+{\True Có 2 điểm cực trị.}
+{Giá trị nhỏ nhất bằng 0.}
+\end{ex}
+
+\begin{ex}
+Tính tích phân $I = \int_0^1 2x dx$.
+\shortans{1}
+\end{ex}
+"""
+    res = client.post(
+        "/api/v1/composer/save-to-bank",
+        json={"latex_code": extest_code}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["count"] == 3
