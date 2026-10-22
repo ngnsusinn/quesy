@@ -105,6 +105,7 @@ test_*.pdf
 
 # Storage caches
 storage/cache/
+storage/composer_cache/
 storage/*.db-journal
 
 # Log & Debug files

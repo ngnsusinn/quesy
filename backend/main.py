@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from backend.database import engine, Base, SessionLocal, get_db
 from backend.models import AIDigitizeJob
 from backend.seed_data import seed_database
-from backend.routers import taxonomy, questions, digitize, matrix, exams
+from backend.routers import taxonomy, questions, digitize, matrix, exams, composer
 
 # Configure logging
 logging.basicConfig(
@@ -81,6 +81,7 @@ if FRONTEND_STATIC_DIR.exists():
 # Register Routers
 app.include_router(taxonomy.router)
 app.include_router(questions.router)
+app.include_router(composer.router)
 app.include_router(digitize.router)
 app.include_router(matrix.router)
 app.include_router(exams.router)
@@ -164,6 +165,8 @@ def get_service_worker():
 
 @app.get("/", tags=["Frontend"])
 @app.get("/dashboard", tags=["Frontend"])
+@app.get("/composer", tags=["Frontend"])
+@app.get("/soan-de", tags=["Frontend"])
 @app.get("/digitize", tags=["Frontend"])
 @app.get("/digitize-test", tags=["Frontend"])
 @app.get("/bank", tags=["Frontend"])

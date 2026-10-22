@@ -7,7 +7,7 @@
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%2B%20SQLAlchemy-009688?logo=fastapi&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Engine-Node.js%2020%20%2B%20MathJax%203-339933?logo=node.js&logoColor=white)
 ![Frontend](https://img.shields.io/badge/Frontend-Apple%20HIG%20%2B%20TailwindCSS%20%2B%20KaTeX-000000?logo=apple&logoColor=white)
-![Pytest](https://img.shields.io/badge/Tests-64%2F64%20Passing-brightgreen?logo=pytest&logoColor=white)
+![Pytest](https://img.shields.io/badge/Tests-69%2F69%20Passing-brightgreen?logo=pytest&logoColor=white)
 ![Standard](https://img.shields.io/badge/Standard-Circular%2032%20%26%20Decision%20764-orange)
 
 ---
@@ -56,13 +56,14 @@ The platform is strictly tailored to national assessment standards:
 
 ## Core Capabilities
 
-### 1. Multimodal AI Digitization & LaTeX Repair
+### 1. AI-Powered LaTeX Exam Composer & Live PDF Preview (Open-Prism Clone)
 
-- **Universal Document Ingestion:** Parses smartphone photos (`.jpg`, `.png`), multi-page scanned PDFs, and legacy Word documents (`.docx`, `.doc`).
-- **Resilient JSON LaTeX Sanitizer (`repair_llm_json`):** Multimodal Vision models often emit unescaped LaTeX backslashes inside JSON string properties (such as `\dfrac`, `\left`, `\hline`, `\text`). Quesy's dedicated pre-parser automatically repairs unescaped TeX syntax, preventing JSON parse failures and eliminating fallback placeholder questions.
-- **Unified Multimodal Vision Pipeline:** Ingests full examination sheets and directly reconstructs text, mathematical formulas, variation tables (`\begin{array}`), and coordinate geometry plots (`\begin{tikzpicture}`) directly in-place without separate cropping or missing asset placeholders.
-- **Answer Option Clean Formatting:** Enforces sentence case for answer options, automatically strips redundant prefixes (e.g. `A. 1` -> label `A.` and content `1`), and preserves mathematical expressions without accidental all-caps formatting.
-- **Provider Agnostic:** Connects seamlessly with Google Gemini, OpenAI GPT-4o, Anthropic Claude, OpenRouter, or falls back to an offline rule-based extraction engine when unconfigured.
+Located in `backend/services/composer_service.py` & `backend/routers/composer.py`:
+- **Open-Prism Architecture Clone:** A full-featured 3-pane AI LaTeX authoring workspace (`/composer`) with live PDF compilation and preview.
+- **AI-Assisted Writing Workspace:** Integrated chat copilot specifically trained on Vietnam MoET Circular 32/2018 and Decision 764/2025 formats, generating multiple-choice questions, True/False sets, `tkz-tab` variation tables, and TikZ graphs with 1-click "Insert at cursor", "Replace document", and "Copy code" actions.
+- **CodeMirror-Grade LaTeX Editor:** Code editor with real-time gutter line numbers, tab indentation, bracket auto-closing, and quick-insert math toolbars (`\dfrac`, `\sqrt`, `\vec`, `\in \mathbb{R}`, `tkz-tab`, 3D Pyramids).
+- **Live PDF Preview:** Debounced instant compilation via Headless Chromium, displaying vector-crisp 100% CMU Serif PDFs inline with zoom controls, fullscreen preview, and compilation error drawer.
+- **Local Persistence & 1-Click Question Bank Export:** Automatically saves drafts to `localStorage` across page reloads (F5) and enables 1-click question extraction directly into the central Question Bank.
 
 ### 2. Pure LaTeX Vector PDF Publishing
 

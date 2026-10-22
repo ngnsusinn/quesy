@@ -75,24 +75,20 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.3. FR-02.1: Giao diện Hậu kiểm Song song (Side-by-side Review Studio)
-- **Màn hình liên quan:** `SCR-HITL-STUDIO`
+### 2.3. FR-02.1: Không Gian Soạn Thảo Đề Thi 3 Ngăn (3-Pane Workspace)
+- **Màn hình liên quan:** `SCR-COMPOSER-STUDIO`
 - **Bố cục giao diện:**
-  - **Khung bên trái (50%):** Trình xem tài liệu gốc (PDF/Word Viewer).
-  - **Khung bên phải (50%):** Danh sách các card câu hỏi đã bóc tách.
-  - **Synchronized Scrolling:** Nhấp vào Câu $N$ ở cột phải, cột trái tự động cuộn đến trang chứa Câu $N$ và highlight vùng văn bản tương ứng với độ trễ $< 100$ms.
-- **Thanh đo độ tin cậy (Confidence Barometer):**
-  - **Xanh ($\ge 95\%$):** Nhận diện đầy đủ phương án, có đáp án đúng, công thức KaTeX render chuẩn.
-  - **Vàng ($80 - 94\%$):** Thiếu lời giải hoặc ký hiệu toán học nghi ngờ.
-  - **Đỏ ($< 80\%$):** Không tìm thấy đáp án đúng, thiếu phương án, hoặc lỗi cú pháp LaTeX.
+  - **Khung bên trái (30%):** Trợ lý Soạn thảo AI (assistant-ui clone) với hội thoại tương tác, các chip gợi ý nhanh và nút 1-click "Chèn vào con trỏ", "Thay thế", "Sao chép".
+  - **Khung ở giữa (40%):** Trình soạn thảo mã nguồn LaTeX với số dòng (gutter), phím tắt thụt lề Tab, tự động đóng ngoặc, thanh chèn ký hiệu toán học nhanh và cấu trúc hình học TikZ/tkz-tab.
+  - **Khung bên phải (30%):** Bản xem trước PDF Trực tiếp (Live PDF Preview) biên dịch tức thì qua Chromium Headless với font Computer Modern Unicode (CMU Serif) thuần $\LaTeX$.
 
-### 2.4. FR-02.2: Trình Biên tập Nhanh & Gán chuẩn YCCĐ
+### 2.4. FR-02.2: Tự Động Biên Dịch, Lưu Trữ Cục Bộ & Xuất Bản Đề Thi
 - **Hành vi thao tác:**
-  - **Đổi đáp án đúng:** Click trực tiếp vào ký tự [A], [B], [C], [D] để đảo trạng thái đúng/sai.
-  - **Sửa nhanh công thức:** Nhấp đúp vào công thức để mở popup soạn thảo LaTeX với live preview KaTeX.
-  - **Gán nhanh YCCĐ & Dạng bài:** Dropdown phân loại 6 tầng: Cấp/Khối $\rightarrow$ Môn $\rightarrow$ Mạch nội dung $\rightarrow$ Chủ đề $\rightarrow$ Bài học $\rightarrow$ **YCCĐ (Mã chuẩn TT 32)** $\rightarrow$ **Dạng câu hỏi**.
-  - **Lưu vào Ngân hàng:** Nhấn "Lưu toàn bộ vào Ngân hàng" để tạo các câu hỏi ở trạng thái `DRAFT` hoặc `PENDING_REVIEW`.
-  - **Xuất PDF Đề thi Trực tiếp Chuẩn $\LaTeX$ Thuần (`FR-02.3`):** Cung cấp nút bấm `Xuất PDF` trên thanh công cụ cả ở khung trái và khung phải, gọi API `POST /api/v1/digitize/export-pdf` tải xuống tệp PDF chuẩn khảo thí quốc gia A4 Portrait (210 x 297 mm, lề 1.6 cm, typography chuẩn font **Computer Modern Unicode - CMU Serif**, 100% không dùng font Times New Roman văn phòng, công thức toán render vector SVG sắc nét qua MathJax daemon với chân dòng baseline chuẩn xác, ôm sát dấu chấm/phẩy kết thúc câu); tạm thời ẩn tính năng xuất Word DOCX trong tab số hóa.
+  - **Tự động biên dịch (Auto-compile):** Tự động biên dịch sau khi ngừng gõ 800ms hoặc nhấn phím tắt `Ctrl+S` / `Cmd+S`.
+  - **Lưu trữ tự động (Local Storage Persistence):** Tự động lưu bản nháp văn bản và hội thoại vào `localStorage`, khôi phục nguyên vẹn khi tải lại trang (F5).
+  - **Nạp mẫu đề thi chuẩn:** Cung cấp sẵn các mẫu: Đề thi Chuẩn Thông tư 32 (3 phần), Chuyên đề Bảng biến thiên tkz-tab, Chuyên đề Hình học không gian TikZ, Tài liệu mới.
+  - **Lưu vào Ngân hàng:** Trích xuất các câu hỏi từ mã LaTeX sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table) chỉ với 1 click.
+  - **Tải tệp PDF & .TEX:** Xuất bản tệp PDF vector-crisp 100% font CMU Serif và tệp nguồn LaTeX `.tex`.
 
 ---
 

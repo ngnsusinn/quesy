@@ -1045,8 +1045,10 @@
   const ROUTE_MAP = {
     '/': 'dashboard',
     '/dashboard': 'dashboard',
-    '/digitize': 'digitize',
-    '/digitize-test': 'digitize',
+    '/composer': 'composer',
+    '/soan-de': 'composer',
+    '/digitize': 'composer',
+    '/digitize-test': 'composer',
     '/bank': 'itembank',
     '/itembank': 'itembank',
     '/matrix': 'matrix',
@@ -1055,7 +1057,7 @@
 
   const TAB_TO_ROUTE = {
     dashboard: '/dashboard',
-    digitize: '/digitize',
+    composer: '/composer',
     itembank: '/bank',
     matrix: '/matrix',
     shuffler: '/shuffler',
@@ -1063,7 +1065,7 @@
 
   const TAB_TITLES = {
     dashboard: 'Quesy — Tổng quan Khảo thí',
-    digitize: 'Quesy — Số hóa AI & HITL Studio',
+    composer: 'Quesy — Soạn đề LaTeX (AI Copilot & Live PDF Preview)',
     itembank: 'Quesy — Ngân hàng Câu hỏi Chuẩn hóa',
     matrix: 'Quesy — Ma trận Đề thi 2D',
     shuffler: 'Quesy — Sinh đề & Trộn đề (.DOCX)',
@@ -1123,8 +1125,8 @@
     // Refresh specific tab contents
     if (tabId === 'dashboard') {
       renderDashboard();
-    } else if (tabId === 'digitize') {
-      renderDigitizeStudio();
+    } else if (tabId === 'composer') {
+      composer.init();
     } else if (tabId === 'itembank') {
       renderItemBank();
     } else if (tabId === 'matrix') {
@@ -3904,6 +3906,599 @@
     }
   }
 
+  // ============================================================================
+  // 13. TAB 2: SOẠN ĐỀ (AI LATEX COMPOSER & LIVE PDF PREVIEW - OPEN-PRISM CLONE)
+  // ============================================================================
+  const composer = {
+    initialized: false,
+    activeTitle: 'Đề thi Khảo sát Toán 12',
+    currentLatex: '',
+    isCompiling: false,
+    autoCompile: true,
+    compileTimer: null,
+    pdfUrl: '',
+    zoomLevel: 1.0,
+    aiPaneVisible: true,
+    chatHistory: [],
+    templates: {},
+
+    SNIPPETS: {
+      '\\dfrac{a}{b}': '\\dfrac{a}{b}',
+      '\\sqrt{x}': '\\sqrt{x}',
+      '\\overrightarrow{u}': '\\overrightarrow{u}',
+      '\\in \\mathbb{R}': '\\in \\mathbb{R}',
+      'tkz_tab': `\\begin{tikzpicture}\n  \\tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]\n  {$x$/.6, $f'(x)$/.6, $f(x)$/2}\n  {$-\\infty$,$-2$,$1$,$+\\infty$}\n  \\tkzTabLine{,+,0,-,0,+,}\n  \\tkzTabVar{-/$-\\infty$,+/$4$,-/$-1$,+/$+\\infty$}\n\\end{tikzpicture}\n`,
+      'tikz_cubic': `\\begin{tikzpicture}[scale=0.65, >=stealth]\n  \\clip (-3.8, -5.5) rectangle (4.2, 5.5);\n  \\draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};\n  \\draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};\n  \\node[below left] at (0, 0) {$O$};\n  \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};\n  \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};\n  \\draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n  \\fill (-1, 4) circle (1.5pt);\n  \\fill (2, -3) circle (1.5pt);\n\\end{tikzpicture}\n`,
+      'tikz_rational': `\\begin{tikzpicture}[scale=0.7, >=stealth]\n  \\clip (-4.5, -4.5) rectangle (4.5, 5.5);\n  \\draw[->, thick] (-4.2, 0) -- (4.2, 0) node[right] {$x$};\n  \\draw[->, thick] (0, -4.2) -- (0, 5.2) node[above] {$y$};\n  \\node[below left] at (0, 0) {$O$};\n  \\draw[dashed, thick] (1, -4.2) -- (1, 5.2) node[above] {$x=1$};\n  \\draw[dashed, thick] (-4.2, 2) -- (4.2, 2) node[right] {$y=2$};\n  \\draw[thick, black, smooth, domain=-4:0.7, samples=80] plot (\\x, {(2*\\x - 1)/(\\x - 1)});\n  \\draw[thick, black, smooth, domain=1.3:4, samples=80] plot (\\x, {(2*\\x - 1)/(\\x - 1)});\n\\end{tikzpicture}\n`,
+      'tikz_pyramid': `\\begin{tikzpicture}[scale=0.8]\n  \\coordinate (A) at (0, 0);\n  \\coordinate (B) at (-1.5, -1.2);\n  \\coordinate (C) at (2, -1.2);\n  \\coordinate (D) at (3.5, 0);\n  \\coordinate (S) at (1, 2.5);\n  \\draw[thick] (S) -- (B) -- (C) -- (D) -- (S) -- (C);\n  \\draw[dashed, thick] (B) -- (A) -- (D) (S) -- (A);\n  \\node[above] at (S) {$S$};\n  \\node[left] at (B) {$B$};\n  \\node[below] at (C) {$C$};\n  \\node[right] at (D) {$D$};\n  \\node[above left] at (A) {$A$};\n\\end{tikzpicture}\n`
+    },
+
+    async init() {
+      if (this.initialized) return;
+      this.initialized = true;
+
+      // 1. Restore Title
+      const savedTitle = localStorage.getItem('quesy_composer_title');
+      if (savedTitle) {
+        this.activeTitle = savedTitle;
+        const titleEl = document.getElementById('composer-doc-title');
+        if (titleEl) titleEl.value = savedTitle;
+      }
+
+      // 2. Load Templates list from API
+      try {
+        const res = await fetch(`${API_BASE_URL}/composer/templates`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.templates) {
+            data.templates.forEach((t) => {
+              this.templates[t.id] = t;
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load templates from API:', e);
+      }
+
+      // 3. Restore Content or fallback to Circular 32 Full Exam
+      const savedContent = localStorage.getItem('quesy_composer_content');
+      const editor = document.getElementById('composer-editor-input');
+      if (savedContent && savedContent.trim()) {
+        this.currentLatex = savedContent;
+      } else if (this.templates['circular_32_full_exam']) {
+        this.currentLatex = this.templates['circular_32_full_exam'].latex;
+      } else {
+        this.currentLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\textbf{Câu 1.} Cho hàm số bậc ba $y = f(x)$...\n\\end{document}\n`;
+      }
+
+      if (editor) {
+        editor.value = this.currentLatex;
+        this.updateGutter();
+        this.updateCharCount();
+      }
+
+      // 4. Restore Chat
+      this.initChat();
+
+      // 5. Initial Compile
+      setTimeout(() => {
+        this.compile(false);
+      }, 300);
+
+      if (window.lucide) lucide.createIcons();
+    },
+
+    initChat() {
+      const chatContainer = document.getElementById('composer-chat-messages');
+      if (!chatContainer) return;
+
+      const savedChat = localStorage.getItem('quesy_composer_chat');
+      if (savedChat) {
+        try {
+          this.chatHistory = JSON.parse(savedChat);
+        } catch (e) {
+          this.chatHistory = [];
+        }
+      }
+
+      if (!this.chatHistory || this.chatHistory.length === 0) {
+        this.chatHistory = [
+          {
+            role: 'assistant',
+            content: 'Chào bạn! Tôi là **Quesy AI Copilot** (kế thừa từ Open-Prism). Bạn có thể yêu cầu tôi tạo câu hỏi trắc nghiệm, tạo bảng biến thiên `tkz-tab`, vẽ đồ thị TikZ hoặc kiểm tra và sửa lỗi cú pháp LaTeX trực tiếp.'
+          }
+        ];
+      }
+      this.renderChatMessages();
+    },
+
+    renderChatMessages() {
+      const container = document.getElementById('composer-chat-messages');
+      if (!container) return;
+
+      container.innerHTML = this.chatHistory.map((msg) => {
+        const isUser = msg.role === 'user';
+        if (isUser) {
+          return `
+            <div class="flex items-start justify-end space-x-2">
+              <div class="bg-brand-600 text-white rounded-2xl rounded-tr-xs p-2.5 max-w-[85%] shadow-2xs leading-relaxed text-[11px]">
+                ${escapeHtml(msg.content)}
+              </div>
+              <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                GV
+              </div>
+            </div>
+          `;
+        } else {
+          const formattedHtml = this.formatAssistantContent(msg.content);
+          return `
+            <div class="flex items-start space-x-2">
+              <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-2xs">
+                AI
+              </div>
+              <div class="bg-slate-50 border border-slate-200/80 rounded-2xl rounded-tl-xs p-3 max-w-[90%] shadow-2xs leading-relaxed text-[11px] text-slate-800 space-y-2">
+                ${formattedHtml}
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+      if (window.lucide) lucide.createIcons();
+    },
+
+    formatAssistantContent(text) {
+      if (!text) return '';
+      let html = text.replace(/```(?:latex|tex)?\s*([\s\S]*?)```/g, (match, code) => {
+        const rawCode = code.trim();
+        const b64Code = btoa(unescape(encodeURIComponent(rawCode)));
+        return `
+          <div class="code-block-wrapper my-2 rounded-xl overflow-hidden border border-slate-700/80 shadow-xs">
+            <div class="code-block-actions flex items-center justify-between bg-slate-800 text-slate-300 px-3 py-1.5 text-[10px]">
+              <span class="font-mono text-slate-400 font-semibold">LaTeX Code</span>
+              <div class="flex items-center space-x-1.5">
+                <button type="button" onclick="app.composer.insertB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Chèn vào vị trí con trỏ">
+                  <span>📥 Chèn</span>
+                </button>
+                <button type="button" onclick="app.composer.replaceB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Thay thế toàn bộ văn bản">
+                  <span>🔄 Thay thế</span>
+                </button>
+                <button type="button" onclick="app.composer.copyB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Sao chép">
+                  <span>📋 Sao chép</span>
+                </button>
+              </div>
+            </div>
+            <pre class="bg-slate-900 text-emerald-300 p-2.5 font-mono text-[11px] overflow-x-auto leading-relaxed max-h-56 select-text whitespace-pre"><code>${escapeHtml(rawCode)}</code></pre>
+          </div>
+        `;
+      });
+
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      html = html.replace(/`([^`]+)`/g, '<code class="bg-black/[0.06] text-purple-700 px-1 py-0.5 rounded font-mono text-[10px]">$1</code>');
+      html = html.replace(/\n\n/g, '<br><br>');
+      return html;
+    },
+
+    insertB64Code(b64) {
+      try {
+        const code = decodeURIComponent(escape(atob(b64)));
+        this.insertSnippet(code);
+        showToast('Đã chèn mã LaTeX vào con trỏ!', 'success');
+      } catch (e) {
+        console.error('Error inserting code:', e);
+      }
+    },
+
+    replaceB64Code(b64) {
+      try {
+        const code = decodeURIComponent(escape(atob(b64)));
+        const editor = document.getElementById('composer-editor-input');
+        if (editor) {
+          editor.value = code;
+          this.handleEditorInput();
+          this.compile(true);
+          showToast('Đã thay thế toàn bộ tài liệu bằng mã mới!', 'success');
+        }
+      } catch (e) {
+        console.error('Error replacing code:', e);
+      }
+    },
+
+    copyB64Code(b64) {
+      try {
+        const code = decodeURIComponent(escape(atob(b64)));
+        navigator.clipboard.writeText(code);
+        showToast('Đã sao chép mã LaTeX vào bộ nhớ tạm!', 'info');
+      } catch (e) {
+        console.error('Error copying code:', e);
+      }
+    },
+
+    async submitChat() {
+      const input = document.getElementById('composer-chat-input');
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      this.sendPrompt(text);
+    },
+
+    handleChatInputKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.submitChat();
+      }
+    },
+
+    async sendPrompt(promptText) {
+      this.chatHistory.push({ role: 'user', content: promptText });
+      this.renderChatMessages();
+
+      const container = document.getElementById('composer-chat-messages');
+      const tempId = 'composer-typing-indicator';
+      if (container) {
+        const typingHtml = `
+          <div id="${tempId}" class="flex items-start space-x-2">
+            <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+              AI
+            </div>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl rounded-tl-xs p-3 text-slate-500 text-[11px] flex items-center space-x-2">
+              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-purple-600"></i>
+              <span>Quesy AI đang tạo mã LaTeX...</span>
+            </div>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', typingHtml);
+        container.scrollTop = container.scrollHeight;
+        if (window.lucide) lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/composer/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: promptText,
+            current_latex: this.currentLatex,
+            history: this.chatHistory.slice(-4)
+          })
+        });
+
+        const typingEl = document.getElementById(tempId);
+        if (typingEl) typingEl.remove();
+
+        if (res.ok) {
+          const data = await res.json();
+          this.chatHistory.push({ role: 'assistant', content: data.reply });
+          localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory.slice(-20)));
+          this.renderChatMessages();
+        } else {
+          this.chatHistory.push({ role: 'assistant', content: 'Rất tiếc, đã có lỗi kết nối với máy chủ AI. Vui lòng thử lại sau.' });
+          this.renderChatMessages();
+        }
+      } catch (err) {
+        const typingEl = document.getElementById(tempId);
+        if (typingEl) typingEl.remove();
+        this.chatHistory.push({ role: 'assistant', content: `Lỗi kết nối: ${err.message}` });
+        this.renderChatMessages();
+      }
+    },
+
+    clearChat() {
+      this.chatHistory = [
+        {
+          role: 'assistant',
+          content: 'Đã làm mới hội thoại. Bạn có thể yêu cầu tôi tạo câu hỏi hoặc chỉnh sửa mã LaTeX mới!'
+        }
+      ];
+      localStorage.removeItem('quesy_composer_chat');
+      this.renderChatMessages();
+    },
+
+    handleEditorInput() {
+      const editor = document.getElementById('composer-editor-input');
+      if (!editor) return;
+      this.currentLatex = editor.value;
+      localStorage.setItem('quesy_composer_content', this.currentLatex);
+
+      this.updateGutter();
+      this.updateCharCount();
+      this.updateLineCol();
+
+      if (this.autoCompile) {
+        const statusText = document.getElementById('composer-status-text');
+        if (statusText) statusText.innerText = 'Đang đợi gõ...';
+        clearTimeout(this.compileTimer);
+        this.compileTimer = setTimeout(() => {
+          this.compile(false);
+        }, 800);
+      }
+    },
+
+    handleTitleChange(newTitle) {
+      this.activeTitle = newTitle || 'Đề Thi Soạn Thảo';
+      localStorage.setItem('quesy_composer_title', this.activeTitle);
+    },
+
+    updateGutter() {
+      const editor = document.getElementById('composer-editor-input');
+      const gutter = document.getElementById('composer-editor-gutter');
+      if (!editor || !gutter) return;
+
+      const lines = editor.value.split('\n').length;
+      let gutterText = '';
+      for (let i = 1; i <= lines; i++) {
+        gutterText += i + '\n';
+      }
+      gutter.innerText = gutterText;
+    },
+
+    updateCharCount() {
+      const countEl = document.getElementById('composer-char-count');
+      if (countEl) {
+        countEl.innerText = `${(this.currentLatex || '').length.toLocaleString()} ký tự`;
+      }
+    },
+
+    updateLineCol() {
+      const editor = document.getElementById('composer-editor-input');
+      const badge = document.getElementById('composer-line-col-badge');
+      if (!editor || !badge) return;
+
+      const pos = editor.selectionStart || 0;
+      const lines = editor.value.substring(0, pos).split('\n');
+      const lineNum = lines.length;
+      const colNum = lines[lines.length - 1].length + 1;
+      badge.innerText = `Dòng ${lineNum}, Cột ${colNum}`;
+    },
+
+    syncEditorScroll() {
+      const editor = document.getElementById('composer-editor-input');
+      const gutter = document.getElementById('composer-editor-gutter');
+      if (editor && gutter) {
+        gutter.scrollTop = editor.scrollTop;
+      }
+    },
+
+    handleEditorKey(e) {
+      const editor = document.getElementById('composer-editor-input');
+      if (!editor) return;
+
+      // Tab indentation (2 spaces)
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + 2;
+        this.handleEditorInput();
+        return;
+      }
+
+      // Ctrl+S / Cmd+S: Compile
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        this.compile(true);
+        return;
+      }
+
+      this.updateLineCol();
+    },
+
+    insertSnippet(snippetKeyOrCode) {
+      const editor = document.getElementById('composer-editor-input');
+      if (!editor) return;
+
+      let insertText = this.SNIPPETS[snippetKeyOrCode] || snippetKeyOrCode;
+      const start = editor.selectionStart || 0;
+      const end = editor.selectionEnd || 0;
+      const val = editor.value;
+
+      editor.value = val.substring(0, start) + insertText + val.substring(end);
+      editor.focus();
+      editor.setSelectionRange(start + insertText.length, start + insertText.length);
+      this.handleEditorInput();
+    },
+
+    loadTemplate(templateKey) {
+      const tmpl = this.templates[templateKey];
+      if (!tmpl) return;
+
+      if (this.currentLatex && this.currentLatex.length > 50) {
+        if (!confirm(`Bạn có chắc chắn muốn nạp mẫu "${tmpl.title}"? Nội dung hiện tại sẽ được thay thế.`)) {
+          return;
+        }
+      }
+
+      const editor = document.getElementById('composer-editor-input');
+      const titleInput = document.getElementById('composer-doc-title');
+      if (editor) {
+        editor.value = tmpl.latex;
+        this.currentLatex = tmpl.latex;
+        this.handleEditorInput();
+      }
+      if (titleInput && tmpl.title) {
+        titleInput.value = tmpl.title;
+        this.handleTitleChange(tmpl.title);
+      }
+      this.compile(true);
+    },
+
+    async compile(force = false) {
+      if (this.isCompiling) return;
+      this.isCompiling = true;
+
+      const overlay = document.getElementById('composer-compiling-overlay');
+      const statusBadge = document.getElementById('composer-compile-status');
+      const statusText = document.getElementById('composer-status-text');
+      const errorDrawer = document.getElementById('composer-error-drawer');
+      const errorText = document.getElementById('composer-error-text');
+
+      if (overlay) overlay.classList.remove('hidden');
+      if (statusText) statusText.innerText = 'Đang biên dịch...';
+      if (statusBadge) {
+        statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-semibold';
+      }
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/composer/compile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            latex_code: this.currentLatex,
+            title: this.activeTitle
+          })
+        });
+
+        const data = await res.json();
+        if (overlay) overlay.classList.add('hidden');
+
+        if (res.ok && data.success && data.pdf_url) {
+          this.pdfUrl = data.pdf_url;
+          const iframe = document.getElementById('composer-pdf-iframe');
+          if (iframe) {
+            iframe.src = `${data.pdf_url}?t=${Date.now()}`;
+          }
+          if (statusText) statusText.innerText = `Đã cập nhật (${(data.compile_time_ms / 1000).toFixed(1)}s)`;
+          if (statusBadge) {
+            statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold';
+          }
+          if (errorDrawer) errorDrawer.classList.add('hidden');
+        } else {
+          const errMsg = data.error || 'Biên dịch thất bại';
+          if (statusText) statusText.innerText = 'Lỗi biên dịch';
+          if (statusBadge) {
+            statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-semibold';
+          }
+          if (errorDrawer && errorText) {
+            errorText.innerText = errMsg;
+            errorDrawer.classList.remove('hidden');
+          }
+        }
+      } catch (err) {
+        if (overlay) overlay.classList.add('hidden');
+        if (statusText) statusText.innerText = 'Lỗi kết nối';
+        if (errorDrawer && errorText) {
+          errorText.innerText = String(err);
+          errorDrawer.classList.remove('hidden');
+        }
+      } finally {
+        this.isCompiling = false;
+      }
+    },
+
+    zoomPreview(delta) {
+      this.zoomLevel = Math.max(0.5, Math.min(2.0, this.zoomLevel + delta));
+      const iframe = document.getElementById('composer-pdf-iframe');
+      const zoomDisplay = document.getElementById('composer-zoom-display');
+      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
+      if (iframe) {
+        iframe.style.transform = `scale(${this.zoomLevel})`;
+        iframe.style.transformOrigin = 'top center';
+      }
+    },
+
+    resetZoom() {
+      this.zoomLevel = 1.0;
+      const iframe = document.getElementById('composer-pdf-iframe');
+      const zoomDisplay = document.getElementById('composer-zoom-display');
+      if (zoomDisplay) zoomDisplay.innerText = '100%';
+      if (iframe) {
+        iframe.style.transform = 'scale(1)';
+      }
+    },
+
+    downloadPdf() {
+      if (!this.pdfUrl) {
+        showToast('Vui lòng biên dịch tài liệu trước khi tải về.', 'warning');
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = this.pdfUrl;
+      a.download = `${this.activeTitle.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Đang tải tệp PDF xuống...', 'success');
+    },
+
+    async saveToBank() {
+      if (!this.currentLatex || !this.currentLatex.trim()) {
+        showToast('Nội dung đề thi đang trống.', 'warning');
+        return;
+      }
+
+      showToast('Đang trích xuất câu hỏi vào Ngân hàng...', 'info');
+      try {
+        const res = await fetch(`${API_BASE_URL}/composer/save-to-bank`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latex_code: this.currentLatex })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(data.message || `Đã lưu ${data.count} câu hỏi vào Ngân hàng!`, 'success');
+          await fetchItemBank();
+        } else {
+          showToast(data.message || 'Không tìm thấy câu hỏi phù hợp dạng \\textbf{Câu X.}', 'warning');
+        }
+      } catch (e) {
+        showToast(`Lỗi khi lưu vào ngân hàng: ${e.message}`, 'error');
+      }
+    },
+
+    toggleAIPane() {
+      const pane = document.getElementById('composer-ai-pane');
+      const editorPane = document.getElementById('composer-editor-pane');
+      if (!pane) return;
+
+      this.aiPaneVisible = !this.aiPaneVisible;
+      if (this.aiPaneVisible) {
+        pane.classList.remove('hidden');
+        if (editorPane) {
+          editorPane.classList.remove('lg:col-span-8');
+          editorPane.classList.add('lg:col-span-5');
+        }
+      } else {
+        pane.classList.add('hidden');
+        if (editorPane) {
+          editorPane.classList.remove('lg:col-span-5');
+          editorPane.classList.add('lg:col-span-8');
+        }
+      }
+    },
+
+    toggleAutoCompile(enabled) {
+      this.autoCompile = enabled;
+      showToast(enabled ? 'Đã bật tự động biên dịch sau khi gõ.' : 'Đã tắt tự động biên dịch.', 'info');
+    },
+
+    formatCode() {
+      const editor = document.getElementById('composer-editor-input');
+      if (!editor) return;
+      let val = editor.value;
+
+      val = val.replace(/\n{4,}/g, '\n\n\n');
+      editor.value = val;
+      this.handleEditorInput();
+      showToast('Đã chuẩn hoá cấu trúc mã!', 'success');
+    },
+
+    clearEditor() {
+      if (confirm('Bạn có chắc chắn muốn xóa toàn bộ mã nguồn đang soạn thảo?')) {
+        const editor = document.getElementById('composer-editor-input');
+        if (editor) {
+          editor.value = '';
+          this.handleEditorInput();
+          showToast('Đã xóa sạch nội dung.', 'info');
+        }
+      }
+    }
+  };
+
   // Run on DOM loaded
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -3913,6 +4508,7 @@
 
   // Expose global methods to window.app for HTML onclick bindings
   window.app = {
+    composer,
     navigateTo,
     switchTab,
     selectQuestionForHITL,

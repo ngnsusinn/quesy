@@ -153,13 +153,13 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 - **Quy chuẩn in ấn:** Khổ giấy A4 Portrait (210 x 297 mm), lề trang 1.6 cm, dàn trang 1 cột với bảng đáp án thích ứng (4 cột / 2 cột / 1 cột), bảng thông tin thí sinh 3 cột chống rớt dòng, chân trang `Trang X - Mã đề thi Y`.
 - **Tạm thời ẩn xuất Word:** Trên giao diện tab số hóa AI (HITL Studio), tạm thời ẩn các nút xuất file Word (.docx) để tập trung hoàn thiện và vận hành luồng xuất bản PDF chất lượng cao.
 
-#### SRS-FEAT-04c: Phân hệ Số hoá AI Trực tiếp Thống nhất (Unified End-to-End Inline AI Digitization)
-- **Mô tả:** Hệ thống áp dụng luồng số hóa trực tiếp toàn trang thống nhất (Unified End-to-End Vision Pipeline). Toàn bộ nội dung đề thi (văn bản câu hỏi, phương án trắc nghiệm, công thức toán học, bảng biến thiên $\\begin{array}$ và đồ thị hàm số TikZ) được Multimodal Vision AI nhận diện và nhúng trực tiếp, đầy đủ vào trường `stem` và `options` của câu hỏi theo chuẩn KaTeX hiển thị mượt mà.
-- **Quy chuẩn hiển thị:**
-  1. *Bảng biến thiên chuẩn hóa TikZ `tkz-tab`:* Bắt buộc sử dụng mã TikZ vector package `tkz-tab` (`\tkzTabInit`, `\tkzTabLine`, `\tkzTabVar`). Hệ thống tích hợp bộ chuyển đổi tự động (In-place Array-to-TikZ Converter) tự động nâng cấp các bảng legacy `\begin{array}` thành mã TikZ `tkz-tab` chuẩn mẫu (M1–M8), hiển thị vector SVG sắc nét và bảo đảm đồng bộ 100% font chữ toán học ($x$, $f'(x)$, $f(x)$) trong studio lẫn file xuất bản. Khắc phục triệt để hiện tượng mất dấu phẩy đạo hàm $f'(x)$ hoặc lệch font chữ thẳng/nghiêng bằng bộ hậu xử lý SVG (Unicode prime `&#x2032;`, CSS math italic, nạp `@font-face` Computer Modern vào DOM).
-  2. *Đồ thị hàm số & Hình học:* Được mô tả chính xác bằng khối mã vector `\begin{tikzpicture}` tự chứa, hiển thị trực quan ngay tại vị trí câu hỏi tương ứng.
-  3. *Chuẩn hóa chữ hoa/thường phương án:* Tự động loại bỏ tiền tố nhãn lặp lại `A. `, chỉ viết hoa ký tự đầu tiên của phương án (sentence case), không viết hoa toàn bộ cả câu phương án.
-  4. *Thanh tiến trình thời gian thực (Real-time Progress Tracker):* Cập nhật tiến độ từng bước trực quan từ khâu tiếp nhận file, phân tích cấu trúc đến khi hoàn tất.
+#### SRS-FEAT-04d: Phân hệ Soạn đề LaTeX Trực tiếp Tích hợp AI & Live PDF Preview (Open-Prism Architecture)
+- **Mô tả:** Thay thế hoàn toàn phân hệ số hóa ảnh/OCR cũ bằng phân hệ **Soạn đề** (LaTeX Exam Writing Workspace) mô phỏng toàn diện tính năng của dự án nguồn mở `assistant-ui/open-prism`. Cung cấp không gian làm việc 3 ngăn tích hợp (3-Pane Split Workspace):
+  1. *Trợ lý Soạn thảo AI (assistant-ui clone):* Sidebar chat thông minh hỗ trợ giáo viên sinh câu hỏi theo chuẩn Thông tư 32/2018 và Quyết định 764/2025, sinh bảng biến thiên `tkz-tab`, vẽ đồ thị TikZ, và sửa lỗi cú pháp LaTeX. Cung cấp các nút tương tác 1-click trực tiếp trên khối mã: "Chèn vào con trỏ", "Thay thế toàn bộ tài liệu", "Sao chép mã".
+  2. *Trình soạn thảo mã nguồn LaTeX (Editor Pane):* Hỗ trợ đánh số dòng (gutter line numbers), phím tắt thụt lề Tab, phím tắt biên dịch nhanh Ctrl+S, thanh công cụ chèn nhanh ký hiệu toán học phổ thông (`\dfrac`, `\sqrt`, `\vec`, `\in \mathbb{R}`) và cấu trúc hình học TikZ/tkz-tab.
+  3. *Bản xem trước PDF Trực tiếp (Live PDF Preview Pane):* Biên dịch tự động tức thì (debounced 800ms) hoặc biên dịch thủ công qua Chromium Headless, xuất bản PDF vector-crisp 100% font Computer Modern Unicode (CMU Serif) hiển thị trực tiếp trong khung xem trước kèm các nút thu phóng (Zoom), tải PDF, và ngăn hiển thị lỗi biên dịch (Error Console Drawer).
+  4. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản và hội thoại vào `localStorage` của trình duyệt, không bao giờ mất dữ liệu khi tải lại trang (F5).
+  5. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động trích xuất các câu hỏi từ mã LaTeX sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
 
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
