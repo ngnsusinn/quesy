@@ -40,6 +40,7 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 | **TS-06** | Động cơ Trộn Đề Hoán vị An toàn | BR-04.2, FR-06.2, SRS-FEAT-08 | 5 | P0 (Critical) |
 | **TS-07** | Xuất bản File Word 2 Cột & In ấn | BR-05.1, FR-07, SRS-FEAT-09 | 4 | P0 (Must Have) |
 | **TS-08** | Bảo mật, RBAC & Khảo thí Thống kê | BR-05.2, BR-06, FR-08 | 3 | P1 / P2 |
+| **TS-09** | Soạn đề LaTeX AI & Live PDF (Tectonic) | FR-02.1, FR-02.2, NFR-COMP-02 | 4 | P0 (Must Have) |
 
 ---
 
@@ -223,6 +224,26 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 - **Kết quả kỳ vọng:**
   - Thời gian xử lý trung bình $< 20\text{ ms}$/công thức.
   - Toàn bộ gói đề thi 4 mã đề kèm đáp án sinh xong trong $< 5\text{ giây}$ (ngân sách NFR $< 10\text{ giây}$).
+
+---
+
+### TEST SUITE 09: SOẠN ĐỀ LATEX AI & BIÊN DỊCH LIVE PDF (OPEN-PRISM & TECTONIC DOCKER)
+
+#### TC-COMP-01: Lấy danh mục Đề thi mẫu chuẩn Khảo thí TT 32
+- **Mô tả:** Kiểm tra API cung cấp đầy đủ các mẫu LaTeX chuẩn: đề thi 3 phần TT32, bảng biến thiên tkz-tab, hình học không gian TikZ.
+- **Kết quả kỳ vọng:** HTTP 200, trả về danh sách template đầy đủ cấu trúc LaTeX hợp lệ.
+
+#### TC-COMP-02: Biên dịch trực tiếp sang PDF vector qua Tectonic Engine
+- **Mô tả:** Kiểm tra khả năng biên dịch tài liệu LaTeX chứa tiếng Việt có dấu, MathJax và bảng biến thiên `tkz-tab` thành file PDF vector nguyên bản qua Tectonic Engine (Docker microservice / local / Chromium fallback).
+- **Kết quả kỳ vọng:** HTTP 200, header `Content-Type: application/pdf`, dung lượng file $> 1000$ bytes, magic header `%PDF`.
+
+#### TC-COMP-03: Trợ lý AI Soạn thảo LaTeX (Copilot Chat)
+- **Mô tả:** Kiểm tra trợ lý AI sinh mã LaTeX cho câu hỏi khảo sát hàm số, bảng biến thiên `tkz-tab`.
+- **Kết quả kỳ vọng:** AI phản hồi mã LaTeX tự chứa, định dạng khối code chuẩn xác và sẵn sàng 1-click chèn vào editor.
+
+#### TC-COMP-04: Trích xuất 1-Click từ LaTeX sang Ngân hàng Câu hỏi
+- **Mô tả:** Kiểm tra parser bóc tách các câu hỏi `\textbf{Câu X.}` sang schema Question/QuestionOption/SubStatement của Quesy.
+- **Kết quả kỳ vọng:** Đọc và lưu đúng số lượng câu hỏi vào DB với trạng thái `DRAFT`.
 
 ---
 

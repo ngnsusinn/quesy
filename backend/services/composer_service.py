@@ -5,11 +5,15 @@ and TikZ / tkz-tab vector diagrams via Headless Chromium.
 """
 
 import hashlib
+import json
 import logging
+import os
 import re
 import shutil
 import subprocess
 import time
+import urllib.request
+import urllib.error
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -404,10 +408,94 @@ def compile_latex_source_to_html(latex_source: str, default_title: str = "Đề 
 
 
 # ---------------------------------------------------------------------------
-# 3. PDF Compilation Execution
+# 3. PDF Compilation Execution (Hybrid: Tectonic XeTeX with Chromium Fallback)
 # ---------------------------------------------------------------------------
 
-def compile_latex_to_pdf(
+def find_tectonic_executable() -> Optional[Path]:
+    """Finds tectonic executable in PATH or standard local locations."""
+    found = shutil.which("tectonic")
+    if found:
+        return Path(found)
+
+    candidate_paths = [
+        Path("/usr/local/bin/tectonic"),
+        Path("/usr/bin/tectonic"),
+        Path.home() / ".cargo" / "bin" / "tectonic",
+        Path(__file__).resolve().parent.parent.parent / "bin" / "tectonic",
+        Path(__file__).resolve().parent.parent.parent / "bin" / "tectonic.exe",
+    ]
+    for p in candidate_paths:
+        if p.exists() and p.is_file():
+            return p
+    return None
+
+
+def compile_with_tectonic(
+    latex_source: str,
+    output_pdf: Path,
+    title: str = "Tài Liệu Soạn Thảo"
+) -> Tuple[bool, str, int]:
+    """Compiles LaTeX source code directly to PDF using Tectonic XeTeX engine."""
+    start_time = time.perf_counter()
+    tectonic_bin = find_tectonic_executable()
+    if not tectonic_bin:
+        return False, "Không tìm thấy công cụ Tectonic trên hệ thống.", 0
+
+    import tempfile
+    output_pdf = Path(output_pdf).resolve()
+    output_pdf.parent.mkdir(parents=True, exist_ok=True)
+
+    raw = latex_source.strip()
+    # Ensure document wrapper exists
+    if "\\documentclass" not in raw:
+        raw = f"""\\documentclass[12pt,a4paper]{{article}}
+\\usepackage[utf8]{{vietnam}}
+\\usepackage{{amsmath,amssymb}}
+\\usepackage{{tikz,tkz-tab}}
+\\begin{{document}}
+{raw}
+\\end{{document}}"""
+
+    with tempfile.TemporaryDirectory(prefix="tectonic_build_") as tmp_dir:
+        tmp_dir_path = Path(tmp_dir)
+        tex_file = tmp_dir_path / "document.tex"
+        tex_file.write_text(raw, encoding="utf-8")
+
+        cmd = [
+            str(tectonic_bin),
+            "--outdir", str(tmp_dir_path),
+            "--print",
+            str(tex_file)
+        ]
+
+        try:
+            res = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=45,
+                encoding="utf-8",
+                errors="replace",
+                cwd=str(tmp_dir_path)
+            )
+            built_pdf = tmp_dir_path / "document.pdf"
+            elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+            if built_pdf.exists() and built_pdf.stat().st_size > 1000:
+                shutil.copy2(built_pdf, output_pdf)
+                return True, "", elapsed_ms
+            else:
+                err_output = res.stderr or res.stdout or "Biên dịch Tectonic thất bại."
+                lines = [l for l in err_output.split("\n") if "error:" in l.lower() or "fatal:" in l.lower() or "!" in l]
+                err_summary = "\n".join(lines[:10]) if lines else err_output[-800:]
+                return False, err_summary, elapsed_ms
+        except subprocess.TimeoutExpired:
+            return False, "Biên dịch Tectonic quá thời gian cho phép (>45 giây).", 0
+        except Exception as e:
+            return False, f"Lỗi thực thi Tectonic: {e}", 0
+
+
+def compile_latex_to_pdf_chromium(
     latex_source: str,
     output_pdf: Path,
     title: str = "Tài Liệu Soạn Thảo"
@@ -465,6 +553,92 @@ def compile_latex_to_pdf(
             temp_html.unlink()
         logger.exception(f"Unexpected compilation failure: {e}")
         return False, str(e), 0
+
+
+def compile_with_remote_tectonic_api(
+    latex_source: str,
+    output_pdf: Path,
+    title: str = "Tài Liệu Soạn Thảo"
+) -> Tuple[bool, str, int]:
+    """Compiles LaTeX using remote Tectonic Docker microservice (e.g. on armbian)."""
+    start_time = time.perf_counter()
+    api_url = os.environ.get("LATEX_API_URL") or os.environ.get("TECTONIC_API_URL")
+
+    # If not explicitly configured in env, check armbian default
+    if not api_url:
+        try:
+            req_check = urllib.request.Request("http://armbian:8090/health")
+            with urllib.request.urlopen(req_check, timeout=0.8) as resp:
+                if resp.status == 200:
+                    api_url = "http://armbian:8090/compile"
+        except Exception:
+            api_url = None
+
+    if not api_url:
+        return False, "Không có dịch vụ Tectonic API từ xa.", 0
+
+    try:
+        import json
+        payload = json.dumps({
+            "latex_code": latex_source,
+            "timeout_s": 60
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            api_url,
+            data=payload,
+            headers={"Content-Type": "application/json"}
+        )
+
+        with urllib.request.urlopen(req, timeout=65) as resp:
+            pdf_bytes = resp.read()
+            elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+            if len(pdf_bytes) > 500 and pdf_bytes.startswith(b"%PDF"):
+                output_pdf = Path(output_pdf).resolve()
+                output_pdf.parent.mkdir(parents=True, exist_ok=True)
+                output_pdf.write_bytes(pdf_bytes)
+                return True, "", elapsed_ms
+            return False, "Dữ liệu trả về từ Tectonic API không hợp lệ.", elapsed_ms
+    except urllib.error.HTTPError as he:
+        elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+        try:
+            detail = json.loads(he.read().decode())
+            err_msg = detail.get("detail", str(he))
+        except Exception:
+            err_msg = str(he)
+        return False, f"Lỗi Tectonic API: {err_msg}", elapsed_ms
+    except Exception as e:
+        elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+        return False, f"Không thể kết nối Tectonic API: {e}", elapsed_ms
+
+
+def compile_latex_to_pdf(
+    latex_source: str,
+    output_pdf: Path,
+    title: str = "Tài Liệu Soạn Thảo"
+) -> Tuple[bool, str, int]:
+    """Unified LaTeX Compiler:
+    1. Checks if Remote Tectonic Docker API is available -> Compiles with remote Tectonic.
+    2. Checks if local Tectonic XeTeX engine is available -> Compiles with native Tectonic.
+    3. Falls back to Headless Chromium + MathJax + TikZ + CMU Serif vector pipeline.
+    """
+    # 1. Try Remote Tectonic API
+    ok, err, ms = compile_with_remote_tectonic_api(latex_source, output_pdf, title=title)
+    if ok:
+        return ok, err, ms
+    if "Lỗi Tectonic API:" in err:
+        logger.warning(f"Remote Tectonic returned syntax error: {err}")
+        return False, err, ms
+
+    # 2. Try Local Tectonic
+    if find_tectonic_executable():
+        ok, err, ms = compile_with_tectonic(latex_source, output_pdf, title=title)
+        if ok:
+            return ok, err, ms
+        logger.warning(f"Local Tectonic compilation failed ({err}). Falling back to Headless Chromium engine.")
+
+    # 3. Fallback to Chromium engine
+    return compile_latex_to_pdf_chromium(latex_source, output_pdf, title=title)
 
 
 # ---------------------------------------------------------------------------

@@ -49,6 +49,10 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 - **NFR-PERF-11 (Thời gian Xuất bản Gói Đề thi ZIP Khảo thí):** Quá trình đóng gói toàn bộ 4 mã đề thi Word kèm bảng đáp án và hướng dẫn giải (khoảng 9 file DOCX) phải hoàn thành trong vòng **$< 10$ giây** (ngân sách NFR).
 - **NFR-QUAL-01 (Độ Sắc nét Tuyệt đối của Công thức MathType - 100% Vector WMF):** Công thức toán trong file Word phải đạt chuẩn Vector WMF (`image/x-wmf`) với APM header, đạt tỷ lệ 100% vector thuần (loại bỏ hoàn toàn fallback raster DIB), giữ nguyên độ nét vector tuyệt đối (zero blur) ở mọi mức thu phóng màn hình và in ấn.
 - **NFR-COMP-01 (Tính Biên tập Hai chiều của MathType OLE - DSMT7 Stream):** Đối tượng OLE nhúng trong file `.docx` bắt buộc phải chứa luồng nhị phân DSMT7 chuẩn với bản ghi `TeX Input Language`, chuẩn hóa embellishment cho toán tử vectơ (`\vec`, `\overrightarrow`), kích hoạt và mở mượt mà trong trình soạn thảo MathType 7 thông qua thao tác double-click của người dùng mà không phát sinh bất kỳ lỗi COM/OLE hay popup cảnh báo thiếu ứng dụng server nào.
+- **NFR-COMP-02 (Kiến trúc Biên dịch LaTeX Tectonic Độc lập Môi trường):** Phân hệ Soạn đề LaTeX hỗ trợ biên dịch đa tầng (Hybrid Multi-tier Compiler Architecture):
+  1. *Microservice Tectonic Docker:* Độc lập trên container Docker (được triển khai trên host ARM/Armbian tại cổng 8090), sử dụng engine Tectonic XeTeX tự động nạp packages CTAN theo nhu cầu, cache gói dữ liệu liên hoàn, tốc độ biên dịch $\le 10$s cho đề thi tiếng Việt đầy đủ bảng biến thiên `tkz-tab` và đồ thị TikZ.
+  2. *Local Native Tectonic:* Tự động kích hoạt khi có binary `tectonic` trong PATH hệ thống.
+  3. *Headless Chromium Fallback:* Cơ chế dự phòng nội tại với Chromium + MathJax 4.0 + TikZ Vector SVG + CMU Serif typography bảo đảm hệ thống luôn xuất bản được PDF chất lượng cao ngay cả khi ngắt kết nối mạng ngoài.
 
 ---
 
