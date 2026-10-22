@@ -151,11 +151,15 @@ def wrap_tikz_in_standalone_document(tikz_code: str) -> str:
 
 
 def post_process_tikz_svg(svg_content: str) -> str:
-    """Enhances SVG output from dvisvgm:
+    """Enhances SVG output from dvisvgm dynamically based on actual font-family mapping:
     1. Replaces PUA prime code \\ue030 with universal math prime ′ (&#x2032;).
     2. Normalizes font MIME types from application/x-font-woff to font/woff.
-    3. Unifies all diagram and table text with authentic LaTeX CMU Serif typography (CMU Serif, Latin Modern Roman, Computer Modern).
-    4. Enforces font-style: italic on math italic variables (text.f2 / cmmi10).
+    3. Dynamically maps each text.fX class to authentic LaTeX CMU Serif typography:
+       - If font contains 'mi' (cmmi10 - math italic variables): font-style: italic !important
+       - If font contains 'r' (cmr10 - numbers, upright text): font-style: normal !important
+       - If font contains 'sy' (cmsy10, cmsy7 - symbols): math symbols
+       - Other fonts: unified CMU Serif
+    4. Enforces unified CMU Serif across all text and tspan elements.
     """
     if not svg_content:
         return svg_content
@@ -163,37 +167,36 @@ def post_process_tikz_svg(svg_content: str) -> str:
     s = s.replace("\ue030", "&#x2032;")
     s = s.replace("application/x-font-woff", "font/woff")
 
-    cmu_font_family = "'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif"
+    cmu_font = "'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif"
 
-    # Replace class-specific font rules with CMU Serif
-    s = re.sub(
-        r"text\.f2\s*\{[^}]*\}",
-        rf"text.f2 {{ font-family: cmmi10, {cmu_font_family} !important; font-style: italic !important; font-size: 9.96px; }}",
-        s
-    )
-    s = re.sub(
-        r"text\.f3\s*\{[^}]*\}",
-        rf"text.f3 {{ font-family: cmr10, {cmu_font_family} !important; font-style: normal !important; font-size: 9.96px; }}",
-        s
-    )
-    s = re.sub(
-        r"text\.f1\s*\{[^}]*\}",
-        rf"text.f1 {{ font-family: cmsy7, {cmu_font_family} !important; font-size: 6.97px; }}",
-        s
-    )
-    s = re.sub(
-        r"text\.f0\s*\{[^}]*\}",
-        rf"text.f0 {{ font-family: cmsy10, {cmu_font_family} !important; font-size: 9.96px; }}",
-        s
-    )
+    # Match each text.fX rule emitted by dvisvgm: text.f0 {font-family:cmsy10;font-size:9.96264px}
+    pattern = re.compile(r'text\.(f\d+)\s*\{\s*font-family:\s*([^;}\s]+)([^}]*)\}')
+
+    def _replace_font_rule(m):
+        cls_name = m.group(1)
+        font_name = m.group(2).strip()
+        rest = m.group(3)
+
+        size_m = re.search(r'font-size:\s*([^;}]+)', rest)
+        size_str = f" font-size: {size_m.group(1).strip()};" if size_m else ""
+
+        if "mi" in font_name.lower():  # Math Italic (e.g. cmmi10)
+            return f"text.{cls_name} {{ font-family: {font_name}, {cmu_font} !important; font-style: italic !important;{size_str} }}"
+        elif "r" in font_name.lower():  # Roman digits/labels (e.g. cmr10)
+            return f"text.{cls_name} {{ font-family: {font_name}, {cmu_font} !important; font-style: normal !important;{size_str} }}"
+        else:  # Symbol (e.g. cmsy10, cmsy7)
+            return f"text.{cls_name} {{ font-family: {font_name}, {cmu_font} !important;{size_str} }}"
+
+    s = pattern.sub(_replace_font_rule, s)
 
     # Add default typography rule for all text/tspan in the SVG
-    s = re.sub(
-        r"(<style[^>]*>)",
-        rf"\1\ntext, tspan {{ font-family: {cmu_font_family}; }}\n",
-        s,
-        count=1
-    )
+    if "text, tspan {" not in s:
+        s = re.sub(
+            r"(<style[^>]*>)",
+            rf"\1\ntext, tspan {{ font-family: {cmu_font}; }}\n",
+            s,
+            count=1
+        )
     return s
 
 

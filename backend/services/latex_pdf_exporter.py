@@ -538,22 +538,6 @@ def generate_digitized_exam_latex_pdf(
     .tikz-vector-container svg tspan {{
       font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
     }}
-    .tikz-vector-container svg text.f2,
-    .tikz-vector-container svg [class*="f2"] {{
-      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
-      font-style: italic !important;
-    }}
-    .tikz-vector-container svg text.f3,
-    .tikz-vector-container svg [class*="f3"] {{
-      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
-      font-style: normal !important;
-    }}
-    .tikz-vector-container svg text.f1,
-    .tikz-vector-container svg [class*="f1"],
-    .tikz-vector-container svg text.f0,
-    .tikz-vector-container svg [class*="f0"] {{
-      font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
-    }}
 
     .footer-end {{
       text-align: center;

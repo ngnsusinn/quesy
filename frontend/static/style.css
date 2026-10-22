@@ -576,30 +576,6 @@ select:focus, input[type="text"]:focus, input[type="number"]:focus, textarea:foc
 .tikz-vector-container svg tspan {
   font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
 }
-.tikz-diagram-wrapper text.f2,
-.tikz-diagram-wrapper [class*="f2"],
-.tikz-vector-container text.f2,
-.tikz-vector-container [class*="f2"] {
-  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
-  font-style: italic !important;
-}
-.tikz-diagram-wrapper text.f3,
-.tikz-diagram-wrapper [class*="f3"],
-.tikz-vector-container text.f3,
-.tikz-vector-container [class*="f3"] {
-  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
-  font-style: normal !important;
-}
-.tikz-diagram-wrapper text.f1,
-.tikz-diagram-wrapper [class*="f1"],
-.tikz-vector-container text.f1,
-.tikz-vector-container [class*="f1"],
-.tikz-diagram-wrapper text.f0,
-.tikz-diagram-wrapper [class*="f0"],
-.tikz-vector-container text.f0,
-.tikz-vector-container [class*="f0"] {
-  font-family: 'CMU Serif', 'Latin Modern Roman', 'Computer Modern', serif !important;
-}
 
 /* Exam Tables & Variation Tables in Studio */
 .exam-table, .variation-table {
