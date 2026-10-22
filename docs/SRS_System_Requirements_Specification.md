@@ -153,14 +153,13 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 - **Quy chuẩn in ấn:** Khổ giấy A4 Portrait (210 x 297 mm), lề trang 1.6 cm, dàn trang 1 cột với bảng đáp án thích ứng (4 cột / 2 cột / 1 cột), bảng thông tin thí sinh 3 cột chống rớt dòng, chân trang `Trang X - Mã đề thi Y`.
 - **Tạm thời ẩn xuất Word:** Trên giao diện tab số hóa AI (HITL Studio), tạm thời ẩn các nút xuất file Word (.docx) để tập trung hoàn thiện và vận hành luồng xuất bản PDF chất lượng cao.
 
-#### SRS-FEAT-04c: Phân hệ Số hoá AI Thử nghiệm 2-Pass Decoupled (Experimental 2-Pass Decoupled AI Digitization)
-- **Mô tả:** Phân hệ số hóa thử nghiệm ("Số hóa AI (Test)", route `/digitize-test` và API `POST /api/v1/digitize/upload-test`) hoạt động song song với luồng chuẩn để đánh giá hiệu năng bóc tách chuyên sâu.
-- **Quy trình 5 bước độc lập (2-Pass Decoupled Architecture):**
-  1. *Uniform Document-to-Image:* Chuẩn hóa mọi đầu vào (PDF scan, PDF số, chùm ảnh chụp) sang ảnh trang RGB độ nét cao 200–300 DPI bằng engine `pymupdf` độc lập nền tảng.
-  2. *Computer Vision Image Enhancement & Bleed-Through Suppression:* Tẩy bóng mờ, làm sáng nền giấy, khử nghiêng (Auto-Deskew), triệt tiêu hiện tượng thấu mực mặt sau (paper bleed-through suppression) trên giấy thi mỏng, tăng cường độ tương phản chữ in và công thức toán giúp làm sắc nét các số mũ ($x^2$), chỉ số chân ($u_1$), dấu âm ($-$), dấu căn ($\\sqrt{}$).
-  3. *Precision Layout Segmentation & Landmark Badging:* Nhận diện chuẩn xác Bảng biến thiên (variation tables / sign tables) và ma trận số liệu dựa trên cấu trúc lưới ngang dọc; nhận diện đồ thị hàm số tọa độ $Oxy$ và hình học không gian dựa trên kiểm tra hệ trục vuông góc và mật độ nét vẽ liên tục (loại bỏ triệt để việc bắt nhầm gạch chân học sinh, thanh phân số hay chữ cái rời rạc). Tự động cắt rời với đệm an toàn 18px (không xén mất nhãn $x, f'(x), \\pm\\infty$), lưu WebP vào `storage/assets/` và đóng dấu trực quan `[FIGURE_1]`, `[TABLE_1]` lên trang đề.
-  4. *AI Pass 1 (Text & Structure):* Vision AI chỉ bóc tách văn bản, công thức và đáp án, giữ nguyên các token `{{FIGURE_1}}`, `{{TABLE_1}}`, giảm 60% token và loại bỏ nguy cơ vỡ cấu trúc JSON.
-  5. *AI Pass 2 (Diagram-to-LaTeX) & Fallback:* AI chuyên sâu dựng riêng từng ảnh cắt rời thành mã vector `\begin{tikzpicture}` hoặc `\begin{array}`. Nếu mã TikZ hợp lệ thì biên dịch SVG; nếu lỗi cú pháp thì tự động fallback về ảnh crop gốc nguyên bản (bảo đảm 100% không mất hình).
+#### SRS-FEAT-04c: Phân hệ Số hoá AI Trực tiếp Thống nhất (Unified End-to-End Inline AI Digitization)
+- **Mô tả:** Hệ thống áp dụng luồng số hóa trực tiếp toàn trang thống nhất (Unified End-to-End Vision Pipeline). Toàn bộ nội dung đề thi (văn bản câu hỏi, phương án trắc nghiệm, công thức toán học, bảng biến thiên $\\begin{array}$ và đồ thị hàm số TikZ) được Multimodal Vision AI nhận diện và nhúng trực tiếp, đầy đủ vào trường `stem` và `options` của câu hỏi theo chuẩn KaTeX hiển thị mượt mà.
+- **Quy chuẩn hiển thị:**
+  1. *Bảng biến thiên & Bảng số liệu:* Được sinh mã trực tiếp dạng mảng LaTeX KaTeX `\begin{array}{...} ... \end{array}` đặt trực tiếp bên trong câu hỏi, không cắt rời thành ảnh riêng lẻ hay để sót thẻ giữ chỗ placeholder `{{TABLE_X}}`.
+  2. *Đồ thị hàm số & Hình học:* Được mô tả chính xác bằng khối mã vector `\begin{tikzpicture}` tự chứa, hiển thị trực quan ngay tại vị trí câu hỏi tương ứng.
+  3. *Chuẩn hóa chữ hoa/thường phương án:* Tự động loại bỏ tiền tố nhãn lặp lại `A. `, chỉ viết hoa ký tự đầu tiên của phương án (sentence case), không viết hoa toàn bộ cả câu phương án.
+  4. *Thanh tiến trình thời gian thực (Real-time Progress Tracker):* Cập nhật tiến độ từng bước trực quan từ khâu tiếp nhận file, phân tích cấu trúc đến khi hoàn tất.
 
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings

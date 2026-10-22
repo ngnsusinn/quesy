@@ -691,6 +691,9 @@ def process_digitize_job(job_id: str):
         job.status = "PROCESSING"
         db.commit()
 
+        from backend.routers.digitize import set_job_progress
+        set_job_progress(job_id, 20, "Đang đọc và phân tích cấu trúc tệp đề thi...")
+
         questions: List[Dict[str, Any]] = []
         avg_confidence: float = 0.0
 
@@ -699,6 +702,7 @@ def process_digitize_job(job_id: str):
             logger.info(
                 f"Using Online AI Provider ({default_ai_provider_service.provider.upper()} - {default_ai_provider_service.model}) for job {job_id}"
             )
+            set_job_progress(job_id, 45, f"Đang gửi nội dung sang AI ({default_ai_provider_service.provider.upper()}) để bóc tách câu hỏi...")
             p = Path(job.file_path)
             ext = p.suffix.lower()
 
@@ -777,14 +781,18 @@ def process_digitize_job(job_id: str):
             except Exception as ai_err:
                 logger.error(f"Online AI Provider execution error: {ai_err}. Falling back to high-fidelity local parser.")
                 questions, avg_confidence = parse_document_file(job.file_path, job.filename)
+            set_job_progress(job_id, 85, "Đang chuẩn hóa LaTeX KaTeX, cấu trúc 3 phần và tự động gắn nhãn...")
         else:
+            set_job_progress(job_id, 50, "Đang phân tích cấu trúc đề thi bằng engine cục bộ...")
             logger.info("No online AI Provider configured in .env. Using high-fidelity local converter.")
             questions, avg_confidence = parse_document_file(job.file_path, job.filename)
 
+        set_job_progress(job_id, 95, "Đang hoàn tất chuẩn hóa câu hỏi...")
         job.extracted_data = json.dumps(questions, ensure_ascii=False)
         job.confidence_score = avg_confidence
         job.status = "EXTRACTED"
         db.commit()
+        set_job_progress(job_id, 100, f"Hoàn tất bóc tách {len(questions)} câu hỏi!")
         logger.info(f"Job {job_id} processed successfully with {len(questions)} items and confidence {avg_confidence}%")
     except Exception as e:
         logger.exception(f"Error processing job {job_id}: {str(e)}")
@@ -792,6 +800,8 @@ def process_digitize_job(job_id: str):
             job.status = "FAILED"
             job.error_message = str(e)
             db.commit()
+            from backend.routers.digitize import set_job_progress
+            set_job_progress(job_id, 0, f"Lỗi bóc tách: {str(e)}")
     finally:
         db.close()
 

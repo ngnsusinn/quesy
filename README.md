@@ -60,7 +60,8 @@ The platform is strictly tailored to national assessment standards:
 
 - **Universal Document Ingestion:** Parses smartphone photos (`.jpg`, `.png`), multi-page scanned PDFs, and legacy Word documents (`.docx`, `.doc`).
 - **Resilient JSON LaTeX Sanitizer (`repair_llm_json`):** Multimodal Vision models often emit unescaped LaTeX backslashes inside JSON string properties (such as `\dfrac`, `\left`, `\hline`, `\text`). Quesy's dedicated pre-parser automatically repairs unescaped TeX syntax, preventing JSON parse failures and eliminating fallback placeholder questions.
-- **Experimental 2-Pass Decoupled Pipeline (`/digitize-test`):** Features an advanced image-first architecture with OpenCV CLAHE contrast boosting, background normalization, automatic diagram/table bounding box segmentation, and dedicated 2-pass Vision LLM compilation (Pass 1: Text structure with landmark placeholders, Pass 2: Isolated TikZ/Array compilation with safe image fallback).
+- **Unified Multimodal Vision Pipeline:** Ingests full examination sheets and directly reconstructs text, mathematical formulas, variation tables (`\begin{array}`), and coordinate geometry plots (`\begin{tikzpicture}`) directly in-place without separate cropping or missing asset placeholders.
+- **Answer Option Clean Formatting:** Enforces sentence case for answer options, automatically strips redundant prefixes (e.g. `A. 1` -> label `A.` and content `1`), and preserves mathematical expressions without accidental all-caps formatting.
 - **Provider Agnostic:** Connects seamlessly with Google Gemini, OpenAI GPT-4o, Anthropic Claude, OpenRouter, or falls back to an offline rule-based extraction engine when unconfigured.
 
 ### 2. Pure LaTeX Vector PDF Publishing
