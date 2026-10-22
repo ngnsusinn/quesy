@@ -446,10 +446,13 @@ def compile_with_tectonic(
     output_pdf.parent.mkdir(parents=True, exist_ok=True)
 
     raw = latex_source.strip()
+    # In XeTeX/Tectonic, replace legacy 8-bit vietnam package with modern fontspec
+    raw = re.sub(r'\\usepackage(\[[^\]]*\])?\{vietnam\}', r'\\usepackage{fontspec}', raw)
+
     # Ensure document wrapper exists
     if "\\documentclass" not in raw:
         raw = f"""\\documentclass[12pt,a4paper]{{article}}
-\\usepackage[utf8]{{vietnam}}
+\\usepackage{{fontspec}}
 \\usepackage{{amsmath,amssymb}}
 \\usepackage{{tikz,tkz-tab}}
 \\begin{{document}}
@@ -458,6 +461,18 @@ def compile_with_tectonic(
 
     with tempfile.TemporaryDirectory(prefix="tectonic_build_") as tmp_dir:
         tmp_dir_path = Path(tmp_dir)
+
+        # Mock missing images referenced in \\includegraphics so xdvipdfmx never halts on missing image
+        blank_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\x0bIDATx\x9cc`\x00\x00\x00\x06\x00\x010\x948/\x00\x00\x00\x00IEND\xaeB`\x82"
+        for m in re.finditer(r'\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}', raw):
+            img_rel = m.group(1).strip()
+            candidates = [img_rel] if "." in img_rel else [img_rel + ext for ext in [".png", ".jpg", ".pdf"]]
+            for cand in candidates:
+                cand_path = tmp_dir_path / cand
+                cand_path.parent.mkdir(parents=True, exist_ok=True)
+                if not cand_path.exists():
+                    cand_path.write_bytes(blank_png)
+
         tex_file = tmp_dir_path / "document.tex"
         tex_file.write_text(raw, encoding="utf-8")
 
@@ -578,9 +593,11 @@ def compile_with_remote_tectonic_api(
         return False, "Không có dịch vụ Tectonic API từ xa.", 0
 
     try:
-        import json
+        # Modernize vietnam package to fontspec for XeTeX Tectonic
+        sanitized_latex = re.sub(r'\\usepackage(\[[^\]]*\])?\{vietnam\}', r'\\usepackage{fontspec}', latex_source)
+
         payload = json.dumps({
-            "latex_code": latex_source,
+            "latex_code": sanitized_latex,
             "timeout_s": 60
         }).encode("utf-8")
 
