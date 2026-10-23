@@ -4264,14 +4264,218 @@
       }
     },
 
-    toggleAIPaneCollapse() {
-      const pane = document.getElementById('composer-ai-pane');
-      if (!pane) return;
-      this.aiPaneCollapsed = !this.aiPaneCollapsed;
-      if (this.aiPaneCollapsed) {
-        pane.style.height = '38px';
+    isAIPopupOpen: false,
+    aiPopupHeight: '56%',
+    isHistoryViewOpen: false,
+
+    openAIPopup(prefillPrompt = '') {
+      const popup = document.getElementById('composer-ai-popup');
+      const compactBar = document.getElementById('composer-ai-compact-bar');
+      const chatInput = document.getElementById('composer-chat-input');
+      const compactInput = document.getElementById('composer-compact-input');
+
+      if (popup) {
+        popup.classList.remove('hidden');
+        this.isAIPopupOpen = true;
+      }
+      if (compactBar) {
+        compactBar.classList.add('hidden');
+      }
+
+      if (prefillPrompt && chatInput) {
+        chatInput.value = prefillPrompt;
+      } else if (compactInput && compactInput.value && chatInput) {
+        chatInput.value = compactInput.value;
+        compactInput.value = '';
+      }
+
+      if (chatInput) {
+        setTimeout(() => chatInput.focus(), 60);
+      }
+
+      const container = document.getElementById('composer-chat-messages');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+      if (window.lucide) lucide.createIcons();
+    },
+
+    closeAIPopup() {
+      const popup = document.getElementById('composer-ai-popup');
+      const compactBar = document.getElementById('composer-ai-compact-bar');
+      const historyPanel = document.getElementById('composer-ai-history-panel');
+      const chatMessages = document.getElementById('composer-chat-messages');
+
+      if (popup) {
+        popup.classList.add('hidden');
+        this.isAIPopupOpen = false;
+      }
+      if (historyPanel) {
+        historyPanel.classList.add('hidden');
+        this.isHistoryViewOpen = false;
+      }
+      if (chatMessages) {
+        chatMessages.classList.remove('hidden');
+      }
+      if (compactBar) {
+        compactBar.classList.remove('hidden');
+      }
+      if (window.lucide) lucide.createIcons();
+    },
+
+    toggleAIPopupHeight() {
+      const popup = document.getElementById('composer-ai-popup');
+      if (!popup) return;
+      if (this.aiPopupHeight === '56%') {
+        this.aiPopupHeight = '78%';
+        popup.style.height = '78%';
       } else {
-        pane.style.height = '250px';
+        this.aiPopupHeight = '56%';
+        popup.style.height = '56%';
+      }
+    },
+
+    toggleAIPopupFullscreen() {
+      const popup = document.getElementById('composer-ai-popup');
+      const icon = document.getElementById('composer-ai-max-icon');
+      if (!popup) return;
+
+      if (this.aiPopupHeight === '92%') {
+        this.aiPopupHeight = '56%';
+        popup.style.height = '56%';
+        if (icon) icon.setAttribute('data-lucide', 'maximize-2');
+      } else {
+        this.aiPopupHeight = '92%';
+        popup.style.height = '92%';
+        if (icon) icon.setAttribute('data-lucide', 'minimize-2');
+      }
+      if (window.lucide) lucide.createIcons();
+    },
+
+    handleCompactInputKey(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.submitFromCompact();
+      }
+    },
+
+    submitFromCompact() {
+      const compactInput = document.getElementById('composer-compact-input');
+      const text = compactInput ? compactInput.value.trim() : '';
+      this.openAIPopup(text);
+      if (text) {
+        this.sendPrompt(text);
+        const chatInput = document.getElementById('composer-chat-input');
+        if (chatInput) chatInput.value = '';
+      }
+    },
+
+    toggleQuickPromptMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('composer-quick-prompts-menu');
+      if (menu) menu.classList.toggle('hidden');
+    },
+
+    toggleCompactQuickMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('composer-compact-quick-menu');
+      if (menu) menu.classList.toggle('hidden');
+    },
+
+    applyQuickPrompt(promptText) {
+      const quickMenu = document.getElementById('composer-quick-prompts-menu');
+      const compactMenu = document.getElementById('composer-compact-quick-menu');
+      if (quickMenu) quickMenu.classList.add('hidden');
+      if (compactMenu) compactMenu.classList.add('hidden');
+
+      this.openAIPopup(promptText);
+      const chatInput = document.getElementById('composer-chat-input');
+      if (chatInput) {
+        chatInput.value = promptText;
+        chatInput.focus();
+      }
+    },
+
+    newChat() {
+      this.chatHistory = [
+        {
+          role: 'assistant',
+          content: 'Cuộc trò chuyện mới đã bắt đầu! Bạn có thể yêu cầu tôi đổi cỡ chữ (`12pt`), tạo câu hỏi trắc nghiệm chuẩn, chèn bảng biến thiên `tkz-tab` hoặc vẽ hình TikZ.'
+        }
+      ];
+      localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory));
+      this.renderChatMessages();
+      this.renderHistoryList();
+      showToast('Đã bắt đầu phiên trò chuyện mới!', 'info');
+    },
+
+    toggleHistoryView() {
+      const historyPanel = document.getElementById('composer-ai-history-panel');
+      const chatMessages = document.getElementById('composer-chat-messages');
+      if (!historyPanel || !chatMessages) return;
+
+      this.isHistoryViewOpen = !this.isHistoryViewOpen;
+      if (this.isHistoryViewOpen) {
+        this.renderHistoryList();
+        historyPanel.classList.remove('hidden');
+        chatMessages.classList.add('hidden');
+      } else {
+        historyPanel.classList.add('hidden');
+        chatMessages.classList.remove('hidden');
+      }
+    },
+
+    renderHistoryList() {
+      const listEl = document.getElementById('composer-ai-history-list');
+      if (!listEl) return;
+
+      const userMessages = (this.chatHistory || []).filter(m => m.role === 'user');
+      if (!userMessages.length) {
+        listEl.innerHTML = `
+          <div class="py-6 text-center text-slate-500 text-xs">
+            <i data-lucide="history" class="w-8 h-8 mx-auto mb-2 text-slate-600 stroke-[1.5]"></i>
+            <p>Chưa có lịch sử câu lệnh nào trong phiên này</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      listEl.innerHTML = userMessages.slice().reverse().map((msg, idx) => {
+        const text = escapeHtml(msg.content);
+        return `
+          <div onclick="app.composer.selectHistoryItem('${encodeURIComponent(msg.content)}')" class="p-2.5 rounded-xl bg-[#222226] hover:bg-[#2c2c32] border border-white/5 hover:border-white/15 transition-all cursor-pointer flex items-center justify-between text-xs text-slate-300">
+            <div class="flex items-center space-x-2 min-w-0">
+              <span class="w-5 h-5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] flex items-center justify-center shrink-0">#${userMessages.length - idx}</span>
+              <span class="truncate font-sans font-medium text-slate-200">${text}</span>
+            </div>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) lucide.createIcons();
+    },
+
+    selectHistoryItem(encodedText) {
+      const text = decodeURIComponent(encodedText);
+      const historyPanel = document.getElementById('composer-ai-history-panel');
+      const chatMessages = document.getElementById('composer-chat-messages');
+      if (historyPanel) historyPanel.classList.add('hidden');
+      if (chatMessages) chatMessages.classList.remove('hidden');
+      this.isHistoryViewOpen = false;
+
+      const input = document.getElementById('composer-chat-input');
+      if (input) {
+        input.value = text;
+        input.focus();
+      }
+    },
+
+    toggleAIPaneCollapse() {
+      if (this.isAIPopupOpen) {
+        this.closeAIPopup();
+      } else {
+        this.openAIPopup();
       }
     },
 
@@ -4389,11 +4593,26 @@
         this.chatHistory = [
           {
             role: 'assistant',
-            content: 'Chào bạn! Tôi là **Quesy AI Copilot** (kế thừa từ Open-Prism). Bạn có thể yêu cầu tôi tạo câu hỏi trắc nghiệm, tạo bảng biến thiên `tkz-tab`, vẽ đồ thị TikZ hoặc kiểm tra và sửa lỗi cú pháp LaTeX trực tiếp.'
+            content: 'Chào bạn! Tôi là **Trợ lý soạn thảo** (Quesy Copilot). Bạn có thể yêu cầu tôi đổi cỡ chữ (`12pt`), tạo câu hỏi trắc nghiệm, tạo bảng biến thiên `tkz-tab`, vẽ đồ thị TikZ hoặc kiểm tra và sửa lỗi cú pháp LaTeX trực tiếp.'
           }
         ];
       }
       this.renderChatMessages();
+      this.renderHistoryList();
+
+      if (!this._quickMenuDocClickBound) {
+        this._quickMenuDocClickBound = true;
+        document.addEventListener('click', (e) => {
+          const qMenu = document.getElementById('composer-quick-prompts-menu');
+          const cMenu = document.getElementById('composer-compact-quick-menu');
+          if (qMenu && !qMenu.contains(e.target) && !e.target.closest('button[title="Chèn nhanh mẫu yêu cầu"]')) {
+            qMenu.classList.add('hidden');
+          }
+          if (cMenu && !cMenu.contains(e.target) && !e.target.closest('button[title="Mẫu câu lệnh nhanh"]')) {
+            cMenu.classList.add('hidden');
+          }
+        });
+      }
     },
 
     renderChatMessages() {
@@ -4405,23 +4624,27 @@
         if (isUser) {
           return `
             <div class="flex items-start justify-end space-x-2">
-              <div class="bg-brand-600 text-white rounded-2xl rounded-tr-xs p-2.5 max-w-[85%] shadow-2xs leading-relaxed text-[11px]">
+              <div class="bg-[#27272a] text-white border border-white/10 rounded-2xl rounded-tr-xs p-2.5 max-w-[85%] shadow-md leading-relaxed text-xs">
                 ${escapeHtml(msg.content)}
-              </div>
-              <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[10px] shrink-0">
-                GV
               </div>
             </div>
           `;
         } else {
           const formattedHtml = this.formatAssistantContent(msg.content, msg.diff);
+          const rawTextB64 = btoa(unescape(encodeURIComponent(msg.content || '')));
           return `
-            <div class="flex items-start space-x-2">
-              <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-2xs">
+            <div class="flex items-start space-x-2.5">
+              <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-sm mt-0.5">
                 AI
               </div>
-              <div class="bg-slate-50 border border-slate-200/80 rounded-2xl rounded-tl-xs p-3 max-w-[90%] shadow-2xs leading-relaxed text-[11px] text-slate-800 space-y-2">
-                ${formattedHtml}
+              <div class="bg-[#202024] border border-white/5 rounded-2xl rounded-tl-xs p-3 max-w-[92%] shadow-md leading-relaxed text-xs text-slate-200 space-y-2">
+                <div>${formattedHtml}</div>
+                <div class="flex items-center justify-between pt-1 border-t border-white/5 text-[10px] text-slate-400 select-none">
+                  <span class="flex items-center space-x-1"><i data-lucide="sparkles" class="w-3 h-3 text-purple-400"></i><span>Quesy Copilot</span></span>
+                  <button type="button" onclick="navigator.clipboard.writeText(decodeURIComponent(escape(atob('${rawTextB64}')))); showToast('Đã sao chép nội dung!', 'info')" class="hover:text-white p-0.5 rounded cursor-pointer transition-all" title="Sao chép câu trả lời">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
               </div>
             </div>
           `;
@@ -4527,9 +4750,9 @@
         `;
       });
 
-      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-      html = html.replace(/`([^`]+)`/g, '<code class="bg-black/[0.06] text-purple-700 px-1 py-0.5 rounded font-mono text-[10px]">$1</code>');
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+      html = html.replace(/\*([^*]+)\*/g, '<em class="text-slate-300">$1</em>');
+      html = html.replace(/`([^`]+)`/g, '<code class="bg-[#2d2d31] text-purple-300 border border-white/10 px-1.5 py-0.5 rounded font-mono text-[11px] font-semibold">$1</code>');
       html = html.replace(/\n\n/g, '<br><br>');
       return html;
     },
@@ -4600,20 +4823,24 @@
     },
 
     async sendPrompt(promptText) {
+      if (!this.isAIPopupOpen) {
+        this.openAIPopup();
+      }
       this.chatHistory.push({ role: 'user', content: promptText });
       this.renderChatMessages();
+      this.renderHistoryList();
 
       const container = document.getElementById('composer-chat-messages');
       const tempId = 'composer-typing-indicator';
       if (container) {
         const typingHtml = `
-          <div id="${tempId}" class="flex items-start space-x-2">
-            <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+          <div id="${tempId}" class="flex items-start space-x-2.5">
+            <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-sm mt-0.5">
               AI
             </div>
-            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl rounded-tl-xs p-3 text-slate-500 text-[11px] flex items-center space-x-2">
-              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-purple-600"></i>
-              <span>Quesy AI đang xử lý yêu cầu...</span>
+            <div class="bg-[#202024] border border-white/5 rounded-2xl rounded-tl-xs p-3 text-slate-300 text-xs flex items-center space-x-2 shadow-md">
+              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-purple-400"></i>
+              <span>Trợ lý đang xử lý yêu cầu...</span>
             </div>
           </div>
         `;
@@ -4666,6 +4893,8 @@
       ];
       localStorage.removeItem('quesy_composer_chat');
       this.renderChatMessages();
+      this.renderHistoryList();
+      showToast('Đã xóa sạch lịch sử hội thoại.', 'info');
     },
 
     handleEditorInput() {

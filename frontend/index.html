@@ -409,17 +409,17 @@
 
       </section>
 
-      <!-- ================= TAB 2: SOẠN ĐỀ (AI LATEX WORKSPACE - NOCTORIUM CLONE) ================= -->
+      <!-- ================= TAB 2: SOẠN ĐỀ (AI LATEX WORKSPACE - 6:4 HORIZONTAL SPLIT) ================= -->
       <section id="tab-composer" class="tab-pane hidden flex flex-col h-[calc(100vh-105px)] min-h-0 space-y-2 overflow-hidden">
         
-        <!-- Main 2-Column Split View Workspace (Cloned from Noctorium / Open-Prism) -->
-        <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-2.5 min-h-0 overflow-hidden">
+        <!-- Main 2-Column Split View Workspace: 6:4 Horizontal Ratio (60% Left, 40% Right) -->
+        <div class="flex-1 flex flex-col lg:flex-row gap-2.5 min-h-0 overflow-hidden">
           
-          <!-- ================= CỘT TRÁI (LEFT COLUMN): CODE EDITOR (TOP) + AI COPILOT (BOTTOM) ================= -->
-          <div class="flex flex-col gap-2 h-full min-h-0 overflow-hidden">
+          <!-- ================= CỘT TRÁI (LEFT COLUMN): CODE EDITOR + POPUP TRỢ LÝ (60% WIDTH) ================= -->
+          <div class="w-full lg:w-[60%] flex flex-col h-full min-h-0 overflow-hidden relative shrink-0">
             
-            <!-- 1. HỘP TRÊN: TRÌNH SOẠN THẢO MÃ NGUỒN LATEX (DARK MODE) -->
-            <div id="composer-editor-pane" class="flex-1 min-h-0 bg-[#141824] rounded-xl border border-[#272f42] flex flex-col overflow-hidden shadow-xs relative">
+            <!-- HỘP SOẠN THẢO MÃ NGUỒN LATEX (DARK MODE) - FULL HEIGHT -->
+            <div id="composer-editor-pane" class="w-full h-full flex-1 min-h-0 bg-[#141824] rounded-xl border border-[#272f42] flex flex-col overflow-hidden shadow-xs relative">
               
               <!-- Editor Header Toolbar (Dark Theme) -->
               <div class="bg-[#1c2230] border-b border-[#283144] px-3 py-1.5 flex items-center justify-between text-xs select-none">
@@ -565,12 +565,12 @@
                 <div id="composer-editor-gutter" class="w-10 h-full py-2.5 select-none text-right pr-2 text-slate-500 bg-[#10131d] border-r border-[#202737] text-[11px] leading-5 font-mono overflow-hidden shrink-0">
                   1
                 </div>
-                <!-- Textarea -->
-                <textarea id="composer-editor-input" spellcheck="false" oninput="app.composer.handleEditorInput()" onscroll="app.composer.syncEditorScroll()" onkeydown="app.composer.handleEditorKey(event)" class="flex-1 h-full min-h-0 p-2.5 bg-transparent border-none resize-none focus:ring-0 text-[#d7dce5] text-[12px] leading-5 font-mono overflow-y-auto overflow-x-auto whitespace-pre outline-none"></textarea>
+                <!-- Textarea with bottom padding for floating bar -->
+                <textarea id="composer-editor-input" spellcheck="false" oninput="app.composer.handleEditorInput()" onscroll="app.composer.syncEditorScroll()" onkeydown="app.composer.handleEditorKey(event)" class="flex-1 h-full min-h-0 p-2.5 bg-transparent border-none resize-none focus:ring-0 text-[#d7dce5] text-[12px] leading-5 font-mono overflow-y-auto overflow-x-auto whitespace-pre outline-none pb-16"></textarea>
               </div>
 
               <!-- Editor Sub-footer Status Bar -->
-              <div class="bg-[#10131d] border-t border-[#202737] px-3 py-1 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+              <div class="bg-[#10131d] border-t border-[#202737] px-3 py-1 flex items-center justify-between text-[10px] text-slate-400 font-mono select-none shrink-0">
                 <div class="flex items-center space-x-2">
                   <span id="composer-line-col-badge">Dòng 1, Cột 1</span>
                   <span>•</span>
@@ -582,55 +582,171 @@
                   <span class="text-emerald-400">ex_test v3.3</span>
                 </div>
               </div>
-            </div>
 
-            <!-- 2. HỘP DƯỚI: TRỢ LÝ SOẠN THẢO AI -->
-            <div id="composer-ai-pane" class="h-[210px] shrink-0 bg-white rounded-xl border border-black/[0.08] shadow-xs flex flex-col overflow-hidden transition-all duration-300">
-              
-              <!-- AI Header Bar -->
-              <div class="px-3 py-1.5 bg-gradient-to-r from-purple-50/90 to-indigo-50/90 border-b border-purple-100 flex items-center justify-between text-xs select-none">
-                <div class="flex items-center space-x-2 min-w-0">
-                  <div class="w-5 h-5 rounded-md bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-2xs">
-                    <i data-lucide="sparkles" class="w-3 h-3"></i>
+              <!-- ================= TRỢ LÝ SOẠN THẢO (AI COPILOT POPUP) ================= -->
+              <!-- A. Compact Floating Prompt Bar (Image 2 style) -->
+              <div id="composer-ai-compact-bar" class="absolute bottom-7 left-1/2 -translate-x-1/2 w-[92%] max-w-xl z-20 bg-[#1c1c1f]/95 backdrop-blur-md border border-white/15 rounded-full px-3.5 py-1.5 shadow-2xl flex items-center justify-between text-white transition-all duration-300 hover:border-white/25">
+                <!-- Left: Sparkles & Input Trigger -->
+                <div class="flex items-center space-x-2 flex-1 min-w-0 cursor-pointer" onclick="app.composer.openAIPopup()">
+                  <i data-lucide="sparkles" class="w-4 h-4 text-purple-400 shrink-0"></i>
+                  <input type="text" id="composer-compact-input" placeholder="Yêu cầu AI sửa đổi, thêm câu hỏi, vẽ TikZ... (Bấm để mở)" onkeydown="app.composer.handleCompactInputKey(event)" class="w-full bg-transparent text-xs text-white placeholder-slate-400 outline-none cursor-pointer font-sans" />
+                </div>
+                <!-- Right Controls (Matching Image 2) -->
+                <div class="flex items-center space-x-2 shrink-0">
+                  <div class="relative">
+                    <button type="button" onclick="app.composer.toggleCompactQuickMenu(event)" class="p-1 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer" title="Mẫu câu lệnh nhanh">
+                      <i data-lucide="plus" class="w-4 h-4"></i>
+                    </button>
+                    <!-- Compact Quick Prompts Menu -->
+                    <div id="composer-compact-quick-menu" class="hidden absolute bottom-full mb-2 right-0 z-50 w-56 bg-[#1f1f23] border border-white/15 rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs">
+                      <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-white/10 mb-1">
+                        Gợi ý tác vụ AI
+                      </div>
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Đổi cỡ chữ toàn tài liệu sang 12pt')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                        <span class="text-purple-400 font-bold">●</span>
+                        <span>Đổi cỡ chữ sang 12pt</span>
+                      </button>
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo một câu hỏi trắc nghiệm 4 lựa chọn về hàm số')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                        <span class="text-blue-400 font-bold">●</span>
+                        <span>Trắc nghiệm 4 lựa chọn</span>
+                      </button>
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo câu hỏi Đúng/Sai 4 ý theo Quyết định 764')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                        <span class="text-emerald-400 font-bold">●</span>
+                        <span>Đúng/Sai 4 ý QĐ 764</span>
+                      </button>
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Vẽ bảng biến thiên hàm bậc 3 bằng tkz-tab')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                        <span class="text-amber-400 font-bold">●</span>
+                        <span>Bảng biến thiên tkz-tab</span>
+                      </button>
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Kiểm tra và sửa lỗi cú pháp LaTeX toàn bộ đề thi')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200 border-t border-white/10 mt-1 pt-1.5">
+                        <span class="text-rose-400 font-bold">●</span>
+                        <span>Sửa lỗi cú pháp LaTeX</span>
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <span class="font-bold text-slate-900 text-[11px]">Trợ lý soạn thảo</span>
-                    <span class="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800">
-                      <span class="w-1.5 h-1.5 mr-1 rounded-full bg-emerald-500 animate-pulse"></span>
-                      Sẵn sàng
-                    </span>
+                  <div class="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] text-slate-300 font-medium select-none cursor-default">
+                    <span class="text-xs">ılı</span>
+                    <span>Thinking: Medium</span>
+                  </div>
+                  <button type="button" onclick="app.composer.submitFromCompact()" class="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center hover:bg-slate-200 active:scale-95 shadow-md cursor-pointer transition-all shrink-0" title="Gửi yêu cầu">
+                    <i data-lucide="arrow-up" class="w-3.5 h-3.5 stroke-[2.5]"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- B. Full AI Assistant Popup / Bottom Sheet (Image 3 style) -->
+              <div id="composer-ai-popup" class="hidden absolute bottom-0 left-0 right-0 z-30 bg-[#18181b] border-t border-white/10 shadow-2xl rounded-t-2xl flex flex-col overflow-hidden transition-all duration-300 h-[56%]">
+                
+                <!-- Popup Header (Matching Image 3) -->
+                <div class="px-4 py-2 bg-[#18181b] border-b border-white/10 flex items-center justify-between text-xs select-none shrink-0">
+                  <!-- Left: Collapse arrow -->
+                  <div class="flex items-center space-x-2">
+                    <button type="button" onclick="app.composer.closeAIPopup()" class="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer flex items-center space-x-1.5" title="Thu nhỏ / Ẩn trợ lý">
+                      <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                      <span class="text-[11px] font-semibold text-slate-300">Trợ lý soạn thảo</span>
+                    </button>
+                  </div>
+
+                  <!-- Center: Drag / Resize Handle Pill -->
+                  <div class="w-12 h-1 bg-slate-600/80 rounded-full cursor-pointer hover:bg-slate-500 transition-all" onclick="app.composer.toggleAIPopupHeight()" title="Bấm để phóng to / thu gọn chiều cao"></div>
+
+                  <!-- Right: New Chat, History Tab, Clear, Fullscreen -->
+                  <div class="flex items-center space-x-1">
+                    <button type="button" onclick="app.composer.toggleHistoryView()" id="composer-ai-history-btn" class="px-2 py-0.5 hover:bg-white/10 rounded text-[11px] text-slate-400 hover:text-white flex items-center space-x-1 cursor-pointer transition-all" title="Xem lịch sử phiên">
+                      <i data-lucide="history" class="w-3.5 h-3.5"></i>
+                      <span>Lịch sử</span>
+                    </button>
+                    <button type="button" onclick="app.composer.newChat()" class="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer" title="Bắt đầu hội thoại mới">
+                      <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" onclick="app.composer.clearChat()" class="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-rose-400 transition-all cursor-pointer" title="Xóa toàn bộ lịch sử">
+                      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" onclick="app.composer.toggleAIPopupFullscreen()" class="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-all cursor-pointer" title="Phóng to / Thu nhỏ">
+                      <i data-lucide="maximize-2" id="composer-ai-max-icon" class="w-3.5 h-3.5"></i>
+                    </button>
                   </div>
                 </div>
-                <div class="flex items-center space-x-1">
-                  <button type="button" onclick="app.composer.clearChat()" class="text-slate-400 hover:text-slate-600 p-1 rounded" title="Xóa lịch sử hội thoại">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                  </button>
-                  <button type="button" onclick="app.composer.toggleAIPaneCollapse()" class="text-slate-400 hover:text-slate-600 p-1 rounded" title="Thu gọn / Mở rộng">
-                    <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5"></i>
-                  </button>
+
+                <!-- History Panel (Shown when user clicks 'Lịch sử') -->
+                <div id="composer-ai-history-panel" class="hidden flex-1 overflow-y-auto p-3.5 space-y-2 text-xs bg-[#18181b]">
+                  <div class="flex items-center justify-between pb-2 border-b border-white/10 text-slate-400 text-[11px]">
+                    <span class="font-semibold text-slate-300">LỊCH SỬ THAO TÁC & GỢI Ý CỦA TRỢ LÝ</span>
+                    <button type="button" onclick="app.composer.toggleHistoryView()" class="hover:text-white text-xs cursor-pointer">✕ Đóng</button>
+                  </div>
+                  <div id="composer-ai-history-list" class="space-y-1.5">
+                    <!-- Dynamically filled with past sessions -->
+                  </div>
                 </div>
+
+                <!-- Chat Messages Stream (Matching Image 3) -->
+                <div id="composer-chat-messages" class="flex-1 overflow-y-auto p-3.5 space-y-3 text-xs bg-[#18181b]">
+                  <!-- Populated dynamically via JS -->
+                </div>
+
+                <!-- Bottom Large Input Card (Matching Image 3) -->
+                <div class="px-3 pb-3 pt-1 shrink-0 bg-[#18181b]">
+                  <div class="rounded-2xl bg-[#242426] border border-white/10 p-2.5 shadow-lg flex flex-col space-y-2">
+                    <!-- Input Textarea -->
+                    <textarea id="composer-chat-input" rows="2" placeholder="Yêu cầu AI sinh câu hỏi, vẽ hình TikZ, sửa lỗi LaTeX..." onkeydown="app.composer.handleChatInputKey(event)" class="w-full text-xs bg-transparent border-none p-0 resize-none focus:ring-0 text-white placeholder-slate-400 outline-none leading-relaxed font-sans"></textarea>
+                    
+                    <!-- Bottom Toolbar of the Input Card -->
+                    <div class="flex items-center justify-between pt-1 border-t border-white/5 text-xs">
+                      <!-- Left: Quick Action '+' Button -->
+                      <div class="relative">
+                        <button type="button" onclick="app.composer.toggleQuickPromptMenu(event)" class="p-1 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center space-x-1" title="Chèn nhanh mẫu yêu cầu">
+                          <i data-lucide="plus" class="w-4 h-4"></i>
+                        </button>
+                        <!-- Quick Prompts Dropdown -->
+                        <div id="composer-quick-prompts-menu" class="hidden absolute bottom-full mb-2 left-0 z-50 w-56 bg-[#1f1f23] border border-white/15 rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs">
+                          <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-white/10 mb-1">
+                            Gợi ý tác vụ AI
+                          </div>
+                          <button type="button" onclick="app.composer.applyQuickPrompt('Đổi cỡ chữ toàn tài liệu sang 12pt')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                            <span class="text-purple-400 font-bold">●</span>
+                            <span>Đổi cỡ chữ sang 12pt</span>
+                          </button>
+                          <button type="button" onclick="app.composer.applyQuickPrompt('Tạo một câu hỏi trắc nghiệm 4 lựa chọn về hàm số')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                            <span class="text-blue-400 font-bold">●</span>
+                            <span>Trắc nghiệm 4 lựa chọn</span>
+                          </button>
+                          <button type="button" onclick="app.composer.applyQuickPrompt('Tạo câu hỏi Đúng/Sai 4 ý theo Quyết định 764')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                            <span class="text-emerald-400 font-bold">●</span>
+                            <span>Đúng/Sai 4 ý QĐ 764</span>
+                          </button>
+                          <button type="button" onclick="app.composer.applyQuickPrompt('Vẽ bảng biến thiên hàm bậc 3 bằng tkz-tab')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                            <span class="text-amber-400 font-bold">●</span>
+                            <span>Bảng biến thiên tkz-tab</span>
+                          </button>
+                          <button type="button" onclick="app.composer.applyQuickPrompt('Kiểm tra và sửa lỗi cú pháp LaTeX toàn bộ đề thi')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200 border-t border-white/10 mt-1 pt-1.5">
+                            <span class="text-rose-400 font-bold">●</span>
+                            <span>Sửa lỗi cú pháp LaTeX</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Right: Thinking Chip + Circle Send Button -->
+                      <div class="flex items-center space-x-2">
+                        <div class="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] text-slate-300 font-medium select-none cursor-default">
+                          <span class="text-xs">ılı</span>
+                          <span>Thinking: Medium</span>
+                        </div>
+                        <button type="button" onclick="app.composer.submitChat()" id="composer-send-btn" class="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center hover:bg-slate-200 active:scale-95 shadow-md cursor-pointer transition-all shrink-0" title="Gửi yêu cầu (Enter)">
+                          <i data-lucide="arrow-up" class="w-3.5 h-3.5 stroke-[2.5]"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
-              <!-- Chat Messages Stream -->
-              <div id="composer-chat-messages" class="flex-1 overflow-y-auto p-2.5 space-y-2 text-xs">
-                <!-- Populated dynamically via JS -->
-              </div>
-
-              <!-- Chat Input Bar -->
-              <div class="p-2 border-t border-black/[0.06] bg-white shrink-0">
-                <div class="relative flex items-center bg-slate-50 rounded-xl border border-black/[0.1] focus-within:border-brand-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-500/20 px-2 py-1">
-                  <textarea id="composer-chat-input" rows="1" placeholder="Yêu cầu AI sinh câu hỏi, vẽ hình TikZ, sửa lỗi LaTeX..." onkeydown="app.composer.handleChatInputKey(event)" class="w-full text-xs bg-transparent border-none p-0 resize-none focus:ring-0 text-slate-800 placeholder-slate-400"></textarea>
-                  <button type="button" onclick="app.composer.submitChat()" id="composer-send-btn" class="ml-1.5 p-1 rounded-lg bg-brand-600 hover:bg-brand-700 text-white shadow-2xs shrink-0 transition-all active:scale-95" title="Gửi yêu cầu (Enter)">
-                    <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                  </button>
-                </div>
-              </div>
             </div>
 
           </div>
 
-          <!-- ================= CỘT PHẢI (RIGHT COLUMN): LIVE PREVIEW & BIÊN DỊCH FOOTER ================= -->
-          <div class="flex flex-col h-full min-h-0 bg-white rounded-xl border border-black/[0.08] shadow-xs overflow-hidden">
+          <!-- ================= CỘT PHẢI (RIGHT COLUMN): LIVE PREVIEW & BIÊN DỊCH FOOTER (40% WIDTH) ================= -->
+          <div class="w-full lg:w-[40%] flex flex-col h-full min-h-0 bg-white rounded-xl border border-black/[0.08] shadow-xs overflow-hidden">
             
             <!-- Preview Main Canvas Area (Full Height, No Header) -->
             <div id="composer-preview-canvas" class="flex-1 bg-white relative flex items-center justify-center overflow-hidden min-h-0">
