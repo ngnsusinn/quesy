@@ -33,7 +33,7 @@
 
 ## Overview
 
-**Quesy** is a high-performance assessment management, AI digitization, and mathematical publishing platform. It eliminates hours of manual exam retyping, automates question item classification, compiles mathematical diagrams into native vector graphics, and produces publication-ready examination papers in both **pure LaTeX vector PDF** and **bidirectionally editable MathType 7.0 OLE Word `.docx`** formats.
+**Quesy** is a high-performance assessment management, AI digitization, and mathematical publishing platform. It eliminates hours of manual exam retyping, automates question item classification, compiles mathematical diagrams into native vector graphics, and produces publication-ready examination papers in **pure LaTeX vector PDF** (via **Tectonic XeTeX Engine** and **ReportLab**).
 
 The platform is strictly tailored to national assessment standards:
 - **Circular 32/2018/TT-BGDĐT:** 6-tier competency-based knowledge taxonomy mapped to Learning Outcomes (Yêu cầu cần đạt - YCCĐ) and Problem Archetypes, strictly independent of commercial textbook series.
@@ -45,12 +45,12 @@ The platform is strictly tailored to national assessment standards:
 
 | # | Real-World Examination Pain Point | Quesy Architectural Solution |
 |:---:|:---|:---|
-| **1** | **Exhausting Manual Retyping:** Teachers spend 1.5–2 hours retyping an exam from scanned PDFs, photos, or legacy Word files; formulas lose formatting and special symbols corrupt during copy-pasting. | **Multimodal AI OCR & MTEF Decoder:** Ingests scanned PDFs, smartphone photos, and Word files in seconds, directly converting binary MathType MTEF streams into standardized KaTeX/LaTeX. |
-| **2** | **Corrupted or Downscaled Formulas:** Exporting exams often shrinks in-text fractions to illegible script sizes, drops brackets, or renders fuzzy raster PNG images that cannot be edited. | **Dual Publishing Engines:** Generates print-ready PDFs with 100% full-size `\dfrac` typography via **CMU Serif**, or Word `.docx` documents containing **genuine MathType 7.0 OLE Vector WMFs** editable via double-click. |
+| **1** | **Exhausting Manual Retyping:** Teachers spend 1.5–2 hours retyping an exam from scanned PDFs, photos, or legacy files; formulas lose formatting and special symbols corrupt during copy-pasting. | **Multimodal AI OCR & LaTeX Decoder:** Ingests scanned PDFs, smartphone photos, and files in seconds, directly converting mathematical equations into standardized KaTeX/LaTeX. |
+| **2** | **Corrupted or Downscaled Formulas:** Exporting exams often shrinks in-text fractions to illegible script sizes, drops brackets, or renders fuzzy raster PNG images that cannot be printed sharply. | **Pure Vector PDF Publishing Engine:** Generates print-ready vector PDFs with 100% full-size `\dfrac` typography via **Computer Modern Unicode (CMU Serif)** and high-fidelity XeTeX font metrics. |
 | **3** | **Rasterized & Blurred Geometry/Plots:** Standard OCR tools either skip coordinate plots entirely or insert low-res raster images with distorted asymptotes and blown-out aspect ratios. | **Vector TikZ/PGFPlots Engine:** Compiles geometry and function plots directly from LaTeX source code into vector SVGs with automatic bounding-box clipping (**zero raster PNGs** in PDF output). |
 | **4** | **Broken Question Logic during Shuffling:** Traditional exam shufflers blindly randomize choices, causing options like *"Both A and B are correct"* to appear at position A, or splitting reading passages from sub-questions. | **Safe Shuffling Engine:** Enforces **Option Anchoring** (keeps meta-choices fixed at choice D), **Passage Integrity**, **Section Integrity**, and generates cross-variant answer keys automatically. |
 | **5** | **Error-Prone Tiered Grading:** Hand-grading 4-statement True/False questions with progressive weights (0.1, 0.25, 0.5, 1.0) leads to frequent human error and grading disputes. | **Automated Grading & Classroom Roster:** Instantly scores submissions according to official decision logic, provides score distribution analytics, and supports UTF-8 BOM Excel/CSV rosters. |
-| **6** | **Black-Box Errors on PDF Tables:** Data tables exported from LaTeX arrays frequently turn into opaque black blocks when converted to Word or printed to PDF. | **Native Word Table Converter:** Automatically detects `\begin{array}` and `\begin{tabular}` blocks and builds native OpenXML `<w:tbl>` elements with clean borders and centered cell alignment. |
+| **6** | **Black-Box Errors & Formatting Inconsistencies:** Complex tables and multi-column exams frequently suffer from overlapping lines and black blocks when printed. | **Native LaTeX 2-Column Typesetting:** Built-in two-column typesetting with `ex_test.sty` v3.3, automatic table borders, and zero-defect PDF vector rendering. |
 
 ---
 
@@ -73,12 +73,13 @@ Located in `backend/services/latex_pdf_exporter.py`:
 - **Micro-Typography Spacing:** Employs persistent MathJax SVG rendering with tight horizontal padding (`padX = 15`) and auto-strips leading spaces before trailing punctuation (`.`, `,`, `;`, `:`, `!`, `?`), ensuring periods rest flush on the text baseline.
 - **Official Exam Header & Student Block:** Formats a clean 3-column student metadata table (`Name`, `Candidate ID`, `Exam Room`) on a single line, paired with standard Ministry exam banners and footers (`Page X - Exam Code Y`).
 
-### 3. MathType 7.0 OLE Vector Word Export
+### 3. Bundled Publication Package (.ZIP)
 
-Located in `backend/services/docx_exporter.py`:
-- **Genuine OLE Binary Storage:** Synthesizes Compound File Binary (CFB) streams housing `\x01CompObj` (`MathType 7.0 Equation`, root CLSID `{0002CE03-0000-0000-C000-000000000046}`), `\x01Ole`, `\x03ObjInfo` (`0x0004`), and `Equation Native` (MTEF v5 generated from MathJax MathML).
-- **Aldus Placeable Metafile (APM) Header:** Uses pure vector WMF graphics (`magic: 0x9AC6CDD7`, scale 20 twips/pt, 1440 DPI) as the OLE inline preview image. Never uses fuzzy raster PNGs.
-- **Bidirectional Editing:** Double-clicking any equation in Microsoft Word directly opens the MathType 7 desktop equation editor.
+Located in `backend/services/docx_exporter.py` & `backend/routers/exams.py`:
+- **Complete PDF Exam Bundle:** Packages all shuffled exam variants (`De_101.pdf`, `De_102.pdf`, etc.) with official Ministry 2-column styling, full headers, and crisp vector typography.
+- **Detailed Solution Keys:** Generates separate step-by-step solution documents (`LoiGiai_101.pdf`) including progressive Decision 764 grading criteria for True/False sections.
+- **Master Cross-Variant Answer Key:** Produces cross-variant permutation tables in both print-ready PDF and machine-readable CSV (`BangDapAn_TongHop.csv`).
+- **Standardized OMR Answer Sheet:** Automatically includes standard Vietnam MoET 2025 optical mark recognition bubble sheets (`Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`).
 
 ### 4. Native TikZ/PGFPlots Vector Diagram Compilation
 
@@ -139,7 +140,7 @@ quesy/
 │       ├── tikz_renderer.py       # TikZ/PGFPlots-to-SVG vector compiler
 │       ├── latex_converter.py     # MathType MTEF-to-LaTeX converter
 │       ├── latex_pdf_exporter.py  # Pure LaTeX PDF compiler (CMU Serif + MathJax SVG)
-│       ├── docx_exporter.py       # MathType 7.0 OLE Vector WMF Word exporter
+│       ├── docx_exporter.py       # High-fidelity PDF & ZIP exam publishing engine
 │       ├── shuffling_engine.py    # Safe shuffling engine (Option Anchor & Integrity)
 │       └── excel_exporter.py      # UTF-8 BOM Excel/CSV score roster exporter
 ├── frontend/
@@ -157,7 +158,7 @@ quesy/
 │   ├── uploads/                   # Staged source documents & images
 │   ├── assets/                    # Cropped diagram assets (WebP)
 │   ├── tikz_cache/                # Compiled TikZ SVG cache
-│   └── exports/                   # Published Word, PDF, and ZIP exam packages
+│   └── exports/                   # Published PDF and ZIP exam packages
 ├── tests/                         # Comprehensive Pytest test suite (56 cases)
 ├── requirements.txt               # Locked Python dependencies
 ├── package.json                   # Node.js dependencies for MathJax & Fonts

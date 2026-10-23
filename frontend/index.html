@@ -1132,8 +1132,8 @@
             <div class="flex items-center space-x-3 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
               <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">3</div>
               <div>
-                <div class="font-bold text-emerald-900">Xuất Bản Word 2 Cột & Barem</div>
-                <div class="text-[11px] text-emerald-700">Native OMML, OMR Sheet, Gói ZIP</div>
+                <div class="font-bold text-emerald-900">Xuất Bản PDF & Barem</div>
+                <div class="text-[11px] text-emerald-700">Vector PDF in ấn, Phiếu OMR, Gói ZIP</div>
               </div>
             </div>
           </div>
@@ -1254,13 +1254,9 @@
             </div>
             <!-- Quick Download Single Variant -->
             <div class="flex items-center space-x-2">
-              <button onclick="app.downloadActiveVariantPdf()" class="btn-apple-secondary text-rose-600 border-rose-200 hover:bg-rose-50 text-xs">
+              <button onclick="app.downloadActiveVariantPdf()" class="btn-apple-secondary text-rose-600 border-rose-200 hover:bg-rose-50 text-xs font-semibold">
                 <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
                 <span id="btn-label-active-pdf">Tải PDF Mã 101</span>
-              </button>
-              <button onclick="app.downloadActiveVariantDocx()" class="btn-apple-secondary text-blue-600 border-blue-200 hover:bg-blue-50 text-xs">
-                <i data-lucide="file" class="w-3.5 h-3.5"></i>
-                <span id="btn-label-active-docx">Tải Word Mã 101</span>
               </button>
             </div>
           </div>
@@ -1302,25 +1298,17 @@
             <div class="space-y-1">
               <div class="text-sm font-bold text-slate-900 flex items-center space-x-2">
                 <i data-lucide="package-check" class="w-4 h-4 text-brand-600"></i>
-                <span>Xuất Bản Đề Thi Đa Định Dạng (.DOCX & .PDF)</span>
+                <span>Xuất Bản Đề Thi Chuẩn In Ấn (.PDF)</span>
               </div>
               <p class="text-xs text-slate-600">
-                Xuất bản chuẩn quy cách Bộ GD&ĐT: file Word 2 cột với công thức OMML native (mở chuẩn 100% trên Microsoft Word), file PDF in ấn trực tiếp, lời giải chi tiết và phiếu trắc nghiệm OMR.
+                Xuất bản chuẩn quy cách Bộ GD&ĐT: file PDF in ấn trực tiếp chuẩn font CMU Serif/Times New Roman, lời giải chi tiết và phiếu trắc nghiệm OMR.
               </p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
-              <button onclick="app.downloadPublishZip('pdf')" class="btn-apple-secondary text-rose-600 border-rose-200 bg-rose-50/50 hover:bg-rose-100/60 font-semibold py-2 px-3.5">
-                <i data-lucide="file-text" class="w-4 h-4"></i>
-                <span>TẢI GÓI PDF (.ZIP)</span>
-              </button>
-              <button onclick="app.downloadPublishZip('docx')" class="btn-apple-secondary text-blue-600 border-blue-200 bg-blue-50/50 hover:bg-blue-100/60 font-semibold py-2 px-3.5">
-                <i data-lucide="file" class="w-4 h-4"></i>
-                <span>TẢI GÓI WORD (.ZIP)</span>
-              </button>
-              <button onclick="app.downloadPublishZip('all')" class="btn-apple-primary font-semibold py-2 px-4 shadow-sm">
+              <button onclick="app.downloadPublishZip('pdf')" class="btn-apple-primary font-semibold py-2 px-4 shadow-sm flex items-center space-x-2">
                 <i data-lucide="download" class="w-4 h-4"></i>
-                <span>TẢI TRỌN GÓI (WORD + PDF + ĐÁP ÁN)</span>
+                <span>TẢI TRỌN GÓI ĐỀ THI PDF (.ZIP)</span>
               </button>
             </div>
           </div>

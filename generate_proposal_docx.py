@@ -214,7 +214,7 @@ def build_proposal_document(output_path: Path):
     p_p4.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     r = p_p4.add_run("• Mô tả ngắn gọn: ")
     r.font.bold = True
-    p_p4.add_run("Quesy là nền tảng phần mềm Web App chuyên sâu hỗ trợ giáo viên và các hội đồng khảo thí số hóa đề thi tự động từ tài liệu thô (Word, PDF scan, Ảnh chụp), giải mã công thức MathType sang LaTeX, quản lý ngân hàng câu hỏi chuẩn hóa theo Thông tư 32/2018/TT-BGDĐT, thiết lập ma trận rút đề và xáo trộn mã đề an toàn theo định dạng đề thi mới từ năm 2025 (Quyết định 764/QĐ-BGDĐT), đồng thời cung cấp môi trường soạn đề LaTeX 6:4 có trợ lý AI hỗ trợ sửa đúng dòng và xuất bản đề thi Microsoft Word (.docx) nhúng MathType 7.0 OLE Vector in ấn chuẩn mực.")
+    p_p4.add_run("Quesy là nền tảng phần mềm Web App chuyên sâu hỗ trợ giáo viên và các hội đồng khảo thí số hóa đề thi tự động từ tài liệu thô (PDF scan, Ảnh chụp, Word), giải mã công thức toán sang LaTeX, quản lý ngân hàng câu hỏi chuẩn hóa theo Thông tư 32/2018/TT-BGDĐT, thiết lập ma trận rút đề và xáo trộn mã đề an toàn theo định dạng đề thi mới từ năm 2025 (Quyết định 764/QĐ-BGDĐT), đồng thời cung cấp môi trường soạn đề LaTeX 6:4 có trợ lý AI hỗ trợ sửa đúng dòng và xuất bản đề thi chuẩn in ấn dạng vector PDF chất lượng cao.")
 
     p_p5 = doc.add_paragraph()
     p_p5.paragraph_format.left_indent = Mm(6)
@@ -252,7 +252,7 @@ def build_proposal_document(output_path: Path):
         ("Quản lý Ngân hàng Câu hỏi Cá nhân & Chống trùng lặp AI:", "Hỗ trợ trọn vẹn 5 hình thức thi QĐ 764 (Trắc nghiệm 4 lựa chọn, Đúng/Sai 4 khẳng định, Trả lời ngắn, Chùm bài đọc, Tự luận); phân loại theo Cây kiến thức TT 32; tự động đo khoảng cách Cosine Similarity qua vector embeddings để cảnh báo và chặn lưu câu hỏi trùng lặp (>= 90%)."),
         ("Thiết kế Ma trận Đề thi 2 Chiều & Rút đề tự động (Matrix & Solver):", "Lưới ma trận trực quan (Mạch nội dung x 3 Mức độ nhận thức: Nhận biết, Thông hiểu, Vận dụng); kiểm tra tồn kho câu hỏi thời gian thực; động cơ giải ràng buộc tự động rút đề gốc tối ưu, loại trừ câu hỏi cũ."),
         ("Động cơ Trộn Đề Hoán vị An toàn (Safe Shuffling Engine):", "Hoán vị tạo N mã đề thi (101, 102...) bảo đảm 4 nguyên tắc tuyệt đối: Khóa neo phương án phụ thuộc vị trí ở D (Option Anchor Rule), Bảo toàn bài đọc chung (Passage Integrity), Bảo toàn phân vùng phần thi (Section Integrity), và tự động xuất bảng đối chiếu đáp án chéo."),
-        ("Xuất bản Tài liệu Khảo thí Chuẩn in ấn 1-Click:", "Xuất file Word (.docx) chuẩn khổ giấy A4 Portrait, font Times New Roman 11pt, công thức nhúng MathType 7.0 OLE Vector WMF (cho phép giáo viên click đúp mở MathType 7 sửa 2 chiều bình thường), OMML native (<m:oMath>), tự động chuyển bảng thống kê LaTeX thành native Word table, xuất PDF in ấn, đóng gói ZIP trọn bộ kèm phiếu soi OMR."),
+        ("Xuất bản Tài liệu Khảo thí Chuẩn in ấn 1-Click:", "Xuất bản tài liệu đề thi và hướng dẫn giải dưới định dạng PDF vector độ phân giải cao chuẩn khổ giấy A4 Portrait, font Times New Roman / CMU Serif sắc nét, phiếu trả lời trắc nghiệm chuẩn máy chấm OMR và đóng gói trọn bộ tệp ZIP."),
         ("Chấm điểm Đúng/Sai Bậc thang & Quản lý Bảng điểm Lớp học:", "Tự động chấm điểm trắc nghiệm Đúng/Sai 4 ý theo thang điểm lũy tiến QĐ 764 (0.1đ – 0.25đ – 0.5đ – 1.0đ); quản lý danh sách học sinh theo SBD/Lớp; xuất/nhập bảng điểm Excel tương thích UTF-8 BOM chống lỗi font tiếng Việt.")
     ]
 
@@ -305,7 +305,7 @@ def build_proposal_document(output_path: Path):
 
     f_act3 = [
         ("Động cơ Biên dịch LaTeX Hybrid 3 tầng:", "Kết nối Remote Tectonic XeTeX Engine Docker chuyên dụng (host armbian:8090) hỗ trợ gói lệnh ex_test.sty và tự động bọc thư viện tcolorbox xparse, dự phòng Local Tectonic binary và Headless Chromium vector pipeline."),
-        ("Công nghệ MathType 7.0 OLE Vector WMF thuần Python:", "Giải pháp nhúng OLE nhị phân CFB MTEF v5 và vector WMF chuẩn APM 1440 DPI trực tiếp bằng Python, hỗ trợ mở MathType 7 sửa 2 chiều, khắc phục triệt để lỗi ảnh raster PNG mờ nét trên Word."),
+        ("Động cơ Xuất bản PDF Vector Siêu tốc & Tự động Dàn trang:", "Xuất bản trực tiếp tệp PDF in ấn chuẩn quốc tế từ LaTeX và HTML5/ReportLab (< 100ms) với font Unicode tiếng Việt đầy đủ, loại bỏ phụ thuộc vào các phần mềm thương mại độc quyền."),
         ("AI Vector Embeddings Deduplication:", "Mô hình embedding đo khoảng cách Cosine Similarity giúp phát hiện trùng lặp câu hỏi thông minh, ngăn chặn câu hỏi lặp lại trong cùng đề thi."),
         ("Trình xem trước PDF Vector Canvas (PDF.js) Đồng bộ Thu phóng 100%:", "Khắc phục triệt để lỗi mất đồng bộ của trình đọc mặc định, đồng bộ 100% giữa nút bấm thanh nổi và phím tắt Ctrl + cuộn chuột, tự động căn giữa trang giấy."),
         ("Trải nghiệm Người dùng Chuẩn Apple HIG & Zero-Scroll:", "Giao diện SPA tối giản, phản hồi xúc giác tức thì (active:scale-[0.97]), bố cục khép kín 100% viewport không cuộn ngoài, hỗ trợ URL sạch deep-linking không bị lỗi 404 khi F5.")

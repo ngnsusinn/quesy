@@ -1433,7 +1433,10 @@ def _set_section_1_column(section):
         sectPr.append(cols_elem)
 
 
-def generate_variant_docx(variant: ExamVariant, output_path: Path, math_format: str = "omml"):
+def generate_variant_docx(*args, **kwargs):
+    raise NotImplementedError("Tính năng xuất Word (.docx) và MathType đã bị loại bỏ. Vui lòng sử dụng xuất bản PDF vector.")
+
+def _legacy_generate_variant_docx(variant: ExamVariant, output_path: Path, math_format: str = "omml"):
     """Generates an official Ministry format .docx exam paper for a specific variant:
     - Official header (School name, Exam title, Subject, Grade, Variant code box, Student info, Phách).
     - 2-column layout for question content.
@@ -1595,7 +1598,10 @@ def generate_variant_docx(variant: ExamVariant, output_path: Path, math_format: 
     doc.save(output_path)
 
 
-def generate_solution_docx(variant: ExamVariant, output_path: Path, math_format: str = "omml"):
+def generate_solution_docx(*args, **kwargs):
+    raise NotImplementedError("Tính năng xuất Word (.docx) và MathType đã bị loại bỏ. Vui lòng sử dụng xuất bản PDF vector.")
+
+def _legacy_generate_solution_docx(variant: ExamVariant, output_path: Path, math_format: str = "omml"):
     """Generates a detailed solution document for a variant with OMML equations."""
     doc = docx.Document()
     _configure_document_styles(doc)
@@ -1653,7 +1659,10 @@ def generate_solution_docx(variant: ExamVariant, output_path: Path, math_format:
     doc.save(output_path)
 
 
-def generate_answer_sheet_docx(master: MasterExam, variants: List[ExamVariant], output_path: Path):
+def generate_answer_sheet_docx(*args, **kwargs):
+    raise NotImplementedError("Tính năng xuất Word (.docx) và MathType đã bị loại bỏ. Vui lòng sử dụng xuất bản PDF vector.")
+
+def _legacy_generate_answer_sheet_docx(master: MasterExam, variants: List[ExamVariant], output_path: Path):
     """Generates an Answer Key Matrix overview Word document."""
     doc = docx.Document()
     s = doc.sections[0]
@@ -2126,7 +2135,7 @@ def generate_variant_pdf(variant: ExamVariant, output_pdf: Path) -> bool:
     if generate_pdf_reportlab(variant, output_pdf):
         return True
 
-    # Tier 2: Browser
+    # Tier 2: Browser HTML to PDF
     temp_html = output_pdf.with_suffix(".temp.html")
     try:
         generate_variant_html(variant, temp_html)
@@ -2138,21 +2147,6 @@ def generate_variant_pdf(variant: ExamVariant, output_pdf: Path) -> bool:
         if temp_html.exists():
             try:
                 temp_html.unlink()
-            except Exception:
-                pass
-
-    # Tier 3: Word COM
-    temp_docx = output_pdf.with_suffix(".temp.docx")
-    try:
-        generate_variant_docx(variant, temp_docx)
-        if convert_docx_to_pdf(temp_docx, output_pdf):
-            return True
-    except Exception as e:
-        logger.warning(f"Tier 3 (Word COM) failed: {e}")
-    finally:
-        if temp_docx.exists():
-            try:
-                temp_docx.unlink()
             except Exception:
                 pass
 
@@ -2426,13 +2420,13 @@ def export_exam_package_zip(
     master_exam_id: str,
     db: Session,
     include_pdf: bool = True,
-    export_format: str = "all"
+    export_format: str = "pdf"
 ) -> str:
-    """Creates a comprehensive ZIP export package containing:
-    - De_{code}.docx for all variants (valid OpenXML documents)
-    - De_{code}.pdf for all variants (if include_pdf=True or export_format in ['pdf', 'all'])
-    - LoiGiai_{code}.docx and .pdf
-    - BangDapAn_TongHop.docx, .pdf, and .csv
+    """Creates a comprehensive PDF export package containing:
+    - De_{code}.pdf for all variants
+    - LoiGiai_{code}.pdf for all variants
+    - BangDapAn_TongHop.pdf and BangDapAn_TongHop.csv
+    - Phieu_Tra_Loi_Trac_Nghiem_2025.pdf
     Returns the absolute path to the generated zip file.
     """
     master = db.query(MasterExam).filter(MasterExam.id == master_exam_id).first()
@@ -2449,34 +2443,19 @@ def export_exam_package_zip(
     zip_filename = f"Goi_DeThi_{master.subject.code if master.subject else 'MON'}_{master.id[:8]}.zip"
     zip_path = STORAGE_EXPORTS_DIR / zip_filename
 
-    generated_docx_files = []
     generated_pdf_files = []
     generated_csv_files = []
 
     try:
-        # 1. Generate DOCX for each variant and its solution
+        # 1. Generate PDF for each variant and its solution
         for v in variants:
-            exam_file = temp_dir / f"De_{v.variant_code}.docx"
-            generate_variant_docx(v, exam_file)
-            generated_docx_files.append(exam_file)
+            exam_pdf = temp_dir / f"De_{v.variant_code}.pdf"
+            sol_pdf = temp_dir / f"LoiGiai_{v.variant_code}.pdf"
+            generate_variant_pdf(v, exam_pdf)
+            generate_solution_pdf(v, sol_pdf)
+            generated_pdf_files.extend([exam_pdf, sol_pdf])
 
-            sol_file = temp_dir / f"LoiGiai_{v.variant_code}.docx"
-            generate_solution_docx(v, sol_file)
-            generated_docx_files.append(sol_file)
-
-            if include_pdf or export_format in ["all", "pdf"]:
-                exam_pdf = temp_dir / f"De_{v.variant_code}.pdf"
-                sol_pdf = temp_dir / f"LoiGiai_{v.variant_code}.pdf"
-                generate_variant_pdf(v, exam_pdf)
-                generate_solution_pdf(v, sol_pdf)
-                generated_pdf_files.extend([exam_pdf, sol_pdf])
-
-        # 2. Generate answer matrix docx & CSV
-        matrix_file = temp_dir / "BangDapAn_TongHop.docx"
-        generate_answer_sheet_docx(master, variants, matrix_file)
-        generated_docx_files.append(matrix_file)
-
-        # Generate CSV answer key
+        # 2. Generate CSV answer key
         csv_file = temp_dir / "BangDapAn_TongHop.csv"
         try:
             from backend.services.shuffling_engine import get_answer_key_matrix
@@ -2493,26 +2472,18 @@ def export_exam_package_zip(
         except Exception:
             pass
 
-        if include_pdf or export_format in ["all", "pdf"]:
-            matrix_pdf = temp_dir / "BangDapAn_TongHop.pdf"
-            generate_answer_sheet_pdf(master, variants, matrix_pdf)
-            generated_pdf_files.append(matrix_pdf)
+        # 3. Generate answer matrix PDF
+        matrix_pdf = temp_dir / "BangDapAn_TongHop.pdf"
+        generate_answer_sheet_pdf(master, variants, matrix_pdf)
+        generated_pdf_files.append(matrix_pdf)
 
-            # Generate Blank 2025 OMR Bubble Sheet for student testing
-            omr_pdf = temp_dir / "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf"
-            generate_omr_bubble_sheet_pdf(omr_pdf)
-            generated_pdf_files.append(omr_pdf)
+        # 4. Generate Blank 2025 OMR Bubble Sheet for student testing
+        omr_pdf = temp_dir / "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf"
+        generate_omr_bubble_sheet_pdf(omr_pdf)
+        generated_pdf_files.append(omr_pdf)
 
-        # 3. Create ZIP archive based on requested format
-        files_to_zip = []
-        if export_format == "docx":
-            files_to_zip = generated_docx_files + generated_csv_files
-        elif export_format == "pdf":
-            files_to_zip = [f for f in generated_pdf_files if f.exists()] + generated_csv_files
-            if not files_to_zip:
-                files_to_zip = generated_docx_files + generated_csv_files
-        else:  # "all"
-            files_to_zip = generated_docx_files + [f for f in generated_pdf_files if f.exists()] + generated_csv_files
+        # 5. Create ZIP archive
+        files_to_zip = [f for f in generated_pdf_files if f.exists()] + generated_csv_files
 
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for f in files_to_zip:
@@ -2521,7 +2492,7 @@ def export_exam_package_zip(
 
         return str(zip_path)
     finally:
-        all_temp = generated_docx_files + generated_pdf_files + generated_csv_files
+        all_temp = generated_pdf_files + generated_csv_files
         for f in all_temp:
             try:
                 if f.exists():
@@ -2932,46 +2903,15 @@ def generate_digitized_exam_pdf(
     Tier 2 (Fallback): Word COM automation on Windows.
     """
     output_pdf = Path(output_pdf).resolve()
-    try:
-        from backend.services.latex_pdf_exporter import generate_digitized_exam_latex_pdf
-        ok = generate_digitized_exam_latex_pdf(
-            questions=questions,
-            output_pdf=output_pdf,
-            title=title,
-            school_name=school_name,
-            subject_name=subject_name,
-            grade=grade,
-            variant_code=variant_code,
-            duration=duration
-        )
-        if ok and output_pdf.exists() and output_pdf.stat().st_size > 1000:
-            return True
-    except Exception as latex_err:
-        logger.warning(f"generate_digitized_exam_latex_pdf failed: {latex_err}. Falling back to docx COM.")
-
-    temp_docx = output_pdf.with_suffix(".temp.docx")
-    try:
-        generate_digitized_exam_docx(
-            questions=questions,
-            output_path=temp_docx,
-            title=title,
-            school_name=school_name,
-            subject_name=subject_name,
-            grade=grade,
-            variant_code=variant_code,
-            duration=duration,
-            math_format=math_format
-        )
-        if temp_docx.exists():
-            if convert_docx_to_pdf(temp_docx, output_pdf):
-                return True
-    except Exception as e:
-        logger.warning(f"generate_digitized_exam_pdf docx conversion failed: {e}")
-    finally:
-        if temp_docx.exists():
-            try:
-                temp_docx.unlink()
-            except Exception:
-                pass
-
-    return output_pdf.exists() and output_pdf.stat().st_size > 1000
+    from backend.services.latex_pdf_exporter import generate_digitized_exam_latex_pdf
+    ok = generate_digitized_exam_latex_pdf(
+        questions=questions,
+        output_pdf=output_pdf,
+        title=title,
+        school_name=school_name,
+        subject_name=subject_name,
+        grade=grade,
+        variant_code=variant_code,
+        duration=duration
+    )
+    return bool(ok and output_pdf.exists() and output_pdf.stat().st_size > 1000)

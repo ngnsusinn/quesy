@@ -4,13 +4,12 @@ Tests LaTeX typesetting to MathML, SVG, high-DPI PNG and Word docx export.
 
 import io
 from pathlib import Path
-import docx
 from backend.services.mathjax_service import (
     render_mathjax_equation,
     convert_latex_to_omml_mathjax,
     render_mathjax_batch
 )
-from backend.services.docx_exporter import generate_digitized_exam_docx
+from backend.services.docx_exporter import generate_digitized_exam_pdf
 
 
 def test_mathjax_basic():
@@ -60,8 +59,8 @@ def test_mathjax_batch_rendering():
         assert batch[c]["mml"] is not None
 
 
-def test_mathjax_docx_export(tmp_path: Path):
-    """Verifies that Word document export with math_format='mathtype' succeeds."""
+def test_mathjax_pdf_export(tmp_path: Path):
+    """Verifies that PDF export with MathJax vector formula typesetting succeeds."""
     questions = [
         {
             "id": 1,
@@ -75,12 +74,8 @@ def test_mathjax_docx_export(tmp_path: Path):
             ]
         }
     ]
-    out_docx = tmp_path / "exam_mathjax.docx"
-    generate_digitized_exam_docx(questions, out_docx, math_format="mathtype")
-    assert out_docx.exists()
-    assert out_docx.stat().st_size > 1000
-
-    doc = docx.Document(str(out_docx))
-    xml = doc._part.blob.decode("utf-8", errors="ignore")
-    assert "<w:object" in xml
-    assert 'ProgID="Equation.DSMT4"' in xml
+    out_pdf = tmp_path / "exam_mathjax.pdf"
+    ok = generate_digitized_exam_pdf(questions, out_pdf)
+    assert ok is True
+    assert out_pdf.exists()
+    assert out_pdf.stat().st_size > 500

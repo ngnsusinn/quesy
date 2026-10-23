@@ -1068,7 +1068,7 @@
     composer: 'Quesy — Soạn đề LaTeX (AI Copilot & Live PDF Preview)',
     itembank: 'Quesy — Ngân hàng Câu hỏi Chuẩn hóa',
     matrix: 'Quesy — Ma trận Đề thi 2D',
-    shuffler: 'Quesy — Sinh đề & Trộn đề (.DOCX)',
+    shuffler: 'Quesy — Sinh đề & Trộn đề (Vector PDF)',
   };
 
   function navigateTo(path) {
@@ -1311,7 +1311,7 @@
               <i data-lucide="file-text" class="w-8 h-8"></i>
             </div>
             <h3 class="text-base font-bold text-slate-900 truncate max-w-md mx-auto" title="${escapeHtml(previews[0].name)}">${truncateFilename(previews[0].name, 36)}</h3>
-            <p class="text-xs text-slate-500">Tài liệu Word DOCX (${previews[0].size}) ${isProcessing ? 'đang được AI phân tích và bóc tách công thức MathType...' : 'đã sẵn sàng để bóc tách công thức MathType và gõ lại đề thi.'}</p>
+            <p class="text-xs text-slate-500">Tài liệu số hóa (${previews[0].size}) ${isProcessing ? 'đang được AI phân tích và bóc tách công thức toán...' : 'đã sẵn sàng để nhận dạng công thức và số hóa đề thi.'}</p>
             <div class="pt-2">
               ${isProcessing ? `
                 <div class="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">
@@ -1342,7 +1342,7 @@
             </div>
             <h4 class="text-sm font-bold text-slate-900 mb-1">Tài Liệu Đề Thi Gốc</h4>
             <p class="text-xs text-slate-500 max-w-sm mb-5 leading-relaxed">
-              Chưa có tệp đề thi nào được nạp. Hãy chọn tệp Word (.docx), PDF hoặc danh sách ảnh để xem trước trực tiếp tài liệu gốc.
+              Chưa có tệp đề thi nào được nạp. Hãy chọn tệp PDF hoặc danh sách ảnh để xem trước trực tiếp tài liệu gốc.
             </p>
             <div class="flex items-center gap-2">
               <button onclick="document.getElementById('studio-file-input').click()" class="btn-apple-primary">
@@ -2125,45 +2125,7 @@
   }
 
   async function exportDigitizedToDocx() {
-    const questions = state.digitizeJob.questions || [];
-    if (questions.length === 0) {
-      showToast('Chưa có câu hỏi nào trong đề thi để xuất Word. Hãy tải tệp hoặc nạp đề mẫu!', 'warning');
-      return;
-    }
-
-    const rawTitle = state.digitizeJob.filename ? state.digitizeJob.filename.replace(/\.[^/.]+$/, '') : 'De_Thi_So_Hoa';
-    showToast('Đang tạo và dàn trang file Word với công thức toán OMML...', 'info');
-
-    try {
-      const resp = await fetch(`${API_BASE_URL}/digitize/export-docx`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: rawTitle,
-          questions: questions
-        })
-      });
-
-      if (!resp.ok) {
-        const errJson = await resp.json().catch(() => ({}));
-        throw new Error(errJson.detail || 'Lỗi từ máy chủ khi tạo file Word');
-      }
-
-      const blob = await resp.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${rawTitle}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-      showToast('Đã tải xuống đề thi file Word (.docx) chuẩn in ấn thành công!', 'success');
-    } catch (err) {
-      console.error('Lỗi xuất file Word đề thi:', err);
-      showToast(`Không thể xuất file Word: ${err.message}`, 'error');
-    }
+    return exportDigitizedToPdf();
   }
 
   async function commitSingleQuestion(qId) {
@@ -2839,8 +2801,8 @@
     state.digitizeJob.previewImages = [];
 
     if (type === 'math12_standard') {
-      showToast('Đang nạp đề mẫu Toán 12 (MathType OLE + Đồ thị)...', 'info');
-      state.digitizeJob.filename = 'De_Mau_Toan_12_MathType.docx';
+      showToast('Đang nạp đề mẫu Toán 12 (LaTeX + Đồ thị)...', 'info');
+      state.digitizeJob.filename = 'De_Mau_Toan_12_Chuan_2025.pdf';
       state.digitizeJob.fileType = 'sample_docx';
       state.digitizeJob.questions = JSON.parse(JSON.stringify(state.itemBank.slice(0, 5))).map((q, idx) => ({
         ...q,
@@ -3588,12 +3550,10 @@
    * solution guide, and answer sheet.
    */
   /**
-   * Downloads official exam package (.ZIP containing genuine 2-column Word DOCX with native OMML equations,
-   * vector PDF documents, solution guides, and answer sheets).
+   * Downloads official exam package (.ZIP containing vector PDF documents, solution guides, and answer sheets).
    */
-  async function downloadPublishZip(format = 'all') {
-    const formatName = format === 'pdf' ? 'PDF' : format === 'docx' ? 'Word (.DOCX)' : 'Trọn gói (Word + PDF)';
-    showToast(`Đang đóng gói đề thi ${formatName}, vui lòng chờ trong giây lát...`, 'info');
+  async function downloadPublishZip(format = 'pdf') {
+    showToast(`Đang đóng gói đề thi PDF (.zip), vui lòng chờ trong giây lát...`, 'info');
 
     let masterId = state.masterExam?.id;
     if (!masterId) {
@@ -3612,7 +3572,7 @@
     }
 
     const targetId = masterId || 'default';
-    const downloadUrl = `${API_BASE_URL}/exams/${targetId}/export-zip?format=${encodeURIComponent(format)}`;
+    const downloadUrl = `${API_BASE_URL}/exams/${targetId}/export-zip?format=pdf`;
 
     try {
       const response = await fetch(downloadUrl);
@@ -3624,12 +3584,12 @@
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `Goi_DeThi_Quesy_TT32_${format}.zip`;
+      a.download = `Goi_DeThi_PDF_${targetId.slice(0, 8)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(blobUrl);
-      showToast(`Đã tải xuống thành công gói đề thi ${formatName}!`, 'success');
+      showToast(`Đã tải xuống thành công gói ấn phẩm đề thi PDF!`, 'success');
     } catch (err) {
       console.error('Download zip failed:', err);
       showToast(`Lỗi khi tải gói đề thi: ${err.message}`, 'error');
@@ -3680,46 +3640,7 @@
   }
 
   async function downloadActiveVariantDocx() {
-    const code = state.shuffledVariants.activeVariantCode || '101';
-    let masterId = state.masterExam?.id;
-    if (!masterId) {
-      try {
-        const examsRes = await fetch(`${API_BASE_URL}/exams`);
-        if (examsRes.ok) {
-          const examsList = await examsRes.json();
-          if (examsList.length > 0) {
-            masterId = examsList[0].id;
-            state.masterExam.id = masterId;
-          }
-        }
-      } catch (e) {
-        console.warn('Cannot fetch exams list:', e);
-      }
-    }
-    const targetId = masterId || 'default';
-    const url = `${API_BASE_URL}/exams/${targetId}/export-docx?variant_code=${encodeURIComponent(code)}`;
-    showToast(`Đang kết xuất đề thi Word (.docx) Mã đề ${code}...`, 'info');
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || `Máy chủ phản hồi mã lỗi HTTP ${response.status}`);
-      }
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `De_Thi_Toan_12_Ma_${code}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-      showToast(`Đã tải xuống thành công file Word (.docx) Mã đề ${code}!`, 'success');
-    } catch (err) {
-      console.error('Download Word failed:', err);
-      showToast(`Lỗi khi tải Word: ${err.message}`, 'error');
-    }
+    return downloadActiveVariantPdf();
   }
 
   // ============================================================================

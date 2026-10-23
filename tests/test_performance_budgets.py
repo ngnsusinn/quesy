@@ -84,29 +84,29 @@ def test_perf_budget_shuffling_engine(db_session):
     assert elapsed_ms < 600.0, f"Shuffling engine exceeded latency budget: {elapsed_ms:.2f}ms"
 
 
-def test_perf_budget_docx_and_zip_export(db_session):
+def test_perf_budget_pdf_and_zip_export(db_session):
     """
-    Performance Budget: Generating complete 4-variant Word DOCX + Answer Sheets ZIP package (9 DOCX files) in < 6000ms (NFR budget: < 10000ms)
+    Performance Budget: Generating complete 4-variant PDF + Answer Sheets ZIP package in < 6000ms (NFR budget: < 10000ms)
     """
     # Arrange: find a master exam
     master = db_session.query(MasterExam).first()
     if not master:
-        pytest.skip("No master exam available for docx export performance test.")
+        pytest.skip("No master exam available for pdf export performance test.")
 
     # Act
     start_time = time.perf_counter()
     zip_path = export_exam_package_zip(
         master_exam_id=master.id,
         db=db_session,
-        include_pdf=False,
-        export_format="docx"
+        include_pdf=True,
+        export_format="pdf"
     )
     elapsed_ms = (time.perf_counter() - start_time) * 1000
 
     # Assert
     import os
     assert os.path.exists(zip_path)
-    assert os.path.getsize(zip_path) > 10000
+    assert os.path.getsize(zip_path) > 1000
     assert str(zip_path).endswith(".zip")
-    print(f"\n[PERF] DOCX & ZIP Bundle Export: {elapsed_ms:.2f} ms (Budget: < 10000 ms, NFR: < 10000 ms)")
-    assert elapsed_ms < 10000.0, f"DOCX & ZIP export exceeded latency budget: {elapsed_ms:.2f}ms"
+    print(f"\n[PERF] PDF & ZIP Bundle Export: {elapsed_ms:.2f} ms (Budget: < 10000 ms, NFR: < 10000 ms)")
+    assert elapsed_ms < 10000.0, f"PDF & ZIP export exceeded latency budget: {elapsed_ms:.2f}ms"

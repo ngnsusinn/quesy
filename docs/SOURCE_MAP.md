@@ -229,8 +229,8 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 | **POST** | `/api/v1/matrix` | Tạo ma trận đặc tả đề thi theo YCCĐ | `matrix.py` |
 | **POST** | `/api/v1/matrix/{id}/generate` | Thuật toán sinh đề thi gốc từ ma trận | `matrix.py` |
 | **POST** | `/api/v1/exams/{id}/shuffle` | Hoán vị $N$ mã đề an toàn, xuất phiếu soi đáp án | `exams.py` |
-| **POST** | `/api/v1/exams/{id}/export-docx`| Xuất bản file Word chuẩn in & MathType 7.0 OLE Vector | `exams.py` |
-| **POST** | `/api/v1/exams/{id}/export-pdf` | Xuất bản file PDF vector 100% CMU Serif | `exams.py` |
+| **POST** | `/api/v1/exams/{id}/export-pdf` | Xuất bản file PDF vector 100% CMU Serif / Times New Roman | `exams.py` |
+| **GET**  | `/api/v1/exams/{id}/export-zip` | Đóng gói trọn bộ ấn phẩm PDF (Đề, Lời giải, Barem, Phiếu OMR) | `exams.py` |
 
 ---
 
@@ -254,28 +254,25 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
                  │
                  └──> [Tầng 3] Chromium Headless + MathJax SVG + TikZ Renderer
                            │
-                           └──> Trả về PDF Vector `%PDF-` -> Stream lên Live Preview Pane
+                           └──> Trả về PDF Vector `%PDF-` -> Stream lên Live Preview Pane (PDF.js Canvas)
 ```
 
-### 5.2. Phân hệ Xuất bản MathType 7.0 OLE Word (.docx)
+### 5.2. Phân hệ Xuất bản Đề thi Thuần Vector PDF (Tectonic XeTeX & ReportLab Engine)
 ```
-[Dữ liệu câu hỏi LaTeX]
+[Dữ liệu câu hỏi LaTeX / Mã đề hoán vị]
        │
-       ├──> Bóc tách công thức toán inline $...$ và block $$...$$
-       │         │
-       │         ├──> MathJax Worker chuyển TeX -> MathML -> MTEF v5 nhị phân
-       │         │
-       │         ├──> MathTextParser 72 DPI sinh ảnh Vector WMF nguyên bản
-       │         │    (Magic APM Header: 0x9AC6CDD7, SCALE=20 twips/pt, 1440 DPI)
-       │         │
-       │         └──> Đóng gói Compound File Binary (CFB):
-       │              ├── \x01CompObj (Root CLSID: {0002CE03-0000-0000-C000-000000000046})
-       │              ├── \x01Ole & \x03ObjInfo (0x0004)
-       │              └── Equation Native (MTEF v5 Stream)
+       ├──> Tạo tài liệu mẫu LaTeX / HTML5 ReportLab chuẩn khổ A4 Portrait, lề 1.5-1.8 cm
        │
-       ├──> Bóc tách bảng mảng LaTeX (\begin{array}) -> Bảng Word native <w:tbl> căn giữa có viền
+       ├──> Động cơ biên dịch vector PDF (Tectonic XeTeX Engine trên Docker container ARM)
+       │         ├── Dàn trang tự động 2 cột chuẩn đề thi THPT Quốc gia (QĐ 764/QĐ-BGDĐT)
+       │         ├── Xử lý công thức Toán học chuẩn LaTeX và hình vẽ đồ thị vector
+       │         └── Barem chấm điểm trắc nghiệm lũy tiến (0.1đ - 0.25đ - 0.5đ - 1.0đ)
        │
-       └──> Lắp ráp OpenXML Word Document (.docx) chuẩn khổ A4 Portrait, lề 1.5-1.8 cm
+       └──> Đóng gói tệp nén ZIP trọn bộ đề thi:
+                 ├── Đề thi các mã đề hoán vị (De_101.pdf, De_102.pdf, ...)
+                 ├── Hướng dẫn giải chi tiết từng mã đề (LoiGiai_101.pdf, ...)
+                 ├── Bảng ma trận đáp án đối chiếu (BangDapAn_TongHop.pdf & .csv)
+                 └── Phiếu trả lời trắc nghiệm chuẩn Bộ GD&ĐT (Phieu_Tra_Loi_Trac_Nghiem_2025.pdf)
 ```
 
 ### 5.3. Phân hệ Số hóa 2-Pass Decoupled AI Pipeline
