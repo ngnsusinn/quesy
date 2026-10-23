@@ -348,3 +348,6 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
   4. Lỗi tương tác & hành vi UX (thiếu phản hồi scale 0.97, thay thế nhầm code, kẹt popup).
   5. Lỗi console & tài nguyên (mọi `console.error` đỏ, 404 font/icon, xén nét toán học).
 - **Vòng lặp đóng & Hợp nhất:** Parent Agent nhận kết quả đồng thời từ 4 Sub-Agent, nếu phát hiện lỗi sẽ điều phối vòng lặp hiệu chỉnh tức thì: `Sub-Agent 2 sửa` → `Sub-Agent 3 test` → `Sub-Agent 4 blind test` cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
+- **Cơ chế Chống Tái Diễn Lỗi (Anti-Regression Shield cho Sub-Agent 4):**
+  - Mọi phản ánh, đề xuất báo lỗi của người dùng về Frontend/Backend (viền kép, zoom vỡ layout, sai màu, tràn viền, API error...) tự động được trích xuất thành tiêu chí kiểm thử đối chứng bắt buộc nạp vào prompt của Sub-Agent 4.
+  - Sub-Agent 4 bắt buộc phải thao tác trực tiếp trên trình duyệt thật (`browser_exec`), chụp ảnh màn hình và đối chứng thực tế để bảo đảm lỗi không tái phát trước khi nghiệm thu.

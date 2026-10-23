@@ -71,3 +71,16 @@
      - Parent Agent tiếp nhận đồng thời kết quả từ cả 4 Sub-Agent, thẩm định chéo tính toàn vẹn.
      - Nếu Sub-Agent 3 hoặc Sub-Agent 4 phát hiện bất kỳ lỗi nào trong 5 nhóm trên:
        `Phát hiện lỗi` → `Sub-Agent 2 (Coding) sửa đổi` → `Sub-Agent 3 (Test) chạy kiểm thử` → `Sub-Agent 4 (Blind Test) thẩm định trên trình duyệt thực tế` → `Lặp lại quy trình` cho đến khi **hoàn thành 100% mọi yêu cầu mà không còn bất kỳ lỗi nào**.
+
+8. **QUY TẮC TỰ ĐỘNG CHUYỂN HÓA BÁO LỖI THÀNH BÀI TEST CHỐNG TÁI DIỄN CHO SUB-AGENT 4 (AUTOMATIC DEFECT-TO-TEST CONVERSION & ANTI-REGRESSION SHIELD):**
+   - **Bắt buộc:** Bất cứ khi nào Người dùng (User) phản ánh, đề xuất, nhắc nhở hoặc báo cáo bất kỳ lỗi nào liên quan đến **Backend** hoặc **Frontend** (ví dụ: lỗi viền kép textarea, lỗi zoom làm co khung preview, sai lệch màu sắc nút bấm, kẹt thanh cuộn, lỗi API 500/422, xén nét ký hiệu LaTeX/TikZ, v.v.):
+     1. **Tự động trích xuất tiêu chí kiểm thử (Auto-Extract Test Criteria):**
+        - Parent Agent phải phân tích và trích xuất ngay lập tức hiện tượng lỗi thành một hoặc nhiều kịch bản kiểm thử đối chứng cụ thể (Anti-Regression Assertions) với trạng thái kỳ vọng rõ ràng.
+     2. **Bổ sung trực tiếp vào nhiệm vụ của Sub-Agent 4 (Inject into Sub-Agent 4 Goal & Context):**
+        - Mọi lỗi người dùng từng phản ánh phải được tự động chuyển hóa thành **yêu cầu kiểm thử bắt buộc (Mandatory Checklist)** trong prompt giao việc cho Sub-Agent 4 ở lệnh `delegate_task`.
+        - Sub-Agent 4 bắt buộc phải trực tiếp truy cập vào đúng thành phần/giao diện đó trên trình duyệt thật (`browser_exec`), thực hiện thao tác tương tác thực tế (click, gõ phím, cuộn, zoom, đổi tab), chụp ảnh màn hình đối chứng và đọc log console.
+        - Sub-Agent 4 phải đưa ra khẳng định rõ ràng trong báo cáo nghiệm thu: lỗi đã được kiểm tra trên trình duyệt và xác nhận biến mất 100% (không tái diễn).
+     3. **Bổ sung vào Automated Test Suite (Sub-Agent 3):**
+        - Đối với các lỗi thuộc tầng logic, dữ liệu hoặc hợp đồng API, Sub-Agent 3 có trách nhiệm tự động viết bổ sung test case tương ứng vào `tests/` để ngăn chặn lỗi ở mức CI/CD tự động.
+     4. **Tiêu chí nghiệm thu nghiêm ngặt (Zero Regression Gate):**
+        - Tuyệt đối không đóng yêu cầu nếu Sub-Agent 4 chưa thực hiện bài test đối chứng thực tế trên trình duyệt cho lỗi mà người dùng đã nêu.
