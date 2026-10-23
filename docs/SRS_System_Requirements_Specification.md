@@ -156,12 +156,12 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 #### SRS-FEAT-04d: Phân hệ Soạn đề LaTeX Trực tiếp Tích hợp AI & Live PDF Preview (Noctorium & ex_test Architecture)
 - **Mô tả:** Thay thế hoàn toàn phân hệ số hóa ảnh/OCR cũ bằng phân hệ **Soạn đề** (LaTeX Exam Writing Workspace) mô phỏng thiết kế của `Noctorium` kết hợp gói lệnh khảo thí quốc gia `ex_test.sty` (v3.3). Cung cấp không gian làm việc 2 cột tích hợp (Split View Workspace):
   1. *Cột bên trái:*
-     - *Khung trên:* Trình soạn thảo mã nguồn LaTeX (Dark mode) với toolbar `MỚI`, `GEMINI ▾`, `THÊM ▾` (7 template chuẩn `ex_test`), phím tắt hoàn tác (Undo/Redo), dọn dẹp, sao chép, đánh số dòng và hiển thị vị trí con trỏ.
-     - *Khung dưới:* Trợ lý Soạn thảo AI (Gemini Copilot) được chuyển xuống phía dưới khung soạn thảo theo yêu cầu người dùng, hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ `\immini` với các nút 1-click "Chèn vào con trỏ", "Thay thế", "Sao chép".
+     - *Khung trên:* Trình soạn thảo mã nguồn LaTeX Dark mode (`#141824`, bảo toàn màu nền khi click con trỏ focus) với toolbar `MỚI`, `THÊM ▾` (7 template chuẩn `ex_test`), phím tắt hoàn tác (Undo/Redo), dọn dẹp, sao chép, đánh số dòng và hiển thị vị trí con trỏ. Thanh banner **GỢI Ý AI** (AI Diff Preview) cho phép duyệt nhanh thay thế cục bộ (`Đồng ý` / `Từ chối`).
+     - *Khung dưới:* Trợ lý Soạn thảo AI Copilot hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ `\immini`. Cơ chế **AI Inline Diff & Smart Text Replacement** tự động phân tích và chỉ thay thế chính xác dòng/đoạn mã cần sửa (ví dụ: đổi font 11pt sang 12pt, sửa đáp án) mà không xóa bỏ hoặc ghi đè toàn bộ tài liệu cũ.
   2. *Cột bên phải:*
      - *Thanh công cụ:* Tab `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động đảo giữa in đề thi `[dethi]` và in đáp án `[loigiai]`), menu `XUẤT FILE ▾` (PDF, TeX, Ngân hàng, Copy).
      - *Bản xem trước Live Preview:* Hiển thị trực tiếp trang PDF biên dịch sắc nét từ Tectonic XeTeX Engine (Docker trên host ARM) hoặc Chromium Headless.
-     - *Chân trang (Footer):* Nút bấm thanh ngang toàn chiều rộng nổi bật màu đỏ đô **`BIÊN DỊCH`**.
+     - *Chân trang (Footer):* Nút bấm thanh ngang toàn chiều rộng nổi bật màu xanh lá **`BIÊN DỊCH`** (`#15803d`).
   3. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, lịch sử hội thoại và lịch sử biên dịch vào `localStorage` của trình duyệt.
   4. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
 

@@ -56,13 +56,13 @@ The platform is strictly tailored to national assessment standards:
 
 ## Core Capabilities
 
-### 1. AI-Powered LaTeX Exam Composer & Live PDF Preview (Open-Prism Clone)
+### 1. AI-Powered LaTeX Exam Composer & Live PDF Preview (Noctorium & Open-Prism Layout)
 
 Located in `backend/services/composer_service.py` & `backend/routers/composer.py`:
-- **Open-Prism Architecture Clone & ex_test v3.3 Integration:** A full-featured 3-pane AI LaTeX authoring workspace (`/composer`) with live PDF compilation and preview, bundled with Vietnam's standard `ex_test.sty` (v3.3) package (`\begin{ex}`, `\choice`, `\choiceTF`, `\shortans`, `\immini`).
-- **AI-Assisted Writing Workspace:** Integrated chat copilot specifically trained on Vietnam MoET Circular 32/2018 and Decision 764/2025 formats, generating multiple-choice questions, True/False sets, `tkz-tab` variation tables, and TikZ graphs with 1-click "Insert at cursor", "Replace document", and "Copy code" actions.
-- **CodeMirror-Grade LaTeX Editor:** Code editor with real-time gutter line numbers, tab indentation, bracket auto-closing, and quick-insert math toolbars (`\dfrac`, `\sqrt`, `\vec`, `\in \mathbb{R}`, `+ ex (4 PA)`, `+ ex (Đ/S)`, `+ ex (Điền số)`, `+ immini`, `tkz-tab`, 3D Pyramids).
-- **Live PDF Preview & Tectonic Docker Microservice:** Debounced instant compilation via remote Tectonic XeTeX engine (or local fallback), displaying vector-crisp 100% CMU Serif PDFs inline with zoom controls, fullscreen preview, and compilation error drawer.
+- **Noctorium 2-Column Split Architecture & ex_test v3.3 Integration:** A full-featured 2-column LaTeX authoring workspace (`/composer`) with live PDF compilation and preview, bundled with Vietnam's standard `ex_test.sty` (v3.3) package (`\begin{ex}`, `\choice`, `\choiceTF`, `\shortans`, `\immini`).
+- **AI-Assisted Writing Copilot with Smart Diff Replacement:** Integrated chat copilot specifically trained on Vietnam MoET Circular 32/2018 and Decision 764/2025 formats. Supports AI Inline Diff Suggestion: instead of overwriting the whole document, the AI pinpoints the exact changed lines (e.g. changing font from 11pt to 12pt, updating options) and presents an inline diff review banner on the editor with 1-click "Đồng ý" (Accept) / "Từ chối" (Reject) buttons.
+- **CodeMirror-Grade Dark LaTeX Editor:** Code editor with real-time gutter line numbers, tab indentation, bracket auto-closing, persistent dark background `#141824` on cursor focus, and quick-insert `ex_test` template menus (`MỚI`, `THÊM ▾`).
+- **Live PDF Preview & Green Action Bar:** Debounced instant compilation via remote Tectonic XeTeX engine (or local fallback), displaying vector-crisp 100% CMU Serif PDFs inline with zoom controls, fullscreen preview, solution switch (`[dethi]` $\leftrightarrow$ `[loigiai]`), and prominent green `BIÊN DỊCH` action bar (`#15803d`).
 - **Local Persistence & 1-Click Question Bank Export:** Automatically saves drafts to `localStorage` across page reloads (F5) and enables 1-click question extraction directly into the central Question Bank.
 
 ### 2. Pure LaTeX Vector PDF Publishing

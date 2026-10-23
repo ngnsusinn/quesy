@@ -79,12 +79,12 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 - **Màn hình liên quan:** `SCR-COMPOSER-STUDIO`
 - **Bố cục giao diện:**
   - **Cột bên trái (50%):**
-    - *Khung trên:* Trình soạn thảo mã nguồn LaTeX (Dark mode) với toolbar `MỚI`, `GEMINI ▾`, `THÊM ▾` (7 template chuẩn `ex_test`), các phím tắt `Undo`, `Redo`, `Xóa`, `Copy`, đánh số dòng (gutter), và thanh trạng thái dòng/cột.
-    - *Khung dưới:* Trợ lý Soạn thảo AI (Gemini Copilot) được bố trí ngay bên dưới khung soạn thảo với thanh gợi ý lệnh nhanh, hội thoại chat tương tác, 1-click chèn/thay thế mã và khung nhập liệu câu hỏi.
+    - *Khung trên:* Trình soạn thảo mã nguồn LaTeX Dark mode (`#141824`, bảo toàn màu nền khi click con trỏ focus) với toolbar `MỚI`, `THÊM ▾` (7 template chuẩn `ex_test`), các phím tắt `Undo`, `Redo`, `Xóa`, `Copy`, đánh số dòng (gutter), thanh trạng thái dòng/cột và banner duyệt Diff đề xuất (`Đồng ý` / `Từ chối`).
+    - *Khung dưới:* Trợ lý Soạn thảo AI (Copilot) được bố trí ngay bên dưới khung soạn thảo với thanh gợi ý lệnh nhanh, hội thoại chat tương tác, cơ chế gợi ý Smart Diff Replace (chỉ thay thế đúng đoạn mã cần sửa, ví dụ đổi cỡ chữ 11pt sang 12pt, không ghi đè toàn bộ code cũ), 1-click chèn mã vào vị trí con trỏ và sao chép.
   - **Cột bên phải (50%):**
     - *Thanh công cụ trên (Light mode):* Hai tab điều hướng `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động chuyển đổi giữa chế độ in đề thi `[dethi]` và in lời giải `[loigiai]`), menu `XUẤT FILE ▾` (tải PDF, tải TeX, lưu Ngân hàng, sao chép mã).
     - *Khung giữa:* Bản xem trước PDF Trực tiếp (Live Preview) hiển thị PDF biên dịch sắc nét từ Tectonic XeTeX engine hoặc danh sách lịch sử các phiên bản.
-    - *Chân trang (Footer):* Nút bấm toàn chiều rộng nổi bật màu đỏ đô **`BIÊN DỊCH`** kích hoạt biên dịch tài liệu tức thì.
+    - *Chân trang (Footer):* Nút bấm toàn chiều rộng nổi bật màu xanh lá **`BIÊN DỊCH`** (`#15803d`) kích hoạt biên dịch tài liệu tức thì.
 
 ### 2.4. FR-02.2: Tự Động Biên Dịch, Lưu Trữ Cục Bộ & Xuất Bản Đề Thi
 - **Hành vi thao tác:**

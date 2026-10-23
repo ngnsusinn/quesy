@@ -420,56 +420,13 @@
               
               <!-- Editor Header Toolbar (Dark Theme) -->
               <div class="bg-[#1c2230] border-b border-[#283144] px-3 py-1.5 flex items-center justify-between text-xs select-none">
-                <!-- Left: MỚI, GEMINI ▾, THÊM ▾ -->
+                <!-- Left: MỚI, THÊM ▾ (Gemini dropdown removed as requested, all AI interactions through Copilot below) -->
                 <div class="flex items-center space-x-1.5 relative">
                   <!-- MỚI Button -->
                   <button type="button" onclick="app.composer.newDocument()" class="px-2.5 py-1 bg-[#272f42] hover:bg-[#343e56] rounded text-white text-[11px] font-semibold transition-all flex items-center space-x-1" title="Tạo tài liệu mới">
                     <i data-lucide="file-plus" class="w-3.5 h-3.5 text-slate-300"></i>
                     <span>MỚI</span>
                   </button>
-
-                  <!-- GEMINI ▾ Dropdown -->
-                  <div class="relative">
-                    <button type="button" onclick="app.composer.toggleDropdown('gemini')" id="btn-dropdown-gemini" class="px-2.5 py-1 bg-[#272f42] hover:bg-[#343e56] rounded text-white text-[11px] font-semibold transition-all flex items-center space-x-1" title="Trợ lý AI Gemini">
-                      <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i>
-                      <span>GEMINI</span>
-                      <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
-                    </button>
-                    <!-- Gemini Dropdown Menu -->
-                    <div id="composer-dropdown-gemini" class="hidden absolute top-full mt-1.5 left-0 z-50 w-64 bg-[#1e2433] border border-[#2d364d] rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs font-sans">
-                      <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-[#2d364d]/60 mb-1">
-                        Gợi ý tác vụ AI Gemini
-                      </div>
-                      <button type="button" onclick="app.composer.triggerGeminiPrompt('tracnghiem')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
-                        <span class="text-purple-400">✨</span>
-                        <span>Sinh câu hỏi Trắc nghiệm 4 PA (ex_test)</span>
-                      </button>
-                      <button type="button" onclick="app.composer.triggerGeminiPrompt('dungsai')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
-                        <span class="text-amber-400">⚡</span>
-                        <span>Sinh câu hỏi Đúng / Sai (\choiceTF)</span>
-                      </button>
-                      <button type="button" onclick="app.composer.triggerGeminiPrompt('traloingan')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
-                        <span class="text-emerald-400">🔢</span>
-                        <span>Sinh câu hỏi Trả lời ngắn (\shortans)</span>
-                      </button>
-                      <button type="button" onclick="app.composer.triggerGeminiPrompt('tkz_tab')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
-                        <span class="text-blue-400">📊</span>
-                        <span>Sinh Bảng biến thiên (tkz-tab)</span>
-                      </button>
-                      <button type="button" onclick="app.composer.triggerGeminiPrompt('tikz')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
-                        <span class="text-rose-400">📐</span>
-                        <span>Sinh Đồ thị / Hình vẽ (TikZ)</span>
-                      </button>
-                      <button type="button" onclick="app.composer.triggerGeminiPrompt('sualoi')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2 border-t border-[#2d364d]/60 mt-1 pt-1.5">
-                        <span class="text-cyan-400">🔍</span>
-                        <span>Kiểm tra & Sửa lỗi cú pháp LaTeX</span>
-                      </button>
-                      <button type="button" onclick="app.composer.triggerGeminiPrompt('loigiai')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
-                        <span class="text-emerald-400">💡</span>
-                        <span>Thêm lời giải chi tiết (\loigiai)</span>
-                      </button>
-                    </div>
-                  </div>
 
                   <!-- THÊM ▾ Dropdown (Exact 7 Templates from Noctorium) -->
                   <div class="relative">
@@ -528,6 +485,37 @@
                   <button type="button" onclick="app.composer.copyAll()" class="p-1 hover:bg-[#272f42] rounded text-slate-300 hover:text-white transition-all" title="Sao chép toàn bộ mã nguồn">
                     <i data-lucide="copy" class="w-3.5 h-3.5"></i>
                   </button>
+                </div>
+              </div>
+
+              <!-- Pending AI Diff / Replacement Banner (Shown above editor when AI suggests targeted changes) -->
+              <div id="composer-pending-diff-banner" class="hidden bg-[#182338] border-b border-[#2d3d60] p-2.5 flex flex-col space-y-2 z-20 transition-all shadow-md">
+                <div class="flex items-center justify-between text-xs">
+                  <div class="flex items-center space-x-2 min-w-0">
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">GỢI Ý AI</span>
+                    <span id="composer-diff-description" class="text-slate-200 text-[11px] font-medium truncate">Đổi cỡ chữ từ 11pt sang 12pt</span>
+                  </div>
+                  <div class="flex items-center space-x-1.5 shrink-0">
+                    <button type="button" onclick="app.composer.applyPendingDiff()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-[11px] font-bold flex items-center space-x-1 transition-all active:scale-95 shadow-sm cursor-pointer" title="Đồng ý áp dụng thay đổi vào mã nguồn">
+                      <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                      <span>Đồng ý</span>
+                    </button>
+                    <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 bg-[#283247] hover:bg-[#35425c] text-slate-300 hover:text-white rounded-md text-[11px] font-semibold flex items-center space-x-1 transition-all cursor-pointer" title="Hủy bỏ thay đổi">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                      <span>Từ chối</span>
+                    </button>
+                  </div>
+                </div>
+                <!-- Inline Diff Visual Box -->
+                <div class="rounded-lg overflow-hidden border border-[#2d3d60] font-mono text-[11px] leading-relaxed">
+                  <div id="composer-diff-old" class="px-2.5 py-1 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
+                    <span class="text-rose-400 font-bold select-none">-</span>
+                    <span id="composer-diff-old-text" class="whitespace-pre-wrap flex-1 break-all"></span>
+                  </div>
+                  <div id="composer-diff-new" class="px-2.5 py-1 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
+                    <span class="text-emerald-400 font-bold select-none">+</span>
+                    <span id="composer-diff-new-text" class="whitespace-pre-wrap flex-1 break-all"></span>
+                  </div>
                 </div>
               </div>
 
@@ -736,8 +724,8 @@
 
             </div>
 
-            <!-- Bottom Prominent Maroon / Dark Red BIÊN DỊCH Button Bar -->
-            <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="w-full py-3 bg-[#7c1925] hover:bg-[#68141e] active:scale-[0.99] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-sm select-none cursor-pointer flex items-center justify-center space-x-2 shrink-0" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
+            <!-- Bottom Prominent Green BIÊN DỊCH Button Bar -->
+            <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="w-full py-3 bg-[#15803d] hover:bg-[#166534] active:scale-[0.99] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-sm select-none cursor-pointer flex items-center justify-center space-x-2 shrink-0" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
               <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
               <span id="composer-compile-btn-text">BIÊN DỊCH</span>
             </button>

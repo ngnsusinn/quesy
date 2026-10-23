@@ -139,3 +139,28 @@ Tính tích phân $I = \int_0^1 2x dx$.
     data = res.json()
     assert data["success"] is True
     assert data["count"] == 3
+
+
+def test_composer_chat_diff_suggestion():
+    """Verify AI writing assistant returns targeted diff when user asks for text/font replacement."""
+    latex_code = r"""\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\begin{document}
+Hello World
+\end{document}
+"""
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "chỉnh font từ 11 sang 12",
+            "current_latex": latex_code,
+            "history": []
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "reply" in data
+    assert "diff" in data and data["diff"] is not None
+    assert data["diff"]["action"] == "replace"
+    assert "11pt" in data["diff"]["old_text"]
+    assert "12pt" in data["diff"]["new_text"]

@@ -4269,6 +4269,63 @@
       }
     },
 
+    pendingDiff: null,
+
+    showPendingDiff(diff) {
+      if (!diff || !diff.old_text) return;
+      this.pendingDiff = diff;
+      const banner = document.getElementById('composer-pending-diff-banner');
+      const descEl = document.getElementById('composer-diff-description');
+      const oldEl = document.getElementById('composer-diff-old-text');
+      const newEl = document.getElementById('composer-diff-new-text');
+
+      if (banner && descEl && oldEl && newEl) {
+        descEl.innerText = diff.description || 'Gợi ý chỉnh sửa từ AI';
+        oldEl.innerText = diff.old_text;
+        newEl.innerText = diff.new_text;
+        banner.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+      }
+    },
+
+    applyPendingDiff() {
+      if (!this.pendingDiff) return;
+      const { old_text, new_text } = this.pendingDiff;
+      this.applyDiffDirect(old_text, new_text);
+      this.rejectPendingDiff();
+    },
+
+    rejectPendingDiff() {
+      this.pendingDiff = null;
+      const banner = document.getElementById('composer-pending-diff-banner');
+      if (banner) banner.classList.add('hidden');
+    },
+
+    applyDiffDirect(oldText, newText) {
+      const editor = document.getElementById('composer-editor-input');
+      if (!editor) return;
+
+      let val = this.currentLatex;
+      if (val.includes(oldText)) {
+        val = val.replace(oldText, newText);
+      } else {
+        const trimmedOld = oldText.trim();
+        const trimmedNew = newText.trim();
+        if (val.includes(trimmedOld)) {
+          val = val.replace(trimmedOld, trimmedNew);
+        } else {
+          showToast('Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại.', 'warning');
+          return;
+        }
+      }
+
+      editor.value = val;
+      this.currentLatex = val;
+      this.handleEditorInput();
+      this.compile(true);
+      showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
+    },
+
     initChat() {
       const chatContainer = document.getElementById('composer-chat-messages');
       if (!chatContainer) return;
@@ -4329,9 +4386,47 @@
       if (window.lucide) lucide.createIcons();
     },
 
-    formatAssistantContent(text) {
+    formatAssistantContent(text, diff) {
       if (!text) return '';
-      let html = text.replace(/```(?:latex|tex)?\s*([\s\S]*?)```/g, (match, code) => {
+      let html = text;
+
+      // 1. Interactive Diff Blocks (```diff ... ```)
+      html = html.replace(/```diff\s*([\s\S]*?)```/g, (match, diffContent) => {
+        const lines = diffContent.trim().split('\n');
+        const oldLines = lines.filter(l => l.trim().startsWith('-')).map(l => l.trim().replace(/^-\s*/, '')).join('\n');
+        const newLines = lines.filter(l => l.trim().startsWith('+')).map(l => l.trim().replace(/^\+\s*/, '')).join('\n');
+        const b64Old = btoa(unescape(encodeURIComponent(oldLines)));
+        const b64New = btoa(unescape(encodeURIComponent(newLines)));
+
+        return `
+          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
+            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
+              <span class="font-sans font-bold text-emerald-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
+              <div class="flex items-center space-x-1.5">
+                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
+                  <span>✔ Đồng ý</span>
+                </button>
+                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2 py-0.5 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
+                  <span>✖ Từ chối</span>
+                </button>
+              </div>
+            </div>
+            <div class="diff-body text-[11px] leading-relaxed">
+              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
+                <span class="text-rose-400 font-bold select-none">-</span>
+                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(oldLines)}</span>
+              </div>
+              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
+                <span class="text-emerald-400 font-bold select-none">+</span>
+                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(newLines)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      // 2. Standard LaTeX Snippets (```latex ... ```)
+      html = html.replace(/```(?:latex|tex)?\s*([\s\S]*?)```/g, (match, code) => {
         const rawCode = code.trim();
         const b64Code = btoa(unescape(encodeURIComponent(rawCode)));
         return `
@@ -4339,11 +4434,8 @@
             <div class="code-block-actions flex items-center justify-between bg-slate-800 text-slate-300 px-3 py-1.5 text-[10px]">
               <span class="font-mono text-slate-400 font-semibold">LaTeX Code</span>
               <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.insertB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Chèn vào vị trí con trỏ">
-                  <span>📥 Chèn</span>
-                </button>
-                <button type="button" onclick="app.composer.replaceB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Thay thế toàn bộ văn bản">
-                  <span>🔄 Thay thế</span>
+                <button type="button" onclick="app.composer.insertB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-all active:scale-95 flex items-center space-x-1" title="Chèn vào vị trí con trỏ trong mã nguồn">
+                  <span>📥 Chèn vào con trỏ</span>
                 </button>
                 <button type="button" onclick="app.composer.copyB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Sao chép">
                   <span>📋 Sao chép</span>
@@ -4366,7 +4458,7 @@
       try {
         const code = decodeURIComponent(escape(atob(b64)));
         this.insertSnippet(code);
-        showToast('Đã chèn mã LaTeX vào con trỏ!', 'success');
+        showToast('Đã chèn mã LaTeX vào vị trí con trỏ!', 'success');
       } catch (e) {
         console.error('Error inserting code:', e);
       }
@@ -4428,7 +4520,7 @@
             </div>
             <div class="bg-slate-50 border border-slate-200/80 rounded-2xl rounded-tl-xs p-3 text-slate-500 text-[11px] flex items-center space-x-2">
               <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-purple-600"></i>
-              <span>Quesy AI đang tạo mã LaTeX...</span>
+              <span>Quesy AI đang xử lý yêu cầu...</span>
             </div>
           </div>
         `;
@@ -4453,9 +4545,13 @@
 
         if (res.ok) {
           const data = await res.json();
-          this.chatHistory.push({ role: 'assistant', content: data.reply });
+          this.chatHistory.push({ role: 'assistant', content: data.reply, diff: data.diff || null });
           localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory.slice(-20)));
           this.renderChatMessages();
+
+          if (data.diff) {
+            this.showPendingDiff(data.diff);
+          }
         } else {
           this.chatHistory.push({ role: 'assistant', content: 'Rất tiếc, đã có lỗi kết nối với máy chủ AI. Vui lòng thử lại sau.' });
           this.renderChatMessages();

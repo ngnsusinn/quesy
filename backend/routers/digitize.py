@@ -28,7 +28,9 @@ JOB_PROGRESS: Dict[str, Dict[str, Any]] = {}
 
 def set_job_progress(job_id: str, percent: int, stage_text: str):
     """Updates live progress percentage and description for an AIDigitizeJob."""
+    existing = JOB_PROGRESS.get(job_id, {})
     JOB_PROGRESS[job_id] = {
+        **existing,
         "percent": max(0, min(100, int(percent))),
         "stage": stage_text
     }
@@ -213,6 +215,12 @@ async def upload_document(
     # Route worker task based on pipeline_mode
     worker_fn = process_digitize_job_2pass if pipeline_mode == "test_2pass" else process_digitize_job
 
+    JOB_PROGRESS[job.id] = {
+        "percent": 0,
+        "stage": "Chờ xử lý",
+        "pipeline_mode": pipeline_mode
+    }
+
     if sync:
         worker_fn(job.id)
     else:
@@ -307,8 +315,9 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
         except Exception:
             total_pages = 1
 
-    mode = "standard"
-    if extracted_list and isinstance(extracted_list, list) and len(extracted_list) > 0:
+    prog = JOB_PROGRESS.get(job.id, {})
+    mode = prog.get("pipeline_mode", "standard")
+    if mode == "standard" and extracted_list and isinstance(extracted_list, list) and len(extracted_list) > 0:
         if isinstance(extracted_list[0], dict) and extracted_list[0].get("_pipeline_mode") == "test_2pass":
             mode = "test_2pass"
 
@@ -320,7 +329,6 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
         })
 
     # Retrieve live progress metrics
-    prog = JOB_PROGRESS.get(job.id, {})
     default_pct = 100 if job.status == "EXTRACTED" else (0 if job.status == "PENDING" else 45)
     progress_percent = prog.get("percent", default_pct)
     default_stg = "Hoàn tất bóc tách!" if job.status == "EXTRACTED" else ("Đang xử lý đề thi..." if job.status == "PROCESSING" else "Chờ xử lý")

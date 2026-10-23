@@ -3,8 +3,10 @@ Endpoints for compiling LaTeX documents to live PDF preview,
 AI-assisted exam writing chat, template loading, and question bank export.
 """
 
+import difflib
 import hashlib
 import logging
+import re
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -53,9 +55,16 @@ class ChatRequest(BaseModel):
     current_latex: Optional[str] = Field("", description="Current editor LaTeX code for context")
     history: Optional[List[ChatMessage]] = Field(default_factory=list)
 
+class DiffSuggestion(BaseModel):
+    action: str = Field("replace", description="'replace' or 'insert'")
+    old_text: str = Field("", description="Exact text snippet to replace in current code")
+    new_text: str = Field("", description="New text snippet to insert")
+    description: str = Field("", description="Summary description of the change")
+
 class ChatResponse(BaseModel):
     reply: str
     suggested_latex: Optional[str] = None
+    diff: Optional[DiffSuggestion] = None
 
 class SaveToBankRequest(BaseModel):
     latex_code: str = Field(..., description="LaTeX source containing exam questions to extract")
@@ -138,6 +147,75 @@ def get_compiled_pdf(doc_id: str):
     )
 
 
+def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_message: str = "") -> Optional[DiffSuggestion]:
+    """Helper to detect unified diff blocks, OLD/NEW blocks, or diffs in code blocks from AI responses."""
+    if not current_latex:
+        return None
+
+    # 1. Explicit ```diff ... ``` blocks
+    m_diff = re.search(r'```diff\s*\n\s*-\s*([^\n]+(?:\n\s*-[^\n]+)*)\s*\n\s*\+\s*([^\n]+(?:\n\s*\+[^\n]+)*)\s*\n```', reply_text)
+    if m_diff:
+        old_lines = [re.sub(r'^\s*-\s*', '', l) for l in m_diff.group(1).split('\n')]
+        new_lines = [re.sub(r'^\s*\+\s*', '', l) for l in m_diff.group(2).split('\n')]
+        old_text = '\n'.join(old_lines)
+        new_text = '\n'.join(new_lines)
+        if old_text and old_text in current_latex:
+            return DiffSuggestion(action="replace", old_text=old_text, new_text=new_text, description="Thay đổi theo gợi ý AI")
+
+    # 2. Explicit OLD: / NEW: blocks
+    m_replace = re.search(r'OLD:\s*\n([\s\S]*?)\nNEW:\s*\n([\s\S]*?)(?:\n|$)', reply_text)
+    if m_replace:
+        old_text = m_replace.group(1).strip()
+        new_text = m_replace.group(2).strip()
+        if old_text and old_text in current_latex:
+            return DiffSuggestion(action="replace", old_text=old_text, new_text=new_text, description="Thay đổi theo gợi ý AI")
+
+    # 3. Detect changes if AI returned code block (```latex or ```tex or ```)
+    m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
+    if m_code:
+        code = m_code.group(1).strip()
+        cur_lines = current_latex.strip().splitlines()
+        code_lines = code.splitlines()
+
+        # If similarity is noticeable (full document or substantial chunk)
+        sm = difflib.SequenceMatcher(None, cur_lines, code_lines)
+        diffs = [op for op in sm.get_opcodes() if op[0] != 'equal']
+        if len(diffs) == 1 and diffs[0][0] == 'replace':
+            _, i1, i2, j1, j2 = diffs[0]
+            old_slice = '\n'.join(cur_lines[i1:i2])
+            new_slice = '\n'.join(code_lines[j1:j2])
+            if old_slice and old_slice in current_latex:
+                return DiffSuggestion(action="replace", old_text=old_slice, new_text=new_slice, description="Thay đổi theo gợi ý AI")
+        elif len(code_lines) <= 4:
+            # Single or small snippet replacement: look for close match in current_latex
+            matches = difflib.get_close_matches(code, cur_lines, n=1, cutoff=0.45)
+            if matches and matches[0] != code:
+                return DiffSuggestion(action="replace", old_text=matches[0], new_text=code, description="Thay đổi theo gợi ý AI")
+
+    # 4. Keyword heuristic based on user request (e.g., font 11 -> 12)
+    user_lower = user_message.lower()
+    if any(k in user_lower for k in ("11 sang 12", "cỡ chữ 12", "font 12", "11pt sang 12pt")):
+        for line in current_latex.splitlines():
+            if "documentclass" in line and "11pt" in line:
+                return DiffSuggestion(
+                    action="replace",
+                    old_text=line,
+                    new_text=line.replace("11pt", "12pt"),
+                    description="Đổi cỡ chữ toàn tài liệu từ 11pt sang 12pt"
+                )
+    if any(k in user_lower for k in ("12 sang 11", "cỡ chữ 11", "font 11", "12pt sang 11pt")):
+        for line in current_latex.splitlines():
+            if "documentclass" in line and "12pt" in line:
+                return DiffSuggestion(
+                    action="replace",
+                    old_text=line,
+                    new_text=line.replace("12pt", "11pt"),
+                    description="Đổi cỡ chữ toàn tài liệu từ 12pt sang 11pt"
+                )
+
+    return None
+
+
 @router.post("/chat", response_model=ChatResponse, summary="AI LaTeX Writing Copilot (assistant-ui clone)")
 def composer_chat_endpoint(req: ChatRequest):
     """Interactive AI Assistant specifically tuned for authoring Vietnamese high-school math exams."""
@@ -194,13 +272,63 @@ def composer_chat_endpoint(req: ChatRequest):
                     if resp.status_code == 200:
                         data = resp.json()
                         reply_text = data["choices"][0]["message"]["content"]
-                        return ChatResponse(reply=reply_text)
+                        diff = extract_diff_from_text(reply_text, req.current_latex, user_message=req.message)
+                        return ChatResponse(reply=reply_text, diff=diff)
 
     except Exception as e:
         logger.warning(f"AI Provider call failed: {e}. Falling back to rule-based assistant.")
 
     # Smart offline / local fallback generator if AI provider is unconfigured or network failed
     user_msg_lower = req.message.lower()
+
+    # Targeted edits (diff replacements)
+    cur_latex = req.current_latex or ""
+    if any(k in user_msg_lower for k in ("11 sang 12", "cỡ chữ 12", "font 12", "11pt sang 12pt", "11 sang 12pt")):
+        for line in cur_latex.split('\n'):
+            if "documentclass" in line and "11pt" in line:
+                new_line = line.replace("11pt", "12pt")
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=line,
+                    new_text=new_line,
+                    description="Đổi cỡ chữ toàn tài liệu từ 11pt sang 12pt"
+                )
+                reply = (
+                    "Tôi đề xuất thay đổi cỡ chữ toàn tài liệu từ `11pt` sang `12pt` tại dòng khai báo `\\documentclass`:\n\n"
+                    f"```diff\n- {line}\n+ {new_line}\n```\n\n"
+                    "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+
+    if any(k in user_msg_lower for k in ("12 sang 11", "cỡ chữ 11", "font 11", "12pt sang 11pt", "12 sang 11pt")):
+        for line in cur_latex.split('\n'):
+            if "documentclass" in line and "12pt" in line:
+                new_line = line.replace("12pt", "11pt")
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=line,
+                    new_text=new_line,
+                    description="Đổi cỡ chữ toàn tài liệu từ 12pt sang 11pt"
+                )
+                reply = (
+                    "Tôi đề xuất thay đổi cỡ chữ toàn tài liệu từ `12pt` sang `11pt` tại dòng khai báo `\\documentclass`:\n\n"
+                    f"```diff\n- {line}\n+ {new_line}\n```\n\n"
+                    "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+
+    if any(k in user_msg_lower for k in ("hiện lời giải", "bật lời giải", "sang loigiai")):
+        for line in cur_latex.split('\n'):
+            if "ex_test" in line and "dethi" in line:
+                new_line = line.replace("[dethi]", "[loigiai]")
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=line,
+                    new_text=new_line,
+                    description="Chuyển sang chế độ in lời giải chi tiết [loigiai]"
+                )
+                reply = f"Tôi đề xuất chuyển sang chế độ hiển thị lời giải:\n\n```diff\n- {line}\n+ {new_line}\n```"
+                return ChatResponse(reply=reply, diff=diff)
 
     if any(k in user_msg_lower for k in ("ex_test", "extest", "gói ex", "lệnh ex")):
         latex_snippet = r"""\begin{ex}[Đề Khảo sát 2026]

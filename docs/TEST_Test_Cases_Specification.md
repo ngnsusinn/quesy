@@ -237,13 +237,21 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 - **Mô tả:** Kiểm tra khả năng biên dịch tài liệu LaTeX chứa tiếng Việt có dấu, MathJax và bảng biến thiên `tkz-tab` thành file PDF vector nguyên bản qua Tectonic Engine (Docker microservice / local / Chromium fallback).
 - **Kết quả kỳ vọng:** HTTP 200, header `Content-Type: application/pdf`, dung lượng file $> 1000$ bytes, magic header `%PDF`.
 
-#### TC-COMP-03: Trợ lý AI Soạn thảo LaTeX (Copilot Chat)
-- **Mô tả:** Kiểm tra trợ lý AI sinh mã LaTeX cho câu hỏi khảo sát hàm số, bảng biến thiên `tkz-tab`.
-- **Kết quả kỳ vọng:** AI phản hồi mã LaTeX tự chứa, định dạng khối code chuẩn xác và sẵn sàng 1-click chèn vào editor.
+#### TC-COMP-03: Trợ lý AI Soạn thảo LaTeX (Copilot Chat & Smart Diff Suggestion)
+- **Mô tả:** Kiểm tra trợ lý AI sinh mã LaTeX cho câu hỏi khảo sát hàm số, bảng biến thiên `tkz-tab`, và cơ chế Smart Diff Replacement đề xuất thay thế cục bộ văn bản (ví dụ đổi cỡ chữ 11pt sang 12pt).
+- **Kết quả kỳ vọng:** AI phản hồi mã LaTeX tự chứa hoặc khối diff có cấu trúc (`DiffSuggestion` với `old_text` và `new_text`), hỗ trợ 1-click chèn vào editor hoặc duyệt thay thế cục bộ qua banner.
 
 #### TC-COMP-04: Trích xuất 1-Click từ LaTeX sang Ngân hàng Câu hỏi
-- **Mô tả:** Kiểm tra parser bóc tách các câu hỏi `\textbf{Câu X.}` sang schema Question/QuestionOption/SubStatement của Quesy.
+- **Mô tả:** Kiểm tra parser bóc tách các câu hỏi `\textbf{Câu X.}` và cú pháp `ex_test.sty` (`\begin{ex}`) sang schema Question/QuestionOption/SubStatement của Quesy.
 - **Kết quả kỳ vọng:** Đọc và lưu đúng số lượng câu hỏi vào DB với trạng thái `DRAFT`.
+
+#### TC-COMP-05: Bảo toàn Giao diện Dark Editor khi Focus con trỏ
+- **Mô tả:** Kiểm tra textarea `#composer-editor-input` duy trì đúng nền tối `#141824` và chữ sáng khi nhận focus, không bị rule CSS toàn cục làm biến đổi sang nền trắng.
+- **Kết quả kỳ vọng:** Màu nền giữ nguyên `#141824`, không lóa trắng mắt giáo viên khi gõ văn bản.
+
+#### TC-COMP-06: Nút Biên dịch Xanh Chuẩn Khảo thí
+- **Mô tả:** Kiểm tra thanh nút tác vụ `BIÊN DỊCH` dưới đáy giao diện hiển thị màu xanh lá (`#15803d`) kích hoạt biên dịch tức thì khi click.
+- **Kết quả kỳ vọng:** Nút hiển thị màu xanh chuẩn, kích hoạt compile và phản hồi trạng thái loading.
 
 ---
 
