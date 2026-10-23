@@ -1114,6 +1114,12 @@
       activePane.classList.add('active');
     }
 
+    if (tabId === 'composer') {
+      document.body.classList.add('in-composer');
+    } else {
+      document.body.classList.remove('in-composer');
+    }
+
     state.digitizePipelineMode = 'standard';
 
     // Smooth reset scroll on tab transition
@@ -4727,6 +4733,32 @@
       }
     },
 
+    currentPage: 1,
+    totalPages: 1,
+
+    prevPage() {
+      if (this.currentPage > 1) {
+        this.goToPage(this.currentPage - 1);
+      }
+    },
+
+    nextPage() {
+      if (this.currentPage < this.totalPages) {
+        this.goToPage(this.currentPage + 1);
+      }
+    },
+
+    goToPage(page) {
+      this.currentPage = Math.max(1, Math.min(this.totalPages, page));
+      const curEl = document.getElementById('composer-page-current');
+      if (curEl) curEl.innerText = this.currentPage;
+      const iframe = document.getElementById('composer-pdf-iframe');
+      if (iframe && iframe.src && iframe.src !== 'about:blank') {
+        const baseUrl = iframe.src.split('#')[0];
+        iframe.src = `${baseUrl}#page=${this.currentPage}&toolbar=0&navpanes=0&scrollbar=1&view=FitH`;
+      }
+    },
+
     handleEditorKey(e) {
       const editor = document.getElementById('composer-editor-input');
       if (!editor) return;
@@ -4822,10 +4854,17 @@
 
         if (res.ok && data.success && data.pdf_url) {
           this.pdfUrl = data.pdf_url;
+          this.totalPages = data.total_pages || 1;
+          this.currentPage = 1;
+          const curEl = document.getElementById('composer-page-current');
+          const totalEl = document.getElementById('composer-page-total');
+          if (curEl) curEl.innerText = this.currentPage;
+          if (totalEl) totalEl.innerText = this.totalPages;
+
           this.saveHistoryItem(data.pdf_url);
           const iframe = document.getElementById('composer-pdf-iframe');
           if (iframe) {
-            iframe.src = `${data.pdf_url}?t=${Date.now()}`;
+            iframe.src = `${data.pdf_url}?t=${Date.now()}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`;
           }
           if (statusText) statusText.innerText = `Đã cập nhật (${(data.compile_time_ms / 1000).toFixed(1)}s)`;
           if (statusBadge) {

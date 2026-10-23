@@ -120,6 +120,32 @@ select:focus, input[type="text"]:focus, input[type="number"]:focus, textarea:not
   box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
 }
 
+/* Zero-scroll single-page fit for Composer */
+body.in-composer {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
+body.in-composer #main-scroll-view {
+  overflow: hidden !important;
+  height: calc(100vh - 64px) !important;
+  max-height: calc(100vh - 64px) !important;
+}
+
+body.in-composer #main-content-wrapper {
+  padding: 8px 16px !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  box-sizing: border-box !important;
+}
+
+body.in-composer #tab-composer {
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
 /* Dark Code Editor Textarea & Scroll Layout */
 #composer-editor-pane {
   min-height: 0 !important;

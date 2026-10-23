@@ -56,6 +56,7 @@ Hàm số đồng biến trên khoảng nào?
     assert data["success"] is True
     assert data["pdf_url"].startswith("/api/v1/composer/pdf/")
     assert data["compile_time_ms"] >= 0
+    assert data["total_pages"] >= 1
 
     # Test PDF streaming endpoint
     pdf_res = client.get(data["pdf_url"])

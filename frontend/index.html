@@ -135,7 +135,7 @@
 
   <!-- ================= MAIN VIEW CONTAINER ================= -->
   <main id="main-scroll-view" class="flex-1 overflow-y-auto bg-[#f5f5f7]">
-    <div class="w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
+    <div id="main-content-wrapper" class="w-full px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
 
       <!-- ================= TAB 1: DASHBOARD ================= -->
       <section id="tab-dashboard" class="tab-pane active space-y-6">
@@ -469,6 +469,40 @@
                       </button>
                     </div>
                   </div>
+
+                  <span class="text-[#3b4760]">|</span>
+
+                  <!-- LỜI GIẢI Toggle Switch -->
+                  <div class="flex items-center space-x-1.5 cursor-pointer select-none px-2 py-0.5 rounded bg-[#272f42] hover:bg-[#343e56] transition-all" onclick="app.composer.toggleSolution()" title="Bật/Tắt chế độ hiển thị lời giải chi tiết ([dethi] <-> [loigiai])">
+                    <span class="text-[10px] font-bold text-slate-300">LỜI GIẢI</span>
+                    <div id="composer-solution-toggle" class="w-7 h-3.5 bg-blue-600 rounded-full p-0.5 transition-colors flex items-center justify-end">
+                      <div class="w-2.5 h-2.5 bg-white rounded-full shadow-xs"></div>
+                    </div>
+                  </div>
+
+                  <!-- XUẤT FILE ▾ Dropdown -->
+                  <div class="relative">
+                    <button type="button" onclick="app.composer.toggleDropdown('export')" id="btn-dropdown-export" class="px-2 py-1 bg-[#272f42] hover:bg-[#343e56] rounded text-white text-[11px] font-semibold flex items-center space-x-1 transition-all" title="Xuất tài liệu đề thi">
+                      <i data-lucide="download" class="w-3 h-3 text-slate-300"></i>
+                      <span>XUẤT FILE</span>
+                      <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
+                    </button>
+                    <!-- Export Menu -->
+                    <div id="composer-dropdown-export" class="hidden absolute top-full mt-1.5 left-0 z-50 w-56 bg-[#1e2433] border border-[#2d364d] rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs font-sans">
+                      <button type="button" onclick="app.composer.downloadPdf()" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2 text-slate-200">
+                        <i data-lucide="file-down" class="w-3.5 h-3.5 text-rose-400"></i>
+                        <span>Tải tệp PDF (Chuẩn in ấn)</span>
+                      </button>
+                      <button type="button" onclick="app.composer.downloadTex()" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2 text-slate-200">
+                        <i data-lucide="code" class="w-3.5 h-3.5 text-blue-400"></i>
+                        <span>Tải mã nguồn LaTeX (.tex)</span>
+                      </button>
+                      <button type="button" onclick="app.composer.saveToBank()" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2 text-slate-200 border-t border-[#2d364d]/60 mt-1 pt-1.5">
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>Lưu vào Ngân hàng Câu hỏi</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Right: Undo, Redo, Eraser, Copy -->
@@ -547,8 +581,8 @@
               </div>
             </div>
 
-            <!-- 2. HỘP DƯỚI: TRỢ LÝ SOẠN THẢO AI (BOX CHUYỂN XUỐNG DƯỚI THEO YÊU CẦU) -->
-            <div id="composer-ai-pane" class="h-[250px] shrink-0 bg-white rounded-xl border border-black/[0.08] shadow-xs flex flex-col overflow-hidden transition-all duration-300">
+            <!-- 2. HỘP DƯỚI: TRỢ LÝ SOẠN THẢO AI -->
+            <div id="composer-ai-pane" class="h-[210px] shrink-0 bg-white rounded-xl border border-black/[0.08] shadow-xs flex flex-col overflow-hidden transition-all duration-300">
               
               <!-- AI Header Bar -->
               <div class="px-3 py-1.5 bg-gradient-to-r from-purple-50/90 to-indigo-50/90 border-b border-purple-100 flex items-center justify-between text-xs select-none">
@@ -557,7 +591,7 @@
                     <i data-lucide="sparkles" class="w-3 h-3"></i>
                   </div>
                   <div>
-                    <span class="font-bold text-slate-900 text-[11px]">Trợ lý Soạn thảo AI (Gemini Copilot)</span>
+                    <span class="font-bold text-slate-900 text-[11px]">Trợ lý soạn thảo</span>
                     <span class="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800">
                       <span class="w-1.5 h-1.5 mr-1 rounded-full bg-emerald-500 animate-pulse"></span>
                       Sẵn sàng
@@ -572,28 +606,6 @@
                     <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5"></i>
                   </button>
                 </div>
-              </div>
-
-              <!-- Quick Prompt Pills Carousel -->
-              <div class="p-1.5 border-b border-black/[0.04] bg-slate-50/70 overflow-x-auto no-scrollbar flex space-x-1.5 text-[10px] shrink-0">
-                <button type="button" onclick="app.composer.sendPrompt('Tạo 1 câu trắc nghiệm 4 lựa chọn Phần I sử dụng gói ex_test và choice')" class="px-2 py-0.5 bg-white hover:bg-purple-50 hover:text-purple-700 rounded-full border border-black/[0.08] text-slate-700 whitespace-nowrap transition-all shadow-2xs">
-                  + ex_test (4 PA)
-                </button>
-                <button type="button" onclick="app.composer.sendPrompt('Tạo 1 câu hỏi Đúng/Sai Phần II theo QĐ 764 sử dụng choiceTF và itemchoice')" class="px-2 py-0.5 bg-white hover:bg-purple-50 hover:text-purple-700 rounded-full border border-black/[0.08] text-slate-700 whitespace-nowrap transition-all shadow-2xs">
-                  + Đúng/Sai QĐ 764
-                </button>
-                <button type="button" onclick="app.composer.sendPrompt('Tạo 1 câu hỏi Trả lời ngắn Phần III sử dụng shortans')" class="px-2 py-0.5 bg-white hover:bg-purple-50 hover:text-purple-700 rounded-full border border-black/[0.08] text-slate-700 whitespace-nowrap transition-all shadow-2xs">
-                  + Trả lời ngắn \shortans
-                </button>
-                <button type="button" onclick="app.composer.sendPrompt('Tạo 1 câu hỏi có hình vẽ nằm cạnh chữ sử dụng immini')" class="px-2 py-0.5 bg-white hover:bg-purple-50 hover:text-purple-700 rounded-full border border-black/[0.08] text-slate-700 whitespace-nowrap transition-all shadow-2xs">
-                  + Hình cạnh chữ \immini
-                </button>
-                <button type="button" onclick="app.composer.sendPrompt('Tạo bảng biến thiên hàm số sử dụng tkz-tab')" class="px-2 py-0.5 bg-white hover:bg-purple-50 hover:text-purple-700 rounded-full border border-black/[0.08] text-slate-700 whitespace-nowrap transition-all shadow-2xs">
-                  + BBT tkz-tab
-                </button>
-                <button type="button" onclick="app.composer.sendPrompt('Kiểm tra và sửa lỗi cú pháp LaTeX trong tài liệu')" class="px-2 py-0.5 bg-white hover:bg-purple-50 hover:text-purple-700 rounded-full border border-black/[0.08] text-slate-700 whitespace-nowrap transition-all shadow-2xs">
-                  + Sửa lỗi cú pháp
-                </button>
               </div>
 
               <!-- Chat Messages Stream -->
@@ -615,81 +627,42 @@
           </div>
 
           <!-- ================= CỘT PHẢI (RIGHT COLUMN): LIVE PREVIEW & BIÊN DỊCH FOOTER ================= -->
-          <div class="flex flex-col h-full bg-white rounded-xl border border-black/[0.08] shadow-xs overflow-hidden">
+          <div class="flex flex-col h-full min-h-0 bg-white rounded-xl border border-black/[0.08] shadow-xs overflow-hidden">
             
-            <!-- Right Top Toolbar (Light Mode) -->
-            <div class="border-b border-slate-200/80 px-4 py-1.5 flex items-center justify-between bg-white text-xs select-none">
-              
-              <!-- Left Tabs: ẢNH & LỊCH SỬ -->
-              <div class="flex items-center space-x-1">
-                <button type="button" id="composer-tab-btn-preview" onclick="app.composer.switchPreviewTab('preview')" class="border-b-2 border-[#7c1925] text-[#7c1925] font-bold pb-1.5 pt-1 px-3 text-xs tracking-wider transition-all">
-                  ẢNH
-                </button>
-                <button type="button" id="composer-tab-btn-history" onclick="app.composer.switchPreviewTab('history')" class="text-slate-500 hover:text-slate-800 pb-1.5 pt-1 px-3 text-xs font-semibold transition-all">
-                  LỊCH SỬ
-                </button>
-              </div>
-
-              <!-- Right Controls: Toggle LỜI GIẢI & Dropdown XUẤT FILE ▾ -->
-              <div class="flex items-center space-x-3">
-                <!-- Toggle Switch LỜI GIẢI -->
-                <div class="flex items-center space-x-2 cursor-pointer select-none" onclick="app.composer.toggleSolution()">
-                  <span class="text-[11px] font-bold text-slate-800">LỜI GIẢI</span>
-                  <div id="composer-solution-toggle" class="w-8 h-4.5 bg-[#7c1925] rounded-full p-0.5 transition-colors flex items-center justify-end">
-                    <div class="w-3.5 h-3.5 bg-white rounded-full shadow-xs"></div>
-                  </div>
-                </div>
-
-                <!-- Dropdown XUẤT FILE ▾ -->
-                <div class="relative">
-                  <button type="button" onclick="app.composer.toggleDropdown('export')" id="btn-dropdown-export" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 border border-slate-300/80 rounded-lg text-slate-700 text-xs font-semibold flex items-center space-x-1 transition-all">
-                    <span>XUẤT FILE</span>
-                    <i data-lucide="chevron-down" class="w-3 h-3 text-slate-500"></i>
-                  </button>
-                  <!-- Export Menu -->
-                  <div id="composer-dropdown-export" class="hidden absolute top-full mt-1.5 right-0 z-50 w-56 bg-white border border-slate-200 rounded-xl shadow-2xl text-slate-700 py-1.5 text-xs">
-                    <button type="button" onclick="app.composer.downloadPdf()" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center space-x-2 text-slate-800">
-                      <i data-lucide="file-down" class="w-3.5 h-3.5 text-rose-600"></i>
-                      <span>Tải tệp PDF (Chuẩn in ấn)</span>
-                    </button>
-                    <button type="button" onclick="app.composer.downloadTex()" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center space-x-2 text-slate-800">
-                      <i data-lucide="code" class="w-3.5 h-3.5 text-blue-600"></i>
-                      <span>Tải mã nguồn LaTeX (.tex)</span>
-                    </button>
-                    <button type="button" onclick="app.composer.saveToBank()" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center space-x-2 text-slate-800 border-t border-slate-100 mt-1 pt-1.5">
-                      <i data-lucide="database" class="w-3.5 h-3.5 text-emerald-600"></i>
-                      <span>Lưu vào Ngân hàng Câu hỏi</span>
-                    </button>
-                    <button type="button" onclick="app.composer.copyAll()" class="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center space-x-2 text-slate-800">
-                      <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-500"></i>
-                      <span>Sao chép toàn bộ mã</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Preview Main Canvas Area -->
-            <div id="composer-preview-canvas" class="flex-1 bg-[#f4f5f8] relative flex items-center justify-center p-2.5 overflow-hidden min-h-0">
+            <!-- Preview Main Canvas Area (Full Height, No Header) -->
+            <div id="composer-preview-canvas" class="flex-1 bg-white relative flex items-center justify-center overflow-hidden min-h-0">
               
               <!-- Tab 1 View: ẢNH / LIVE PDF PREVIEW -->
-              <div id="composer-view-preview" class="w-full h-full bg-white rounded-lg shadow-sm border border-slate-200/80 overflow-hidden relative flex flex-col">
-                <!-- Floating Zoom & Reload Controls -->
-                <div class="absolute top-2.5 right-2.5 z-20 flex items-center space-x-1 bg-white/90 backdrop-blur-xs border border-slate-200 rounded-lg shadow-2xs px-1.5 py-0.5 text-xs">
-                  <button type="button" onclick="app.composer.zoomPreview(-0.1)" class="w-5 h-5 flex items-center justify-center hover:bg-slate-100 rounded text-slate-700 font-bold" title="Thu nhỏ">-</button>
-                  <span id="composer-zoom-display" class="text-[10px] font-mono text-slate-600 px-1">100%</span>
-                  <button type="button" onclick="app.composer.zoomPreview(0.1)" class="w-5 h-5 flex items-center justify-center hover:bg-slate-100 rounded text-slate-700 font-bold" title="Phóng to">+</button>
-                  <button type="button" onclick="app.composer.resetZoom()" class="px-1.5 py-0.5 hover:bg-slate-100 rounded text-[10px] text-slate-600 font-medium" title="Về 100%">1:1</button>
-                  <span class="text-slate-300">|</span>
-                  <button type="button" onclick="app.composer.compile(true)" class="p-1 hover:bg-slate-100 rounded text-slate-600" title="Biên dịch lại">
-                    <i data-lucide="rotate-cw" class="w-3 h-3"></i>
+              <div id="composer-view-preview" class="w-full h-full bg-white overflow-hidden relative flex flex-col">
+                <!-- Floating Controls: Page Indicator (1 / 1) with Prev/Next, Zoom, Reload -->
+                <div class="absolute top-2.5 right-2.5 z-20 flex items-center space-x-1.5 bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-white rounded-lg shadow-lg px-2.5 py-1 text-xs select-none">
+                  <!-- Page indicator: Trang X / Y -->
+                  <div class="flex items-center space-x-1 font-mono text-[11px] text-slate-200 pr-1.5 border-r border-slate-700">
+                    <button type="button" onclick="app.composer.prevPage()" class="p-0.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white transition-all cursor-pointer" title="Trang trước">
+                      <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <span class="font-bold text-white tracking-wide">Trang <span id="composer-page-current">1</span> / <span id="composer-page-total">1</span></span>
+                    <button type="button" onclick="app.composer.nextPage()" class="p-0.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white transition-all cursor-pointer" title="Trang sau">
+                      <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                  <!-- Zoom Controls -->
+                  <div class="flex items-center space-x-1 text-[11px]">
+                    <button type="button" onclick="app.composer.zoomPreview(-0.1)" class="w-5 h-5 flex items-center justify-center hover:bg-slate-700 rounded font-bold cursor-pointer" title="Thu nhỏ">-</button>
+                    <span id="composer-zoom-display" class="font-mono text-slate-300 px-0.5 text-[10px]">100%</span>
+                    <button type="button" onclick="app.composer.zoomPreview(0.1)" class="w-5 h-5 flex items-center justify-center hover:bg-slate-700 rounded font-bold cursor-pointer" title="Phóng to">+</button>
+                    <button type="button" onclick="app.composer.resetZoom()" class="px-1 py-0.5 hover:bg-slate-700 rounded text-[10px] text-slate-300 font-medium cursor-pointer" title="Về 100%">1:1</button>
+                  </div>
+                  <span class="text-slate-600">|</span>
+                  <!-- Reload -->
+                  <button type="button" onclick="app.composer.compile(true)" class="p-0.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white transition-all cursor-pointer" title="Biên dịch lại">
+                    <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
                   </button>
                 </div>
 
                 <!-- Loading Spinner Overlay -->
                 <div id="composer-compiling-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-xs flex flex-col items-center justify-center text-slate-800 space-y-2 z-30 hidden">
-                  <i data-lucide="loader-2" class="w-7 h-7 animate-spin text-[#7c1925]"></i>
+                  <i data-lucide="loader-2" class="w-7 h-7 animate-spin text-[#0071e3]"></i>
                   <span class="text-xs font-bold text-slate-700">Đang biên dịch với Tectonic XeTeX Engine...</span>
                 </div>
 
@@ -709,29 +682,15 @@
                 </div>
               </div>
 
-              <!-- Tab 2 View: LỊCH SỬ (HISTORY) -->
-              <div id="composer-view-history" class="w-full h-full bg-white rounded-lg shadow-sm border border-slate-200/80 p-4 overflow-y-auto hidden">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
-                  <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-1.5">
-                    <i data-lucide="history" class="w-3.5 h-3.5 text-[#7c1925]"></i>
-                    <span>Lịch sử các lần biên dịch</span>
-                  </h3>
-                  <button type="button" onclick="app.composer.clearHistory()" class="text-[10px] text-slate-400 hover:text-rose-600">
-                    Xóa lịch sử
-                  </button>
-                </div>
-                <div id="composer-history-list" class="space-y-2 text-xs">
-                  <!-- History items populated via JS -->
-                </div>
-              </div>
-
             </div>
 
-            <!-- Bottom Prominent Blue BIÊN DỊCH Button Bar -->
-            <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="w-full py-3 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.99] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-md select-none cursor-pointer flex items-center justify-center space-x-2 shrink-0" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
-              <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
-              <span id="composer-compile-btn-text">BIÊN DỊCH</span>
-            </button>
+            <!-- Bottom Distinct Standalone Blue BIÊN DỊCH Button Container -->
+            <div class="p-2.5 bg-white border-t border-slate-200/80 shrink-0">
+              <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="w-full py-2.5 px-6 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.98] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-md rounded-xl cursor-pointer flex items-center justify-center space-x-2 select-none" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
+                <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                <span id="composer-compile-btn-text">BIÊN DỊCH</span>
+              </button>
+            </div>
 
           </div>
 

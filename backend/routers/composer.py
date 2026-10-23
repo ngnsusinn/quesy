@@ -45,6 +45,7 @@ class CompileResponse(BaseModel):
     compile_time_ms: int
     error: Optional[str] = None
     title: str
+    total_pages: int = Field(1, description="Total number of pages in compiled PDF")
 
 class ChatMessage(BaseModel):
     role: str = Field(..., description="'user' or 'assistant'")
@@ -90,6 +91,15 @@ def get_templates():
     }
 
 
+def count_pdf_pages(pdf_path: Path) -> int:
+    try:
+        import pypdf
+        reader = pypdf.PdfReader(str(pdf_path))
+        return max(1, len(reader.pages))
+    except Exception:
+        return 1
+
+
 @router.post("/compile", response_model=CompileResponse, summary="Compile LaTeX code to PDF")
 def compile_latex_endpoint(req: CompileRequest):
     """Compiles LaTeX source code into vector-crisp PDF with live preview."""
@@ -108,6 +118,7 @@ def compile_latex_endpoint(req: CompileRequest):
             compile_time_ms=12,
             error=None,
             title=req.title,
+            total_pages=count_pdf_pages(out_pdf),
         )
 
     success, err_msg, elapsed_ms = compile_latex_to_pdf(clean_code, out_pdf, title=req.title)
@@ -119,6 +130,7 @@ def compile_latex_endpoint(req: CompileRequest):
             compile_time_ms=elapsed_ms,
             error=err_msg,
             title=req.title,
+            total_pages=1,
         )
 
     return CompileResponse(
@@ -127,6 +139,7 @@ def compile_latex_endpoint(req: CompileRequest):
         compile_time_ms=elapsed_ms,
         error=None,
         title=req.title,
+        total_pages=count_pdf_pages(out_pdf),
     )
 
 
