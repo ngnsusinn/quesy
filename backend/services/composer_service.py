@@ -62,11 +62,6 @@ TEMPLATES: Dict[str, Dict[str, str]] = {
 \immini{
   Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.
   Hàm số đã cho đồng biến trên khoảng nào dưới đây?
-  \choice
-  {\True $(-\infty; -1)$}
-  {$(-1; 2)$}
-  {$(0; 2)$}
-  {$(-\infty; 2)$}
 }{
   \begin{tikzpicture}[scale=0.55, >=stealth]
     \draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};
@@ -79,6 +74,11 @@ TEMPLATES: Dict[str, Dict[str, str]] = {
     \fill (2, -2) circle (1.5pt);
   \end{tikzpicture}
 }
+\choice
+{\True $(-\infty; -1)$}
+{$(-1; 2)$}
+{$(0; 2)$}
+{$(-\infty; 2)$}
 \begin{loigiai}
 Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\infty; -1)$ và $(2; +\infty)$.
 \end{loigiai}
@@ -681,6 +681,32 @@ def compile_latex_to_pdf_chromium(
         return False, str(e), 0
 
 
+def fix_immini_choice_nesting(latex_text: str) -> str:
+    """If \\choice{...}{...}{...}{...} is accidentally placed inside \\immini{...}{...},
+    extract it and place \\choice outside after \\immini to prevent TeX box errors."""
+    if r"\immini" not in latex_text or r"\choice" not in latex_text:
+        return latex_text
+
+    choice_pat = r'(\\choice(?:\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}){4})'
+    m = re.search(r'\\immini\s*\{([\s\S]*?' + choice_pat + r'[\s\S]*?)\}\s*\{', latex_text)
+    if m:
+        inner_first = m.group(1)
+        choice_block = m.group(2)
+        clean_first = inner_first.replace(choice_block, '').strip()
+        start_second = m.end()
+        depth = 1
+        i = start_second
+        while i < len(latex_text) and depth > 0:
+            if latex_text[i] == '{': depth += 1
+            elif latex_text[i] == '}': depth -= 1
+            i += 1
+        if depth == 0:
+            second_arg = latex_text[start_second:i-1]
+            replacement = f"\\immini{{\n  {clean_first}\n}}{{\n{second_arg}\n}}\n{choice_block}"
+            latex_text = latex_text[:m.start()] + replacement + latex_text[i:]
+    return latex_text
+
+
 def compile_with_remote_tectonic_api(
     latex_source: str,
     output_pdf: Path,
@@ -706,6 +732,25 @@ def compile_with_remote_tectonic_api(
     try:
         # Modernize vietnam package to fontspec for XeTeX Tectonic
         sanitized_latex = re.sub(r'\\usepackage(\[[^\]]*\])?\{vietnam\}', r'\\usepackage{fontspec}', latex_source)
+        if "ex_test" in sanitized_latex or "immini" in sanitized_latex:
+            if "tcolorbox" not in sanitized_latex:
+                sanitized_latex = re.sub(
+                    r'(\\usepackage(\[[^\]]*\])?\{ex_test\})',
+                    r'\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\1',
+                    sanitized_latex
+                )
+            elif "xparse" not in sanitized_latex:
+                sanitized_latex = re.sub(
+                    r'(\\tcbuselibrary\{[^}]*\})',
+                    r'\1\n\\tcbuselibrary{xparse}',
+                    sanitized_latex
+                )
+
+        sanitized_latex = fix_immini_choice_nesting(sanitized_latex)
+
+        logger.info("=== SANITIZED LATEX SENT TO TECTONIC (FIRST 45 LINES) ===")
+        for i, l in enumerate(sanitized_latex.splitlines()[:45], 1):
+            logger.info(f"{i}: {l}")
 
         payload = json.dumps({
             "latex_code": sanitized_latex,

@@ -4332,17 +4332,31 @@
       if (!editor) return;
 
       let val = this.currentLatex;
+      let replaced = false;
+
       if (val.includes(oldText)) {
         val = val.replace(oldText, newText);
+        replaced = true;
       } else {
         const trimmedOld = oldText.trim();
         const trimmedNew = newText.trim();
         if (val.includes(trimmedOld)) {
           val = val.replace(trimmedOld, trimmedNew);
+          replaced = true;
         } else {
-          showToast('Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại.', 'warning');
-          return;
+          const normVal = val.replace(/\r\n/g, '\n');
+          const normOld = trimmedOld.replace(/\r\n/g, '\n');
+          const normNew = trimmedNew.replace(/\r\n/g, '\n');
+          if (normVal.includes(normOld)) {
+            val = normVal.replace(normOld, normNew);
+            replaced = true;
+          }
         }
+      }
+
+      if (!replaced) {
+        showToast('Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại.', 'warning');
+        return;
       }
 
       editor.value = val;
@@ -4394,7 +4408,7 @@
             </div>
           `;
         } else {
-          const formattedHtml = this.formatAssistantContent(msg.content);
+          const formattedHtml = this.formatAssistantContent(msg.content, msg.diff);
           return `
             <div class="flex items-start space-x-2">
               <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-2xs">
@@ -4416,6 +4430,40 @@
       if (!text) return '';
       let html = text;
 
+      // If diff payload is provided and text doesn't already have an inline diff block
+      if (diff && diff.old_text && !html.includes('```diff')) {
+        const b64Old = btoa(unescape(encodeURIComponent(diff.old_text)));
+        const b64New = btoa(unescape(encodeURIComponent(diff.new_text || '')));
+        const diffBlock = `
+          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
+            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
+              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý thay đổi trực tiếp (${escapeHtml(diff.description || 'Chỉnh sửa dòng')})</span>
+              <div class="flex items-center space-x-1.5">
+                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
+                  <span>✔ Đồng ý</span>
+                </button>
+                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2 py-0.5 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
+                  <span>✖ Từ chối</span>
+                </button>
+              </div>
+            </div>
+            <div class="diff-body text-[11px] leading-relaxed">
+              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
+                <span class="text-rose-400 font-bold select-none">-</span>
+                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(diff.old_text)}</span>
+              </div>
+              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
+                <span class="text-emerald-400 font-bold select-none">+</span>
+                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(diff.new_text || '')}</span>
+              </div>
+            </div>
+          </div>
+        `;
+        // Strip out the redundant full-file latex snippet block
+        html = html.replace(/```(?:latex|tex)?\s*[\s\S]*?```/g, '');
+        html += diffBlock;
+      }
+
       // 1. Interactive Diff Blocks (```diff ... ```)
       html = html.replace(/```diff\s*([\s\S]*?)```/g, (match, diffContent) => {
         const lines = diffContent.trim().split('\n');
@@ -4427,9 +4475,9 @@
         return `
           <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
             <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
-              <span class="font-sans font-bold text-emerald-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
+              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
               <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
+                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
                   <span>✔ Đồng ý</span>
                 </button>
                 <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2 py-0.5 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">

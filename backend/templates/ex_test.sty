@@ -18,7 +18,7 @@
 \RequirePackage{xstring,pdftexcmds}
 \RequirePackage{xpatch,cntformats,xtemplate,environ}
 \makeatletter%
-\@ifpackageloaded{tcolorbox}{}{\RequirePackage{tcolorbox}}\tcbuselibrary{skins,breakable}
+\@ifpackageloaded{tcolorbox}{}{\RequirePackage{tcolorbox}}\tcbuselibrary{skins,breakable,xparse}
 \AtEndPreamble{%
 	\@ifpackageloaded{enumerate}{}{\@ifpackageloaded{enumitem}{}
 		{\RequirePackage[shortlabels]{enumitem}}}
