@@ -41,7 +41,9 @@
           │                                  ▼
           ├───────────────► (UC-09: Xuất bản Gói Đề thi Word 2 cột)
           │
-          └───────────────► (UC-10: Phân tích Khảo thí Hậu kiểm: p, D)
+          ├───────────────► (UC-10: Phân tích Khảo thí Hậu kiểm: p, D)
+          │
+          └───────────────► (UC-11: Soạn Đề Với Trợ Lý AI Copilot & Duyệt Diff Trực Tiếp)
 ```
 
 ---
@@ -226,3 +228,33 @@
    - Thống kê tỷ lệ chọn các phương án nhiễu A, B, C, D.
 3. Hệ thống cập nhật các chỉ số này vào bảng `question_metrics` trong ngân hàng câu hỏi.
 4. Hệ thống gắn cờ cảnh báo đối với các câu hỏi có $D < 0.2$ để Hội đồng bộ môn đánh giá và loại bỏ khỏi ngân hàng.
+
+---
+
+### UC-11: SOẠN ĐỀ VỚI TRỢ LÝ AI COPILOT & DUYỆT DIFF TRỰC TIẾP
+- **Mã Use Case:** `UC-11`
+- **Tên Use Case:** Soạn thảo đề thi với Trợ lý AI Copilot, Thanh Compact Prompt Bar và Duyệt Diff trực tiếp trên Editor
+- **Tác nhân chính:** Giáo viên Bộ môn
+- **Tác nhân hỗ trợ:** AI Copilot Service (`/api/v1/composer/chat`), Tectonic Compiler Engine
+- **Điều kiện tiên quyết:** Người dùng truy cập phân hệ Soạn đề (`/composer`).
+
+#### Luồng sự kiện chính (Main Success Scenario):
+1. Người dùng soạn thảo mã LaTeX trên trình soạn thảo Dark mode (`#141824`).
+2. Khi cần hỗ trợ chỉnh sửa (ví dụ: đổi font 11pt sang 12pt, sửa đáp án, vẽ bảng biến thiên, kiểm tra lỗi cú pháp):
+   - Người dùng nhấp chuột vào Thanh Nhập Prompt AI thu gọn ở chân editor (`#composer-compact-bar`).
+   - Ô nhập nhận focus bình thường (`cursor-text`), **tuyệt đối không tự động mở full popup**, cho phép người dùng gõ hoặc dán nội dung yêu cầu mà không bị gián đoạn.
+3. Người dùng nhấn phím **`Enter`** (hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**):
+   - Hệ thống tự động kích hoạt chuyển trạng thái: mở bung full Popup Trợ lý Soạn thảo (`#composer-ai-popup`), ẩn thanh compact bar, hiển thị hiệu ứng xoay loading và gửi yêu cầu đến `POST /api/v1/composer/chat`.
+4. Phía máy chủ AI Copilot phân tích yêu cầu cùng tài liệu hiện tại, bóc tách đề xuất sửa đổi thành cấu trúc `DiffSuggestion(action, old_text, new_text, description)`.
+5. Phía trình duyệt tiếp nhận phản hồi:
+   - Thuật toán định vị tìm chính xác dòng mã nguồn của đoạn `old_text` trong editor, tự động cuộn khung nhìn textarea đến đúng dòng đó và bôi đen vùng chọn.
+   - Banner Gợi ý Sửa đổi (Inline Diff Banner) hiển thị nổi bật ngay trên đầu vùng soạn thảo với huy hiệu số dòng `GỢI Ý TẠI DÒNG [lineNo]`, khối xóa `- old_text` (nền đỏ) và khối thêm `+ new_text` (nền xanh).
+6. Người dùng xem xét đề xuất sửa đổi và có 2 lựa chọn thao tác trực tiếp:
+   - **Kịch bản 6a - Người dùng nhấn [Đồng ý]:**
+     1. Hệ thống thực thi thay thế chính xác dòng cũ bằng dòng mới trong bộ nhớ đệm `currentLatex` và textarea.
+     2. Hệ thống tự động kích hoạt biên dịch tức thì `compile(true)` để làm mới tệp PDF Live Preview ở cột đối diện.
+     3. Ẩn banner diff và hiển thị thông báo toast thành công: *"Đã áp dụng thay đổi vào mã nguồn!"*.
+   - **Kịch bản 6b - Người dùng nhấn [Từ chối]:**
+     1. Hệ thống ẩn banner diff, hủy bỏ vùng bôi đen, đưa con trỏ về trạng thái bình thường.
+     2. Toàn bộ mã nguồn tài liệu được giữ nguyên vẹn 100% không bị thay đổi.
+7. Người dùng có thể tiếp tục trò chuyện hoặc tái áp dụng đề xuất từ thẻ Diff Card lưu trong lịch sử chat bất kỳ lúc nào.

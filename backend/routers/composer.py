@@ -11,6 +11,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import httpx
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -160,24 +162,110 @@ def get_compiled_pdf(doc_id: str):
     )
 
 
+def _clean_diff_description(text: str) -> Optional[str]:
+    """Extract a concise description line from text preceding a diff/replacement block."""
+    if not text:
+        return None
+    lines = [l.strip() for l in text.strip().splitlines() if l.strip()]
+    if not lines:
+        return None
+    last = lines[-1]
+    last = re.sub(r'^(?:#+|\*|-|\d+\.)\s*', '', last)
+    last = re.sub(r'[:：]\s*$', '', last)
+    last = re.sub(r'[*_`]', '', last).strip()
+    if last and len(last) <= 120 and not last.startswith("```"):
+        return last
+    return None
+
+
+def find_in_latex(needle: str, current_latex: str) -> Optional[str]:
+    """Find the exact substring or best matching line slice in current_latex."""
+    if not needle or not current_latex:
+        return None
+    if needle in current_latex:
+        return needle
+    stripped = needle.strip()
+    if stripped and stripped in current_latex:
+        return stripped
+
+    # CRLF normalize
+    crlf = chr(13) + chr(10)
+    norm_cur = current_latex.replace(crlf, chr(10))
+    norm_needle = stripped.replace(crlf, chr(10))
+    if norm_needle in norm_cur:
+        cur_lines = current_latex.splitlines()
+        needle_lines = [l.strip() for l in norm_needle.splitlines() if l.strip()]
+        if needle_lines:
+            for i in range(len(cur_lines) - len(needle_lines) + 1):
+                window = [cur_lines[i + k].strip() for k in range(len(needle_lines))]
+                if window == needle_lines:
+                    return "\n".join(cur_lines[i : i + len(needle_lines)])
+
+    needle_clean = stripped.strip()
+    for line in current_latex.splitlines():
+        if needle_clean and needle_clean in line:
+            return line
+        if line.strip() and needle_clean and line.strip() == needle_clean:
+            return line
+
+    return None
+
+
+def find_best_matching_block(snippet: str, document: str) -> Optional[str]:
+    """Locate the closest matching block in the document for snippet replacement."""
+    clean_snippet = snippet.strip()
+    if not clean_snippet or clean_snippet.startswith(r"\documentclass") or len(clean_snippet) < 8:
+        return None
+
+    doc_lines = document.splitlines()
+    snippet_lines = clean_snippet.splitlines()
+    m = len(snippet_lines)
+    best_ratio = 0.0
+    best_slice = None
+
+    for w in range(max(1, m - 3), min(len(doc_lines) + 1, m + 4)):
+        for i in range(len(doc_lines) - w + 1):
+            window_text = "\n".join(doc_lines[i : i + w]).strip()
+            if not window_text:
+                continue
+            ratio = difflib.SequenceMatcher(None, clean_snippet, window_text).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_slice = "\n".join(doc_lines[i : i + w])
+
+    if best_ratio >= 0.52 and best_slice and best_slice != clean_snippet:
+        return best_slice
+    return None
+
+
 def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_message: str = "") -> Optional[DiffSuggestion]:
-    """Helper to detect unified diff blocks, OLD/NEW blocks, or diffs in code blocks from AI responses."""
+    """Helper to detect unified diff blocks, search/replace blocks, OLD/NEW blocks,
+    choice modifications, font size changes, or string replacement proposals from AI responses.
+    """
     if not current_latex:
         return None
 
-    user_lower = user_message.lower()
+    combined_text = f"{user_message}\n{reply_text}"
+    user_lower = (user_message or "").lower()
+    combined_lower = combined_text.lower()
 
     # 1. Targeted heuristic for font size changes (e.g. 11pt -> 12pt, font 12, cỡ chữ 11pt)
-    if any(k in user_lower for k in ("font", "cỡ chữ", "size")):
+    if any(k in combined_lower for k in ("font", "cỡ chữ", "size")):
         pts = re.findall(r'\b(10|11|12|13|14)(?:pt)?\b', user_lower)
+        if not pts:
+            pts = re.findall(r'\b(10|11|12|13|14)(?:pt)?\b', reply_text.lower())
         if pts:
             target_pt = f"{pts[-1]}pt"
             for line in current_latex.splitlines():
                 if "documentclass" in line:
                     if re.search(r'\b\d+pt\b', line):
                         new_line = re.sub(r'\b\d+pt\b', target_pt, line)
+                    elif r'\documentclass[' in line:
+                        new_line = line.replace(r'\documentclass[', f'\\documentclass[{target_pt},')
+                    elif r'\documentclass{' in line:
+                        new_line = line.replace(r'\documentclass{', f'\\documentclass[{target_pt}]{{')
                     else:
-                        new_line = re.sub(r'\\documentclass\[', f'\\documentclass[{target_pt},', line)
+                        new_line = line
                     if new_line != line:
                         return DiffSuggestion(
                             action="replace",
@@ -186,31 +274,120 @@ def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_m
                             description=f"Đổi cỡ chữ toàn tài liệu sang {target_pt}"
                         )
 
-    # 2. Explicit ```diff ... ``` blocks
-    m_diff = re.search(r'```diff\s*\n\s*-\s*([^\n]+(?:\n\s*-[^\n]+)*)\s*\n\s*\+\s*([^\n]+(?:\n\s*\+[^\n]+)*)\s*\n```', reply_text)
+    # 2. Targeted heuristic for choice modifications (đổi đáp án A sang B, sửa đáp án thành C, etc.)
+    m_choice_chg = re.search(
+        r'(?:đổi|sửa|chuyển)\s+(?:đáp án|lựa chọn)(?:\s+đúng)?\s+(?:từ\s+[ABCD]\s+sang\s+|thành\s+|sang\s+)([ABCD])\b',
+        combined_lower,
+        re.IGNORECASE
+    )
+    if m_choice_chg:
+        target_choice = m_choice_chg.group(1).upper()
+        target_idx = {"A": 0, "B": 1, "C": 2, "D": 3}.get(target_choice)
+        if target_idx is not None:
+            m_ch = re.search(r'\\choice\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}', current_latex)
+            if m_ch:
+                old_full = m_ch.group(0)
+                opts = [m_ch.group(1), m_ch.group(2), m_ch.group(3), m_ch.group(4)]
+                cleaned_opts = [re.sub(r'\\True\s*', '', opt).strip() for opt in opts]
+                cleaned_opts[target_idx] = "\\True " + cleaned_opts[target_idx]
+                new_full = f"\\choice{{{cleaned_opts[0]}}}{{{cleaned_opts[1]}}}{{{cleaned_opts[2]}}}{{{cleaned_opts[3]}}}"
+                if old_full != new_full:
+                    return DiffSuggestion(
+                        action="replace",
+                        old_text=old_full,
+                        new_text=new_full,
+                        description=f"Đổi đáp án đúng sang {target_choice}"
+                    )
+
+    # 3. Explicit ```diff ... ``` blocks (single-line or multi-line)
+    m_diff = re.search(r'```diff\s*\n?([\s\S]*?)```', reply_text)
     if m_diff:
-        old_lines = [re.sub(r'^\s*-\s*', '', l) for l in m_diff.group(1).split('\n')]
-        new_lines = [re.sub(r'^\s*\+\s*', '', l) for l in m_diff.group(2).split('\n')]
-        old_text = '\n'.join(old_lines)
-        new_text = '\n'.join(new_lines)
-        if old_text and old_text in current_latex and old_text != new_text:
-            return DiffSuggestion(action="replace", old_text=old_text, new_text=new_text, description="Thay đổi theo gợi ý AI")
+        diff_content = m_diff.group(1)
+        old_lines = []
+        new_lines = []
+        for l in diff_content.splitlines():
+            if l.startswith('---') or l.startswith('+++'):
+                continue
+            if re.match(r'^\s*-\s*', l):
+                old_lines.append(re.sub(r'^\s*-\s*', '', l))
+            elif re.match(r'^\s*\+\s*', l):
+                new_lines.append(re.sub(r'^\s*\+\s*', '', l))
+        old_raw = '\n'.join(old_lines).strip()
+        new_raw = '\n'.join(new_lines).strip()
+        matched_old = find_in_latex(old_raw, current_latex)
+        if matched_old and matched_old != new_raw:
+            desc = _clean_diff_description(reply_text[:m_diff.start()]) or "Thay đổi theo gợi ý AI"
+            return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
 
-    # 3. Explicit OLD: / NEW: blocks
-    m_replace = re.search(r'OLD:\s*\n([\s\S]*?)\nNEW:\s*\n([\s\S]*?)(?:\n|$)', reply_text)
-    if m_replace:
-        old_text = m_replace.group(1).strip()
-        new_text = m_replace.group(2).strip()
-        if old_text and old_text in current_latex and old_text != new_text:
-            return DiffSuggestion(action="replace", old_text=old_text, new_text=new_text, description="Thay đổi theo gợi ý AI")
+    # 4. Explicit SEARCH / REPLACE blocks (Aider / standard AI coding format)
+    m_sr = re.search(r'<{5,9}\s*SEARCH\s*\n([\s\S]*?)\n={5,9}\s*\n([\s\S]*?)\n>{5,9}\s*REPLACE', reply_text)
+    if m_sr:
+        old_raw = m_sr.group(1).strip()
+        new_raw = m_sr.group(2).strip()
+        matched_old = find_in_latex(old_raw, current_latex)
+        if matched_old and matched_old != new_raw:
+            desc = _clean_diff_description(reply_text[:m_sr.start()]) or "Thay đổi theo gợi ý AI"
+            return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
 
-    # 4. Detect changes if AI returned code block (```latex or ```tex or ```)
+    # 5. Explicit OLD / NEW or CŨ / MỚI blocks
+    patterns_old_new = [
+        r'(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|\n[A-Z]|\n```|\Z)',
+        r'(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*[`"“\']?([^\n`"”\']+)[`"”\']?\s*\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*[`"“\']?([^\n`"”\']+)[`"”\']?',
+        r'(?:- Dòng cũ|- Đoạn cũ|Cũ):\s*[`"“]?([^\n`"”]+)[`"”]?\s*\n(?:- Dòng mới|- Đoạn mới|Mới):\s*[`"“]?([^\\n`"”]+)[`"”]?',
+    ]
+    for pat in patterns_old_new:
+        m_replace = re.search(pat, reply_text, re.IGNORECASE)
+        if m_replace:
+            old_raw = m_replace.group(1).strip()
+            new_raw = m_replace.group(2).strip()
+            matched_old = find_in_latex(old_raw, current_latex)
+            if matched_old and matched_old != new_raw:
+                desc = _clean_diff_description(reply_text[:m_replace.start()]) or "Thay đổi theo gợi ý AI"
+                return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
+
+    # 6. Block replace with code fences: Thay thế: ```latex ... ``` bằng: ```latex ... ```
+    block_replace = re.search(
+        r'(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n([\s\S]*?)\n```\s*\n*(?:thành|bằng|sang|mới|sau):\s*\n*```(?:latex|tex)?\n([\s\S]*?)\n```',
+        reply_text,
+        re.IGNORECASE
+    )
+    if block_replace:
+        old_raw = block_replace.group(1).strip()
+        new_raw = block_replace.group(2).strip()
+        matched_old = find_in_latex(old_raw, current_latex)
+        if matched_old and matched_old != new_raw:
+            desc = _clean_diff_description(reply_text[:block_replace.start()]) or "Thay đổi theo gợi ý AI"
+            return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
+
+    # 7. Inline replacement proposal: Thay thế `old` bằng/thành/sang `new`
+    m_phrase = re.search(
+        r'(?:thay thế|thay|đổi|sửa|chuyển|replace)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]\s+(?:bằng|thành|sang|với|by|with)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]',
+        reply_text,
+        re.IGNORECASE
+    )
+    if m_phrase:
+        old_raw = m_phrase.group(1).strip()
+        new_raw = m_phrase.group(2).strip()
+        matched_old = find_in_latex(old_raw, current_latex)
+        if matched_old and matched_old != new_raw:
+            desc = _clean_diff_description(reply_text[:m_phrase.start()]) or f"Thay thế '{old_raw}' thành '{new_raw}'"
+            return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
+
+    # 8. Detect changes if AI returned code block (```latex or ```tex or ```)
     m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
     if m_code:
+        if any(k in user_lower for k in ("tạo", "thêm", "chèn", "sinh", "viết", "generate", "create", "insert")):
+            return None
+
         code = m_code.group(1).strip()
+        if "\\documentclass" not in code and len(code) >= 10:
+            matched_old = find_best_matching_block(code, current_latex)
+            if matched_old and matched_old != code:
+                desc = _clean_diff_description(reply_text[:m_code.start()]) or "Thay đổi theo gợi ý AI"
+                return DiffSuggestion(action="replace", old_text=matched_old, new_text=code, description=desc)
+
         cur_lines = current_latex.strip().splitlines()
         code_lines = code.splitlines()
-
         clean_cur = [l for l in cur_lines if l.strip()]
         clean_code = [l for l in code_lines if l.strip()]
 
@@ -220,12 +397,17 @@ def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_m
             _, i1, i2, j1, j2 = replace_ops[0]
             old_slice = '\n'.join(clean_cur[i1:i2])
             new_slice = '\n'.join(clean_code[j1:j2])
-            if old_slice in current_latex and old_slice != new_slice:
-                return DiffSuggestion(action="replace", old_text=old_slice, new_text=new_slice, description="Thay đổi theo gợi ý AI")
+            matched_old = find_in_latex(old_slice, current_latex)
+            if matched_old and matched_old != new_slice:
+                desc = _clean_diff_description(reply_text[:m_code.start()]) or "Thay đổi theo gợi ý AI"
+                return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_slice, description=desc)
         elif len(code_lines) <= 4:
             matches = difflib.get_close_matches(code, cur_lines, n=1, cutoff=0.45)
             if matches and matches[0] != code:
-                return DiffSuggestion(action="replace", old_text=matches[0], new_text=code, description="Thay đổi theo gợi ý AI")
+                matched_old = find_in_latex(matches[0], current_latex)
+                if matched_old:
+                    desc = _clean_diff_description(reply_text[:m_code.start()]) or "Thay đổi theo gợi ý AI"
+                    return DiffSuggestion(action="replace", old_text=matched_old, new_text=code, description=desc)
 
     return None
 
@@ -272,7 +454,6 @@ def composer_chat_endpoint(req: ChatRequest):
     try:
         if default_ai_provider_service and default_ai_provider_service.api_key:
             # We can use the configured provider
-            import httpx
             provider = default_ai_provider_service.provider
             model = default_ai_provider_service.model
             base_url = default_ai_provider_service.base_url
@@ -295,7 +476,11 @@ def composer_chat_endpoint(req: ChatRequest):
                         data = resp.json()
                         reply_text = data["choices"][0]["message"]["content"]
                         diff = extract_diff_from_text(reply_text, req.current_latex, user_message=req.message)
-                        return ChatResponse(reply=reply_text, diff=diff)
+                        suggested_latex = None
+                        m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
+                        if m_code and not diff:
+                            suggested_latex = m_code.group(1).strip()
+                        return ChatResponse(reply=reply_text, diff=diff, suggested_latex=suggested_latex)
 
     except Exception as e:
         logger.warning(f"AI Provider call failed: {e}. Falling back to rule-based assistant.")
@@ -305,6 +490,29 @@ def composer_chat_endpoint(req: ChatRequest):
 
     # Targeted edits (diff replacements)
     cur_latex = req.current_latex or ""
+
+    # 1. Check if user prompt requests font / font size changes
+    font_diff = extract_diff_from_text("", cur_latex, user_message=req.message)
+    if font_diff:
+        reply = (
+            f"Tôi đề xuất {font_diff.description.lower()} tại dòng khai báo `\\documentclass`:\n\n"
+            f"```diff\n- {font_diff.old_text}\n+ {font_diff.new_text}\n```\n\n"
+            "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này."
+        )
+        return ChatResponse(reply=reply, diff=font_diff)
+
+    # 2. Check if user prompt contains inline string replacement request
+    if any(k in user_msg_lower for k in ("thay thế", "thay", "replace", "sửa", "đổi")) and not any(k in user_msg_lower for k in ("tạo", "thêm", "chèn", "sinh", "viết")):
+        phrase_diff = extract_diff_from_text(req.message, cur_latex, user_message=req.message)
+        if phrase_diff:
+            reply = (
+                f"Tôi đề xuất {phrase_diff.description.lower()}:\n\n"
+                f"```diff\n- {phrase_diff.old_text}\n+ {phrase_diff.new_text}\n```\n\n"
+                "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này."
+            )
+            return ChatResponse(reply=reply, diff=phrase_diff)
+
+    # 3. Check legacy font patterns
     if any(k in user_msg_lower for k in ("11 sang 12", "cỡ chữ 12", "font 12", "11pt sang 12pt", "11 sang 12pt")):
         for line in cur_latex.split('\n'):
             if "documentclass" in line and "11pt" in line:

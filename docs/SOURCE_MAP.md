@@ -236,16 +236,49 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 ## 5. BẢN ĐỒ CÁC SUBSYSTEM & PROCESSING PIPELINES
 
-### 5.1. Phân hệ Soạn đề LaTeX & Biên dịch Hybrid (Composer Subsystem)
+### 5.1. Phân hệ Soạn đề LaTeX, AI Copilot & Biên dịch Hybrid (Composer Subsystem)
+
+#### 5.1.1. Luồng Tương tác Trợ lý AI: Compact Prompt Bar & Inline Diff Suggestion
 ```
-[User gõ LaTeX / Chat AI] 
+[GIÁO VIÊN SOẠN THẢO TRÊN LATEX EDITOR]
        │
-       ├──> AI Chat -> Trả về DiffSuggestion (old_text -> new_text)
-       │         └──> Editor bôi đen dòng cũ -> Banner Duyệt Diff -> [Đồng ý] -> Thay thế đúng 1 dòng
+       ▼
+[Compact Floating AI Prompt Bar ở chân editor (#composer-ai-compact-bar)]
+  - Click vào thanh -> Chỉ focus ô nhập, giữ nguyên text cursor, KHÔNG mở popup
+  - Giáo viên gõ/dán prompt tùy ý
        │
-       └──> Debounce 800ms -> Gửi POST /api/v1/composer/compile
+       ├──> Nhấn ENTER hoặc click Nút Gửi (Icon mũi tên tròn arrow-up)
+       │         │
+       │         ▼
+       │    [KÍCH HOẠT MỞ RỘNG GIAO DIỆN FULL TRỢ LÝ SOẠN THẢO]
+       │    - Mở bung bottom sheet popup (#composer-ai-popup, height 56% / 78% / 92%)
+       │    - Ẩn thanh compact bar, đồng bộ text vào ô chat chính
+       │    - Hiển thị hiệu ứng loading (composer-typing-indicator)
+       │         │
+       │         ▼
+       │    [GỬI REQUEST POST /api/v1/composer/chat]
+       │    - Payload: { message, current_latex, history }
+       │         │
+       │         ▼
+       │    [FASTAPI BACKEND: composer.py & composer_service.py]
+       │    - Phân tích ngữ cảnh LaTeX + System Prompt ex_test.sty chuẩn quốc gia
+       │    - extract_diff_from_text: Bóc tách khối diff (unified diff, search/replace, old/new, sequence matcher)
+       │    - Đóng gói ChatResponse { reply, diff: DiffSuggestion(action, old_text, new_text, description) }
+       │         │
+       │         ▼
+       │    [FRONTEND CLIENT: app.js -> showPendingDiff(diff)]
+       │    1. Line Pinpointing: Tìm vị trí old_text -> Tính toán số dòng lineNo
+       │    2. Scrolling & Selection: Cuộn editor textarea đến đúng dòng, bôi đen old_text
+       │    3. Inline Diff Banner (#composer-pending-diff-banner):
+       │       - Badge "GỢI Ý TẠI DÒNG [lineNo]" kèm mô tả
+       │       - Dòng cũ [- old_text] nền đỏ rose / Dòng mới [+ new_text] nền xanh emerald
+       │       - 2 Nút hành động trực tiếp:
+       │            ├── [ĐỒNG Ý]: Thay thế old_text -> new_text, đóng banner, gọi compile(true)
+       │            └── [TỪ CHỐI]: Đóng banner diff, giữ nguyên mã nguồn 100%
+       │
+       └──> Khi sửa mã xong -> Debounce 800ms -> Gửi POST /api/v1/composer/compile
                  │
-                 ├──> [Tầng 1] Gọi Remote Tectonic Docker (http://armbian:8090/compile)
+                 ├──> [Tầng 1] Remote Tectonic Docker (http://armbian:8090/compile)
                  │         ├── Tự động nhúng ex_test.sty v3.3.6
                  │         ├── Tự động map fontspec (chống lỗi vietnam 8-bit)
                  │         └── Fallback giả lập ảnh 1x1 nếu thiếu asset

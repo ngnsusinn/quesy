@@ -4274,7 +4274,7 @@
     },
 
     handleCompactInputKey(e) {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.submitFromCompact();
       }
@@ -4283,12 +4283,15 @@
     submitFromCompact() {
       const compactInput = document.getElementById('composer-compact-input');
       const text = compactInput ? compactInput.value.trim() : '';
-      this.openAIPopup(text);
-      if (text) {
-        this.sendPrompt(text);
-        const chatInput = document.getElementById('composer-chat-input');
-        if (chatInput) chatInput.value = '';
+      if (!text) {
+        if (compactInput) compactInput.focus();
+        return;
       }
+      this.openAIPopup(text);
+      this.sendPrompt(text);
+      const chatInput = document.getElementById('composer-chat-input');
+      if (chatInput) chatInput.value = '';
+      if (compactInput) compactInput.value = '';
     },
 
     toggleQuickPromptMenu(e) {
@@ -4415,14 +4418,43 @@
       let lineNo = 1;
       if (editor) {
         const val = editor.value;
-        const trimmedOld = diff.old_text.trim();
-        let pos = val.indexOf(diff.old_text);
-        if (pos === -1) pos = val.indexOf(trimmedOld);
+        const oldText = diff.old_text;
+        const trimmedOld = oldText.trim();
+        let pos = val.indexOf(oldText);
+        let matchLen = oldText.length;
+        if (pos === -1) {
+          pos = val.indexOf(trimmedOld);
+          matchLen = trimmedOld.length;
+        }
+        if (pos === -1) {
+          const normVal = val.split('\r\n').join('\n');
+          const normOld = trimmedOld.split('\r\n').join('\n');
+          const normPos = normVal.indexOf(normOld);
+          if (normPos !== -1) {
+            pos = normPos;
+            matchLen = normOld.length;
+          }
+        }
+        if (pos === -1) {
+          // Line-by-line fallback
+          const curLines = val.split('\n');
+          const firstOldLine = trimmedOld.split('\n')[0].trim();
+          if (firstOldLine) {
+            for (let i = 0; i < curLines.length; i++) {
+              if (curLines[i].includes(firstOldLine) || curLines[i].trim() === firstOldLine) {
+                pos = val.indexOf(curLines[i]);
+                matchLen = curLines[i].length;
+                break;
+              }
+            }
+          }
+        }
+
         if (pos !== -1) {
           lineNo = val.substring(0, pos).split('\n').length;
-          // Focus and highlight the exact text in the editor
+          // Focus and select (bôi đen) old_text in editor
           editor.focus();
-          editor.setSelectionRange(pos, pos + (diff.old_text.length || trimmedOld.length));
+          editor.setSelectionRange(pos, pos + matchLen);
           // Scroll the editor to the line where change is suggested
           const lineHeight = 20;
           editor.scrollTop = Math.max(0, (lineNo - 3) * lineHeight);
@@ -4434,8 +4466,18 @@
       if (banner && descEl && oldEl && newEl) {
         descEl.innerText = diff.description || `Thay đổi tại dòng ${lineNo}`;
         oldEl.innerText = diff.old_text;
-        newEl.innerText = diff.new_text;
+        newEl.innerText = diff.new_text || '';
         banner.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+      }
+
+      // If AI assistant popup is open, automatically lower its height to dock/compact so editor and diff banner are visible
+      const popup = document.getElementById('composer-ai-popup');
+      if (popup && this.isAIPopupOpen) {
+        this.aiPopupHeight = '35%';
+        popup.style.height = '35%';
+        const maxIcon = document.getElementById('composer-ai-max-icon');
+        if (maxIcon) maxIcon.setAttribute('data-lucide', 'maximize-2');
         if (window.lucide) lucide.createIcons();
       }
     },
@@ -4475,9 +4517,9 @@
           val = val.replace(trimmedOld, trimmedNew);
           replaced = true;
         } else {
-          const normVal = val.replace(/\r\n/g, '\n');
-          const normOld = trimmedOld.replace(/\r\n/g, '\n');
-          const normNew = trimmedNew.replace(/\r\n/g, '\n');
+          const normVal = val.split('\r\n').join('\n');
+          const normOld = trimmedOld.split('\r\n').join('\n');
+          const normNew = trimmedNew.split('\r\n').join('\n');
           if (normVal.includes(normOld)) {
             val = normVal.replace(normOld, normNew);
             replaced = true;
@@ -4494,7 +4536,248 @@
       this.currentLatex = val;
       this.handleEditorInput();
       this.compile(true);
+      this.rejectPendingDiff();
       showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
+    },
+
+    _stringSimilarity(s1, s2) {
+      if (s1 === s2) return 1.0;
+      if (!s1 || !s2 || s1.length < 2 || s2.length < 2) return 0.0;
+      const getBigrams = str => {
+        const bigrams = new Map();
+        for (let i = 0; i < str.length - 1; i++) {
+          const bg = str.substring(i, i + 2);
+          bigrams.set(bg, (bigrams.get(bg) || 0) + 1);
+        }
+        return bigrams;
+      };
+      const bg1 = getBigrams(s1);
+      const bg2 = getBigrams(s2);
+      let intersection = 0;
+      for (const [bg, count1] of bg1.entries()) {
+        if (bg2.has(bg)) {
+          intersection += Math.min(count1, bg2.get(bg));
+        }
+      }
+      return (2.0 * intersection) / ((s1.length - 1) + (s2.length - 1));
+    },
+
+    extractDiffFromText(replyText, currentLatex, userMessage = '') {
+      if (!currentLatex || !replyText) return null;
+      const combinedText = `${userMessage}\n${replyText}`;
+      const combinedLower = combinedText.toLowerCase();
+      const userLower = (userMessage || '').toLowerCase();
+
+      const findInLatex = (needle) => {
+        if (!needle) return null;
+        if (currentLatex.includes(needle)) return needle;
+        const stripped = needle.trim();
+        if (stripped && currentLatex.includes(stripped)) return stripped;
+
+        const normCur = currentLatex.split('\r\n').join('\n');
+        const normNeedle = stripped.split('\r\n').join('\n');
+        if (normCur.includes(normNeedle)) {
+          const curLines = currentLatex.split('\n');
+          const needleLines = normNeedle.split('\n').map(l => l.trim()).filter(Boolean);
+          if (needleLines.length > 0) {
+            for (let i = 0; i <= curLines.length - needleLines.length; i++) {
+              let match = true;
+              for (let k = 0; k < needleLines.length; k++) {
+                if (curLines[i + k].trim() !== needleLines[k]) {
+                  match = false;
+                  break;
+                }
+              }
+              if (match) {
+                return curLines.slice(i, i + needleLines.length).join('\n');
+              }
+            }
+          }
+        }
+
+        const lines = currentLatex.split('\n');
+        for (const line of lines) {
+          if (stripped && line.includes(stripped)) return line;
+          if (line.trim() && line.trim() === stripped) return line;
+        }
+        return null;
+      };
+
+      // 1. Font size change
+      if (/font|cỡ chữ|size/i.test(combinedLower)) {
+        let pts = (userLower.match(/\b(10|11|12|13|14)(?:pt)?\b/g) || []);
+        if (!pts.length) {
+          pts = (replyText.toLowerCase().match(/\b(10|11|12|13|14)(?:pt)?\b/g) || []);
+        }
+        if (pts.length) {
+          const targetPt = pts[pts.length - 1].replace('pt', '') + 'pt';
+          const lines = currentLatex.split('\n');
+          for (const line of lines) {
+            if (line.includes('documentclass')) {
+              let newLine = line;
+              if (/\b\d+pt\b/.test(line)) {
+                newLine = line.replace(/\b\d+pt\b/, targetPt);
+              } else if (line.includes('\\documentclass[')) {
+                newLine = line.replace(/\\documentclass\[/, `\\documentclass[${targetPt},`);
+              } else if (line.includes('\\documentclass{')) {
+                newLine = line.replace(/\\documentclass\{/, `\\documentclass[${targetPt}]{`);
+              }
+              if (newLine !== line) {
+                return {
+                  action: 'replace',
+                  old_text: line,
+                  new_text: newLine,
+                  description: `Đổi cỡ chữ toàn tài liệu sang ${targetPt}`
+                };
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Choice change
+      const choiceMatch = combinedLower.match(/(?:đổi|sửa|chuyển)\s+(?:đáp án|lựa chọn)(?:\s+đúng)?\s+(?:từ\s+[abcd]\s+sang\s+|thành\s+|sang\s+)([abcd])\b/i);
+      if (choiceMatch) {
+        const targetChoice = choiceMatch[1].toUpperCase();
+        const targetIdx = { A: 0, B: 1, C: 2, D: 3 }[targetChoice];
+        if (targetIdx !== undefined) {
+          const chRegex = /\\choice\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/;
+          const chMatch = currentLatex.match(chRegex);
+          if (chMatch) {
+            const oldFull = chMatch[0];
+            const opts = [chMatch[1], chMatch[2], chMatch[3], chMatch[4]];
+            const cleanedOpts = opts.map(o => o.replace(/\\True\s*/g, '').trim());
+            cleanedOpts[targetIdx] = '\\True ' + cleanedOpts[targetIdx];
+            const newFull = `\\choice{${cleanedOpts[0]}}{${cleanedOpts[1]}}{${cleanedOpts[2]}}{${cleanedOpts[3]}}`;
+            if (oldFull !== newFull) {
+              return {
+                action: 'replace',
+                old_text: oldFull,
+                new_text: newFull,
+                description: `Đổi đáp án đúng sang ${targetChoice}`
+              };
+            }
+          }
+        }
+      }
+
+      // 3. Diff blocks
+      const diffMatch = replyText.match(/```diff\s*\n?([\s\S]*?)```/);
+      if (diffMatch) {
+        const lines = diffMatch[1].trim().split('\n');
+        const oldLines = [];
+        const newLines = [];
+        for (const line of lines) {
+          if (line.startsWith('---') || line.startsWith('+++')) continue;
+          const s = line.trim();
+          if (s.startsWith('-')) {
+            oldLines.push(line.replace(/^\s*-\s?/, ''));
+          } else if (s.startsWith('+')) {
+            newLines.push(line.replace(/^\s*\+\s?/, ''));
+          }
+        }
+        const oldRaw = oldLines.join('\n').trim();
+        const newRaw = newLines.join('\n').trim();
+        const matchedOld = findInLatex(oldRaw);
+        if (matchedOld && matchedOld !== newRaw) {
+          return {
+            action: 'replace',
+            old_text: matchedOld,
+            new_text: newRaw,
+            description: 'Thay đổi theo gợi ý AI'
+          };
+        }
+      }
+
+      // 4. OLD / NEW or CŨ / MỚI blocks
+      const patterns = [
+        /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|$)/i,
+        /(?:- Dòng cũ|- Đoạn cũ|Cũ):\s*[`"“]?([^\n`"”]+)[`"”]?\s*\n(?:- Dòng mới|- Đoạn mới|Mới):\s*[`"“]?([^\n`"”]+)[`"”]?/i
+      ];
+      for (const pat of patterns) {
+        const m = replyText.match(pat);
+        if (m) {
+          const oldRaw = m[1].trim();
+          const newRaw = m[2].trim();
+          const matchedOld = findInLatex(oldRaw);
+          if (matchedOld && matchedOld !== newRaw) {
+            return {
+              action: 'replace',
+              old_text: matchedOld,
+              new_text: newRaw,
+              description: 'Thay đổi theo gợi ý AI'
+            };
+          }
+        }
+      }
+
+      // 5. Block replace with code fences: Thay thế: ```latex ... ``` bằng: ```latex ... ```
+      const blockRepMatch = replyText.match(/(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n([\s\S]*?)\n```\s*\n*(?:thành|bằng|sang|mới|sau):\s*\n*```(?:latex|tex)?\n([\s\S]*?)\n```/i);
+      if (blockRepMatch) {
+        const oldRaw = blockRepMatch[1].trim();
+        const newRaw = blockRepMatch[2].trim();
+        const matchedOld = findInLatex(oldRaw);
+        if (matchedOld && matchedOld !== newRaw) {
+          return {
+            action: 'replace',
+            old_text: matchedOld,
+            new_text: newRaw,
+            description: 'Thay đổi theo gợi ý AI'
+          };
+        }
+      }
+
+      // 6. Inline natural language replacement: "Thay thế `X` bằng `Y`"
+      const inlineMatch = replyText.match(/(?:thay thế|thay|đổi|sửa|chuyển|replace)\s+[`"“'‘]([^`"”'’\n]+)[`"”'’]\s+(?:bằng|thành|sang|với|by|with)\s+[`"“'‘]([^`"”'’\n]+)[`"”'’]/i);
+      if (inlineMatch) {
+        const oldRaw = inlineMatch[1].trim();
+        const newRaw = inlineMatch[2].trim();
+        const matchedOld = findInLatex(oldRaw);
+        if (matchedOld && matchedOld !== newRaw) {
+          return {
+            action: 'replace',
+            old_text: matchedOld,
+            new_text: newRaw,
+            description: `Thay thế '${oldRaw}' thành '${newRaw}'`
+          };
+        }
+      }
+
+      // 7. Code block comparison: AI returns revised LaTeX block (```latex ... ```)
+      const codeMatch = replyText.match(/```(?:latex|tex)?\s*\n([\s\S]*?)```/);
+      if (codeMatch) {
+        const code = codeMatch[1].trim();
+        if (!code.includes('\\documentclass') && code.length >= 10) {
+          const docLines = currentLatex.split('\n');
+          const codeLines = code.split('\n');
+          const m = codeLines.length;
+          let bestRatio = 0;
+          let bestSlice = null;
+
+          for (let w = Math.max(1, m - 3); w <= Math.min(docLines.length, m + 4); w++) {
+            for (let i = 0; i <= docLines.length - w; i++) {
+              const windowText = docLines.slice(i, i + w).join('\n').trim();
+              if (!windowText) continue;
+              const ratio = this._stringSimilarity(code, windowText);
+              if (ratio > bestRatio) {
+                bestRatio = ratio;
+                bestSlice = docLines.slice(i, i + w).join('\n');
+              }
+            }
+          }
+
+          if (bestRatio >= 0.52 && bestSlice && bestSlice.trim() !== code) {
+            return {
+              action: 'replace',
+              old_text: bestSlice,
+              new_text: code,
+              description: 'Thay đổi theo gợi ý AI'
+            };
+          }
+        }
+      }
+
+      return null;
     },
 
     initChat() {
@@ -4580,6 +4863,11 @@
       if (!text) return '';
       let html = text;
 
+      // Smart fallback diff extraction if diff not provided
+      if (!diff && this.extractDiffFromText) {
+        diff = this.extractDiffFromText(text, this.currentLatex);
+      }
+
       // If diff payload is provided and text doesn't already have an inline diff block
       if (diff && diff.old_text && !html.includes('```diff')) {
         const b64Old = btoa(unescape(encodeURIComponent(diff.old_text)));
@@ -4589,10 +4877,10 @@
             <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
               <span class="font-sans font-bold text-blue-400">⚡ Gợi ý thay đổi trực tiếp (${escapeHtml(diff.description || 'Chỉnh sửa dòng')})</span>
               <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý</span>
+                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
+                  <span>✔ Đồng ý áp dụng</span>
                 </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2 py-0.5 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
+                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
                   <span>✖ Từ chối</span>
                 </button>
               </div>
@@ -4609,7 +4897,7 @@
             </div>
           </div>
         `;
-        // Strip out the redundant full-file latex snippet block
+        // Strip out redundant full-file latex snippet block
         html = html.replace(/```(?:latex|tex)?\s*[\s\S]*?```/g, '');
         html += diffBlock;
       }
@@ -4627,10 +4915,10 @@
             <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
               <span class="font-sans font-bold text-blue-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
               <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý</span>
+                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
+                  <span>✔ Đồng ý áp dụng</span>
                 </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2 py-0.5 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
+                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
                   <span>✖ Từ chối</span>
                 </button>
               </div>
@@ -4643,6 +4931,40 @@
               <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
                 <span class="text-emerald-400 font-bold select-none">+</span>
                 <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(newLines)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      // 2. Interactive OLD / NEW or CŨ / MỚI replacement blocks
+      const oldNewRegex = /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|$)/gi;
+      html = html.replace(oldNewRegex, (match, oldContent, newContent) => {
+        const oldClean = oldContent.trim();
+        const newClean = newContent.trim();
+        const b64Old = btoa(unescape(encodeURIComponent(oldClean)));
+        const b64New = btoa(unescape(encodeURIComponent(newClean)));
+        return `
+          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
+            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
+              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
+              <div class="flex items-center space-x-1.5">
+                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
+                  <span>✔ Đồng ý áp dụng</span>
+                </button>
+                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
+                  <span>✖ Từ chối</span>
+                </button>
+              </div>
+            </div>
+            <div class="diff-body text-[11px] leading-relaxed">
+              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
+                <span class="text-rose-400 font-bold select-none">-</span>
+                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(oldClean)}</span>
+              </div>
+              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
+                <span class="text-emerald-400 font-bold select-none">+</span>
+                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(newClean)}</span>
               </div>
             </div>
           </div>
@@ -4786,12 +5108,16 @@
 
         if (res.ok) {
           const data = await res.json();
-          this.chatHistory.push({ role: 'assistant', content: data.reply, diff: data.diff || null });
+          let diff = data.diff;
+          if (!diff && this.extractDiffFromText) {
+            diff = this.extractDiffFromText(data.reply, this.currentLatex, promptText);
+          }
+          this.chatHistory.push({ role: 'assistant', content: data.reply, diff: diff || null });
           localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory.slice(-20)));
           this.renderChatMessages();
 
-          if (data.diff) {
-            this.showPendingDiff(data.diff);
+          if (diff) {
+            this.showPendingDiff(diff);
           }
         } else {
           this.chatHistory.push({ role: 'assistant', content: 'Rất tiếc, đã có lỗi kết nối với máy chủ AI. Vui lòng thử lại sau.' });
