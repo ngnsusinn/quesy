@@ -4752,7 +4752,11 @@
       this.currentPage = Math.max(1, Math.min(this.totalPages, page));
       const curEl = document.getElementById('composer-page-current');
       if (curEl) curEl.innerText = this.currentPage;
-      this.applyPdfViewParams();
+      const iframe = document.getElementById('composer-pdf-iframe');
+      if (iframe && iframe.src && iframe.src !== 'about:blank') {
+        const baseUrl = iframe.src.split('#')[0];
+        iframe.src = `${baseUrl}#page=${this.currentPage}&toolbar=0&navpanes=0&scrollbar=1&view=FitH`;
+      }
     },
 
     handleEditorKey(e) {
@@ -4890,23 +4894,25 @@
       }
     },
 
-    applyPdfViewParams(isFit = false) {
-      const iframe = document.getElementById('composer-pdf-iframe');
-      if (!iframe || !iframe.src || iframe.src === 'about:blank') return;
-      const baseUrl = iframe.src.split('#')[0];
-      const zoomParam = isFit ? 'view=FitH' : `zoom=${Math.round(this.zoomLevel * 100)}`;
-      iframe.src = `${baseUrl}#page=${this.currentPage}&${zoomParam}&toolbar=0&navpanes=0&scrollbar=1`;
-    },
-
     zoomPreview(delta) {
       this.zoomLevel = Math.max(0.5, Math.min(2.5, +(this.zoomLevel + delta).toFixed(1)));
       const zoomDisplay = document.getElementById('composer-zoom-display');
       if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
+      
       const iframe = document.getElementById('composer-pdf-iframe');
       if (iframe) {
-        iframe.style.transform = '';
+        const z = this.zoomLevel;
+        if (Math.abs(z - 1.0) < 0.01) {
+          iframe.style.transform = '';
+          iframe.style.width = '100%';
+          iframe.style.height = '100%';
+        } else {
+          iframe.style.transformOrigin = '0 0';
+          iframe.style.transform = `scale(${z})`;
+          iframe.style.width = `${100 / z}%`;
+          iframe.style.height = `${100 / z}%`;
+        }
       }
-      this.applyPdfViewParams();
     },
 
     resetZoom() {
@@ -4916,8 +4922,9 @@
       const iframe = document.getElementById('composer-pdf-iframe');
       if (iframe) {
         iframe.style.transform = '';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
       }
-      this.applyPdfViewParams(true);
     },
 
     downloadPdf() {
