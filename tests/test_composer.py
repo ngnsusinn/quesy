@@ -164,3 +164,18 @@ Hello World
     assert data["diff"]["action"] == "replace"
     assert "11pt" in data["diff"]["old_text"]
     assert "12pt" in data["diff"]["new_text"]
+
+    # Test alternate natural language phrasing "đổi font chữ thành 12"
+    res2 = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "đổi font chữ thành 12",
+            "current_latex": latex_code,
+            "history": []
+        }
+    )
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["diff"] is not None
+    assert "11pt" in data2["diff"]["old_text"]
+    assert "12pt" in data2["diff"]["new_text"]

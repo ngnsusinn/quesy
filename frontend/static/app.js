@@ -4278,9 +4278,30 @@
       const descEl = document.getElementById('composer-diff-description');
       const oldEl = document.getElementById('composer-diff-old-text');
       const newEl = document.getElementById('composer-diff-new-text');
+      const lineNoEl = document.getElementById('composer-diff-line-no');
+      const editor = document.getElementById('composer-editor-input');
 
+      let lineNo = 1;
+      if (editor) {
+        const val = editor.value;
+        const trimmedOld = diff.old_text.trim();
+        let pos = val.indexOf(diff.old_text);
+        if (pos === -1) pos = val.indexOf(trimmedOld);
+        if (pos !== -1) {
+          lineNo = val.substring(0, pos).split('\n').length;
+          // Focus and highlight the exact text in the editor
+          editor.focus();
+          editor.setSelectionRange(pos, pos + (diff.old_text.length || trimmedOld.length));
+          // Scroll the editor to the line where change is suggested
+          const lineHeight = 20;
+          editor.scrollTop = Math.max(0, (lineNo - 3) * lineHeight);
+          this.syncEditorScroll();
+        }
+      }
+
+      if (lineNoEl) lineNoEl.innerText = lineNo;
       if (banner && descEl && oldEl && newEl) {
-        descEl.innerText = diff.description || 'Gợi ý chỉnh sửa từ AI';
+        descEl.innerText = diff.description || `Thay đổi tại dòng ${lineNo}`;
         oldEl.innerText = diff.old_text;
         newEl.innerText = diff.new_text;
         banner.classList.remove('hidden');
@@ -4299,6 +4320,11 @@
       this.pendingDiff = null;
       const banner = document.getElementById('composer-pending-diff-banner');
       if (banner) banner.classList.add('hidden');
+      const editor = document.getElementById('composer-editor-input');
+      if (editor) {
+        const cursor = editor.selectionEnd;
+        editor.setSelectionRange(cursor, cursor);
+      }
     },
 
     applyDiffDirect(oldText, newText) {
@@ -4466,14 +4492,27 @@
 
     replaceB64Code(b64) {
       try {
-        const code = decodeURIComponent(escape(atob(b64)));
+        const code = decodeURIComponent(escape(atob(b64))).trim();
         const editor = document.getElementById('composer-editor-input');
-        if (editor) {
-          editor.value = code;
-          this.handleEditorInput();
-          this.compile(true);
-          showToast('Đã thay thế toàn bộ tài liệu bằng mã mới!', 'success');
+        if (!editor) return;
+
+        // Safety guard: prevent replacing entire exam if code is just a small snippet
+        if (!code.includes('\\documentclass') && this.currentLatex && this.currentLatex.length > 80) {
+          showToast('Đoạn mã này là đoạn trích ngắn, không thể thay thế toàn bộ tài liệu!', 'warning');
+          return;
         }
+
+        if (this.currentLatex && this.currentLatex.length > 50) {
+          if (!confirm('Bạn có chắc chắn muốn thay thế toàn bộ tài liệu hiện tại bằng mã mới?')) {
+            return;
+          }
+        }
+
+        editor.value = code;
+        this.currentLatex = code;
+        this.handleEditorInput();
+        this.compile(true);
+        showToast('Đã thay thế toàn bộ tài liệu bằng mã mới!', 'success');
       } catch (e) {
         console.error('Error replacing code:', e);
       }

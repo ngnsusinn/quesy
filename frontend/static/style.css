@@ -120,10 +120,35 @@ select:focus, input[type="text"]:focus, input[type="number"]:focus, textarea:not
   box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
 }
 
-/* Dark Code Editor Textarea Focus Override */
+/* Dark Code Editor Textarea & Scroll Layout */
+#composer-editor-pane {
+  min-height: 0 !important;
+}
+
+#composer-editor-body {
+  min-height: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex: 1 1 0% !important;
+  overflow: hidden !important;
+}
+
+#composer-editor-gutter {
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: hidden !important;
+  box-sizing: border-box !important;
+}
+
 #composer-editor-input,
 #composer-editor-input:focus,
 #composer-editor-input:active {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow-y: scroll !important;
+  overflow-x: auto !important;
+  box-sizing: border-box !important;
   background-color: transparent !important;
   color: #d7dce5 !important;
   box-shadow: none !important;

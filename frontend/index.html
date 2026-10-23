@@ -416,7 +416,7 @@
           <div class="flex flex-col gap-2 h-full min-h-0 overflow-hidden">
             
             <!-- 1. HỘP TRÊN: TRÌNH SOẠN THẢO MÃ NGUỒN LATEX (DARK MODE) -->
-            <div id="composer-editor-pane" class="flex-1 min-h-[300px] bg-[#141824] rounded-xl border border-[#272f42] flex flex-col overflow-hidden shadow-xs relative">
+            <div id="composer-editor-pane" class="flex-1 min-h-0 bg-[#141824] rounded-xl border border-[#272f42] flex flex-col overflow-hidden shadow-xs relative">
               
               <!-- Editor Header Toolbar (Dark Theme) -->
               <div class="bg-[#1c2230] border-b border-[#283144] px-3 py-1.5 flex items-center justify-between text-xs select-none">
@@ -488,19 +488,22 @@
                 </div>
               </div>
 
-              <!-- Pending AI Diff / Replacement Banner (Shown above editor when AI suggests targeted changes) -->
-              <div id="composer-pending-diff-banner" class="hidden bg-[#182338] border-b border-[#2d3d60] p-2.5 flex flex-col space-y-2 z-20 transition-all shadow-md">
+              <!-- Pending AI Diff / Replacement Banner (Shown directly on editor when AI suggests targeted changes) -->
+              <div id="composer-pending-diff-banner" class="hidden bg-[#161f33] border-b-2 border-blue-500 p-2.5 flex flex-col space-y-2 z-20 transition-all shadow-lg shrink-0">
                 <div class="flex items-center justify-between text-xs">
                   <div class="flex items-center space-x-2 min-w-0">
-                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">GỢI Ý AI</span>
-                    <span id="composer-diff-description" class="text-slate-200 text-[11px] font-medium truncate">Đổi cỡ chữ từ 11pt sang 12pt</span>
+                    <span class="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold border border-blue-500/30 flex items-center space-x-1">
+                      <i data-lucide="sparkles" class="w-3 h-3"></i>
+                      <span>GỢI Ý TẠI DÒNG <span id="composer-diff-line-no">1</span></span>
+                    </span>
+                    <span id="composer-diff-description" class="text-slate-200 text-xs font-semibold truncate"></span>
                   </div>
-                  <div class="flex items-center space-x-1.5 shrink-0">
-                    <button type="button" onclick="app.composer.applyPendingDiff()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-[11px] font-bold flex items-center space-x-1 transition-all active:scale-95 shadow-sm cursor-pointer" title="Đồng ý áp dụng thay đổi vào mã nguồn">
+                  <div class="flex items-center space-x-2 shrink-0">
+                    <button type="button" onclick="app.composer.applyPendingDiff()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-xs font-bold flex items-center space-x-1.5 transition-all active:scale-95 shadow-sm cursor-pointer" title="Áp dụng thay đổi vào đúng dòng này">
                       <i data-lucide="check" class="w-3.5 h-3.5"></i>
                       <span>Đồng ý</span>
                     </button>
-                    <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 bg-[#283247] hover:bg-[#35425c] text-slate-300 hover:text-white rounded-md text-[11px] font-semibold flex items-center space-x-1 transition-all cursor-pointer" title="Hủy bỏ thay đổi">
+                    <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 bg-[#283247] hover:bg-[#35425c] text-slate-300 hover:text-white rounded-md text-xs font-semibold flex items-center space-x-1 transition-all cursor-pointer" title="Hủy bỏ">
                       <i data-lucide="x" class="w-3.5 h-3.5"></i>
                       <span>Từ chối</span>
                     </button>
@@ -508,11 +511,11 @@
                 </div>
                 <!-- Inline Diff Visual Box -->
                 <div class="rounded-lg overflow-hidden border border-[#2d3d60] font-mono text-[11px] leading-relaxed">
-                  <div id="composer-diff-old" class="px-2.5 py-1 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
+                  <div id="composer-diff-old" class="px-3 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
                     <span class="text-rose-400 font-bold select-none">-</span>
                     <span id="composer-diff-old-text" class="whitespace-pre-wrap flex-1 break-all"></span>
                   </div>
-                  <div id="composer-diff-new" class="px-2.5 py-1 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
+                  <div id="composer-diff-new" class="px-3 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
                     <span class="text-emerald-400 font-bold select-none">+</span>
                     <span id="composer-diff-new-text" class="whitespace-pre-wrap flex-1 break-all"></span>
                   </div>
@@ -520,13 +523,13 @@
               </div>
 
               <!-- Code Editor Body (Gutter & Textarea) -->
-              <div class="flex-1 flex overflow-hidden relative font-mono text-xs bg-[#131722]">
+              <div id="composer-editor-body" class="flex-1 min-h-0 flex overflow-hidden relative font-mono text-xs bg-[#131722]">
                 <!-- Gutter (Line Numbers) -->
-                <div id="composer-editor-gutter" class="w-10 py-2.5 select-none text-right pr-2 text-slate-500 bg-[#10131d] border-r border-[#202737] text-[11px] leading-5 font-mono overflow-hidden shrink-0">
+                <div id="composer-editor-gutter" class="w-10 h-full py-2.5 select-none text-right pr-2 text-slate-500 bg-[#10131d] border-r border-[#202737] text-[11px] leading-5 font-mono overflow-hidden shrink-0">
                   1
                 </div>
                 <!-- Textarea -->
-                <textarea id="composer-editor-input" spellcheck="false" oninput="app.composer.handleEditorInput()" onscroll="app.composer.syncEditorScroll()" onkeydown="app.composer.handleEditorKey(event)" class="flex-1 p-2.5 bg-transparent border-none resize-none focus:ring-0 text-[#d7dce5] text-[12px] leading-5 font-mono overflow-y-auto whitespace-pre outline-none"></textarea>
+                <textarea id="composer-editor-input" spellcheck="false" oninput="app.composer.handleEditorInput()" onscroll="app.composer.syncEditorScroll()" onkeydown="app.composer.handleEditorKey(event)" class="flex-1 h-full min-h-0 p-2.5 bg-transparent border-none resize-none focus:ring-0 text-[#d7dce5] text-[12px] leading-5 font-mono overflow-y-auto overflow-x-auto whitespace-pre outline-none"></textarea>
               </div>
 
               <!-- Editor Sub-footer Status Bar -->
@@ -724,8 +727,8 @@
 
             </div>
 
-            <!-- Bottom Prominent Green BIÊN DỊCH Button Bar -->
-            <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="w-full py-3 bg-[#15803d] hover:bg-[#166534] active:scale-[0.99] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-sm select-none cursor-pointer flex items-center justify-center space-x-2 shrink-0" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
+            <!-- Bottom Prominent Blue BIÊN DỊCH Button Bar -->
+            <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="w-full py-3 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.99] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-md select-none cursor-pointer flex items-center justify-center space-x-2 shrink-0" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
               <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
               <span id="composer-compile-btn-text">BIÊN DỊCH</span>
             </button>

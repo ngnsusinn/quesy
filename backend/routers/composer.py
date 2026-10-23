@@ -152,66 +152,67 @@ def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_m
     if not current_latex:
         return None
 
-    # 1. Explicit ```diff ... ``` blocks
+    user_lower = user_message.lower()
+
+    # 1. Targeted heuristic for font size changes (e.g. 11pt -> 12pt, font 12, cỡ chữ 11pt)
+    if any(k in user_lower for k in ("font", "cỡ chữ", "size")):
+        pts = re.findall(r'\b(10|11|12|13|14)(?:pt)?\b', user_lower)
+        if pts:
+            target_pt = f"{pts[-1]}pt"
+            for line in current_latex.splitlines():
+                if "documentclass" in line:
+                    if re.search(r'\b\d+pt\b', line):
+                        new_line = re.sub(r'\b\d+pt\b', target_pt, line)
+                    else:
+                        new_line = re.sub(r'\\documentclass\[', f'\\documentclass[{target_pt},', line)
+                    if new_line != line:
+                        return DiffSuggestion(
+                            action="replace",
+                            old_text=line,
+                            new_text=new_line,
+                            description=f"Đổi cỡ chữ toàn tài liệu sang {target_pt}"
+                        )
+
+    # 2. Explicit ```diff ... ``` blocks
     m_diff = re.search(r'```diff\s*\n\s*-\s*([^\n]+(?:\n\s*-[^\n]+)*)\s*\n\s*\+\s*([^\n]+(?:\n\s*\+[^\n]+)*)\s*\n```', reply_text)
     if m_diff:
         old_lines = [re.sub(r'^\s*-\s*', '', l) for l in m_diff.group(1).split('\n')]
         new_lines = [re.sub(r'^\s*\+\s*', '', l) for l in m_diff.group(2).split('\n')]
         old_text = '\n'.join(old_lines)
         new_text = '\n'.join(new_lines)
-        if old_text and old_text in current_latex:
+        if old_text and old_text in current_latex and old_text != new_text:
             return DiffSuggestion(action="replace", old_text=old_text, new_text=new_text, description="Thay đổi theo gợi ý AI")
 
-    # 2. Explicit OLD: / NEW: blocks
+    # 3. Explicit OLD: / NEW: blocks
     m_replace = re.search(r'OLD:\s*\n([\s\S]*?)\nNEW:\s*\n([\s\S]*?)(?:\n|$)', reply_text)
     if m_replace:
         old_text = m_replace.group(1).strip()
         new_text = m_replace.group(2).strip()
-        if old_text and old_text in current_latex:
+        if old_text and old_text in current_latex and old_text != new_text:
             return DiffSuggestion(action="replace", old_text=old_text, new_text=new_text, description="Thay đổi theo gợi ý AI")
 
-    # 3. Detect changes if AI returned code block (```latex or ```tex or ```)
+    # 4. Detect changes if AI returned code block (```latex or ```tex or ```)
     m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
     if m_code:
         code = m_code.group(1).strip()
         cur_lines = current_latex.strip().splitlines()
         code_lines = code.splitlines()
 
-        # If similarity is noticeable (full document or substantial chunk)
-        sm = difflib.SequenceMatcher(None, cur_lines, code_lines)
-        diffs = [op for op in sm.get_opcodes() if op[0] != 'equal']
-        if len(diffs) == 1 and diffs[0][0] == 'replace':
-            _, i1, i2, j1, j2 = diffs[0]
-            old_slice = '\n'.join(cur_lines[i1:i2])
-            new_slice = '\n'.join(code_lines[j1:j2])
-            if old_slice and old_slice in current_latex:
+        clean_cur = [l for l in cur_lines if l.strip()]
+        clean_code = [l for l in code_lines if l.strip()]
+
+        sm = difflib.SequenceMatcher(None, clean_cur, clean_code)
+        replace_ops = [op for op in sm.get_opcodes() if op[0] == 'replace']
+        if len(replace_ops) == 1:
+            _, i1, i2, j1, j2 = replace_ops[0]
+            old_slice = '\n'.join(clean_cur[i1:i2])
+            new_slice = '\n'.join(clean_code[j1:j2])
+            if old_slice in current_latex and old_slice != new_slice:
                 return DiffSuggestion(action="replace", old_text=old_slice, new_text=new_slice, description="Thay đổi theo gợi ý AI")
         elif len(code_lines) <= 4:
-            # Single or small snippet replacement: look for close match in current_latex
             matches = difflib.get_close_matches(code, cur_lines, n=1, cutoff=0.45)
             if matches and matches[0] != code:
                 return DiffSuggestion(action="replace", old_text=matches[0], new_text=code, description="Thay đổi theo gợi ý AI")
-
-    # 4. Keyword heuristic based on user request (e.g., font 11 -> 12)
-    user_lower = user_message.lower()
-    if any(k in user_lower for k in ("11 sang 12", "cỡ chữ 12", "font 12", "11pt sang 12pt")):
-        for line in current_latex.splitlines():
-            if "documentclass" in line and "11pt" in line:
-                return DiffSuggestion(
-                    action="replace",
-                    old_text=line,
-                    new_text=line.replace("11pt", "12pt"),
-                    description="Đổi cỡ chữ toàn tài liệu từ 11pt sang 12pt"
-                )
-    if any(k in user_lower for k in ("12 sang 11", "cỡ chữ 11", "font 11", "12pt sang 11pt")):
-        for line in current_latex.splitlines():
-            if "documentclass" in line and "12pt" in line:
-                return DiffSuggestion(
-                    action="replace",
-                    old_text=line,
-                    new_text=line.replace("12pt", "11pt"),
-                    description="Đổi cỡ chữ toàn tài liệu từ 12pt sang 11pt"
-                )
 
     return None
 

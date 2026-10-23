@@ -249,9 +249,9 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 - **Mô tả:** Kiểm tra textarea `#composer-editor-input` duy trì đúng nền tối `#141824` và chữ sáng khi nhận focus, không bị rule CSS toàn cục làm biến đổi sang nền trắng.
 - **Kết quả kỳ vọng:** Màu nền giữ nguyên `#141824`, không lóa trắng mắt giáo viên khi gõ văn bản.
 
-#### TC-COMP-06: Nút Biên dịch Xanh Chuẩn Khảo thí
-- **Mô tả:** Kiểm tra thanh nút tác vụ `BIÊN DỊCH` dưới đáy giao diện hiển thị màu xanh lá (`#15803d`) kích hoạt biên dịch tức thì khi click.
-- **Kết quả kỳ vọng:** Nút hiển thị màu xanh chuẩn, kích hoạt compile và phản hồi trạng thái loading.
+#### TC-COMP-06: Nút Biên dịch Xanh Dương Chuẩn Khảo thí
+- **Mô tả:** Kiểm tra thanh nút tác vụ `BIÊN DỊCH` dưới đáy giao diện hiển thị màu xanh dương (`#0071e3`) kích hoạt biên dịch tức thì khi click.
+- **Kết quả kỳ vọng:** Nút hiển thị màu xanh dương chuẩn, kích hoạt compile và phản hồi trạng thái loading.
 
 ---
 
