@@ -333,3 +333,24 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
    - Đẩy tệp lên container Tectonic trên server `armbian`: `/root/tectonic-docker/ex_test.sty` và restart container.
 3. **Mở rộng nhà cung cấp AI:**
    - Cấu hình thêm provider trong `backend/services/ai_provider_service.py` (hỗ trợ OpenAI, Gemini, OpenRouter, DeepSeek qua chuẩn OpenAI-compatible API).
+
+---
+
+## 9. QUY TRÌNH PHÂN HÓA 4 AGENT CHUYÊN TRÁCH & VÒNG LẶP KIỂM THỬ THỰC TẾ
+
+Hệ thống áp dụng nghiêm ngặt quy trình phát triển và kiểm thử phân hóa 4 Agent độc lập:
+1. **Agent 1 - Analysis & Comprehension (Đọc hiểu & Mổ xẻ Dự án):** Phân tích kiến trúc, tài liệu, xác định phạm vi ảnh hưởng trước khi code.
+2. **Agent 2 - Software Engineering & Coding (Lập trình Mã nguồn):** Hiện thực hóa tính năng, sửa bug, tuân thủ đúng phạm vi yêu cầu.
+3. **Agent 3 - Test & Verification (Kiểm thử Chức năng Tự động):** Chạy kiểm thử tự động toàn diện `pytest` (71/71 PASSED).
+4. **Agent 4 - Blind Test (Kiểm thử Mù & Đối chứng Thực tế trên Trình duyệt):**
+   - Trực tiếp mở trình duyệt thật (`browser_exec`).
+   - Thao tác thủ công toàn diện: gõ phím (`fill_input`), click chuột (`click_at_xy`), cuộn trang, chuyển đổi tab.
+   - Chụp ảnh màn hình (capture screen) ghi lại bằng chứng trực quan.
+   - Giám sát log máy chủ và bảng điều khiển `console.log` / `console.error` của trình duyệt.
+   - **Định nghĩa "Lỗi" bao trùm 5 nhóm:**
+     1. Lỗi logic nghiệp vụ & backend (API exception 500/422, sai điểm QĐ 764, treo port/process).
+     2. Lỗi giao diện & layout (vỡ khung, kẹt cuộn textarea, tràn viền, responsive vỡ).
+     3. Lỗi màu sắc & phong cách (sai mã màu chuẩn như nút BIÊN DỊCH `#0071e3`, lỗi biến đổi màu nền trắng khi focus dark mode).
+     4. Lỗi tương tác & hành vi UX (thiếu phản hồi scale 0.97, thay thế nhầm code, kẹt popup).
+     5. Lỗi console & tài nguyên (mọi `console.error` đỏ, 404 font/icon, xén nét toán học).
+   - **Vòng lặp đóng:** `Coding -> Test -> Blind Test / Review -> Coding...` lặp lại cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.

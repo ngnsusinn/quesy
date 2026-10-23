@@ -6,7 +6,7 @@
    - **Bắt buộc:** Sau **bất kỳ** thay đổi, bổ sung, sửa lỗi (bug fix) hay refactor nào trong mã nguồn (`backend/`, `frontend/`, `tests/`):
      1. Phải rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (bao gồm `SRS`, `FRD`, `BRD`, `NFR`, `TEST`, `UC`, `README.md`, v.v.) để phản ánh chính xác trạng thái kỹ thuật mới nhất.
      2. **Bắt buộc đối chiếu và cập nhật cấu hình CI/CD (`.github/workflows/`):** Mỗi khi có thay đổi trong mã nguồn, phải chủ động rà soát xem có phát sinh dependencies mới (Python packages trong `requirements.txt`, npm packages trong `package.json`, font, headless browser/Chromium, biến môi trường `.env`, cờ thực thi...) hay không để cập nhật đồng bộ workflow CI/CD ngay lập tức, bảo đảm 100% test cases vượt qua trên mọi môi trường (Ubuntu/Linux runner).
-     3. Chạy toàn bộ test suite (`pytest`) đảm bảo 100% test cases đạt (`56/56 PASSED`).
+     3. Chạy toàn bộ test suite (`pytest`) đảm bảo 100% test cases đạt (`71/71 PASSED`).
      4. Thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 2. **CHUẨN MỰC KHẢO THÍ QUỐC GIA:**
@@ -35,3 +35,32 @@
      1. Phải chủ động kiểm tra và **tắt/diệt toàn bộ các tiến trình nền (kill background processes)**: máy chủ uvicorn/fastapi trên cổng 8000, worker Node.js mồ côi (`mathjax_worker.js`), và các tiến trình con subprocess.
      2. **Tuyệt đối không để sót tiến trình chạy ngầm dồn ứ (no leftover background processes)** gây chiếm dụng RAM, rò rỉ tài nguyên hệ thống, hoặc chiếm giữ cổng mạng gây xung đột phiên bản mã nguồn cũ giữa các lượt tương tác của người dùng.
      3. Mọi tiến trình nền phục vụ kiểm nghiệm chỉ được chạy tạm thời, phải dọn dẹp sạch sẽ trước khi kết thúc lượt phản hồi.
+
+7. **QUY TRÌNH PHÂN HÓA 4 AGENT CHUYÊN TRÁCH & VÒNG LẶP KIỂM THỬ THỰC TẾ (4-AGENT ROLES & E2E BROWSER BLIND TEST LOOP):**
+   - **Bắt buộc áp dụng cấu trúc 4 Agent chuyên trách trong quy trình phát triển và kiểm thử dự án:**
+     1. **Agent 1 - Analysis & Comprehension (Đọc hiểu & Mổ xẻ Dự án):**
+        - Chuyên trách đọc hiểu yêu cầu nghiệp vụ, mổ xẻ mã nguồn, phân tích kiến trúc, rà soát tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`).
+        - Xác định đúng vị trí và phạm vi tác động trước khi thực hiện bất kỳ thay đổi nào.
+     2. **Agent 2 - Software Engineering & Coding (Triển khai Mã nguồn):**
+        - Chuyên trách lập trình mã nguồn, hiện thực hóa tính năng, sửa lỗi (bug fixes) và tối ưu hóa hiệu năng theo đúng thiết kế của Agent 1.
+        - Giữ gìn chuẩn mực code, không tự ý refactor lan man ngoài phạm vi yêu cầu.
+     3. **Agent 3 - Test & Verification (Kiểm thử Chức năng Tự động):**
+        - Chuyên trách chạy kiểm thử tự động toàn diện (`pytest`), kiểm tra tính toàn vẹn của dữ liệu và đảm bảo 100% test cases vượt qua (`71/71 PASSED`).
+     4. **Agent 4 - Blind Test (Kiểm thử Mù & Đối chứng Thực tế trên Trình duyệt):**
+        - Kiểm thử độc lập, khách quan, không dựa vào các giả định chủ quan của coder để tìm ra các lỗi ẩn và lỗi trải nghiệm người dùng thực tế.
+        - **Yêu cầu bắt buộc đối với Agent Test & Blind Test:**
+          - **Trực tiếp truy cập vào trình duyệt (Browser):** Khởi chạy trình duyệt thật để kiểm tra toàn bộ giao diện và luồng nghiệp vụ end-to-end.
+          - **Thao tác thủ công toàn diện:** Tự động hóa việc **nhập text** (`fill_input`), **click chuột thủ công** (`click_at_xy`), cuộn trang, đổi tab, chuyển đổi chế độ xem.
+          - **Chụp ảnh màn hình (Capture Screen):** Chụp và lưu ảnh màn hình thực tế để làm bằng chứng trực quan đối chiếu kết quả hiển thị.
+          - **Đọc Log & Console Trình duyệt:** Đọc chi tiết log máy chủ và bảng điều khiển `console.log` / `console.error` của trình duyệt để phát hiện các lỗi ngầm, lỗi CSS/JS hoặc lỗi mạng 404/500.
+   - **ĐỊNH NGHĨA TOÀN DIỆN VỀ "LỖI" TRONG KIỂM THỬ (COMPREHENSIVE DEFECT DEFINITION):**
+     - **Bắt buộc:** Khái niệm "Lỗi" trong kiểm thử của Agent 3 và Agent 4 tuyệt đối **không chỉ giới hạn ở lỗi logic nghiệp vụ hay lỗi backend**, mà bao trùm toàn diện 5 nhóm khuyết tật phần mềm:
+       1. *Lỗi Logic & Backend:* Ngoại lệ mã nguồn (500, 422, 404), sai lệch điểm số lũy tiến QĐ 764, sai thuật toán xáo trộn câu hỏi, treo tiến trình nền.
+       2. *Lỗi Giao diện & Layout (Visual & Layout):* Vỡ khung, kẹt thanh cuộn (không cuộn được textarea), tràn viền, lệch căn lề, che khuất nội dung giữa 2 cột Split View.
+       3. *Lỗi Màu sắc & Đồng nhất Phong cách (Color & Theme Consistency):* Màu sắc không đồng nhất, sai mã màu quy định (ví dụ nút BIÊN DỊCH phải là xanh dương `#0071e3`), lỗi biến đổi màu nền ngoài ý muốn khi con trỏ focus/active (như nền dark mode bị biến thành màu trắng).
+       4. *Lỗi Tương tác & Hành vi Người dùng (Interaction & UX):* Nút bấm không phản hồi xúc giác (scale 0.97), dropdown không đóng, thao tác thay thế text làm mất sạch code cũ thay vì chỉ sửa đúng dòng chỉ định, thiếu trạng thái loading/thông báo toast.
+       5. *Lỗi Console & Tài nguyên Trình duyệt (Console & Network Assets):* Mọi lỗi màu đỏ trong DevTools `console.error`, unhandled promise rejections, cảnh báo deprecated, lỗi tải font/ảnh 404 hoặc xén nét công thức toán LaTeX/TikZ.
+
+   - **Vòng lặp Phản hồi Khép kín (Coding -> Test -> Blind Test / Review Loop):**
+     - Khi Agent Test hoặc Blind Test phát hiện bất kỳ lỗi nào thuộc 5 nhóm trên:
+       `Phát hiện lỗi` $\rightarrow$ `Agent 2 (Coding) sửa đổi` $\rightarrow$ `Agent 3 (Test) chạy kiểm thử` $\rightarrow$ `Agent 4 (Blind Test) thẩm định trên trình duyệt thực tế` $\rightarrow$ `Lặp lại quy trình` cho đến khi **hoàn thành 100% mọi yêu cầu được đưa ra mà không còn bất kỳ lỗi nào**.

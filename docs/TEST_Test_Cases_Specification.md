@@ -261,4 +261,6 @@ Dự án chỉ được nghiệm thu bàn giao khi:
 1. **$100\%$** Test Cases thuộc mức độ ưu tiên **P0 (Must Have / Critical)** đạt trạng thái **PASS**.
 2. **$\ge 95\%$** Test Cases thuộc mức độ ưu tiên **P1** đạt trạng thái **PASS**.
 3. **Không còn bất kỳ Bug nào ở mức độ Blocker hoặc Critical** (đặc biệt là các lỗi về hoán vị mã đề, tính điểm Đúng/Sai lũy tiến, hoặc sai lệch công thức toán).
-4. File Word `.docx` in thử thực tế trên máy in laser đạt độ rõ nét sư phạm.
+4. **Không còn lỗi Frontend & Giao diện:** Giao diện đồng nhất màu sắc chuẩn thương hiệu (nút BIÊN DỊCH `#0071e3`), textarea cuộn mượt mà không kẹt, bảo toàn nền tối `#141824` khi focus.
+5. **Không còn lỗi Console & Mạng:** Bảng điều khiển DevTools `console.error` sạch sẽ, không có lỗi 404 tài nguyên mạng (font, ảnh, icon).
+6. File Word `.docx` in thử thực tế trên máy in laser đạt độ rõ nét sư phạm.
