@@ -80,6 +80,7 @@ def parse_args():
     parser.add_argument("--port", type=int, default=8000, help="Port máy chủ (mặc định: 8000)")
     parser.add_argument("--kill", action="store_true", default=True, help="Tự động giải phóng cổng nếu đang bị chiếm dụng (mặc định: True)")
     parser.add_argument("--no-kill", dest="kill", action="store_false", help="Không tự động tắt tiến trình cũ, tự đổi sang cổng tiếp theo")
+    parser.add_argument("--reload", action="store_true", default=False, help="Chạy chế độ reloader (mặc định: False)")
     return parser.parse_args()
 
 
@@ -131,7 +132,7 @@ def setup_and_run():
     print(f"       -> Health check:         http://{host}:{port}/health")
     print("================================================================")
 
-    uvicorn.run("backend.main:app", host=host, port=port, reload=True)
+    uvicorn.run("backend.main:app", host=host, port=port, reload=args.reload)
 
 
 if __name__ == "__main__":

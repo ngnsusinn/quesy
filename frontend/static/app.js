@@ -3994,7 +3994,7 @@
       } else if (this.templates['circular_32_full_exam']) {
         this.currentLatex = this.templates['circular_32_full_exam'].latex;
       } else {
-        this.currentLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\begin{ex}\nCho hàm số bậc ba $y = f(x)$...\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n\n\\end{document}\n`;
+        this.currentLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\begin{ex}\nCho hàm số bậc ba $y = f(x)$...\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n\n\\end{document}\n`;
       }
 
       if (editor) {
@@ -4752,10 +4752,16 @@
       this.currentPage = Math.max(1, Math.min(this.totalPages, page));
       const curEl = document.getElementById('composer-page-current');
       if (curEl) curEl.innerText = this.currentPage;
-      const iframe = document.getElementById('composer-pdf-iframe');
-      if (iframe && iframe.src && iframe.src !== 'about:blank') {
-        const baseUrl = iframe.src.split('#')[0];
-        iframe.src = `${baseUrl}#page=${this.currentPage}&toolbar=0&navpanes=0&scrollbar=1&view=FitH`;
+
+      const targetCard = document.getElementById(`pdf-page-${this.currentPage}`);
+      if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        const iframe = document.getElementById('composer-pdf-iframe');
+        if (iframe && iframe.src && iframe.src !== 'about:blank') {
+          const baseUrl = iframe.src.split('#')[0];
+          iframe.src = `${baseUrl}#page=${this.currentPage}&toolbar=0&navpanes=0&scrollbar=1&view=FitH`;
+        }
       }
     },
 
@@ -4832,6 +4838,13 @@
       const statusText = document.getElementById('composer-status-text');
       const errorDrawer = document.getElementById('composer-error-drawer');
       const errorText = document.getElementById('composer-error-text');
+      const editor = document.getElementById('composer-editor-input');
+
+      if (editor) {
+        this.currentLatex = editor.value;
+      }
+      if (errorDrawer) errorDrawer.classList.add('hidden');
+      if (errorText) errorText.innerText = '';
 
       if (overlay) overlay.classList.remove('hidden');
       if (statusText) statusText.innerText = 'Đang biên dịch...';
@@ -4862,10 +4875,8 @@
           if (totalEl) totalEl.innerText = this.totalPages;
 
           this.saveHistoryItem(data.pdf_url);
-          const iframe = document.getElementById('composer-pdf-iframe');
-          if (iframe) {
-            iframe.src = `${data.pdf_url}?t=${Date.now()}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`;
-          }
+          this.renderPdfDocument(data.pdf_url);
+
           if (statusText) statusText.innerText = `Đã cập nhật (${(data.compile_time_ms / 1000).toFixed(1)}s)`;
           if (statusBadge) {
             statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold';
@@ -4894,37 +4905,193 @@
       }
     },
 
-    zoomPreview(delta) {
-      this.zoomLevel = Math.max(0.5, Math.min(2.5, +(this.zoomLevel + delta).toFixed(1)));
-      const zoomDisplay = document.getElementById('composer-zoom-display');
-      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
-      
+    pdfDoc: null,
+    pdfPages: [],
+    pdfBaseViewports: [],
+    _renderTimer: null,
+
+    async renderPdfDocument(pdfUrl) {
+      const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+      const pagesContainer = document.getElementById('composer-pdf-pages');
+      const emptyEl = document.getElementById('composer-pdf-empty');
       const iframe = document.getElementById('composer-pdf-iframe');
-      if (iframe) {
-        const z = this.zoomLevel;
-        if (Math.abs(z - 1.0) < 0.01) {
-          iframe.style.transform = '';
-          iframe.style.width = '100%';
-          iframe.style.height = '100%';
-        } else {
-          iframe.style.transformOrigin = '0 0';
-          iframe.style.transform = `scale(${z})`;
-          iframe.style.width = `${100 / z}%`;
-          iframe.style.height = `${100 / z}%`;
+
+      if (!window.pdfjsLib) {
+        if (iframe) {
+          iframe.classList.remove('hidden');
+          iframe.src = `${pdfUrl}?t=${Date.now()}`;
+        }
+        return;
+      }
+
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/vendor/pdf.worker.min.js';
+
+      if (iframe) iframe.classList.add('hidden');
+      if (emptyEl) emptyEl.classList.add('hidden');
+      if (pagesContainer) pagesContainer.innerHTML = '';
+
+      try {
+        const loadingTask = window.pdfjsLib.getDocument(pdfUrl);
+        this.pdfDoc = await loadingTask.promise;
+        this.totalPages = this.pdfDoc.numPages || 1;
+        this.currentPage = 1;
+
+        const curEl = document.getElementById('composer-page-current');
+        const totalEl = document.getElementById('composer-page-total');
+        if (curEl) curEl.innerText = this.currentPage;
+        if (totalEl) totalEl.innerText = this.totalPages;
+
+        this.pdfPages = [];
+        this.pdfBaseViewports = [];
+
+        // Attach wheel event for Ctrl+scroll zoom once
+        if (scrollContainer && !scrollContainer._wheelBound) {
+          scrollContainer._wheelBound = true;
+          scrollContainer.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+              e.preventDefault();
+              const delta = e.deltaY < 0 ? 0.1 : -0.1;
+              app.composer.zoomPreview(delta);
+            }
+          }, { passive: false });
+
+          // Track visible page on scroll
+          scrollContainer.addEventListener('scroll', () => {
+            const pageCards = scrollContainer.querySelectorAll('.pdf-page-card');
+            const containerTop = scrollContainer.scrollTop + 60;
+            for (let i = 0; i < pageCards.length; i++) {
+              const card = pageCards[i];
+              const cardTop = card.offsetTop;
+              const cardBottom = cardTop + card.offsetHeight;
+              if (containerTop >= cardTop && containerTop <= cardBottom) {
+                const pageNum = parseInt(card.dataset.page || (i + 1), 10);
+                if (pageNum !== app.composer.currentPage) {
+                  app.composer.currentPage = pageNum;
+                  const cur = document.getElementById('composer-page-current');
+                  if (cur) cur.innerText = pageNum;
+                }
+                break;
+              }
+            }
+          });
+        }
+
+        for (let i = 1; i <= this.totalPages; i++) {
+          const page = await this.pdfDoc.getPage(i);
+          this.pdfPages.push(page);
+          const baseVp = page.getViewport({ scale: 1.0 });
+          this.pdfBaseViewports.push(baseVp);
+
+          const pageCard = document.createElement('div');
+          pageCard.className = 'pdf-page-card bg-white shadow-lg border border-slate-300/80 rounded-xs transition-transform duration-75 relative mx-auto my-1';
+          pageCard.id = `pdf-page-${i}`;
+          pageCard.dataset.page = i;
+
+          const canvas = document.createElement('canvas');
+          canvas.id = `pdf-canvas-${i}`;
+          canvas.className = 'block';
+          pageCard.appendChild(canvas);
+          pagesContainer.appendChild(pageCard);
+        }
+
+        // Calculate initial zoom to fit container width nicely
+        if (scrollContainer && this.pdfBaseViewports[0]) {
+          const availableW = scrollContainer.clientWidth - 48;
+          if (availableW > 200 && this.pdfBaseViewports[0].width > 0) {
+            const fitZoom = +(availableW / this.pdfBaseViewports[0].width).toFixed(1);
+            this.zoomLevel = Math.max(0.5, Math.min(2.0, fitZoom));
+          } else {
+            this.zoomLevel = 1.0;
+          }
+        }
+        const zoomDisplay = document.getElementById('composer-zoom-display');
+        if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
+
+        this.renderAllPages();
+      } catch (err) {
+        console.error('PDF.js loading failed, falling back to iframe:', err);
+        if (iframe) {
+          iframe.classList.remove('hidden');
+          iframe.src = `${pdfUrl}?t=${Date.now()}`;
         }
       }
     },
 
-    resetZoom() {
-      this.zoomLevel = 1.0;
-      const zoomDisplay = document.getElementById('composer-zoom-display');
-      if (zoomDisplay) zoomDisplay.innerText = '100%';
-      const iframe = document.getElementById('composer-pdf-iframe');
-      if (iframe) {
-        iframe.style.transform = '';
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
+    renderAllPages() {
+      if (!this.pdfPages || !this.pdfPages.length) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const z = this.zoomLevel;
+
+      for (let i = 0; i < this.pdfPages.length; i++) {
+        const page = this.pdfPages[i];
+        const baseVp = this.pdfBaseViewports[i];
+        const card = document.getElementById(`pdf-page-${i + 1}`);
+        const canvas = document.getElementById(`pdf-canvas-${i + 1}`);
+        if (!card || !canvas || !baseVp) continue;
+
+        const displayWidth = Math.round(baseVp.width * z);
+        const displayHeight = Math.round(baseVp.height * z);
+
+        card.style.width = `${displayWidth}px`;
+        card.style.height = `${displayHeight}px`;
+
+        canvas.width = Math.round(displayWidth * dpr);
+        canvas.height = Math.round(displayHeight * dpr);
+        canvas.style.width = `${displayWidth}px`;
+        canvas.style.height = `${displayHeight}px`;
+
+        const ctx = canvas.getContext('2d');
+        const viewport = page.getViewport({ scale: z * dpr });
+        page.render({ canvasContext: ctx, viewport });
       }
+    },
+
+    zoomPreview(delta) {
+      this.zoomLevel = Math.max(0.4, Math.min(2.5, +(this.zoomLevel + delta).toFixed(1)));
+      const zoomDisplay = document.getElementById('composer-zoom-display');
+      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
+
+      if (this.pdfPages && this.pdfPages.length) {
+        const z = this.zoomLevel;
+        for (let i = 0; i < this.pdfPages.length; i++) {
+          const baseVp = this.pdfBaseViewports[i];
+          const card = document.getElementById(`pdf-page-${i + 1}`);
+          const canvas = document.getElementById(`pdf-canvas-${i + 1}`);
+          if (card && baseVp) {
+            const displayWidth = Math.round(baseVp.width * z);
+            const displayHeight = Math.round(baseVp.height * z);
+            card.style.width = `${displayWidth}px`;
+            card.style.height = `${displayHeight}px`;
+            if (canvas) {
+              canvas.style.width = `${displayWidth}px`;
+              canvas.style.height = `${displayHeight}px`;
+            }
+          }
+        }
+
+        clearTimeout(this._renderTimer);
+        this._renderTimer = setTimeout(() => {
+          this.renderAllPages();
+        }, 120);
+      }
+    },
+
+    resetZoom() {
+      const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+      if (scrollContainer && this.pdfBaseViewports[0]) {
+        const availableW = scrollContainer.clientWidth - 48;
+        if (availableW > 200 && this.pdfBaseViewports[0].width > 0) {
+          const fitZoom = +(availableW / this.pdfBaseViewports[0].width).toFixed(1);
+          this.zoomLevel = Math.max(0.5, Math.min(2.0, fitZoom));
+        } else {
+          this.zoomLevel = 1.0;
+        }
+      } else {
+        this.zoomLevel = 1.0;
+      }
+      const zoomDisplay = document.getElementById('composer-zoom-display');
+      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
+      this.renderAllPages();
     },
 
     downloadPdf() {

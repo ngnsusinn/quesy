@@ -130,6 +130,13 @@ select:focus, input[type="text"]:focus, input[type="number"]:focus, textarea:not
   background-color: transparent !important;
 }
 
+/* Centered Vector PDF Pages */
+.pdf-page-card {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: block !important;
+}
+
 /* Zero-scroll single-page fit for Composer */
 body.in-composer {
   overflow: hidden !important;

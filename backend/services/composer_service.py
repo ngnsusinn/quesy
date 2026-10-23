@@ -44,6 +44,8 @@ TEMPLATES: Dict[str, Dict[str, str]] = {
 \usepackage{fontspec}
 \usepackage{amsmath,amssymb}
 \usepackage{tikz,tkz-tab}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable,xparse}
 \usepackage[dethi]{ex_test}
 
 \begin{document}
@@ -687,23 +689,59 @@ def fix_immini_choice_nesting(latex_text: str) -> str:
     if r"\immini" not in latex_text or r"\choice" not in latex_text:
         return latex_text
 
-    choice_pat = r'(\\choice(?:\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}){4})'
-    m = re.search(r'\\immini\s*\{([\s\S]*?' + choice_pat + r'[\s\S]*?)\}\s*\{', latex_text)
-    if m:
-        inner_first = m.group(1)
-        choice_block = m.group(2)
-        clean_first = inner_first.replace(choice_block, '').strip()
-        start_second = m.end()
+    pattern = re.compile(r"\\immini(?:L)?\s*\{")
+    pos = 0
+    while True:
+        m = pattern.search(latex_text, pos)
+        if not m:
+            break
+
+        start_arg1 = m.end()
         depth = 1
-        i = start_second
+        i = start_arg1
         while i < len(latex_text) and depth > 0:
             if latex_text[i] == '{': depth += 1
             elif latex_text[i] == '}': depth -= 1
             i += 1
-        if depth == 0:
-            second_arg = latex_text[start_second:i-1]
-            replacement = f"\\immini{{\n  {clean_first}\n}}{{\n{second_arg}\n}}\n{choice_block}"
-            latex_text = latex_text[:m.start()] + replacement + latex_text[i:]
+
+        if depth != 0:
+            pos = start_arg1
+            continue
+
+        arg1 = latex_text[start_arg1:i-1]
+
+        if r"\choice" not in arg1:
+            pos = i
+            continue
+
+        while i < len(latex_text) and latex_text[i] in ' \t\r\n':
+            i += 1
+        if i >= len(latex_text) or latex_text[i] != '{':
+            pos = i
+            continue
+
+        start_arg2 = i + 1
+        depth = 1
+        j = start_arg2
+        while j < len(latex_text) and depth > 0:
+            if latex_text[j] == '{': depth += 1
+            elif latex_text[j] == '}': depth -= 1
+            j += 1
+
+        if depth != 0:
+            pos = start_arg2
+            continue
+
+        arg2 = latex_text[start_arg2:j-1]
+
+        choice_idx = arg1.find(r"\choice")
+        choice_block = arg1[choice_idx:].strip()
+        clean_arg1 = arg1[:choice_idx].strip()
+
+        replacement = f"\\immini{{\n  {clean_arg1}\n}}{{\n  {arg2}\n}}\n{choice_block}"
+        latex_text = latex_text[:m.start()] + replacement + latex_text[j:]
+        pos = m.start() + len(replacement)
+
     return latex_text
 
 

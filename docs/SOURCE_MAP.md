@@ -301,7 +301,7 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 - **Mô hình Single Page Application (SPA):** Điều hướng thuần Client-side trên `frontend/static/app.js` thông qua đối tượng toàn cục `app`:
   - `app.navigate(route)`: Chuyển đổi trạng thái hiển thị giữa các view mà không tải lại trang (`history.pushState`).
-  - `app.composer`: Quản lý toàn bộ vòng đời soạn thảo đề thi, undo/redo stack, debounced compiler, AI copilot chat, inline diff review, toggle lời giải `[dethi]` $\leftrightarrow$ `[loigiai]`.
+  - `app.composer`: Quản lý toàn bộ vòng đời soạn thảo đề thi, undo/redo stack, debounced compiler, AI copilot chat, inline diff review, toggle lời giải `[dethi]` $\leftrightarrow$ `[loigiai]`, và trình xem trước High-DPI Vector Canvas (PDF.js) đồng bộ 100% tỷ lệ thu phóng (Zoom Sync giữa nút bấm và Ctrl+Scroll).
   - `app.bank`: Quản lý tìm kiếm câu hỏi, cây bộ lọc 6 tầng, preview công thức toán KaTeX.
   - `app.matrix`: Quản lý ma trận đề thi 2 chiều, phân bổ số lượng câu theo mức độ nhận thức.
   - `app.shuffler`: Quản lý thuật toán xáo trộn đề, tạo mã đề hoán vị và xuất bản tài liệu.
