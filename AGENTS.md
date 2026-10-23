@@ -39,31 +39,35 @@
      2. **Tuyệt đối không để sót tiến trình chạy ngầm dồn ứ (no leftover background processes)** gây chiếm dụng RAM, rò rỉ tài nguyên hệ thống, hoặc chiếm giữ cổng mạng gây xung đột phiên bản mã nguồn cũ giữa các lượt tương tác của người dùng.
      3. Mọi tiến trình nền phục vụ kiểm nghiệm chỉ được chạy tạm thời, phải dọn dẹp sạch sẽ trước khi kết thúc lượt phản hồi.
 
-7. **QUY TRÌNH PHÂN HÓA 4 AGENT CHUYÊN TRÁCH & VÒNG LẶP KIỂM THỬ THỰC TẾ (4-AGENT ROLES & E2E BROWSER BLIND TEST LOOP):**
-   - **Bắt buộc áp dụng cấu trúc 4 Agent chuyên trách trong quy trình phát triển và kiểm thử dự án:**
-     1. **Agent 1 - Analysis & Comprehension (Đọc hiểu & Mổ xẻ Dự án):**
-        - Chuyên trách đọc hiểu yêu cầu nghiệp vụ, mổ xẻ mã nguồn, phân tích kiến trúc, rà soát tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`).
-        - Xác định đúng vị trí và phạm vi tác động trước khi thực hiện bất kỳ thay đổi nào.
-     2. **Agent 2 - Software Engineering & Coding (Triển khai Mã nguồn):**
-        - Chuyên trách lập trình mã nguồn, hiện thực hóa tính năng, sửa lỗi (bug fixes) và tối ưu hóa hiệu năng theo đúng thiết kế của Agent 1.
-        - Giữ gìn chuẩn mực code, không tự ý refactor lan man ngoài phạm vi yêu cầu.
-     3. **Agent 3 - Test & Verification (Kiểm thử Chức năng Tự động):**
-        - Chuyên trách chạy kiểm thử tự động toàn diện (`pytest`), kiểm tra tính toàn vẹn của dữ liệu và đảm bảo 100% test cases vượt qua (`71/71 PASSED`).
-     4. **Agent 4 - Blind Test (Kiểm thử Mù & Đối chứng Thực tế trên Trình duyệt):**
-        - Kiểm thử độc lập, khách quan, không dựa vào các giả định chủ quan của coder để tìm ra các lỗi ẩn và lỗi trải nghiệm người dùng thực tế.
-        - **Yêu cầu bắt buộc đối với Agent Test & Blind Test:**
+7. **QUY TRÌNH KÍCH HOẠT 4 SUB-AGENT ĐỒNG THỜI CHO MỖI YÊU CẦU TÍNH NĂNG (PARALLEL CONCURRENT 4-SUBAGENT ORCHESTRATION):**
+   - **Bắt buộc:** Với **mỗi lệnh / yêu cầu về tính năng (feature request), nâng cấp hoặc sửa đổi hệ thống**, Parent Agent **bắt buộc phải kích hoạt 4 Sub-Agent chạy đồng thời (song song qua `delegate_task`)**, tuyệt đối **không chạy đơn luồng tuần tự (no sequential execution)**.
+   - **Phân công 4 Sub-Agent đồng thời:**
+     1. **Sub-Agent 1 - Analysis, Specs & Docs (Đọc hiểu, Kiến trúc & Tài liệu):**
+        - Chuyên trách đọc hiểu yêu cầu nghiệp vụ, mổ xẻ mã nguồn, phân tích kiến trúc, rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
+        - Định vị chính xác các file, hàm, API bị ảnh hưởng và xây dựng bản đặc tả kỹ thuật chi tiết.
+     2. **Sub-Agent 2 - Software Engineering & Coding (Triển khai Mã nguồn):**
+        - Chuyên trách lập trình mã nguồn, hiện thực hóa tính năng, sửa lỗi (bug fixes) và tối ưu hóa hiệu năng theo đúng thiết kế của Sub-Agent 1.
+        - Giữ gìn chuẩn mực code, chuẩn Apple HIG, tương tác vi mô Emil Kowalski, không tự ý refactor ngoài phạm vi yêu cầu.
+     3. **Sub-Agent 3 - Automated Test & CI/CD Verification (Kiểm thử Chức năng Tự động & CI/CD):**
+        - Chuyên trách viết mới, cập nhật test cases tự động (`pytest`), bảo đảm bao phủ kịch bản biên và âm tính.
+        - Rà soát đối chiếu cấu hình CI/CD (`.github/workflows/`), chạy toàn bộ test suite đảm bảo 100% test cases vượt qua (`71/71 PASSED`).
+     4. **Sub-Agent 4 - E2E Browser Blind Test & UI/UX Audit (Kiểm thử Mù Trình duyệt Thật):**
+        - Kiểm thử độc lập, khách quan, không dựa vào giả định của coder để tìm ra các lỗi ẩn và lỗi trải nghiệm người dùng thực tế.
+        - **Yêu cầu bắt buộc:**
           - **Trực tiếp truy cập vào trình duyệt (Browser):** Khởi chạy trình duyệt thật để kiểm tra toàn bộ giao diện và luồng nghiệp vụ end-to-end.
           - **Thao tác thủ công toàn diện:** Tự động hóa việc **nhập text** (`fill_input`), **click chuột thủ công** (`click_at_xy`), cuộn trang, đổi tab, chuyển đổi chế độ xem.
           - **Chụp ảnh màn hình (Capture Screen):** Chụp và lưu ảnh màn hình thực tế để làm bằng chứng trực quan đối chiếu kết quả hiển thị.
           - **Đọc Log & Console Trình duyệt:** Đọc chi tiết log máy chủ và bảng điều khiển `console.log` / `console.error` của trình duyệt để phát hiện các lỗi ngầm, lỗi CSS/JS hoặc lỗi mạng 404/500.
+
    - **ĐỊNH NGHĨA TOÀN DIỆN VỀ "LỖI" TRONG KIỂM THỬ (COMPREHENSIVE DEFECT DEFINITION):**
-     - **Bắt buộc:** Khái niệm "Lỗi" trong kiểm thử của Agent 3 và Agent 4 tuyệt đối **không chỉ giới hạn ở lỗi logic nghiệp vụ hay lỗi backend**, mà bao trùm toàn diện 5 nhóm khuyết tật phần mềm:
+     - **Bắt buộc:** Khái niệm "Lỗi" trong kiểm thử của Sub-Agent 3 và Sub-Agent 4 tuyệt đối **không chỉ giới hạn ở lỗi logic nghiệp vụ hay lỗi backend**, mà bao trùm toàn diện 5 nhóm khuyết tật phần mềm:
        1. *Lỗi Logic & Backend:* Ngoại lệ mã nguồn (500, 422, 404), sai lệch điểm số lũy tiến QĐ 764, sai thuật toán xáo trộn câu hỏi, treo tiến trình nền.
        2. *Lỗi Giao diện & Layout (Visual & Layout):* Vỡ khung, kẹt thanh cuộn (không cuộn được textarea), tràn viền, lệch căn lề, che khuất nội dung giữa 2 cột Split View.
        3. *Lỗi Màu sắc & Đồng nhất Phong cách (Color & Theme Consistency):* Màu sắc không đồng nhất, sai mã màu quy định (ví dụ nút BIÊN DỊCH phải là xanh dương `#0071e3`), lỗi biến đổi màu nền ngoài ý muốn khi con trỏ focus/active (như nền dark mode bị biến thành màu trắng).
        4. *Lỗi Tương tác & Hành vi Người dùng (Interaction & UX):* Nút bấm không phản hồi xúc giác (scale 0.97), dropdown không đóng, thao tác thay thế text làm mất sạch code cũ thay vì chỉ sửa đúng dòng chỉ định, thiếu trạng thái loading/thông báo toast.
        5. *Lỗi Console & Tài nguyên Trình duyệt (Console & Network Assets):* Mọi lỗi màu đỏ trong DevTools `console.error`, unhandled promise rejections, cảnh báo deprecated, lỗi tải font/ảnh 404 hoặc xén nét công thức toán LaTeX/TikZ.
 
-   - **Vòng lặp Phản hồi Khép kín (Coding -> Test -> Blind Test / Review Loop):**
-     - Khi Agent Test hoặc Blind Test phát hiện bất kỳ lỗi nào thuộc 5 nhóm trên:
-       `Phát hiện lỗi` $\rightarrow$ `Agent 2 (Coding) sửa đổi` $\rightarrow$ `Agent 3 (Test) chạy kiểm thử` $\rightarrow$ `Agent 4 (Blind Test) thẩm định trên trình duyệt thực tế` $\rightarrow$ `Lặp lại quy trình` cho đến khi **hoàn thành 100% mọi yêu cầu được đưa ra mà không còn bất kỳ lỗi nào**.
+   - **Cơ chế Hợp nhất & Vòng lặp Hiệu chỉnh (Parent Orchestration & Review Loop):**
+     - Parent Agent tiếp nhận đồng thời kết quả từ cả 4 Sub-Agent, thẩm định chéo tính toàn vẹn.
+     - Nếu Sub-Agent 3 hoặc Sub-Agent 4 phát hiện bất kỳ lỗi nào trong 5 nhóm trên:
+       `Phát hiện lỗi` → `Sub-Agent 2 (Coding) sửa đổi` → `Sub-Agent 3 (Test) chạy kiểm thử` → `Sub-Agent 4 (Blind Test) thẩm định trên trình duyệt thực tế` → `Lặp lại quy trình` cho đến khi **hoàn thành 100% mọi yêu cầu mà không còn bất kỳ lỗi nào**.

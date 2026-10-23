@@ -333,21 +333,18 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 ---
 
-## 9. QUY TRÌNH PHÂN HÓA 4 AGENT CHUYÊN TRÁCH & VÒNG LẶP KIỂM THỬ THỰC TẾ
+## 9. QUY TRÌNH KÍCH HOẠT 4 SUB-AGENT ĐỒNG THỜI CHO MỖI YÊU CẦU TÍNH NĂNG
 
-Hệ thống áp dụng nghiêm ngặt quy trình phát triển và kiểm thử phân hóa 4 Agent độc lập:
-1. **Agent 1 - Analysis & Comprehension (Đọc hiểu & Mổ xẻ Dự án):** Phân tích kiến trúc, tài liệu, xác định phạm vi ảnh hưởng trước khi code.
-2. **Agent 2 - Software Engineering & Coding (Lập trình Mã nguồn):** Hiện thực hóa tính năng, sửa bug, tuân thủ đúng phạm vi yêu cầu.
-3. **Agent 3 - Test & Verification (Kiểm thử Chức năng Tự động):** Chạy kiểm thử tự động toàn diện `pytest` (71/71 PASSED).
-4. **Agent 4 - Blind Test (Kiểm thử Mù & Đối chứng Thực tế trên Trình duyệt):**
-   - Trực tiếp mở trình duyệt thật (`browser_exec`).
-   - Thao tác thủ công toàn diện: gõ phím (`fill_input`), click chuột (`click_at_xy`), cuộn trang, chuyển đổi tab.
-   - Chụp ảnh màn hình (capture screen) ghi lại bằng chứng trực quan.
-   - Giám sát log máy chủ và bảng điều khiển `console.log` / `console.error` của trình duyệt.
-   - **Định nghĩa "Lỗi" bao trùm 5 nhóm:**
-     1. Lỗi logic nghiệp vụ & backend (API exception 500/422, sai điểm QĐ 764, treo port/process).
-     2. Lỗi giao diện & layout (vỡ khung, kẹt cuộn textarea, tràn viền, responsive vỡ).
-     3. Lỗi màu sắc & phong cách (sai mã màu chuẩn như nút BIÊN DỊCH `#0071e3`, lỗi biến đổi màu nền trắng khi focus dark mode).
-     4. Lỗi tương tác & hành vi UX (thiếu phản hồi scale 0.97, thay thế nhầm code, kẹt popup).
-     5. Lỗi console & tài nguyên (mọi `console.error` đỏ, 404 font/icon, xén nét toán học).
-   - **Vòng lặp đóng:** `Coding -> Test -> Blind Test / Review -> Coding...` lặp lại cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
+Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi hệ thống bắt buộc phải kích hoạt 4 Sub-Agent chạy đồng thời (song song qua `delegate_task`), tuyệt đối không chạy đơn luồng tuần tự:
+1. **Sub-Agent 1 - Analysis, Specs & Docs:** Phân tích kiến trúc, rà soát tác động, đồng bộ toàn bộ tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
+2. **Sub-Agent 2 - Software Engineering & Coding:** Hiện thực hóa tính năng, lập trình backend/frontend, tuân thủ Apple HIG và thiết kế hệ thống.
+3. **Sub-Agent 3 - Automated Test & CI/CD Verification:** Viết mới/cập nhật test cases `pytest`, rà soát CI/CD `.github/workflows/`, chạy toàn bộ test suite đảm bảo 100% test cases vượt qua (71/71 PASSED).
+4. **Sub-Agent 4 - E2E Browser Blind Test & UI/UX Audit:** Mở trình duyệt thật qua `browser_exec`, thao tác thủ công (`fill_input`, `click_at_xy`), chụp màn hình, kiểm tra console log/error, đối chiếu toàn diện 5 nhóm khuyết tật phần mềm.
+
+- **Định nghĩa "Lỗi" bao trùm 5 nhóm:**
+  1. Lỗi logic nghiệp vụ & backend (API exception 500/422, sai điểm QĐ 764, treo port/process).
+  2. Lỗi giao diện & layout (vỡ khung, kẹt cuộn textarea, tràn viền, responsive vỡ).
+  3. Lỗi màu sắc & phong cách (sai mã màu chuẩn như nút BIÊN DỊCH `#0071e3`, lỗi biến đổi màu nền trắng khi focus dark mode).
+  4. Lỗi tương tác & hành vi UX (thiếu phản hồi scale 0.97, thay thế nhầm code, kẹt popup).
+  5. Lỗi console & tài nguyên (mọi `console.error` đỏ, 404 font/icon, xén nét toán học).
+- **Vòng lặp đóng & Hợp nhất:** Parent Agent nhận kết quả đồng thời từ 4 Sub-Agent, nếu phát hiện lỗi sẽ điều phối vòng lặp hiệu chỉnh tức thì: `Sub-Agent 2 sửa` → `Sub-Agent 3 test` → `Sub-Agent 4 blind test` cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
