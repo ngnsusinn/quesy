@@ -97,6 +97,7 @@ test-file/
 export_flow_inspection/
 
 # Temporary test artifacts
+dogfood-output/
 test_*.png
 test_*.docx
 test_*.wmf
