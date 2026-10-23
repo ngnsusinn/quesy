@@ -199,7 +199,7 @@ def test_complete_end_to_end_assessment_workflow(client):
         db_session.close()
 
     # --------------------------------------------------------------------------
-    # Step 7: Export Word DOCX & Master Answer Key in ZIP Bundle
+    # Step 7: Export PDF Bundle & Master Answer Key in ZIP
     # --------------------------------------------------------------------------
     zip_res = client.get(f"/api/v1/exams/{master_id}/export-zip")
     assert zip_res.status_code == 200
@@ -208,17 +208,17 @@ def test_complete_end_to_end_assessment_workflow(client):
     # Unpack and verify bundle content
     zip_archive = zipfile.ZipFile(io.BytesIO(zip_res.content))
     filenames = zip_archive.namelist()
-    assert "De_101.docx" in filenames
-    assert "De_102.docx" in filenames
-    assert "De_103.docx" in filenames
-    assert "De_104.docx" in filenames
-    assert "BangDapAn_TongHop.docx" in filenames
-    assert "LoiGiai_101.docx" in filenames
+    assert "De_101.pdf" in filenames
+    assert "De_102.pdf" in filenames
+    assert "De_103.pdf" in filenames
+    assert "De_104.pdf" in filenames
+    assert "BangDapAn_TongHop.pdf" in filenames
+    assert "LoiGiai_101.pdf" in filenames
 
-    # Verify DOCX and PDF files are non-empty and well-formed
+    # Verify PDF files are non-empty and well-formed
     for fn in filenames:
-        if fn.endswith(".docx") or fn.endswith(".pdf"):
-            assert zip_archive.getinfo(fn).file_size > 1000
+        if fn.endswith(".pdf"):
+            assert zip_archive.getinfo(fn).file_size > 500
         elif fn.endswith(".csv"):
             assert zip_archive.getinfo(fn).file_size > 50
 

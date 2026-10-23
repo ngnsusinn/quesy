@@ -33,7 +33,7 @@
 
 ## Overview
 
-**Quesy** is a high-performance assessment management, AI digitization, and mathematical publishing platform. It eliminates hours of manual exam retyping, automates question item classification, compiles mathematical diagrams into native vector graphics, and produces publication-ready examination papers in both **pure LaTeX vector PDF** and **bidirectionally editable MathType 7.0 OLE Word `.docx`** formats.
+**Quesy** is a high-performance assessment management, AI digitization, and mathematical publishing platform. It eliminates hours of manual exam retyping, automates question item classification, compiles mathematical diagrams into native vector graphics, and produces publication-ready examination papers in **pure LaTeX vector PDF** (via **Tectonic XeTeX Engine** and **ReportLab**).
 
 The platform is strictly tailored to national assessment standards:
 - **Circular 32/2018/TT-BGDĐT:** 6-tier competency-based knowledge taxonomy mapped to Learning Outcomes (Yêu cầu cần đạt - YCCĐ) and Problem Archetypes, strictly independent of commercial textbook series.
@@ -45,12 +45,12 @@ The platform is strictly tailored to national assessment standards:
 
 | # | Real-World Examination Pain Point | Quesy Architectural Solution |
 |:---:|:---|:---|
-| **1** | **Exhausting Manual Retyping:** Teachers spend 1.5–2 hours retyping an exam from scanned PDFs, photos, or legacy Word files; formulas lose formatting and special symbols corrupt during copy-pasting. | **Multimodal AI OCR & MTEF Decoder:** Ingests scanned PDFs, smartphone photos, and Word files in seconds, directly converting binary MathType MTEF streams into standardized KaTeX/LaTeX. |
-| **2** | **Corrupted or Downscaled Formulas:** Exporting exams often shrinks in-text fractions to illegible script sizes, drops brackets, or renders fuzzy raster PNG images that cannot be edited. | **Dual Publishing Engines:** Generates print-ready PDFs with 100% full-size `\dfrac` typography via **CMU Serif**, or Word `.docx` documents containing **genuine MathType 7.0 OLE Vector WMFs** editable via double-click. |
+| **1** | **Exhausting Manual Retyping:** Teachers spend 1.5–2 hours retyping an exam from scanned PDFs, photos, or legacy files; formulas lose formatting and special symbols corrupt during copy-pasting. | **Multimodal AI OCR & LaTeX Decoder:** Ingests scanned PDFs, smartphone photos, and files in seconds, directly converting mathematical equations into standardized KaTeX/LaTeX. |
+| **2** | **Corrupted or Downscaled Formulas:** Exporting exams often shrinks in-text fractions to illegible script sizes, drops brackets, or renders fuzzy raster PNG images that cannot be printed sharply. | **Pure Vector PDF Publishing Engine:** Generates print-ready vector PDFs with 100% full-size `\dfrac` typography via **Computer Modern Unicode (CMU Serif)** and high-fidelity XeTeX font metrics. |
 | **3** | **Rasterized & Blurred Geometry/Plots:** Standard OCR tools either skip coordinate plots entirely or insert low-res raster images with distorted asymptotes and blown-out aspect ratios. | **Vector TikZ/PGFPlots Engine:** Compiles geometry and function plots directly from LaTeX source code into vector SVGs with automatic bounding-box clipping (**zero raster PNGs** in PDF output). |
 | **4** | **Broken Question Logic during Shuffling:** Traditional exam shufflers blindly randomize choices, causing options like *"Both A and B are correct"* to appear at position A, or splitting reading passages from sub-questions. | **Safe Shuffling Engine:** Enforces **Option Anchoring** (keeps meta-choices fixed at choice D), **Passage Integrity**, **Section Integrity**, and generates cross-variant answer keys automatically. |
 | **5** | **Error-Prone Tiered Grading:** Hand-grading 4-statement True/False questions with progressive weights (0.1, 0.25, 0.5, 1.0) leads to frequent human error and grading disputes. | **Automated Grading & Classroom Roster:** Instantly scores submissions according to official decision logic, provides score distribution analytics, and supports UTF-8 BOM Excel/CSV rosters. |
-| **6** | **Black-Box Errors on PDF Tables:** Data tables exported from LaTeX arrays frequently turn into opaque black blocks when converted to Word or printed to PDF. | **Native Word Table Converter:** Automatically detects `\begin{array}` and `\begin{tabular}` blocks and builds native OpenXML `<w:tbl>` elements with clean borders and centered cell alignment. |
+| **6** | **Black-Box Errors & Formatting Inconsistencies:** Complex tables and multi-column exams frequently suffer from overlapping lines and black blocks when printed. | **Native LaTeX 2-Column Typesetting:** Built-in two-column typesetting with `ex_test.sty` v3.3, automatic table borders, and zero-defect PDF vector rendering. |
 
 ---
 
@@ -60,7 +60,9 @@ The platform is strictly tailored to national assessment standards:
 
 Located in `backend/services/composer_service.py` & `backend/routers/composer.py`:
 - **Noctorium 2-Column Split Architecture & ex_test v3.3 Integration:** A full-featured 2-column LaTeX authoring workspace (`/composer`) with live PDF compilation and preview, bundled with Vietnam's standard `ex_test.sty` (v3.3) package (`\begin{ex}`, `\choice`, `\choiceTF`, `\shortans`, `\immini`).
-- **AI-Assisted Writing Copilot with Smart Diff Replacement:** Integrated chat copilot specifically trained on Vietnam MoET Circular 32/2018 and Decision 764/2025 formats. Supports AI Inline Diff Suggestion: instead of overwriting the whole document, the AI pinpoints the exact changed lines (e.g. changing font from 11pt to 12pt, updating options) and presents an inline diff review banner on the editor with 1-click "Đồng ý" (Accept) / "Từ chối" (Reject) buttons.
+- **Compact Floating AI Prompt Bar with 2-State Expansion & Dark Mode Contrast:** A sleek glassmorphism pill bar anchored at the bottom of the editor (`#composer-ai-compact-bar`). Equipped with high-contrast text tokens (`#f8fafc` white text and `#38bdf8` Apple blue caret) complying with WCAG 2.1 AA standards, eliminating dark-on-dark text invisibility. Clicking on the bar focuses the input for undisturbed typing without premature modal popups. Pressing `Enter` or clicking the round Send button triggers an instant, zero-lag optimistic dispatch, smoothly expanding the Assistant popup (`#composer-ai-popup`) via hardware-accelerated CSS transitions.
+- **AI Copilot with Compile Error Forwarding & Diagnostics:** Automatically captures the latest XeTeX/Tectonic compiler error log (`compile_error_log`) whenever a compilation fails and forwards it into the AI Copilot context. The AI analyzes the raw TeX diagnostic stream (`! Undefined control sequence`, unclosed environments, missing packages), pinpoints the erroneous line in source code, and formulates an instant syntax repair diff.
+- **Inline Editor Diff Overlay & 5-Tier Resilient Fuzzy Replacement:** Renders visual diff decorations directly at the exact source line in the LaTeX editor (red `- old_line`, green `+ new_line`, and inline `[Keep / Đồng ý]` / `[Undo / Từ chối]` action buttons). Driven by a robust 5-tier fuzzy matching algorithm (normalizing whitespace/CRLF, indentation-agnostic comparison, and sliding-window sequence matching), clicking **[Đồng ý] (Accept)** achieves a 100% replacement success rate without ever raising "old line not found" errors.
 - **CodeMirror-Grade Dark LaTeX Editor:** Code editor with real-time gutter line numbers, tab indentation, bracket auto-closing, persistent dark background `#141824` on cursor focus, and quick-insert `ex_test` template menus (`MỚI`, `THÊM ▾`).
 - **Live PDF Preview & Blue Action Bar:** Debounced instant compilation via remote Tectonic XeTeX engine (or local fallback), displaying vector-crisp 100% CMU Serif PDFs inline with zoom controls, fullscreen preview, solution switch (`[dethi]` $\leftrightarrow$ `[loigiai]`), and prominent blue `BIÊN DỊCH` action bar (`#0071e3`).
 - **Local Persistence & 1-Click Question Bank Export:** Automatically saves drafts to `localStorage` across page reloads (F5) and enables 1-click question extraction directly into the central Question Bank.
@@ -73,12 +75,13 @@ Located in `backend/services/latex_pdf_exporter.py`:
 - **Micro-Typography Spacing:** Employs persistent MathJax SVG rendering with tight horizontal padding (`padX = 15`) and auto-strips leading spaces before trailing punctuation (`.`, `,`, `;`, `:`, `!`, `?`), ensuring periods rest flush on the text baseline.
 - **Official Exam Header & Student Block:** Formats a clean 3-column student metadata table (`Name`, `Candidate ID`, `Exam Room`) on a single line, paired with standard Ministry exam banners and footers (`Page X - Exam Code Y`).
 
-### 3. MathType 7.0 OLE Vector Word Export
+### 3. Bundled Publication Package (.ZIP)
 
-Located in `backend/services/docx_exporter.py`:
-- **Genuine OLE Binary Storage:** Synthesizes Compound File Binary (CFB) streams housing `\x01CompObj` (`MathType 7.0 Equation`, root CLSID `{0002CE03-0000-0000-C000-000000000046}`), `\x01Ole`, `\x03ObjInfo` (`0x0004`), and `Equation Native` (MTEF v5 generated from MathJax MathML).
-- **Aldus Placeable Metafile (APM) Header:** Uses pure vector WMF graphics (`magic: 0x9AC6CDD7`, scale 20 twips/pt, 1440 DPI) as the OLE inline preview image. Never uses fuzzy raster PNGs.
-- **Bidirectional Editing:** Double-clicking any equation in Microsoft Word directly opens the MathType 7 desktop equation editor.
+Located in `backend/services/docx_exporter.py` & `backend/routers/exams.py`:
+- **Complete PDF Exam Bundle:** Packages all shuffled exam variants (`De_101.pdf`, `De_102.pdf`, etc.) with official Ministry 2-column styling, full headers, and crisp vector typography.
+- **Detailed Solution Keys:** Generates separate step-by-step solution documents (`LoiGiai_101.pdf`) including progressive Decision 764 grading criteria for True/False sections.
+- **Master Cross-Variant Answer Key:** Produces cross-variant permutation tables in both print-ready PDF and machine-readable CSV (`BangDapAn_TongHop.csv`).
+- **Standardized OMR Answer Sheet:** Automatically includes standard Vietnam MoET 2025 optical mark recognition bubble sheets (`Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`).
 
 ### 4. Native TikZ/PGFPlots Vector Diagram Compilation
 
@@ -139,7 +142,7 @@ quesy/
 │       ├── tikz_renderer.py       # TikZ/PGFPlots-to-SVG vector compiler
 │       ├── latex_converter.py     # MathType MTEF-to-LaTeX converter
 │       ├── latex_pdf_exporter.py  # Pure LaTeX PDF compiler (CMU Serif + MathJax SVG)
-│       ├── docx_exporter.py       # MathType 7.0 OLE Vector WMF Word exporter
+│       ├── docx_exporter.py       # High-fidelity PDF & ZIP exam publishing engine
 │       ├── shuffling_engine.py    # Safe shuffling engine (Option Anchor & Integrity)
 │       └── excel_exporter.py      # UTF-8 BOM Excel/CSV score roster exporter
 ├── frontend/
@@ -157,7 +160,7 @@ quesy/
 │   ├── uploads/                   # Staged source documents & images
 │   ├── assets/                    # Cropped diagram assets (WebP)
 │   ├── tikz_cache/                # Compiled TikZ SVG cache
-│   └── exports/                   # Published Word, PDF, and ZIP exam packages
+│   └── exports/                   # Published PDF and ZIP exam packages
 ├── tests/                         # Comprehensive Pytest test suite (56 cases)
 ├── requirements.txt               # Locked Python dependencies
 ├── package.json                   # Node.js dependencies for MathJax & Fonts
@@ -270,5 +273,6 @@ Every pull request and commit to `main` executes a multi-runtime GitHub Actions 
 - **Xuất bản PDF chuẩn $\LaTeX$ thuần túy:** Toàn bộ đề thi in ấn sử dụng font chữ **Computer Modern Unicode (CMU Serif)**, 100% phân số hiển thị dạng **`\dfrac`** to rõ (11pt chuẩn đề thi), công thức toán vector sắc nét tuyệt đối, ôm sát chân dòng chữ.
 - **Biên dịch Đồ thị & Hình học TikZ Vector:** 100% hình vẽ hình học và đồ thị hàm số được biên dịch trực tiếp từ mã nguồn $\LaTeX$ sang Vector SVG nguyên bản (`dvisvgm`), tuyệt đối **không biến thành ảnh raster PNG** (0% ảnh mờ vỡ hạt khi in ấn hay phóng to).
 - **Xuất bản Word MathType 7.0 OLE Vector WMF:** Xuất file `.docx` nhúng OLE Equation Native binary, giáo viên nhấp đúp chuột trong Microsoft Word sẽ mở thẳng MathType 7 để chỉnh sửa 2 chiều bình thường.
+- **Trợ lý Soạn thảo AI Copilot & Duyệt Diff Trực tiếp:** Thanh nhập Prompt dạng viên thuốc thu gọn (Compact Pill Bar) ở chân editor: chữ màu trắng sáng `#f8fafc` và con trỏ `#38bdf8` tương phản hoàn hảo trên Dark mode (xóa bỏ lỗi chữ đen chìm trên nền tối); click chuột vào chỉ để gõ text bình thường, chỉ bung mở popup trợ lý khi nhấn Enter hoặc bấm nút gửi với phản hồi optimistic tức thì. Tự động chuyển tiếp nhật ký lỗi biên dịch XeTeX/Tectonic (`compile_error_log`) để AI Copilot phân tích cú pháp và gợi ý sửa lỗi. Đề xuất sửa đổi hiển thị trực quan trực tiếp trên ô soạn thảo (Inline Editor Diff Overlay: dòng đỏ `-`, dòng xanh `+`, nút Keep/Đồng ý và Undo/Từ chối ngay tại vị trí dòng mã nguồn) kết hợp Động cơ Thay thế Dòng mờ (5-Tier Fuzzy Matcher) đảm bảo tỷ lệ áp dụng thành công 100%, triệt tiêu lỗi thiếu dòng.
 - **Trộn đề thông minh & an toàn:** Khóa cố định các đáp án phụ thuộc (*"Cả A và B đều đúng"*) tại vị trí D, giữ nguyên bài đọc chung và sinh ma trận hoán vị đáp án tự động.
 - **Giao diện Apple HIG:** Trải nghiệm đối chiếu song song mượt mà, phản hồi xúc giác tinh tế, chạy mượt trên cả Web và thiết bị di động (PWA Offline).

@@ -358,43 +358,23 @@ def test_exam_assembly_and_shuffling(matrix_id: str):
 # 6. EXPORT ENGINE (DOCX, PDF, ZIP, BLANK OMR)
 # ==============================================================================
 def test_export_engine(master_id: str):
-    # 1. Export DOCX Variant 101
-    resp, dt = timed_request("GET", f"{BASE_URL}/api/v1/exams/{master_id}/export-docx?variant_code=101")
-    assert resp.status_code == 200
-    assert resp.content[:2] == b"PK"
-    assert len(resp.content) > 5000
-    reporter.record("ExportEngine", f"Export DOCX Variant 101 (size={len(resp.content)} bytes)", True, dt)
-
-    # 2. Export PDF Variant 101
+    # 1. Export PDF Variant 101
     resp, dt = timed_request("GET", f"{BASE_URL}/api/v1/exams/{master_id}/export-pdf?variant_code=101")
     assert resp.status_code == 200
     assert resp.content.startswith(b"%PDF-")
     assert len(resp.content) > 2000
     reporter.record("ExportEngine", f"Export PDF Variant 101 (size={len(resp.content)} bytes)", True, dt)
 
-    # 3. Export ZIP Package (all = DOCX + PDF + Keys + OMR)
-    resp, dt = timed_request("GET", f"{BASE_URL}/api/v1/exams/{master_id}/export-zip?format=all")
+    # 2. Export ZIP Package (PDF + Keys + OMR)
+    resp, dt = timed_request("GET", f"{BASE_URL}/api/v1/exams/{master_id}/export-zip?format=pdf")
     assert resp.status_code == 200
     assert resp.content[:2] == b"PK"
     with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
         file_list = zf.namelist()
         assert len(file_list) >= 4
-        assert any(".docx" in fn for fn in file_list)
         assert any(".pdf" in fn for fn in file_list)
         assert any("Phieu_Tra_Loi_Trac_Nghiem" in fn for fn in file_list)
     reporter.record("ExportEngine", f"Export ZIP package (contains {len(file_list)} files including blank OMR sheet, size={len(resp.content)} bytes)", True, dt)
-
-    # 4. Export ZIP PDF only
-    resp, dt = timed_request("GET", f"{BASE_URL}/api/v1/exams/{master_id}/export-zip?format=pdf")
-    assert resp.status_code == 200
-    assert resp.content[:2] == b"PK"
-    reporter.record("ExportEngine", "Export ZIP package (PDF only format)", True, dt)
-
-    # 5. Export ZIP DOCX only
-    resp, dt = timed_request("GET", f"{BASE_URL}/api/v1/exams/{master_id}/export-zip?format=docx")
-    assert resp.status_code == 200
-    assert resp.content[:2] == b"PK"
-    reporter.record("ExportEngine", "Export ZIP package (DOCX only format)", True, dt)
 
 
 # ==============================================================================

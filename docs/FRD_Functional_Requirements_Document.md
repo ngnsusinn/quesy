@@ -2,10 +2,10 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 2.7 (Tập trung hoàn thiện MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Bảo toàn chỉnh sửa 2 chiều)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, dựng đồ thị vector SVG, trộn đề an toàn và xuất bản in ấn.  
-- **Ngày phát hành:** 2026-10-18  
-- **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành  
+- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn và trợ lý soạn thảo AI copilot thông minh.  
+- **Ngày phát hành:** 2026-10-23  
+- **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
 ---
 
@@ -77,11 +77,12 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 
 ### 2.3. FR-02.1: Không Gian Soạn Thảo Đề Thi Phân Tách 2 Cột (Noctorium & Open-Prism Split Layout)
 - **Màn hình liên quan:** `SCR-COMPOSER-STUDIO`
-- **Bố cục giao diện:**
-  - **Cột bên trái (50%):**
-    - *Khung trên:* Trình soạn thảo mã nguồn LaTeX Dark mode (`#141824`, bảo toàn màu nền khi click con trỏ focus) với toolbar `MỚI`, `THÊM ▾` (7 template chuẩn `ex_test`), các phím tắt `Undo`, `Redo`, `Xóa`, `Copy`, đánh số dòng (gutter), thanh trạng thái dòng/cột và banner duyệt Diff đề xuất (`Đồng ý` / `Từ chối`).
-    - *Khung dưới:* Trợ lý Soạn thảo AI (Copilot) được bố trí ngay bên dưới khung soạn thảo với thanh gợi ý lệnh nhanh, hội thoại chat tương tác, cơ chế gợi ý Smart Diff Replace (chỉ thay thế đúng đoạn mã cần sửa, ví dụ đổi cỡ chữ 11pt sang 12pt, không ghi đè toàn bộ code cũ), 1-click chèn mã vào vị trí con trỏ và sao chép.
-  - **Cột bên phải (50%):**
+- **Bố cục không gian làm việc (Tỷ lệ 6:4):**
+  - **Cột bên trái (60%):**
+    - *Khung trên:* Trình soạn thảo mã nguồn LaTeX Dark mode (`#141824`, bảo toàn màu nền khi click con trỏ focus) với toolbar `MỚI`, `THÊM ▾` (7 template chuẩn `ex_test`), các phím tắt `Undo`, `Redo`, `Xóa`, `Copy`, đánh số dòng (gutter), thanh trạng thái dòng/cột.
+    - *Thanh Banner Duyệt Diff (`#composer-pending-diff-banner`):* Neo ngay trên vùng soạn thảo tại dòng cần thay đổi, hiển thị trực quan so sánh mã cũ và mới kèm 2 nút bấm `[Đồng ý]` / `[Từ chối]`.
+    - *Khung dưới:* Thanh nhập Prompt thu gọn (Compact Pill Bar) và Trợ lý Soạn thảo AI (Copilot Popup) hỗ trợ sinh câu hỏi trắc nghiệm, Đúng/Sai QĐ 764, bảng biến thiên `tkz-tab` và đồ thị TikZ.
+  - **Cột bên phải (40%):**
     - *Thanh công cụ trên (Light mode):* Hai tab điều hướng `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động chuyển đổi giữa chế độ in đề thi `[dethi]` và in lời giải `[loigiai]`), menu `XUẤT FILE ▾` (tải PDF, tải TeX, lưu Ngân hàng, sao chép mã).
     - *Khung giữa:* Bản xem trước PDF Trực tiếp (Live Preview) hiển thị PDF biên dịch sắc nét từ Tectonic XeTeX engine hoặc danh sách lịch sử các phiên bản.
     - *Chân trang (Footer):* Nút bấm toàn chiều rộng nổi bật màu xanh dương **`BIÊN DỊCH`** (`#0071e3`) kích hoạt biên dịch tài liệu tức thì.
@@ -93,6 +94,74 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   - **Nạp mẫu đề thi chuẩn:** Cung cấp sẵn các mẫu: Đề thi Chuẩn Quốc Gia 2025 (`ex_test` v3.3), Đề thi Chuẩn Thông tư 32 (3 phần), Chuyên đề Bảng biến thiên tkz-tab, Chuyên đề Hình học không gian TikZ, Tài liệu mới.
   - **Lưu vào Ngân hàng:** Trích xuất các câu hỏi từ mã LaTeX sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table) chỉ với 1 click, hỗ trợ đồng thời cả cú pháp `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`).
   - **Tải tệp PDF & .TEX:** Xuất bản tệp PDF vector-crisp 100% font CMU Serif và tệp nguồn LaTeX `.tex`.
+
+### 2.4.1. FR-02.3: Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Màu Tương Phản Dark Mode (High-Contrast Input Tokens)
+- **Vị trí & Kiểu dáng:**
+  - Thanh dạng viên thuốc (floating pill bar) neo tại chân khung soạn thảo LaTeX (`bottom-7`, căn giữa theo chiều ngang `left-1/2 -translate-x-1/2`, chiều rộng `w-[92%] max-w-xl`).
+  - Giao diện Apple Glassmorphism: Nền bán trong suốt `#1c1c1f/95`, hiệu ứng mờ hậu cảnh `backdrop-blur-md`, viền tinh tế `border-white/15`, đổ bóng sâu `shadow-2xl`.
+- **Quy tắc Tương tác & Kích hoạt 2 Trạng Thái:**
+  1. *Trạng thái Nhập liệu Cục bộ (In-place Text Input):*
+     - Khi người dùng nhấp chuột vào thanh hoặc trường nhập `#composer-compact-input`, con trỏ chuột duy trì dạng `cursor-text` và trường nhập nhận focus bình thường.
+     - **Quy tắc bất biến:** Việc nhấp chuột vào thanh hoặc trường nhập **tuyệt đối không tự động mở full popup trợ lý**. Giáo viên có thể thoải mái click để nhập, chỉnh sửa, dán (paste) nội dung yêu cầu mà không bị che khuất không gian làm việc.
+  2. *Trạng thái Kích hoạt Mở rộng & Gửi Lệnh (Expansion & Dispatch Trigger):*
+     - Chỉ khi người dùng thực hiện một trong hai hành động sau thì hệ thống mới kích hoạt mở bung full giao diện Popup Trợ lý Soạn thảo (`composer-ai-popup`):
+       - Nhấn phím **`Enter`** (bắt sự kiện `keydown` -> `handleCompactInputKey`).
+       - Nhấp chuột vào **Nút Gửi Mũi Tên Tròn** (nút màu trắng nền tròn với icon `arrow-up` -> `submitFromCompact`).
+     - Khi mở rộng:
+       - Popup Trợ lý trượt mượt mà từ đáy khung soạn thảo lên chiếm `56%` chiều cao (có thể phóng to `78%` hoặc toàn màn hình `92%`).
+       - Thanh Compact Bar tạm thời ẩn (`hidden`) để nhường chỗ cho giao diện chat chuyên sâu.
+       - Dữ liệu text trong Compact Input được tự động chuyển tiếp vào ô chat chính và xóa trắng ô thu gọn.
+       - Nếu có nội dung text, hệ thống tự động kích hoạt tiến trình gửi yêu cầu `sendPrompt(text)` đến Backend, chèn tin nhắn người dùng vào lịch sử và hiển thị bong bóng loading `Trợ lý đang xử lý yêu cầu...`.
+  3. *Menu Mẫu Câu Lệnh Nhanh (Quick Actions):*
+     - Nút dấu cộng `+` bên cạnh nút gửi cho phép mở menu popover danh mục prompt tiêu chuẩn (Đổi cỡ chữ 12pt, Sinh trắc nghiệm 4 lựa chọn, Sinh Đúng/Sai QĐ 764, Vẽ bảng biến thiên `tkz-tab`, Sửa cú pháp LaTeX).
+     - Khi chọn một mẫu, hệ thống tự động mở popup và điền sẵn prompt vào ô chat.
+- **Quy chuẩn Màu Tương Phản Dark Mode (Sửa lỗi chữ đen trên nền tối):**
+  - Khắc phục triệt để lỗi chữ màu đen `#1d1d1f` bị chìm trên nền tối `#1c1c1f` / `#141824`.
+  - Thiết lập design tokens bắt buộc với độ ưu tiên cao (`!important`) cho cả 2 trường nhập liệu `#composer-compact-input` và `#composer-chat-input`:
+    - *Text Color:* `#f8fafc` (Slate-50) hoặc `#ffffff` xuyên suốt mọi trạng thái (default, hover, focus, active).
+    - *Placeholder Color:* `rgba(226, 232, 240, 0.5)` (Slate-200 / 50%) phân biệt rõ ràng nhưng dịu mắt trên nền tối.
+    - *Caret Color (Con trỏ nhập liệu):* `#38bdf8` (Sky-400 / Apple Blue) định vị sắc nét vị trí con trỏ.
+    - *Selection Color:* `::selection { background-color: rgba(59, 130, 246, 0.4); color: #ffffff; }`.
+    - *Background & Borders:* Nền trong suốt `background-color: transparent !important`, loại bỏ toàn bộ viền trong, bóng hộp mặc định (`border: none !important; outline: none !important; box-shadow: none !important`).
+
+### 2.4.2. FR-02.4: Động Cơ Thay Thế Dòng Mờ Đa Tầng (Fuzzy Line Replacement Engine)
+- **Mục tiêu Nghiệp vụ:** Khi giáo viên nhấn [Đồng ý áp dụng] / [Apply], hệ thống phải thay thế chuẩn xác đoạn mã nguồn được đề xuất với tỷ lệ thành công $\ge 99.5\%$, triệt tiêu hoàn toàn thông báo lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
+- **Thuật toán Khớp Mờ 5 Tầng (5-Tier Resilient Line Matcher):**
+  1. *Tầng 1 - Exact Substring Match:* Tìm kiếm nguyên bản `old_text` trong bộ đệm văn bản hiện hành `editor.value` (đồng bộ hai chiều với `this.currentLatex`).
+  2. *Tầng 2 - Whitespace & Linebreak Normalization:* Chuẩn hóa toàn bộ ngắt dòng Windows CRLF (`
+\n`) về Unix LF (`\n`), đồng thời loại bỏ khoảng trắng thừa cuối dòng (trailing spaces).
+  3. *Tầng 3 - Indentation-Insensitive Match & Preserved Re-indent:* Phân rã khối văn bản thành từng dòng, bỏ qua thụt lề đầu dòng (leading indentation / tabs / spaces) để tìm kiếm khối dòng tương đồng; khi áp dụng `new_text`, tự động tái gán thụt lề ban đầu của mã nguồn để bảo toàn cấu trúc code thẩm mỹ.
+  4. *Tầng 4 - Sliding Window Sequence Matcher:* Quét cửa sổ trượt $W \in [M - 2, M + 3]$ dòng quanh vị trí nghi vấn, tính toán tỷ lệ tương đồng ký tự qua thuật toán Levenshtein / Gestalt Pattern Matching; tự động chấp nhận thay thế khi độ tương đồng $\ge 0.60$.
+  5. *Tầng 5 - Pinned Line Index & Range Replacement:* Sử dụng số thứ tự dòng (`lineNo`) và phạm vi chỉ số ký tự (`matchRange: [start, end]`) đã được xác định và ghim cố định từ bước hiển thị gợi ý `showPendingDiff()` để thay thế trực tiếp vào phạm vi đó nếu chuỗi văn bản đã bị biến đổi nhẹ.
+
+### 2.4.3. FR-02.5: Giao Diện Trực Quan Hóa Diff Trực Tiếp Trên Ô Soạn Thảo (Inline Editor Diff Overlay / Widget)
+- **Mục tiêu:** Cung cấp trải nghiệm chỉnh sửa hiện đại tương đương Cursor / VS Code Copilot: hiển thị khối so sánh Diff trực quan trực tiếp tại đúng vị trí dòng mã nguồn cần sửa đổi trên trình soạn thảo.
+- **Cấu trúc & Thành phần Giao diện:**
+  1. *Khối Dòng Đỏ Xóa (`- <old_line>`):* Nền đỏ mờ `rgba(225, 29, 72, 0.15)` (`bg-rose-950/70`), viền trái đỏ tươi `border-l-4 border-rose-500`, văn bản đỏ `text-rose-300`, hiển thị chính xác nội dung dòng mã cũ kèm ký hiệu `-`.
+  2. *Khối Dòng Xanh Thêm (`+ <new_line>`):* Nền xanh lục mờ `rgba(16, 185, 129, 0.15)` (`bg-emerald-950/70`), viền trái xanh ngọc `border-l-4 border-emerald-500`, văn bản xanh `text-emerald-300`, hiển thị chính xác nội dung dòng mã mới kèm ký hiệu `+`.
+  3. *Thanh Điều Khiển Hành Động Nội Dòng (Inline Action Pill Bar):*
+     - Nút **`[Keep / Đồng ý]`**: Icon checkmark, nền xanh dương `bg-blue-600 hover:bg-blue-500 text-white`, nhấp vào áp dụng ngay thay đổi qua Fuzzy Replacement Engine, tự động kích hoạt `compile(true)` và xóa bỏ overlay diff.
+     - Nút **`[Undo / Từ chối]`**: Icon undo / dismiss, nền xám tối `bg-slate-700 hover:bg-slate-600 text-slate-200`, nhấp vào hủy bỏ gợi ý sửa đổi, khôi phục trạng thái con trỏ và giữ nguyên vẹn 100% mã nguồn.
+  4. *Neo Tọa Độ & Đồng Bộ Cuộn:* Vị trí của Inline Overlay được neo theo tọa độ dòng nguồn trong editor (`top = (lineNo - 1) * lineHeight`), tự động cuộn đồng bộ mượt mà khi người dùng cuộn textarea editor.
+  5. *Song Hành Cùng Banner Đỉnh:* Duy trì banner cố định trên đầu editor (`#composer-pending-diff-banner`) đóng vai trò thanh thông báo tổng quan, cho phép giáo viên thao tác ở cả hai vị trí (nội dòng hoặc trên banner) với hiệu ứng đồng bộ tuyệt đối.
+
+### 2.4.4. FR-02.6: Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding & Diagnostics)
+- **Mục tiêu:** Hỗ trợ giáo viên khắc phục lỗi cú pháp LaTeX / Tectonic tức thì mà không cần tự đọc log lỗi dòng lệnh phức tạp.
+- **Luồng Dữ Liệu:**
+  1. *Ghi nhận Lỗi Biên dịch:* Khi biên dịch `POST /api/v1/composer/compile` trả về lỗi (`success = false`), client tự động bắt lấy thông điệp lỗi `errMsg = data.error` và lưu trữ bền vững vào `app.composer.lastCompileError`.
+  2. *Chuyển tiếp Tự động:* Khi người dùng gửi prompt kế tiếp (nhất là câu lệnh yêu cầu sửa lỗi như "sửa lỗi", "tại sao lỗi"), payload gửi đến `POST /api/v1/composer/chat` tự động đính kèm trường `compile_error_log: this.lastCompileError`.
+  3. *Chẩn đoán & Sinh Diff Sửa Lỗi Phía Server:*
+     - API `composer.py` trích xuất thông tin lỗi từ log (ví dụ: `! Undefined control sequence \badcommand`, `! Missing $ inserted`, `l.18 ...`).
+     - AI Copilot phân tích ngữ cảnh `current_latex`, khoanh vùng dòng mã gây lỗi, và tự động tạo khối `diff` đề xuất phương án sửa: thay thế bằng lệnh chuẩn, thêm gói lệnh thiếu vào preamble, hoặc đóng chú thích `%` để loại bỏ lỗi.
+  4. *Thiết lập Lại Trạng Thái:* Khi bản biên dịch tiếp theo thành công, `lastCompileError` tự động reset về `null`.
+
+### 2.4.5. FR-02.7: Tối Ưu Hóa Hiệu Năng Gửi Prompt & Box Chat Mượt Mà (Fast Prompt Dispatch & Smooth Chat Micro-Interactions)
+- **Mục tiêu:** Loại bỏ hoàn toàn cảm giác giật, lag hoặc độ trễ khi thao tác trên thanh nhập lệnh và hộp thoại Trợ lý AI.
+- **Tiêu chuẩn Kỹ thuật:**
+  1. *Phản Hồi Lập Tức (Optimistic UI & Instant Transition):* Khi người dùng nhấn `Enter` hoặc nhấp nút gửi, trong vòng $\le 16$ ms (1 frame), thanh compact input lập tức ẩn, nội dung tin nhắn được đẩy vào lịch sử hội thoại, khung chat cuộn mượt đến đáy (`behavior: 'smooth'`) và hiển thị bong bóng loading `Trợ lý đang xử lý yêu cầu...`.
+  2. *Chuyển Động Hardware-Accelerated:* Hộp thoại Popup Trợ lý sử dụng thuộc tính CSS `transform: translate3d(0, 0, 0)`, `transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1)`, loại bỏ tình trạng giật cục (jank) khi co giãn chiều cao.
+  3. *Tối Ưu DOM & Lucide Icon Parsing:* Thay vì quét toàn trang qua `lucide.createIcons()`, hệ thống chỉ gọi render icon cục bộ trong node tin nhắn mới, giảm thiểu 95% thời gian layout thrashing.
+  4. *Non-blocking Async AI Request:* Kết nối Backend AI sử dụng `httpx.AsyncClient` bất đồng bộ với timeout linh hoạt 15s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu hiện tượng đóng băng socket hay nghẽn thread pool.
 
 ---
 
@@ -280,3 +349,43 @@ Hệ thống hỗ trợ 5 thể thức khảo thí:
   }
   ```
 - **Response:** `201 Created`
+
+### 3.3. API Trợ Lý Soạn Thảo & Đề Xuất Sửa Đổi Diff (AI Copilot Chat Endpoint)
+- **Endpoint:** `POST /api/v1/composer/chat`
+- **Mô tả:** Tiếp nhận yêu cầu prompt từ giáo viên (từ thanh compact hoặc chat popup), phân tích cùng ngữ cảnh LaTeX hiện tại, bóc tách đề xuất sửa đổi thành cấu trúc `DiffSuggestion` để hiển thị trên editor.
+- **Content-Type:** `application/json`
+- **Request Body Payload:**
+  ```json
+  {
+    "message": "Đổi cỡ chữ toàn tài liệu sang 12pt",
+    "current_latex": "\\documentclass[11pt,a4paper]{article}\n\\usepackage{fontspec}\n\\begin{document}\n\\end{document}",
+    "history": [
+      {
+        "role": "user",
+        "content": "Chào trợ lý"
+      },
+      {
+        "role": "assistant",
+        "content": "Chào bạn! Tôi có thể hỗ trợ gì cho đề thi của bạn?"
+      }
+    ]
+  }
+  ```
+- **Response Payload (`200 OK`):**
+  ```json
+  {
+    "reply": "Tôi đề xuất thay đổi cỡ chữ toàn tài liệu từ `11pt` sang `12pt` tại dòng khai báo `\\documentclass`:\n\n```diff\n- \\documentclass[11pt,a4paper]{article}\n+ \\documentclass[12pt,a4paper]{article}\n```\n\nBấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này.",
+    "suggested_latex": null,
+    "diff": {
+      "action": "replace",
+      "old_text": "\\documentclass[11pt,a4paper]{article}",
+      "new_text": "\\documentclass[12pt,a4paper]{article}",
+      "description": "Đổi cỡ chữ toàn tài liệu sang 12pt"
+    }
+  }
+  ```
+- **Mô tả chi tiết Schema `DiffSuggestion`:**
+  - `action` (`string`, required): Kiểu tác động (`replace` = thay thế đoạn mã hiện có; `insert` = chèn đoạn mã mới vào vị trí con trỏ).
+  - `old_text` (`string`, required): Đoạn mã LaTeX cũ cần tìm và thay thế trong tài liệu hiện tại.
+  - `new_text` (`string`, required): Đoạn mã LaTeX mới thay thế tương ứng.
+  - `description` (`string`, required): Chuỗi tóm tắt mục đích sửa đổi để hiển thị trên huy hiệu banner editor.

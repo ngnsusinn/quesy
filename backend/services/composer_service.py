@@ -40,7 +40,7 @@ TEMPLATES: Dict[str, Dict[str, str]] = {
     "ex_test_standard_exam": {
         "title": "Đề thi Chuẩn Quốc Gia 2025 (Gói ex_test v3.3)",
         "description": "Đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn (\\choice), Đúng/Sai (\\choiceTF), Trả lời ngắn (\\shortans), chèn hình \\immini.",
-        "latex": r"""\documentclass[12pt,a4paper]{article}
+        "latex": r"""\documentclass[11pt,a4paper]{article}
 \usepackage{fontspec}
 \usepackage{amsmath,amssymb}
 \usepackage{tikz,tkz-tab}

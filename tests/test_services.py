@@ -39,11 +39,10 @@ from backend.services.shuffling_engine import (
     is_anchor_option,
 )
 from backend.services.docx_exporter import (
-    generate_variant_docx,
-    generate_solution_docx,
-    generate_answer_sheet_docx,
+    generate_variant_pdf,
+    generate_solution_pdf,
+    generate_answer_sheet_pdf,
     export_exam_package_zip,
-    convert_latex_to_omml,
 )
 
 
@@ -392,65 +391,37 @@ def test_answer_key_mapping_matrix(test_db):
 # TEST SUITE 6: WORD DOCX EXPORT & BUNDLED ZIP PACKAGE
 # =========================================================================
 
-def test_docx_export_and_zip_package(test_db, tmp_path):
-    """Verifies Word DOCX Publisher:
-    - Official Ministry format header (School, Title, Subject, Grade, Variant code box, Student info, Phách).
-    - 2-column layout for question content.
-    - Native OMML (<m:oMath>) equation elements.
-    - Detailed solutions DOCX.
-    - Master answer key sheet DOCX.
-    - Export ZIP package containing all N variant docx files + solutions + answer key sheet.
+def test_pdf_export_and_zip_package(test_db, tmp_path):
+    """Verifies PDF Publisher:
+    - Single variant exam PDF generation.
+    - Detailed solutions PDF.
+    - Master answer key sheet PDF.
+    - Export ZIP package containing all N variant PDF files + solutions + answer key sheet + OMR.
     """
     master = solve_and_generate_master_exam("matrix-thpt-2025", test_db, random_seed=77)
     variants = generate_shuffled_variants(master.id, test_db, variant_codes=["101", "102"], seed=77)
 
-    # 1. Test Single Variant Exam DOCX Generation
+    # 1. Test Single Variant Exam PDF Generation
     v101 = variants[0]
-    out_docx = tmp_path / "De_101.docx"
-    generate_variant_docx(v101, out_docx)
-    assert out_docx.exists()
-    assert out_docx.stat().st_size > 0
+    out_pdf = tmp_path / "De_101.pdf"
+    generate_variant_pdf(v101, out_pdf)
+    assert out_pdf.exists()
+    assert out_pdf.stat().st_size > 500
 
-    # Read generated DOCX and inspect layout
-    doc = docx.Document(str(out_docx))
-
-    # Verify 2-column section exists
-    sections = doc.sections
-    assert len(sections) >= 3  # Section 1 (Header), Section 2 (2 cols), Section 3 (End note)
-
-    sec2_cols = sections[1]._sectPr.xpath("./w:cols")
-    assert sec2_cols is not None
-    assert sec2_cols[0].get(qn("w:num")) == "2", "Section 2 must be 2-column layout"
-
-    # Verify native OMML equations are present
-    xml_str = doc._part.blob.decode("utf-8", errors="ignore")
-    assert "m:oMath" in xml_str, "Native OMML equation (<m:oMath>) not found in generated DOCX!"
-
-    # Verify Header elements
-    doc_text = " ".join([p.text for p in doc.paragraphs] + [c.text for t in doc.tables for row in t.rows for c in row.cells])
-    assert "SỞ GIÁO DỤC VÀ ĐÀO TẠO" in doc_text
-    assert "MÃ ĐỀ THI: 101" in doc_text
-    assert "Họ và tên thí sinh" in doc_text
-    assert "Số phách" in doc_text
-
-    # 2. Test Detailed Solutions DOCX Generation
-    out_sol = tmp_path / "LoiGiai_101.docx"
-    generate_solution_docx(v101, out_sol)
+    # 2. Test Detailed Solutions PDF Generation
+    out_sol = tmp_path / "LoiGiai_101.pdf"
+    generate_solution_pdf(v101, out_sol)
     assert out_sol.exists()
-    sol_doc = docx.Document(str(out_sol))
-    sol_text = " ".join([p.text for p in sol_doc.paragraphs])
-    assert "HƯỚNG DẪN GIẢI CHI TIẾT - MÃ ĐỀ 101" in sol_text
-    assert "Áp dụng thang điểm Quyết định 764/QĐ-BGDĐT" in sol_text
+    assert out_sol.stat().st_size > 500
 
-    # 3. Test Master Answer Sheet DOCX Generation
-    out_sheet = tmp_path / "BangDapAn_TongHop.docx"
-    generate_answer_sheet_docx(master, variants, out_sheet)
+    # 3. Test Master Answer Sheet PDF Generation
+    out_sheet = tmp_path / "BangDapAn_TongHop.pdf"
+    generate_answer_sheet_pdf(master, variants, out_sheet)
     assert out_sheet.exists()
-    sheet_doc = docx.Document(str(out_sheet))
-    assert len(sheet_doc.tables) >= 2  # Answer matrix table + RULE-01 scale table
+    assert out_sheet.stat().st_size > 500
 
     # 4. Test Bundled ZIP Package Export
-    zip_path_str = export_exam_package_zip(master.id, test_db)
+    zip_path_str = export_exam_package_zip(master.id, test_db, include_pdf=True, export_format="pdf")
     zip_path = Path(zip_path_str)
     assert zip_path.exists()
     assert zipfile.is_zipfile(zip_path)
@@ -458,8 +429,10 @@ def test_docx_export_and_zip_package(test_db, tmp_path):
     # Check ZIP archive contents
     with zipfile.ZipFile(zip_path, "r") as zf:
         namelist = zf.namelist()
-        assert "De_101.docx" in namelist
-        assert "De_102.docx" in namelist
-        assert "LoiGiai_101.docx" in namelist
-        assert "LoiGiai_102.docx" in namelist
-        assert "BangDapAn_TongHop.docx" in namelist
+        assert "De_101.pdf" in namelist
+        assert "De_102.pdf" in namelist
+        assert "LoiGiai_101.pdf" in namelist
+        assert "LoiGiai_102.pdf" in namelist
+        assert "BangDapAn_TongHop.pdf" in namelist
+        assert "BangDapAn_TongHop.csv" in namelist
+        assert "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf" in namelist

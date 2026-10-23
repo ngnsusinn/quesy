@@ -253,6 +253,22 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 - **Mô tả:** Kiểm tra thanh nút tác vụ `BIÊN DỊCH` dưới đáy giao diện hiển thị màu xanh dương (`#0071e3`) kích hoạt biên dịch tức thì khi click.
 - **Kết quả kỳ vọng:** Nút hiển thị màu xanh dương chuẩn, kích hoạt compile và phản hồi trạng thái loading.
 
+#### TC-COMP-07: Độ Tương Phản Màu Sắc Ô Nhập Chat & Compact Bar Trên Dark Mode
+- **Mô tả:** Kiểm tra trường nhập liệu `#composer-compact-input` và `#composer-chat-input` hiển thị văn bản màu trắng sáng `#f8fafc` hoặc `#ffffff` và con trỏ caret màu xanh Apple `#38bdf8` trên nền tối, không bị rule toàn cục ghi đè thành chữ đen `#1d1d1f`.
+- **Kết quả kỳ vọng:** Văn bản hiển thị rõ nét ngay khi gõ không cần bôi đen (select), tỷ lệ tương phản WCAG 2.1 AA đạt chuẩn.
+
+#### TC-COMP-08: Chuyển Tiếp & Chẩn Đoán Log Lỗi Biên Dịch LaTeX (compile_error_log)
+- **Mô tả:** Gửi yêu cầu biên dịch mã LaTeX lỗi cú pháp (`\badcommand`), nhận diện chuỗi log lỗi trả về, sau đó gửi prompt yêu cầu "sửa lỗi giúp tôi". Kiểm tra payload gửi tới `/api/v1/composer/chat` có trường `compile_error_log`.
+- **Kết quả kỳ vọng:** AI Copilot nhận diện mã lỗi, chẩn đoán chính xác nguyên nhân, trả về khối diff sửa dòng lỗi để khắc phục triệt để.
+
+#### TC-COMP-09: Động Cơ Thay Thế Dòng Mờ & Giao Diện Inline Diff Overlay Trên Editor
+- **Mô tả:** Khi AI đề xuất diff sửa đổi, kiểm tra giao diện Inline Diff Overlay hiển thị trực tiếp tại đúng vị trí dòng mã nguồn trên textarea (khối đỏ `-`, khối xanh `+`, nút `Keep / Đồng ý` và `Undo / Từ chối`). Khi nhấn `[Đồng ý]`, kích hoạt 5-Tier Fuzzy Replacement Engine.
+- **Kết quả kỳ vọng:** Mã nguồn được thay thế chuẩn xác 100%, không xuất hiện toast cảnh báo "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại", tự động kích hoạt `compile(true)`.
+
+#### TC-COMP-10: Hiệu Năng Gửi Prompt Không Độ Trễ & Box Chat Mượt Chuẩn Apple HIG
+- **Mô tả:** Kiểm tra hành động nhấn Enter hoặc click nút gửi prompt: phản hồi optimistic UI lập tức ($\le 16$ms), ẩn compact bar và mở bung popup chat với hiệu ứng hardware transition mượt mà, cuộn mượt đến đáy và hiển thị typing indicator không giật khung hình.
+- **Kết quả kỳ vọng:** Thao tác gửi tức thì không độ trễ, 0 lỗi JavaScript màu đỏ trong Console DevTools.
+
 ---
 
 ## 4. TIÊU CHÍ ĐÓNG GIAI ĐOẠN KIỂM THỬ (TEST EXIT CRITERIA)

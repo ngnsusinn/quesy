@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 2.7 (Tập trung hoàn thiện MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Bảo toàn chỉnh sửa 2 chiều)  
+- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ bảo mật dữ liệu đề thi, tính sẵn sàng cao và trải nghiệm người dùng không độ trễ.  
-- **Ngày phát hành:** 2026-10-21  
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, độ tin cậy của thuật toán thay thế dòng mờ, độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.  
+- **Ngày phát hành:** 2026-10-23
 
 ---
 
@@ -53,6 +53,9 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
   1. *Microservice Tectonic Docker:* Độc lập trên container Docker (được triển khai trên host ARM/Armbian tại cổng 8090), sử dụng engine Tectonic XeTeX tự động nạp packages CTAN theo nhu cầu, cache gói dữ liệu liên hoàn, tốc độ biên dịch $\le 10$s cho đề thi tiếng Việt đầy đủ bảng biến thiên `tkz-tab` và đồ thị TikZ.
   2. *Local Native Tectonic:* Tự động kích hoạt khi có binary `tectonic` trong PATH hệ thống.
   3. *Headless Chromium Fallback:* Cơ chế dự phòng nội tại với Chromium + MathJax 4.0 + TikZ Vector SVG + CMU Serif typography bảo đảm hệ thống luôn xuất bản được PDF chất lượng cao ngay cả khi ngắt kết nối mạng ngoài.
+- **NFR-PERF-12 (Tốc độ Phản hồi Gửi Prompt Trợ lý AI - Optimistic Dispatch):** Khi người dùng nhấn Enter hoặc bấm gửi, giao diện phản hồi optimistic cập nhật bong bóng chat trong vòng $\le 16$ ms (1 frame); timeout Backend kết nối nhà cung cấp AI ngoài khống chế $\le 15$s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu độ trễ gây đóng băng UI.
+- **NFR-UX-01 (Độ Tương phản Màu sắc Giao diện Dark Mode - WCAG 2.1 AA):** Tỷ lệ tương phản giữa chữ và nền ô chat (`#composer-compact-input` và `#composer-chat-input`) bắt buộc đạt $\ge 7:1$ (sử dụng văn bản trắng sáng `#f8fafc` trên nền tối `#1c1c1f` / `#141824`, con trỏ caret màu xanh Apple `#38bdf8`), loại bỏ hoàn toàn lỗi chữ đen chìm trên nền tối.
+- **NFR-REL-03 (Độ Tin cậy của Động cơ Thay thế Diff - Zero Drift Fuzzy Matcher):** Tỷ lệ áp dụng diff sửa đổi thành công qua thuật toán so khớp mờ 5 tầng đạt $\ge 99.5\%$, triệt tiêu lỗi false-negative "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại" do khoảng trắng, ngắt dòng hoặc thụt lề.
 
 ---
 

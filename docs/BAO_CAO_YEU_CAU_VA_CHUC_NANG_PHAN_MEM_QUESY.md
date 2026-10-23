@@ -27,6 +27,7 @@
    - [4.7. Phân hệ Động cơ Trộn Đề An Toàn (Safe Shuffling Engine)](#47-phân-hệ-động-cơ-trộn-đề-an-toàn-safe-shuffling-engine)
    - [4.8. Phân hệ Xuất bản Đề thi Word OMML 2 Cột & In ấn (Publishing & Export Service)](#48-phân-hệ-xuất-bản-đề-thi-word-omml-2-cột--in-ấn-publishing--export-service)
    - [4.9. Phân hệ Chấm điểm Bậc thang & Quản lý Bảng điểm Lớp học (Grade & Roster Management)](#49-phân-hệ-chấm-điểm-bậc-thang--quản-lý-bảng-điểm-lớp-học-grade--roster-management)
+   - [4.10. Phân hệ Soạn đề LaTeX Trực tiếp & Trợ lý AI Copilot (Composer & Smart Diff)](#410-phân-hệ-soạn-đề-latex-trực-tiếp--trợ-lý-ai-copilot-composer--smart-diff)
 5. [Yêu cầu Phi chức năng & Trải nghiệm Người dùng (NFR & UX)](#5-yêu-cầu-phi-chức-năng--trải-nghiệm-người-dùng-nfr--ux)
 6. [Ma trận Phân định Trách nhiệm & Nghiệm thu (Traceability & Acceptance Matrix)](#6-ma-trận-phân-định-trách-nhiệm--nghiệm-thu-traceability--acceptance-matrix)
 
@@ -292,6 +293,33 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
 
 ---
 
+### 4.10. Phân hệ Soạn đề LaTeX Trực tiếp & Trợ lý AI Copilot (Composer & Smart Diff)
+
+* **Mã phân hệ:** `MOD-10`
+* **Mục tiêu:** Cung cấp không gian làm việc chuyên nghiệp chuẩn hóa theo gói lệnh quốc gia `ex_test.sty` v3.3, biên dịch PDF thời gian thực (Live Preview) và tích hợp Trợ lý AI Copilot hỗ trợ soạn thảo, đề xuất sửa lỗi cục bộ thông minh.
+* **Các chức năng chi tiết:**
+  1. **Không gian Làm việc Phân tách 2 Cột (6:4 Split View):**
+     - Cột trái (60%): Editor mã nguồn Dark mode (`#141824`), toolbar `MỚI`, `THÊM ▾` (7 mẫu lệnh `ex_test`), đánh số dòng, hoàn tác/làm lại, dọn dẹp, sao chép.
+     - Cột phải (40%): Xem trước trực tiếp tệp PDF biên dịch từ XeTeX Engine (Live Preview), tab Lịch sử biên dịch, công tắc LỜI GIẢI (`[dethi]` $\leftrightarrow$ `[loigiai]`), menu xuất PDF/TeX/Ngân hàng và thanh nút bấm nổi bật màu xanh **`BIÊN DỊCH`**.
+  2. **Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Tương Phản Dark Mode (High-Contrast Tokens):**
+     - Thanh dạng viên thuốc (floating pill bar) neo tại chân editor (`#composer-ai-compact-bar`), thiết kế bán trong suốt Apple Glassmorphism.
+     - *Độ tương phản Dark Mode (WCAG 2.1 AA):* Chữ trong ô input `#composer-compact-input` và ô chat chính `#composer-chat-input` hiển thị màu trắng sáng `#f8fafc`, caret màu xanh Apple `#38bdf8`, loại bỏ hoàn toàn lỗi chữ đen chìm trên nền tối.
+     - *Hành vi click:* Nhấp chuột vào thanh chỉ để focus con trỏ văn bản (`cursor-text`) và nhập liệu bình thường; **tuyệt đối không tự động mở full popup trợ lý** để tránh gián đoạn không gian soạn thảo.
+     - *Kích hoạt mở rộng & Optimistic Fast Dispatch:* Chỉ khi người dùng nhấn phím **`Enter`** hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**, hệ thống mới mở bung giao diện Popup Trợ lý Soạn thảo (`#composer-ai-popup`) với hiệu ứng phần cứng mượt mà trong $\le 16$ms, chuyển tiếp chuỗi prompt và kích hoạt luồng trả lời của AI Copilot.
+     - *Menu mẫu lệnh nhanh:* Nút dấu cộng `+` cung cấp sẵn các mẫu prompt chuẩn (đổi cỡ chữ 12pt, tạo câu hỏi Phần I/II/III, vẽ bảng biến thiên `tkz-tab`, sửa lỗi cú pháp LaTeX).
+  3. **Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding):**
+     - Khi biên dịch LaTeX qua Tectonic/XeTeX phát sinh lỗi (`success = false`), hệ thống tự động lưu giữ thông báo lỗi vào `lastCompileError`.
+     - Prompt tiếp theo của người dùng tự động đính kèm `compile_error_log` để AI Copilot phân tích cú pháp TeX và tự động đề xuất khối `diff` sửa lỗi trực tiếp dòng mã nguồn bị sai.
+  4. **Động Cơ Thay Thế Dòng Mờ (Fuzzy Replacement) & Inline Editor Diff Overlay Trực Tiếp Tại Dòng:**
+     - Bên cạnh banner đỉnh `#composer-pending-diff-banner`, hệ thống trang bị Giao diện Diff Nội Dòng (Inline Editor Diff Overlay / Widget) neo trực tiếp tại đúng vị trí dòng mã nguồn trên textarea:
+       + Dòng đỏ xóa (`- old_text`): Nền `rose-950/70`, viền trái đỏ tươi `border-l-4 border-rose-500`, chữ đỏ `text-rose-300`.
+       + Dòng xanh thêm (`+ new_text`): Nền `emerald-950/70`, viền trái xanh ngọc `border-l-4 border-emerald-500`, chữ xanh `text-emerald-300`.
+       + Nút điều khiển nội dòng: **`[Keep / Đồng ý]`** và **`[Undo / Từ chối]`** ngay tại dòng mã nguồn.
+     - Động cơ Khớp Mờ 5 Tầng (5-Tier Resilient Line Matcher): Chuẩn hóa ngắt dòng, bỏ qua thụt lề, quét cửa sổ trượt và thay thế theo phạm vi dòng đã ghim `pinnedRange`, bảo đảm tỷ lệ thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
+     - Thẻ Diff Card tương tác song song trong luồng chat lịch sử cho phép xem lại và tái áp dụng đề xuất bất cứ lúc nào.
+
+---
+
 ## 5. YÊU CẦU PHI CHỨC NĂNG & TRẢI NGHIỆM NGƯỜI DÙNG (NFR & UX)
 
 1. **Thiết kế Trải nghiệm Chuẩn Apple Human Interface Guidelines (HIG):**
@@ -326,6 +354,7 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
 | **MOD-07** | `FEAT-07` | Trộn đề an toàn: Option Anchor (Khóa D), Passage Integrity, Section Integrity | Test tự động `test_rules_shuffling.py`: 1.000 lần sinh mã đề, $0\%$ câu neo bị đảo, $0\%$ bài đọc bị tách rời. |
 | **MOD-08** | `FEAT-08` | Xuất file Word 2 cột OMML native, PDF vector in ấn, đóng gói trọn bộ ZIP | Test tự động `test_docx_export.py`: Mở file Word trên MS Word công thức chuẩn OMML `<m:oMath>`, không vỡ cột. |
 | **MOD-09** | `FEAT-09` | Chấm điểm Đúng/Sai bậc thang (0.1 - 0.25 - 0.5 - 1.0), xuất Excel UTF-8 BOM | Test tự động `test_excel_roster_import_export.py`: Điểm số chính xác, file CSV không lỗi font tiếng Việt. |
+| **MOD-10** | `FEAT-10` | Soạn đề LaTeX, Compact Prompt Bar (click để gõ, Enter mở popup), AI Inline Diff [Đồng ý]/[Từ chối] | Test tự động `test_composer.py`: Bóc tách diff `DiffSuggestion` chuẩn xác, thay thế đúng dòng và recompile thành công. |
 
 ---
 *Báo cáo được biên soạn và chuẩn hóa phục vụ lưu trữ tài liệu kỹ thuật của dự án Quesy.*

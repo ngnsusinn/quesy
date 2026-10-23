@@ -2,9 +2,9 @@ name: Quesy CI Test Suite
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, feat, 'feat/**' ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, feat ]
 
 jobs:
   test:

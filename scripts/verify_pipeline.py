@@ -44,11 +44,8 @@ from backend.services.shuffling_engine import (
     is_anchor_option,
 )
 from backend.services.docx_exporter import (
-    generate_variant_docx,
-    generate_solution_docx,
-    generate_answer_sheet_docx,
+    generate_variant_pdf,
     export_exam_package_zip,
-    convert_latex_to_omml,
 )
 
 
@@ -298,30 +295,19 @@ def run_verification():
         print(f"    Master #{row['master_question_index']} ({row['item_format']}): {v_ans}")
 
     # -------------------------------------------------------------------------
-    # PART 6: Word DOCX 2-Column Layout & OMML Equations Verification
+    # PART 6: PDF Exporter & Bundled ZIP Package Verification
     # -------------------------------------------------------------------------
-    print("\n--- 6. VERIFYING WORD DOCX EXPORTER & BUNDLED ZIP PACKAGE ---")
+    print("\n--- 6. VERIFYING PDF EXPORTER & BUNDLED ZIP PACKAGE ---")
     output_dir = PROJECT_ROOT / "storage" / "exports"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    test_docx_path = output_dir / "De_101_Verify.docx"
-    generate_variant_docx(variants[0], test_docx_path)
-    print(f"  [PASSED] Variant 101 DOCX generated: {test_docx_path} ({test_docx_path.stat().st_size:,} bytes)")
-
-    doc = docx.Document(str(test_docx_path))
-    # Verify 2 columns
-    sec_2 = doc.sections[1]
-    cols = sec_2._sectPr.xpath("./w:cols")
-    assert cols is not None and cols[0].get(qn("w:num")) == "2", "DOCX is not 2-column layout!"
-    print("  [PASSED] Verified Section 2 is configured with native 2-column layout (<w:cols w:num=\"2\" w:space=\"720\"/>).")
-
-    # Verify OMML math
-    xml_content = doc._part.blob.decode("utf-8", errors="ignore")
-    assert "m:oMath" in xml_content, "OMML equation not present in document XML!"
-    print("  [PASSED] Verified native Word OMML equations (<m:oMath>) successfully embedded.")
+    test_pdf_path = output_dir / "De_101_Verify.pdf"
+    generate_variant_pdf(variants[0], test_pdf_path)
+    print(f"  [PASSED] Variant 101 PDF generated: {test_pdf_path} ({test_pdf_path.stat().st_size:,} bytes)")
+    assert test_pdf_path.exists() and test_pdf_path.stat().st_size > 500
 
     # Export ZIP package
-    zip_path = export_exam_package_zip(master_exam.id, db)
+    zip_path = export_exam_package_zip(master_exam.id, db, include_pdf=True, export_format="pdf")
     print(f"  [PASSED] Bundled ZIP Package generated: {zip_path}")
     with zipfile.ZipFile(zip_path, "r") as zf:
         print(f"  ZIP contains {len(zf.namelist())} files:")

@@ -1068,7 +1068,7 @@
     composer: 'Quesy — Soạn đề LaTeX (AI Copilot & Live PDF Preview)',
     itembank: 'Quesy — Ngân hàng Câu hỏi Chuẩn hóa',
     matrix: 'Quesy — Ma trận Đề thi 2D',
-    shuffler: 'Quesy — Sinh đề & Trộn đề (.DOCX)',
+    shuffler: 'Quesy — Sinh đề & Trộn đề (Vector PDF)',
   };
 
   function navigateTo(path) {
@@ -1311,7 +1311,7 @@
               <i data-lucide="file-text" class="w-8 h-8"></i>
             </div>
             <h3 class="text-base font-bold text-slate-900 truncate max-w-md mx-auto" title="${escapeHtml(previews[0].name)}">${truncateFilename(previews[0].name, 36)}</h3>
-            <p class="text-xs text-slate-500">Tài liệu Word DOCX (${previews[0].size}) ${isProcessing ? 'đang được AI phân tích và bóc tách công thức MathType...' : 'đã sẵn sàng để bóc tách công thức MathType và gõ lại đề thi.'}</p>
+            <p class="text-xs text-slate-500">Tài liệu số hóa (${previews[0].size}) ${isProcessing ? 'đang được AI phân tích và bóc tách công thức toán...' : 'đã sẵn sàng để nhận dạng công thức và số hóa đề thi.'}</p>
             <div class="pt-2">
               ${isProcessing ? `
                 <div class="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">
@@ -1342,7 +1342,7 @@
             </div>
             <h4 class="text-sm font-bold text-slate-900 mb-1">Tài Liệu Đề Thi Gốc</h4>
             <p class="text-xs text-slate-500 max-w-sm mb-5 leading-relaxed">
-              Chưa có tệp đề thi nào được nạp. Hãy chọn tệp Word (.docx), PDF hoặc danh sách ảnh để xem trước trực tiếp tài liệu gốc.
+              Chưa có tệp đề thi nào được nạp. Hãy chọn tệp PDF hoặc danh sách ảnh để xem trước trực tiếp tài liệu gốc.
             </p>
             <div class="flex items-center gap-2">
               <button onclick="document.getElementById('studio-file-input').click()" class="btn-apple-primary">
@@ -2125,45 +2125,7 @@
   }
 
   async function exportDigitizedToDocx() {
-    const questions = state.digitizeJob.questions || [];
-    if (questions.length === 0) {
-      showToast('Chưa có câu hỏi nào trong đề thi để xuất Word. Hãy tải tệp hoặc nạp đề mẫu!', 'warning');
-      return;
-    }
-
-    const rawTitle = state.digitizeJob.filename ? state.digitizeJob.filename.replace(/\.[^/.]+$/, '') : 'De_Thi_So_Hoa';
-    showToast('Đang tạo và dàn trang file Word với công thức toán OMML...', 'info');
-
-    try {
-      const resp = await fetch(`${API_BASE_URL}/digitize/export-docx`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: rawTitle,
-          questions: questions
-        })
-      });
-
-      if (!resp.ok) {
-        const errJson = await resp.json().catch(() => ({}));
-        throw new Error(errJson.detail || 'Lỗi từ máy chủ khi tạo file Word');
-      }
-
-      const blob = await resp.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${rawTitle}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-      showToast('Đã tải xuống đề thi file Word (.docx) chuẩn in ấn thành công!', 'success');
-    } catch (err) {
-      console.error('Lỗi xuất file Word đề thi:', err);
-      showToast(`Không thể xuất file Word: ${err.message}`, 'error');
-    }
+    return exportDigitizedToPdf();
   }
 
   async function commitSingleQuestion(qId) {
@@ -2839,8 +2801,8 @@
     state.digitizeJob.previewImages = [];
 
     if (type === 'math12_standard') {
-      showToast('Đang nạp đề mẫu Toán 12 (MathType OLE + Đồ thị)...', 'info');
-      state.digitizeJob.filename = 'De_Mau_Toan_12_MathType.docx';
+      showToast('Đang nạp đề mẫu Toán 12 (LaTeX + Đồ thị)...', 'info');
+      state.digitizeJob.filename = 'De_Mau_Toan_12_Chuan_2025.pdf';
       state.digitizeJob.fileType = 'sample_docx';
       state.digitizeJob.questions = JSON.parse(JSON.stringify(state.itemBank.slice(0, 5))).map((q, idx) => ({
         ...q,
@@ -3588,12 +3550,10 @@
    * solution guide, and answer sheet.
    */
   /**
-   * Downloads official exam package (.ZIP containing genuine 2-column Word DOCX with native OMML equations,
-   * vector PDF documents, solution guides, and answer sheets).
+   * Downloads official exam package (.ZIP containing vector PDF documents, solution guides, and answer sheets).
    */
-  async function downloadPublishZip(format = 'all') {
-    const formatName = format === 'pdf' ? 'PDF' : format === 'docx' ? 'Word (.DOCX)' : 'Trọn gói (Word + PDF)';
-    showToast(`Đang đóng gói đề thi ${formatName}, vui lòng chờ trong giây lát...`, 'info');
+  async function downloadPublishZip(format = 'pdf') {
+    showToast(`Đang đóng gói đề thi PDF (.zip), vui lòng chờ trong giây lát...`, 'info');
 
     let masterId = state.masterExam?.id;
     if (!masterId) {
@@ -3612,7 +3572,7 @@
     }
 
     const targetId = masterId || 'default';
-    const downloadUrl = `${API_BASE_URL}/exams/${targetId}/export-zip?format=${encodeURIComponent(format)}`;
+    const downloadUrl = `${API_BASE_URL}/exams/${targetId}/export-zip?format=pdf`;
 
     try {
       const response = await fetch(downloadUrl);
@@ -3624,12 +3584,12 @@
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `Goi_DeThi_Quesy_TT32_${format}.zip`;
+      a.download = `Goi_DeThi_PDF_${targetId.slice(0, 8)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(blobUrl);
-      showToast(`Đã tải xuống thành công gói đề thi ${formatName}!`, 'success');
+      showToast(`Đã tải xuống thành công gói ấn phẩm đề thi PDF!`, 'success');
     } catch (err) {
       console.error('Download zip failed:', err);
       showToast(`Lỗi khi tải gói đề thi: ${err.message}`, 'error');
@@ -3680,46 +3640,7 @@
   }
 
   async function downloadActiveVariantDocx() {
-    const code = state.shuffledVariants.activeVariantCode || '101';
-    let masterId = state.masterExam?.id;
-    if (!masterId) {
-      try {
-        const examsRes = await fetch(`${API_BASE_URL}/exams`);
-        if (examsRes.ok) {
-          const examsList = await examsRes.json();
-          if (examsList.length > 0) {
-            masterId = examsList[0].id;
-            state.masterExam.id = masterId;
-          }
-        }
-      } catch (e) {
-        console.warn('Cannot fetch exams list:', e);
-      }
-    }
-    const targetId = masterId || 'default';
-    const url = `${API_BASE_URL}/exams/${targetId}/export-docx?variant_code=${encodeURIComponent(code)}`;
-    showToast(`Đang kết xuất đề thi Word (.docx) Mã đề ${code}...`, 'info');
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || `Máy chủ phản hồi mã lỗi HTTP ${response.status}`);
-      }
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `De_Thi_Toan_12_Ma_${code}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-      showToast(`Đã tải xuống thành công file Word (.docx) Mã đề ${code}!`, 'success');
-    } catch (err) {
-      console.error('Download Word failed:', err);
-      showToast(`Lỗi khi tải Word: ${err.message}`, 'error');
-    }
+    return downloadActiveVariantPdf();
   }
 
   // ============================================================================
@@ -3994,7 +3915,7 @@
       } else if (this.templates['circular_32_full_exam']) {
         this.currentLatex = this.templates['circular_32_full_exam'].latex;
       } else {
-        this.currentLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\begin{ex}\nCho hàm số bậc ba $y = f(x)$...\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n\n\\end{document}\n`;
+        this.currentLatex = `\\documentclass[11pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\begin{ex}\nCho hàm số bậc ba $y = f(x)$...\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n\n\\end{document}\n`;
       }
 
       if (editor) {
@@ -4353,7 +4274,7 @@
     },
 
     handleCompactInputKey(e) {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.submitFromCompact();
       }
@@ -4362,12 +4283,16 @@
     submitFromCompact() {
       const compactInput = document.getElementById('composer-compact-input');
       const text = compactInput ? compactInput.value.trim() : '';
-      this.openAIPopup(text);
-      if (text) {
-        this.sendPrompt(text);
-        const chatInput = document.getElementById('composer-chat-input');
-        if (chatInput) chatInput.value = '';
+      if (!text) {
+        if (compactInput) compactInput.focus();
+        return;
       }
+      if (compactInput) compactInput.value = '';
+      const chatInput = document.getElementById('composer-chat-input');
+      if (chatInput) chatInput.value = '';
+
+      this.openAIPopup(text);
+      this.sendPrompt(text);
     },
 
     toggleQuickPromptMenu(e) {
@@ -4480,6 +4405,208 @@
     },
 
     pendingDiff: null,
+    _inlineDiffLineNo: null,
+
+    _levenshteinSimilarity(s1, s2) {
+      if (s1 === s2) return 1.0;
+      if (!s1 || !s2) return 0.0;
+      const len1 = s1.length;
+      const len2 = s2.length;
+      if (len1 === 0 || len2 === 0) return 0.0;
+      const row = Array(len2 + 1).fill(0).map((_, i) => i);
+      for (let i = 0; i < len1; i++) {
+        let prev = i + 1;
+        for (let j = 0; j < len2; j++) {
+          let cur;
+          if (s1[i] === s2[j]) {
+            cur = row[j];
+          } else {
+            cur = Math.min(row[j] + 1, prev + 1, row[j + 1] + 1);
+          }
+          row[j] = prev;
+          prev = cur;
+        }
+        row[len2] = prev;
+      }
+      return 1.0 - (row[len2] / Math.max(len1, len2));
+    },
+
+    _stringSimilarity(s1, s2) {
+      if (s1 === s2) return 1.0;
+      if (!s1 || !s2) return 0.0;
+      const t1 = s1.trim();
+      const t2 = s2.trim();
+      if (t1 === t2) return 1.0;
+      if (t1.length === 0 || t2.length === 0) return 0.0;
+
+      // Quick containment
+      if (t1.includes(t2) || t2.includes(t1)) {
+        return 0.85 + 0.15 * (Math.min(t1.length, t2.length) / Math.max(t1.length, t2.length));
+      }
+
+      if (t1.length < 2 || t2.length < 2) return 0.0;
+
+      // Bigram Dice coefficient
+      const getBigrams = str => {
+        const bigrams = new Map();
+        for (let i = 0; i < str.length - 1; i++) {
+          const bg = str.substring(i, i + 2);
+          bigrams.set(bg, (bigrams.get(bg) || 0) + 1);
+        }
+        return bigrams;
+      };
+      const bg1 = getBigrams(t1);
+      const bg2 = getBigrams(t2);
+      let intersection = 0;
+      for (const [bg, count1] of bg1.entries()) {
+        if (bg2.has(bg)) {
+          intersection += Math.min(count1, bg2.get(bg));
+        }
+      }
+      const dice = (2.0 * intersection) / ((t1.length - 1) + (t2.length - 1));
+
+      // Calculate fast Levenshtein similarity for moderate strings
+      if (t1.length <= 120 && t2.length <= 120) {
+        const lev = this._levenshteinSimilarity(t1, t2);
+        return Math.max(dice, lev);
+      }
+      return dice;
+    },
+
+    _findFuzzyLineMatch(fullText, targetSnippet) {
+      if (!fullText || !targetSnippet) return null;
+
+      // 1. Exact match
+      const exactIdx = fullText.indexOf(targetSnippet);
+      if (exactIdx !== -1) {
+        const lineNo = fullText.substring(0, exactIdx).split('\n').length;
+        return {
+          startIdx: exactIdx,
+          endIdx: exactIdx + targetSnippet.length,
+          matchedText: targetSnippet,
+          lineNo: lineNo,
+          score: 1.0
+        };
+      }
+
+      // 2. Trimmed match
+      const trimmedTarget = targetSnippet.trim();
+      const trimIdx = fullText.indexOf(trimmedTarget);
+      if (trimIdx !== -1) {
+        const lineNo = fullText.substring(0, trimIdx).split('\n').length;
+        return {
+          startIdx: trimIdx,
+          endIdx: trimIdx + trimmedTarget.length,
+          matchedText: trimmedTarget,
+          lineNo: lineNo,
+          score: 0.98
+        };
+      }
+
+      // 3. Whitespace / newline normalized match
+      const normFull = fullText.split(String.fromCharCode(13, 10)).join('\n');
+      const normTarget = trimmedTarget.split(String.fromCharCode(13, 10)).join('\n');
+      const normIdx = normFull.indexOf(normTarget);
+      if (normIdx !== -1) {
+        const lineNo = normFull.substring(0, normIdx).split('\n').length;
+        const fLines = normFull.split('\n');
+        const targetLines = normTarget.split('\n');
+        let charOffset = 0;
+        const isCRLF = fullText.includes(String.fromCharCode(13, 10));
+        const nlLen = isCRLF ? 2 : 1;
+        for (let i = 0; i < lineNo - 1; i++) {
+          charOffset += fLines[i].length + nlLen;
+        }
+        let matchLen = 0;
+        for (let k = 0; k < targetLines.length; k++) {
+          const lIdx = lineNo - 1 + k;
+          if (lIdx < fLines.length) {
+            matchLen += fLines[lIdx].length + (k < targetLines.length - 1 ? nlLen : 0);
+          }
+        }
+        return {
+          startIdx: charOffset,
+          endIdx: charOffset + matchLen,
+          matchedText: fullText.substring(charOffset, charOffset + matchLen),
+          lineNo: lineNo,
+          score: 0.95
+        };
+      }
+
+      // 4. Line-by-line Levenshtein / SequenceMatcher match
+      const fullLines = fullText.split(String.fromCharCode(13, 10)).join('\n').split('\n');
+      const targetLines = normTarget.split('\n').map(l => l.trim()).filter(Boolean);
+      if (targetLines.length === 0) return null;
+
+      const K = targetLines.length;
+      let bestScore = -1;
+      let bestLineStart = 0;
+      let bestLineCount = 1;
+
+      if (K === 1) {
+        const tLine = targetLines[0];
+        for (let i = 0; i < fullLines.length; i++) {
+          const fLine = fullLines[i].trim();
+          if (!fLine) continue;
+          if (fLine === tLine) {
+            bestScore = 1.0;
+            bestLineStart = i;
+            bestLineCount = 1;
+            break;
+          }
+          const s = this._stringSimilarity(fLine, tLine);
+          if (s > bestScore) {
+            bestScore = s;
+            bestLineStart = i;
+            bestLineCount = 1;
+          }
+        }
+      } else {
+        const windowSizes = [K, Math.max(1, K - 1), K + 1];
+        for (const W of windowSizes) {
+          if (W <= 0) continue;
+          for (let i = 0; i <= fullLines.length - W; i++) {
+            let totalSim = 0;
+            let count = 0;
+            for (let j = 0; j < Math.min(W, K); j++) {
+              totalSim += this._stringSimilarity(fullLines[i + j].trim(), targetLines[j]);
+              count++;
+            }
+            const avgSim = count > 0 ? (totalSim / count) : 0;
+            if (avgSim > bestScore) {
+              bestScore = avgSim;
+              bestLineStart = i;
+              bestLineCount = W;
+            }
+          }
+        }
+      }
+
+      const isCRLF = fullText.includes(String.fromCharCode(13, 10));
+      const nlLen = isCRLF ? 2 : 1;
+      let charOffset = 0;
+      let matchStart = 0;
+      let matchLen = 0;
+      for (let i = 0; i < fullLines.length; i++) {
+        if (i === bestLineStart) {
+          matchStart = charOffset;
+        }
+        const len = fullLines[i].length;
+        if (i >= bestLineStart && i < bestLineStart + bestLineCount) {
+          matchLen += len + (i < bestLineStart + bestLineCount - 1 ? nlLen : 0);
+        }
+        charOffset += len + nlLen;
+      }
+
+      return {
+        startIdx: matchStart,
+        endIdx: matchStart + matchLen,
+        matchedText: fullText.substring(matchStart, matchStart + matchLen),
+        lineNo: bestLineStart + 1,
+        lineCount: bestLineCount,
+        score: bestScore
+      };
+    },
 
     showPendingDiff(diff) {
       if (!diff || !diff.old_text) return;
@@ -4491,32 +4618,63 @@
       const lineNoEl = document.getElementById('composer-diff-line-no');
       const editor = document.getElementById('composer-editor-input');
 
+      const inlineOverlay = document.getElementById('composer-inline-diff-overlay');
+      const inlineDesc = document.getElementById('composer-inline-diff-desc');
+      const inlineOld = document.getElementById('composer-inline-diff-old-text');
+      const inlineNew = document.getElementById('composer-inline-diff-new-text');
+
       let lineNo = 1;
-      if (editor) {
-        const val = editor.value;
-        const trimmedOld = diff.old_text.trim();
-        let pos = val.indexOf(diff.old_text);
-        if (pos === -1) pos = val.indexOf(trimmedOld);
-        if (pos !== -1) {
-          lineNo = val.substring(0, pos).split('\n').length;
-          // Focus and highlight the exact text in the editor
+      const val = editor ? editor.value : (this.currentLatex || '');
+      const match = this._findFuzzyLineMatch(val, diff.old_text);
+
+      if (match) {
+        lineNo = match.lineNo || 1;
+        if (editor) {
           editor.focus();
-          editor.setSelectionRange(pos, pos + (diff.old_text.length || trimmedOld.length));
-          // Scroll the editor to the line where change is suggested
+          editor.setSelectionRange(match.startIdx, match.endIdx);
           const lineHeight = 20;
           editor.scrollTop = Math.max(0, (lineNo - 3) * lineHeight);
           this.syncEditorScroll();
         }
       }
 
+      this._inlineDiffLineNo = lineNo;
+
+      const displayDesc = diff.description || `Thay đổi tại dòng ${lineNo}`;
+      const displayNew = (diff.new_text !== undefined && diff.new_text !== null && diff.new_text !== '') ? diff.new_text : '(Xóa bỏ đoạn mã này)';
+
+      // 1. Update top banner
       if (lineNoEl) lineNoEl.innerText = lineNo;
       if (banner && descEl && oldEl && newEl) {
-        descEl.innerText = diff.description || `Thay đổi tại dòng ${lineNo}`;
+        descEl.innerText = displayDesc;
         oldEl.innerText = diff.old_text;
-        newEl.innerText = diff.new_text;
+        newEl.innerText = displayNew;
         banner.classList.remove('hidden');
-        if (window.lucide) lucide.createIcons();
       }
+
+      // 2. Render Inline Diff Widget directly over the target line in the Editor (Ảnh 4)
+      if (inlineOverlay && inlineDesc && inlineOld && inlineNew && editor) {
+        inlineDesc.innerText = displayDesc;
+        inlineOld.innerText = diff.old_text;
+        inlineNew.innerText = displayNew;
+
+        const lineTop = 10 + (lineNo - 1) * 20;
+        const targetTop = lineTop - editor.scrollTop;
+        const clampedTop = Math.max(8, Math.min(targetTop, Math.max(8, editor.clientHeight - 130)));
+        inlineOverlay.style.top = `${clampedTop}px`;
+        inlineOverlay.classList.remove('hidden');
+      }
+
+      // 3. Automatically dock AI assistant popup down to 32% so editor and inline diff are clearly visible
+      const popup = document.getElementById('composer-ai-popup');
+      if (popup && this.isAIPopupOpen) {
+        this.aiPopupHeight = '32%';
+        popup.style.height = '32%';
+        const maxIcon = document.getElementById('composer-ai-max-icon');
+        if (maxIcon) maxIcon.setAttribute('data-lucide', 'maximize-2');
+      }
+
+      if (window.lucide) lucide.createIcons();
     },
 
     applyPendingDiff() {
@@ -4528,8 +4686,11 @@
 
     rejectPendingDiff() {
       this.pendingDiff = null;
+      this._inlineDiffLineNo = null;
       const banner = document.getElementById('composer-pending-diff-banner');
       if (banner) banner.classList.add('hidden');
+      const inlineOverlay = document.getElementById('composer-inline-diff-overlay');
+      if (inlineOverlay) inlineOverlay.classList.add('hidden');
       const editor = document.getElementById('composer-editor-input');
       if (editor) {
         const cursor = editor.selectionEnd;
@@ -4541,39 +4702,319 @@
       const editor = document.getElementById('composer-editor-input');
       if (!editor) return;
 
-      let val = this.currentLatex;
+      let val = this.currentLatex || editor.value || '';
+      const safeNew = (newText !== undefined && newText !== null) ? newText : '';
+
+      if (!val) {
+        val = safeNew;
+        editor.value = val;
+        this.currentLatex = val;
+        this.handleEditorInput();
+        this.compile(true);
+        this.rejectPendingDiff();
+        showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
+        return;
+      }
+
       let replaced = false;
 
+      // Tier 1: Exact match
       if (val.includes(oldText)) {
-        val = val.replace(oldText, newText);
+        val = val.replace(oldText, safeNew);
         replaced = true;
-      } else {
-        const trimmedOld = oldText.trim();
-        const trimmedNew = newText.trim();
+      }
+
+      // Tier 2: Trimmed match
+      if (!replaced) {
+        const trimmedOld = (oldText || '').trim();
+        const trimmedNew = safeNew.trim();
         if (val.includes(trimmedOld)) {
           val = val.replace(trimmedOld, trimmedNew);
           replaced = true;
-        } else {
-          const normVal = val.replace(/\r\n/g, '\n');
-          const normOld = trimmedOld.replace(/\r\n/g, '\n');
-          const normNew = trimmedNew.replace(/\r\n/g, '\n');
-          if (normVal.includes(normOld)) {
-            val = normVal.replace(normOld, normNew);
+        }
+      }
+
+      // Tier 3: Whitespace / CRLF normalized match
+      if (!replaced) {
+        const normVal = val.split(String.fromCharCode(13, 10)).join('\n');
+        const normOld = (oldText || '').trim().split(String.fromCharCode(13, 10)).join('\n');
+        const normNew = safeNew.trim().split(String.fromCharCode(13, 10)).join('\n');
+        if (normVal.includes(normOld)) {
+          val = normVal.replace(normOld, normNew);
+          replaced = true;
+        }
+      }
+
+      // Tier 4: Multi-level fuzzy match (Levenshtein / SequenceMatcher >= 60%)
+      if (!replaced) {
+        const match = this._findFuzzyLineMatch(val, oldText);
+        if (match && (match.score >= 0.50 || val.includes(match.matchedText))) {
+          const before = val.substring(0, match.startIdx);
+          const after = val.substring(match.endIdx);
+          val = before + safeNew + after;
+          replaced = true;
+        }
+      }
+
+      // Tier 5: Keyword & command matching fallback
+      if (!replaced) {
+        const lines = val.split(String.fromCharCode(13, 10)).join('\n').split('\n');
+        const candidateKeywords = (oldText + ' ' + safeNew).match(/\\[a-zA-Z@]+(?:\{[^}]*\})?/g) || [];
+        for (const kw of candidateKeywords) {
+          if (kw.length < 5) continue;
+          const idx = lines.findIndex(l => l.includes(kw));
+          if (idx !== -1) {
+            lines[idx] = safeNew;
+            val = lines.join('\n');
             replaced = true;
+            break;
           }
         }
       }
 
+      // Tier 6: Guaranteed fallback: replace best matching line (>= 20%) or safe insert
       if (!replaced) {
-        showToast('Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại.', 'warning');
-        return;
+        const match = this._findFuzzyLineMatch(val, oldText);
+        if (match && match.score > 0.20) {
+          const before = val.substring(0, match.startIdx);
+          const after = val.substring(match.endIdx);
+          val = before + safeNew + after;
+          replaced = true;
+        } else {
+          // Safe insertion: insert before \end{document} or append
+          if (val.includes('\\end{document}')) {
+            val = val.replace('\\end{document}', `${safeNew}\n\\end{document}`);
+          } else {
+            val = val + '\n' + safeNew;
+          }
+          replaced = true;
+        }
       }
 
       editor.value = val;
       this.currentLatex = val;
       this.handleEditorInput();
       this.compile(true);
+      this.rejectPendingDiff();
       showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
+    },
+
+    extractDiffFromText(replyText, currentLatex, userMessage = '') {
+      if (!currentLatex || !replyText) return null;
+      const combinedText = `${userMessage}\n${replyText}`;
+      const combinedLower = combinedText.toLowerCase();
+      const userLower = (userMessage || '').toLowerCase();
+
+      const findInLatex = (needle) => {
+        if (!needle) return null;
+        if (currentLatex.includes(needle)) return needle;
+        const stripped = needle.trim();
+        if (stripped && currentLatex.includes(stripped)) return stripped;
+
+        const normCur = currentLatex.split('\r\n').join('\n');
+        const normNeedle = stripped.split('\r\n').join('\n');
+        if (normCur.includes(normNeedle)) {
+          const curLines = currentLatex.split('\n');
+          const needleLines = normNeedle.split('\n').map(l => l.trim()).filter(Boolean);
+          if (needleLines.length > 0) {
+            for (let i = 0; i <= curLines.length - needleLines.length; i++) {
+              let match = true;
+              for (let k = 0; k < needleLines.length; k++) {
+                if (curLines[i + k].trim() !== needleLines[k]) {
+                  match = false;
+                  break;
+                }
+              }
+              if (match) {
+                return curLines.slice(i, i + needleLines.length).join('\n');
+              }
+            }
+          }
+        }
+
+        const lines = currentLatex.split('\n');
+        for (const line of lines) {
+          if (stripped && line.includes(stripped)) return line;
+          if (line.trim() && line.trim() === stripped) return line;
+        }
+        return null;
+      };
+
+      // 1. Font size change
+      if (/font|cỡ chữ|size/i.test(combinedLower)) {
+        let pts = (userLower.match(/\b(10|11|12|13|14)(?:pt)?\b/g) || []);
+        if (!pts.length) {
+          pts = (replyText.toLowerCase().match(/\b(10|11|12|13|14)(?:pt)?\b/g) || []);
+        }
+        if (pts.length) {
+          const targetPt = pts[pts.length - 1].replace('pt', '') + 'pt';
+          const lines = currentLatex.split('\n');
+          for (const line of lines) {
+            if (line.includes('documentclass')) {
+              let newLine = line;
+              if (/\b\d+pt\b/.test(line)) {
+                newLine = line.replace(/\b\d+pt\b/, targetPt);
+              } else if (line.includes('\\documentclass[')) {
+                newLine = line.replace(/\\documentclass\[/, `\\documentclass[${targetPt},`);
+              } else if (line.includes('\\documentclass{')) {
+                newLine = line.replace(/\\documentclass\{/, `\\documentclass[${targetPt}]{`);
+              }
+              if (newLine !== line) {
+                return {
+                  action: 'replace',
+                  old_text: line,
+                  new_text: newLine,
+                  description: `Đổi cỡ chữ toàn tài liệu sang ${targetPt}`
+                };
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Choice change
+      const choiceMatch = combinedLower.match(/(?:đổi|sửa|chuyển)\s+(?:đáp án|lựa chọn)(?:\s+đúng)?\s+(?:từ\s+[abcd]\s+sang\s+|thành\s+|sang\s+)([abcd])\b/i);
+      if (choiceMatch) {
+        const targetChoice = choiceMatch[1].toUpperCase();
+        const targetIdx = { A: 0, B: 1, C: 2, D: 3 }[targetChoice];
+        if (targetIdx !== undefined) {
+          const chRegex = /\\choice\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/;
+          const chMatch = currentLatex.match(chRegex);
+          if (chMatch) {
+            const oldFull = chMatch[0];
+            const opts = [chMatch[1], chMatch[2], chMatch[3], chMatch[4]];
+            const cleanedOpts = opts.map(o => o.replace(/\\True\s*/g, '').trim());
+            cleanedOpts[targetIdx] = '\\True ' + cleanedOpts[targetIdx];
+            const newFull = `\\choice{${cleanedOpts[0]}}{${cleanedOpts[1]}}{${cleanedOpts[2]}}{${cleanedOpts[3]}}`;
+            if (oldFull !== newFull) {
+              return {
+                action: 'replace',
+                old_text: oldFull,
+                new_text: newFull,
+                description: `Đổi đáp án đúng sang ${targetChoice}`
+              };
+            }
+          }
+        }
+      }
+
+      // 3. Diff blocks
+      const diffMatch = replyText.match(/```diff\s*\n?([\s\S]*?)```/);
+      if (diffMatch) {
+        const lines = diffMatch[1].trim().split('\n');
+        const oldLines = [];
+        const newLines = [];
+        for (const line of lines) {
+          if (line.startsWith('---') || line.startsWith('+++')) continue;
+          const s = line.trim();
+          if (s.startsWith('-')) {
+            oldLines.push(line.replace(/^\s*-\s?/, ''));
+          } else if (s.startsWith('+')) {
+            newLines.push(line.replace(/^\s*\+\s?/, ''));
+          }
+        }
+        const oldRaw = oldLines.join('\n').trim();
+        const newRaw = newLines.join('\n').trim();
+        const matchedOld = findInLatex(oldRaw);
+        if (matchedOld && matchedOld !== newRaw) {
+          return {
+            action: 'replace',
+            old_text: matchedOld,
+            new_text: newRaw,
+            description: 'Thay đổi theo gợi ý AI'
+          };
+        }
+      }
+
+      // 4. OLD / NEW or CŨ / MỚI blocks
+      const patterns = [
+        /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|$)/i,
+        /(?:- Dòng cũ|- Đoạn cũ|Cũ):\s*[`"“]?([^\n`"”]+)[`"”]?\s*\n(?:- Dòng mới|- Đoạn mới|Mới):\s*[`"“]?([^\n`"”]+)[`"”]?/i
+      ];
+      for (const pat of patterns) {
+        const m = replyText.match(pat);
+        if (m) {
+          const oldRaw = m[1].trim();
+          const newRaw = m[2].trim();
+          const matchedOld = findInLatex(oldRaw);
+          if (matchedOld && matchedOld !== newRaw) {
+            return {
+              action: 'replace',
+              old_text: matchedOld,
+              new_text: newRaw,
+              description: 'Thay đổi theo gợi ý AI'
+            };
+          }
+        }
+      }
+
+      // 5. Block replace with code fences: Thay thế: ```latex ... ``` bằng: ```latex ... ```
+      const blockRepMatch = replyText.match(/(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n([\s\S]*?)\n```\s*\n*(?:thành|bằng|sang|mới|sau):\s*\n*```(?:latex|tex)?\n([\s\S]*?)\n```/i);
+      if (blockRepMatch) {
+        const oldRaw = blockRepMatch[1].trim();
+        const newRaw = blockRepMatch[2].trim();
+        const matchedOld = findInLatex(oldRaw);
+        if (matchedOld && matchedOld !== newRaw) {
+          return {
+            action: 'replace',
+            old_text: matchedOld,
+            new_text: newRaw,
+            description: 'Thay đổi theo gợi ý AI'
+          };
+        }
+      }
+
+      // 6. Inline natural language replacement: "Thay thế `X` bằng `Y`"
+      const inlineMatch = replyText.match(/(?:thay thế|thay|đổi|sửa|chuyển|replace)\s+[`"“'‘]([^`"”'’\n]+)[`"”'’]\s+(?:bằng|thành|sang|với|by|with)\s+[`"“'‘]([^`"”'’\n]+)[`"”'’]/i);
+      if (inlineMatch) {
+        const oldRaw = inlineMatch[1].trim();
+        const newRaw = inlineMatch[2].trim();
+        const matchedOld = findInLatex(oldRaw);
+        if (matchedOld && matchedOld !== newRaw) {
+          return {
+            action: 'replace',
+            old_text: matchedOld,
+            new_text: newRaw,
+            description: `Thay thế '${oldRaw}' thành '${newRaw}'`
+          };
+        }
+      }
+
+      // 7. Code block comparison: AI returns revised LaTeX block (```latex ... ```)
+      const codeMatch = replyText.match(/```(?:latex|tex)?\s*\n([\s\S]*?)```/);
+      if (codeMatch) {
+        const code = codeMatch[1].trim();
+        if (!code.includes('\\documentclass') && code.length >= 10) {
+          const docLines = currentLatex.split('\n');
+          const codeLines = code.split('\n');
+          const m = codeLines.length;
+          let bestRatio = 0;
+          let bestSlice = null;
+
+          for (let w = Math.max(1, m - 3); w <= Math.min(docLines.length, m + 4); w++) {
+            for (let i = 0; i <= docLines.length - w; i++) {
+              const windowText = docLines.slice(i, i + w).join('\n').trim();
+              if (!windowText) continue;
+              const ratio = this._stringSimilarity(code, windowText);
+              if (ratio > bestRatio) {
+                bestRatio = ratio;
+                bestSlice = docLines.slice(i, i + w).join('\n');
+              }
+            }
+          }
+
+          if (bestRatio >= 0.52 && bestSlice && bestSlice.trim() !== code) {
+            return {
+              action: 'replace',
+              old_text: bestSlice,
+              new_text: code,
+              description: 'Thay đổi theo gợi ý AI'
+            };
+          }
+        }
+      }
+
+      return null;
     },
 
     initChat() {
@@ -4659,6 +5100,11 @@
       if (!text) return '';
       let html = text;
 
+      // Smart fallback diff extraction if diff not provided
+      if (!diff && this.extractDiffFromText) {
+        diff = this.extractDiffFromText(text, this.currentLatex);
+      }
+
       // If diff payload is provided and text doesn't already have an inline diff block
       if (diff && diff.old_text && !html.includes('```diff')) {
         const b64Old = btoa(unescape(encodeURIComponent(diff.old_text)));
@@ -4668,10 +5114,10 @@
             <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
               <span class="font-sans font-bold text-blue-400">⚡ Gợi ý thay đổi trực tiếp (${escapeHtml(diff.description || 'Chỉnh sửa dòng')})</span>
               <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý</span>
+                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
+                  <span>✔ Đồng ý áp dụng</span>
                 </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2 py-0.5 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
+                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
                   <span>✖ Từ chối</span>
                 </button>
               </div>
@@ -4688,7 +5134,7 @@
             </div>
           </div>
         `;
-        // Strip out the redundant full-file latex snippet block
+        // Strip out redundant full-file latex snippet block
         html = html.replace(/```(?:latex|tex)?\s*[\s\S]*?```/g, '');
         html += diffBlock;
       }
@@ -4706,10 +5152,10 @@
             <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
               <span class="font-sans font-bold text-blue-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
               <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý</span>
+                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
+                  <span>✔ Đồng ý áp dụng</span>
                 </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2 py-0.5 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
+                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
                   <span>✖ Từ chối</span>
                 </button>
               </div>
@@ -4722,6 +5168,40 @@
               <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
                 <span class="text-emerald-400 font-bold select-none">+</span>
                 <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(newLines)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      // 2. Interactive OLD / NEW or CŨ / MỚI replacement blocks
+      const oldNewRegex = /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|$)/gi;
+      html = html.replace(oldNewRegex, (match, oldContent, newContent) => {
+        const oldClean = oldContent.trim();
+        const newClean = newContent.trim();
+        const b64Old = btoa(unescape(encodeURIComponent(oldClean)));
+        const b64New = btoa(unescape(encodeURIComponent(newClean)));
+        return `
+          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
+            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
+              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
+              <div class="flex items-center space-x-1.5">
+                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
+                  <span>✔ Đồng ý áp dụng</span>
+                </button>
+                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
+                  <span>✖ Từ chối</span>
+                </button>
+              </div>
+            </div>
+            <div class="diff-body text-[11px] leading-relaxed">
+              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
+                <span class="text-rose-400 font-bold select-none">-</span>
+                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(oldClean)}</span>
+              </div>
+              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
+                <span class="text-emerald-400 font-bold select-none">+</span>
+                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(newClean)}</span>
               </div>
             </div>
           </div>
@@ -4849,6 +5329,10 @@
         if (window.lucide) lucide.createIcons();
       }
 
+      const errorTextEl = document.getElementById('composer-error-text');
+      const errorDrawer = document.getElementById('composer-error-drawer');
+      const activeCompileError = this.lastCompileError || (errorDrawer && !errorDrawer.classList.contains('hidden') && errorTextEl ? errorTextEl.innerText.trim() : null);
+
       try {
         const res = await fetch(`${API_BASE_URL}/composer/chat`, {
           method: 'POST',
@@ -4856,6 +5340,7 @@
           body: JSON.stringify({
             message: promptText,
             current_latex: this.currentLatex,
+            compile_error: activeCompileError || undefined,
             history: this.chatHistory.slice(-4)
           })
         });
@@ -4865,12 +5350,16 @@
 
         if (res.ok) {
           const data = await res.json();
-          this.chatHistory.push({ role: 'assistant', content: data.reply, diff: data.diff || null });
+          let diff = data.diff;
+          if (!diff && this.extractDiffFromText) {
+            diff = this.extractDiffFromText(data.reply, this.currentLatex, promptText);
+          }
+          this.chatHistory.push({ role: 'assistant', content: data.reply, diff: diff || null });
           localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory.slice(-20)));
           this.renderChatMessages();
 
-          if (data.diff) {
-            this.showPendingDiff(data.diff);
+          if (diff) {
+            this.showPendingDiff(diff);
           }
         } else {
           this.chatHistory.push({ role: 'assistant', content: 'Rất tiếc, đã có lỗi kết nối với máy chủ AI. Vui lòng thử lại sau.' });
@@ -4959,6 +5448,15 @@
       const gutter = document.getElementById('composer-editor-gutter');
       if (editor && gutter) {
         gutter.scrollTop = editor.scrollTop;
+      }
+      if (this.pendingDiff && this._inlineDiffLineNo && editor) {
+        const overlay = document.getElementById('composer-inline-diff-overlay');
+        if (overlay && !overlay.classList.contains('hidden')) {
+          const lineTop = 10 + (this._inlineDiffLineNo - 1) * 20;
+          const targetTop = lineTop - editor.scrollTop;
+          const clampedTop = Math.max(8, Math.min(targetTop, Math.max(8, editor.clientHeight - 130)));
+          overlay.style.top = `${clampedTop}px`;
+        }
       }
     },
 
@@ -5111,8 +5609,10 @@
             statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold';
           }
           if (errorDrawer) errorDrawer.classList.add('hidden');
+          this.lastCompileError = null;
         } else {
           const errMsg = data.error || 'Biên dịch thất bại';
+          this.lastCompileError = errMsg;
           if (statusText) statusText.innerText = 'Lỗi biên dịch';
           if (statusBadge) {
             statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-semibold';
@@ -5123,6 +5623,7 @@
           }
         }
       } catch (err) {
+        this.lastCompileError = String(err);
         if (overlay) overlay.classList.add('hidden');
         if (statusText) statusText.innerText = 'Lỗi kết nối';
         if (errorDrawer && errorText) {

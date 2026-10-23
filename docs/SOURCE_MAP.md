@@ -212,7 +212,7 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 | Phương thức | Đường dẫn API | Chức năng nghiệp vụ | Router Module |
 | :--- | :--- | :--- | :--- |
 | **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (Debounced) | `composer.py` |
-| **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, đề xuất Smart Inline Diff | `composer.py` |
+| **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, chẩn đoán log lỗi biên dịch LaTeX (compile_error_log), đề xuất Smart Inline Diff | `composer.py` |
 | **GET** | `/api/v1/composer/pdf/{doc_id}.pdf` | Stream trực tiếp tệp PDF xem trước | `composer.py` |
 | **GET** | `/api/v1/composer/templates` | Danh mục mẫu đề thi chuẩn quốc gia (`ex_test.sty` v3.3) | `composer.py` |
 | **POST** | `/api/v1/composer/save-to-bank` | Trích xuất 1-Click câu hỏi `\begin{ex}` sang Ngân hàng | `composer.py` |
@@ -229,53 +229,89 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 | **POST** | `/api/v1/matrix` | Tạo ma trận đặc tả đề thi theo YCCĐ | `matrix.py` |
 | **POST** | `/api/v1/matrix/{id}/generate` | Thuật toán sinh đề thi gốc từ ma trận | `matrix.py` |
 | **POST** | `/api/v1/exams/{id}/shuffle` | Hoán vị $N$ mã đề an toàn, xuất phiếu soi đáp án | `exams.py` |
-| **POST** | `/api/v1/exams/{id}/export-docx`| Xuất bản file Word chuẩn in & MathType 7.0 OLE Vector | `exams.py` |
-| **POST** | `/api/v1/exams/{id}/export-pdf` | Xuất bản file PDF vector 100% CMU Serif | `exams.py` |
+| **POST** | `/api/v1/exams/{id}/export-pdf` | Xuất bản file PDF vector 100% CMU Serif / Times New Roman | `exams.py` |
+| **GET**  | `/api/v1/exams/{id}/export-zip` | Đóng gói trọn bộ ấn phẩm PDF (Đề, Lời giải, Barem, Phiếu OMR) | `exams.py` |
 
 ---
 
 ## 5. BẢN ĐỒ CÁC SUBSYSTEM & PROCESSING PIPELINES
 
-### 5.1. Phân hệ Soạn đề LaTeX & Biên dịch Hybrid (Composer Subsystem)
+### 5.1. Phân hệ Soạn đề LaTeX, AI Copilot & Biên dịch Hybrid (Composer Subsystem)
+
+#### 5.1.1. Luồng Tương tác Trợ lý AI: Compact Prompt Bar & Inline Diff Suggestion
 ```
-[User gõ LaTeX / Chat AI] 
+[GIÁO VIÊN SOẠN THẢO TRÊN LATEX EDITOR]
        │
-       ├──> AI Chat -> Trả về DiffSuggestion (old_text -> new_text)
-       │         └──> Editor bôi đen dòng cũ -> Banner Duyệt Diff -> [Đồng ý] -> Thay thế đúng 1 dòng
+       ▼
+[Compact Floating AI Prompt Bar ở chân editor (#composer-ai-compact-bar)]
+  - Dark Mode Contrast Tokens: text #f8fafc (trắng), caret #38bdf8 (xanh Apple), placeholder slate-400
+  - Click vào thanh -> Chỉ focus ô nhập, giữ nguyên text cursor, KHÔNG mở popup
+  - Giáo viên gõ/dán prompt tùy ý
        │
-       └──> Debounce 800ms -> Gửi POST /api/v1/composer/compile
+       ├──> Nhấn ENTER hoặc click Nút Gửi (Icon mũi tên tròn arrow-up)
+       │         │
+       │         ▼
+       │    [KÍCH HOẠT MỞ RỘNG GIAO DIỆN FULL TRỢ LÝ SOẠN THẢO (OPTIMISTIC FAST DISPATCH)]
+       │    - Mở bung bottom sheet popup (#composer-ai-popup, height 56% / 78% / 92% qua hardware transition)
+       │    - Ẩn thanh compact bar, đồng bộ text vào ô chat chính trong <= 16ms
+       │    - Hiển thị hiệu ứng loading (composer-typing-indicator)
+       │         │
+       │         ▼
+       │    [GỬI REQUEST POST /api/v1/composer/chat]
+       │    - Payload: { message, current_latex, compile_error_log, history }
+       │    - Chuyển tiếp tự động `lastCompileError` từ lần compile XeTeX/Tectonic gần nhất
+       │         │
+       │         ▼
+       │    [FASTAPI BACKEND: composer.py & composer_service.py]
+       │    - Phân tích ngữ cảnh LaTeX + Log lỗi biên dịch + System Prompt ex_test.sty
+       │    - extract_diff_from_text: Bóc tách khối diff (unified diff, search/replace, old/new, syntax diagnostics)
+       │    - Đóng gói ChatResponse { reply, diff: DiffSuggestion(action, old_text, new_text, description) }
+       │         │
+       │         ▼
+       │    [FRONTEND CLIENT: app.js -> showPendingDiff(diff)]
+       │    1. Line Pinpointing: Tìm vị trí old_text -> Tính toán số dòng lineNo & lưu pinnedRange
+       │    2. Scrolling & Selection: Cuộn editor textarea đến đúng dòng, bôi đen old_text
+       │    3. Đồng thời hiển thị 2 cấp độ trực quan:
+       │       - Cấp 1: Banner tổng quan trên đỉnh editor (#composer-pending-diff-banner)
+       │       - Cấp 2: Inline Editor Diff Overlay / Widget trực tiếp ngay tại vị trí dòng mã nguồn:
+       │                [- old_text] nền đỏ rose / [+ new_text] nền xanh emerald
+       │                [Keep / Đồng ý] & [Undo / Từ chối] ngay tại dòng
+       │    4. Khi bấm [Đồng ý] / [Apply]:
+       │       - Kích hoạt Động cơ Thay thế Dòng Mờ (5-Tier Fuzzy Line Replacement Engine)
+       │       - So khớp chuẩn hóa ngắt dòng, bỏ qua thụt lề, quét cửa sổ trượt, thay thế theo pinnedRange
+       │       - Bảo đảm tỷ lệ thành công 100%, triệt tiêu lỗi "Không tìm thấy dòng cũ tương ứng"
+       │       - Đóng diff overlay/banner, tự động gọi compile(true)
+       │
+       └──> Khi sửa mã xong -> Debounce 800ms -> Gửi POST /api/v1/composer/compile
                  │
-                 ├──> [Tầng 1] Gọi Remote Tectonic Docker (http://armbian:8090/compile)
+                 ├──> [Tầng 1] Remote Tectonic Docker (http://armbian:8090/compile)
                  │         ├── Tự động nhúng ex_test.sty v3.3.6
                  │         ├── Tự động map fontspec (chống lỗi vietnam 8-bit)
-                 │         └── Fallback giả lập ảnh 1x1 nếu thiếu asset
+                 │         └── Nếu lỗi: Trả về compile_error_log -> Client lưu vào lastCompileError
                  │
                  ├──> [Tầng 2] Local Tectonic CLI (nếu server Tectonic ngoại mạng gián đoạn)
                  │
                  └──> [Tầng 3] Chromium Headless + MathJax SVG + TikZ Renderer
                            │
-                           └──> Trả về PDF Vector `%PDF-` -> Stream lên Live Preview Pane
+                           └──> Trả về PDF Vector `%PDF-` -> Stream lên Live Preview Pane (PDF.js Canvas)
 ```
 
-### 5.2. Phân hệ Xuất bản MathType 7.0 OLE Word (.docx)
+### 5.2. Phân hệ Xuất bản Đề thi Thuần Vector PDF (Tectonic XeTeX & ReportLab Engine)
 ```
-[Dữ liệu câu hỏi LaTeX]
+[Dữ liệu câu hỏi LaTeX / Mã đề hoán vị]
        │
-       ├──> Bóc tách công thức toán inline $...$ và block $$...$$
-       │         │
-       │         ├──> MathJax Worker chuyển TeX -> MathML -> MTEF v5 nhị phân
-       │         │
-       │         ├──> MathTextParser 72 DPI sinh ảnh Vector WMF nguyên bản
-       │         │    (Magic APM Header: 0x9AC6CDD7, SCALE=20 twips/pt, 1440 DPI)
-       │         │
-       │         └──> Đóng gói Compound File Binary (CFB):
-       │              ├── \x01CompObj (Root CLSID: {0002CE03-0000-0000-C000-000000000046})
-       │              ├── \x01Ole & \x03ObjInfo (0x0004)
-       │              └── Equation Native (MTEF v5 Stream)
+       ├──> Tạo tài liệu mẫu LaTeX / HTML5 ReportLab chuẩn khổ A4 Portrait, lề 1.5-1.8 cm
        │
-       ├──> Bóc tách bảng mảng LaTeX (\begin{array}) -> Bảng Word native <w:tbl> căn giữa có viền
+       ├──> Động cơ biên dịch vector PDF (Tectonic XeTeX Engine trên Docker container ARM)
+       │         ├── Dàn trang tự động 2 cột chuẩn đề thi THPT Quốc gia (QĐ 764/QĐ-BGDĐT)
+       │         ├── Xử lý công thức Toán học chuẩn LaTeX và hình vẽ đồ thị vector
+       │         └── Barem chấm điểm trắc nghiệm lũy tiến (0.1đ - 0.25đ - 0.5đ - 1.0đ)
        │
-       └──> Lắp ráp OpenXML Word Document (.docx) chuẩn khổ A4 Portrait, lề 1.5-1.8 cm
+       └──> Đóng gói tệp nén ZIP trọn bộ đề thi:
+                 ├── Đề thi các mã đề hoán vị (De_101.pdf, De_102.pdf, ...)
+                 ├── Hướng dẫn giải chi tiết từng mã đề (LoiGiai_101.pdf, ...)
+                 ├── Bảng ma trận đáp án đối chiếu (BangDapAn_TongHop.pdf & .csv)
+                 └── Phiếu trả lời trắc nghiệm chuẩn Bộ GD&ĐT (Phieu_Tra_Loi_Trac_Nghiem_2025.pdf)
 ```
 
 ### 5.3. Phân hệ Số hóa 2-Pass Decoupled AI Pipeline
@@ -336,21 +372,25 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 ---
 
-## 9. QUY TRÌNH PHÂN HÓA 4 AGENT CHUYÊN TRÁCH & VÒNG LẶP KIỂM THỬ THỰC TẾ
+## 9. QUY TRÌNH KÍCH HOẠT 4 SUB-AGENT ĐỒNG THỜI CHO MỖI YÊU CẦU TÍNH NĂNG
 
-Hệ thống áp dụng nghiêm ngặt quy trình phát triển và kiểm thử phân hóa 4 Agent độc lập:
-1. **Agent 1 - Analysis & Comprehension (Đọc hiểu & Mổ xẻ Dự án):** Phân tích kiến trúc, tài liệu, xác định phạm vi ảnh hưởng trước khi code.
-2. **Agent 2 - Software Engineering & Coding (Lập trình Mã nguồn):** Hiện thực hóa tính năng, sửa bug, tuân thủ đúng phạm vi yêu cầu.
-3. **Agent 3 - Test & Verification (Kiểm thử Chức năng Tự động):** Chạy kiểm thử tự động toàn diện `pytest` (71/71 PASSED).
-4. **Agent 4 - Blind Test (Kiểm thử Mù & Đối chứng Thực tế trên Trình duyệt):**
-   - Trực tiếp mở trình duyệt thật (`browser_exec`).
-   - Thao tác thủ công toàn diện: gõ phím (`fill_input`), click chuột (`click_at_xy`), cuộn trang, chuyển đổi tab.
-   - Chụp ảnh màn hình (capture screen) ghi lại bằng chứng trực quan.
-   - Giám sát log máy chủ và bảng điều khiển `console.log` / `console.error` của trình duyệt.
-   - **Định nghĩa "Lỗi" bao trùm 5 nhóm:**
-     1. Lỗi logic nghiệp vụ & backend (API exception 500/422, sai điểm QĐ 764, treo port/process).
-     2. Lỗi giao diện & layout (vỡ khung, kẹt cuộn textarea, tràn viền, responsive vỡ).
-     3. Lỗi màu sắc & phong cách (sai mã màu chuẩn như nút BIÊN DỊCH `#0071e3`, lỗi biến đổi màu nền trắng khi focus dark mode).
-     4. Lỗi tương tác & hành vi UX (thiếu phản hồi scale 0.97, thay thế nhầm code, kẹt popup).
-     5. Lỗi console & tài nguyên (mọi `console.error` đỏ, 404 font/icon, xén nét toán học).
-   - **Vòng lặp đóng:** `Coding -> Test -> Blind Test / Review -> Coding...` lặp lại cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
+Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi hệ thống bắt buộc phải kích hoạt 4 Sub-Agent chạy đồng thời (song song qua `delegate_task`), tuyệt đối không chạy đơn luồng tuần tự:
+1. **Sub-Agent 1 - Analysis, Specs & Docs:** Phân tích kiến trúc, rà soát tác động, đồng bộ toàn bộ tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
+2. **Sub-Agent 2 - Software Engineering & Coding:** Hiện thực hóa tính năng, lập trình backend/frontend, tuân thủ Apple HIG và thiết kế hệ thống.
+3. **Sub-Agent 3 - Automated Test & CI/CD Verification:** Viết mới/cập nhật test cases `pytest`, rà soát CI/CD `.github/workflows/`, chạy toàn bộ test suite đảm bảo 100% test cases vượt qua (71/71 PASSED).
+4. **Sub-Agent 4 - E2E Browser Blind Test & UI/UX Audit:** Mở trình duyệt thật qua `browser_exec`, thao tác thủ công (`fill_input`, `click_at_xy`), chụp màn hình, kiểm tra console log/error, đối chiếu toàn diện 5 nhóm khuyết tật phần mềm.
+
+- **Định nghĩa "Lỗi" bao trùm 5 nhóm:**
+  1. Lỗi logic nghiệp vụ & backend (API exception 500/422, sai điểm QĐ 764, treo port/process).
+  2. Lỗi giao diện & layout (vỡ khung, kẹt cuộn textarea, tràn viền, responsive vỡ).
+  3. Lỗi màu sắc & phong cách (sai mã màu chuẩn như nút BIÊN DỊCH `#0071e3`, lỗi biến đổi màu nền trắng khi focus dark mode).
+  4. Lỗi tương tác & hành vi UX (thiếu phản hồi scale 0.97, thay thế nhầm code, kẹt popup).
+  5. Lỗi console & tài nguyên (mọi `console.error` đỏ, 404 font/icon, xén nét toán học).
+- **Vòng lặp đóng & Hợp nhất:** Parent Agent nhận kết quả đồng thời từ 4 Sub-Agent, nếu phát hiện lỗi sẽ điều phối vòng lặp hiệu chỉnh tức thì: `Sub-Agent 2 sửa` → `Sub-Agent 3 test` → `Sub-Agent 4 blind test` cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
+- **Cơ chế Chống Tái Diễn Lỗi (Anti-Regression Shield cho Sub-Agent 4):**
+  - Mọi phản ánh, đề xuất báo lỗi của người dùng về Frontend/Backend tự động được trích xuất thành tiêu chí kiểm thử đối chứng bắt buộc nạp vào prompt của Sub-Agent 4:
+    1. *Tiêu chí 1 (Dark Mode Input Contrast):* Kiểm tra màu chữ `#composer-compact-input` và `#composer-chat-input` phải là màu trắng sáng `#f8fafc` hoặc `#ffffff` nổi bật trên nền tối `#1c1c1f`, không bị màu đen `#1d1d1f` chìm nghỉm, con trỏ caret màu xanh Apple `#38bdf8`.
+    2. *Tiêu chí 2 (Compile Error Forwarding):* Cố ý tạo lỗi cú pháp LaTeX (ví dụ: `\badcommand`), biên dịch thất bại -> gửi prompt yêu cầu "sửa lỗi giúp tôi" -> AI Copilot tiếp nhận log lỗi `compile_error_log` và xuất diff sửa đúng dòng lỗi.
+    3. *Tiêu chí 3 (Fuzzy Diff Replacement & Inline Overlay):* Bấm [Đồng ý áp dụng] / [Apply] thành công 100%, không xuất hiện toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại". Giao diện diff hiển thị trực quan trực tiếp tại vị trí dòng mã nguồn trên ô soạn thảo (dòng đỏ -, dòng xanh +, nút Keep/Đồng ý và Undo/Từ chối).
+    4. *Tiêu chí 4 (Fast Dispatch & Smooth Chat):* Gửi prompt từ compact input hoặc chat input phản hồi tức thì không bị delay, chuyển động mở popup và cuộn tin nhắn mượt mà chuẩn 60 FPS, không có lỗi JavaScript màu đỏ trong console.
+  - Sub-Agent 4 bắt buộc phải thao tác trực tiếp trên trình duyệt thật (`browser_exec`), chụp ảnh màn hình và đối chứng thực tế để bảo đảm 4 lỗi trên không tái phát trước khi nghiệm thu.
