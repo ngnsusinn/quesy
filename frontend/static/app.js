@@ -4287,11 +4287,12 @@
         if (compactInput) compactInput.focus();
         return;
       }
-      this.openAIPopup(text);
-      this.sendPrompt(text);
+      if (compactInput) compactInput.value = '';
       const chatInput = document.getElementById('composer-chat-input');
       if (chatInput) chatInput.value = '';
-      if (compactInput) compactInput.value = '';
+
+      this.openAIPopup(text);
+      this.sendPrompt(text);
     },
 
     toggleQuickPromptMenu(e) {
@@ -4404,6 +4405,208 @@
     },
 
     pendingDiff: null,
+    _inlineDiffLineNo: null,
+
+    _levenshteinSimilarity(s1, s2) {
+      if (s1 === s2) return 1.0;
+      if (!s1 || !s2) return 0.0;
+      const len1 = s1.length;
+      const len2 = s2.length;
+      if (len1 === 0 || len2 === 0) return 0.0;
+      const row = Array(len2 + 1).fill(0).map((_, i) => i);
+      for (let i = 0; i < len1; i++) {
+        let prev = i + 1;
+        for (let j = 0; j < len2; j++) {
+          let cur;
+          if (s1[i] === s2[j]) {
+            cur = row[j];
+          } else {
+            cur = Math.min(row[j] + 1, prev + 1, row[j + 1] + 1);
+          }
+          row[j] = prev;
+          prev = cur;
+        }
+        row[len2] = prev;
+      }
+      return 1.0 - (row[len2] / Math.max(len1, len2));
+    },
+
+    _stringSimilarity(s1, s2) {
+      if (s1 === s2) return 1.0;
+      if (!s1 || !s2) return 0.0;
+      const t1 = s1.trim();
+      const t2 = s2.trim();
+      if (t1 === t2) return 1.0;
+      if (t1.length === 0 || t2.length === 0) return 0.0;
+
+      // Quick containment
+      if (t1.includes(t2) || t2.includes(t1)) {
+        return 0.85 + 0.15 * (Math.min(t1.length, t2.length) / Math.max(t1.length, t2.length));
+      }
+
+      if (t1.length < 2 || t2.length < 2) return 0.0;
+
+      // Bigram Dice coefficient
+      const getBigrams = str => {
+        const bigrams = new Map();
+        for (let i = 0; i < str.length - 1; i++) {
+          const bg = str.substring(i, i + 2);
+          bigrams.set(bg, (bigrams.get(bg) || 0) + 1);
+        }
+        return bigrams;
+      };
+      const bg1 = getBigrams(t1);
+      const bg2 = getBigrams(t2);
+      let intersection = 0;
+      for (const [bg, count1] of bg1.entries()) {
+        if (bg2.has(bg)) {
+          intersection += Math.min(count1, bg2.get(bg));
+        }
+      }
+      const dice = (2.0 * intersection) / ((t1.length - 1) + (t2.length - 1));
+
+      // Calculate fast Levenshtein similarity for moderate strings
+      if (t1.length <= 120 && t2.length <= 120) {
+        const lev = this._levenshteinSimilarity(t1, t2);
+        return Math.max(dice, lev);
+      }
+      return dice;
+    },
+
+    _findFuzzyLineMatch(fullText, targetSnippet) {
+      if (!fullText || !targetSnippet) return null;
+
+      // 1. Exact match
+      const exactIdx = fullText.indexOf(targetSnippet);
+      if (exactIdx !== -1) {
+        const lineNo = fullText.substring(0, exactIdx).split('\n').length;
+        return {
+          startIdx: exactIdx,
+          endIdx: exactIdx + targetSnippet.length,
+          matchedText: targetSnippet,
+          lineNo: lineNo,
+          score: 1.0
+        };
+      }
+
+      // 2. Trimmed match
+      const trimmedTarget = targetSnippet.trim();
+      const trimIdx = fullText.indexOf(trimmedTarget);
+      if (trimIdx !== -1) {
+        const lineNo = fullText.substring(0, trimIdx).split('\n').length;
+        return {
+          startIdx: trimIdx,
+          endIdx: trimIdx + trimmedTarget.length,
+          matchedText: trimmedTarget,
+          lineNo: lineNo,
+          score: 0.98
+        };
+      }
+
+      // 3. Whitespace / newline normalized match
+      const normFull = fullText.split(String.fromCharCode(13, 10)).join('\n');
+      const normTarget = trimmedTarget.split(String.fromCharCode(13, 10)).join('\n');
+      const normIdx = normFull.indexOf(normTarget);
+      if (normIdx !== -1) {
+        const lineNo = normFull.substring(0, normIdx).split('\n').length;
+        const fLines = normFull.split('\n');
+        const targetLines = normTarget.split('\n');
+        let charOffset = 0;
+        const isCRLF = fullText.includes(String.fromCharCode(13, 10));
+        const nlLen = isCRLF ? 2 : 1;
+        for (let i = 0; i < lineNo - 1; i++) {
+          charOffset += fLines[i].length + nlLen;
+        }
+        let matchLen = 0;
+        for (let k = 0; k < targetLines.length; k++) {
+          const lIdx = lineNo - 1 + k;
+          if (lIdx < fLines.length) {
+            matchLen += fLines[lIdx].length + (k < targetLines.length - 1 ? nlLen : 0);
+          }
+        }
+        return {
+          startIdx: charOffset,
+          endIdx: charOffset + matchLen,
+          matchedText: fullText.substring(charOffset, charOffset + matchLen),
+          lineNo: lineNo,
+          score: 0.95
+        };
+      }
+
+      // 4. Line-by-line Levenshtein / SequenceMatcher match
+      const fullLines = fullText.split(String.fromCharCode(13, 10)).join('\n').split('\n');
+      const targetLines = normTarget.split('\n').map(l => l.trim()).filter(Boolean);
+      if (targetLines.length === 0) return null;
+
+      const K = targetLines.length;
+      let bestScore = -1;
+      let bestLineStart = 0;
+      let bestLineCount = 1;
+
+      if (K === 1) {
+        const tLine = targetLines[0];
+        for (let i = 0; i < fullLines.length; i++) {
+          const fLine = fullLines[i].trim();
+          if (!fLine) continue;
+          if (fLine === tLine) {
+            bestScore = 1.0;
+            bestLineStart = i;
+            bestLineCount = 1;
+            break;
+          }
+          const s = this._stringSimilarity(fLine, tLine);
+          if (s > bestScore) {
+            bestScore = s;
+            bestLineStart = i;
+            bestLineCount = 1;
+          }
+        }
+      } else {
+        const windowSizes = [K, Math.max(1, K - 1), K + 1];
+        for (const W of windowSizes) {
+          if (W <= 0) continue;
+          for (let i = 0; i <= fullLines.length - W; i++) {
+            let totalSim = 0;
+            let count = 0;
+            for (let j = 0; j < Math.min(W, K); j++) {
+              totalSim += this._stringSimilarity(fullLines[i + j].trim(), targetLines[j]);
+              count++;
+            }
+            const avgSim = count > 0 ? (totalSim / count) : 0;
+            if (avgSim > bestScore) {
+              bestScore = avgSim;
+              bestLineStart = i;
+              bestLineCount = W;
+            }
+          }
+        }
+      }
+
+      const isCRLF = fullText.includes(String.fromCharCode(13, 10));
+      const nlLen = isCRLF ? 2 : 1;
+      let charOffset = 0;
+      let matchStart = 0;
+      let matchLen = 0;
+      for (let i = 0; i < fullLines.length; i++) {
+        if (i === bestLineStart) {
+          matchStart = charOffset;
+        }
+        const len = fullLines[i].length;
+        if (i >= bestLineStart && i < bestLineStart + bestLineCount) {
+          matchLen += len + (i < bestLineStart + bestLineCount - 1 ? nlLen : 0);
+        }
+        charOffset += len + nlLen;
+      }
+
+      return {
+        startIdx: matchStart,
+        endIdx: matchStart + matchLen,
+        matchedText: fullText.substring(matchStart, matchStart + matchLen),
+        lineNo: bestLineStart + 1,
+        lineCount: bestLineCount,
+        score: bestScore
+      };
+    },
 
     showPendingDiff(diff) {
       if (!diff || !diff.old_text) return;
@@ -4415,71 +4618,63 @@
       const lineNoEl = document.getElementById('composer-diff-line-no');
       const editor = document.getElementById('composer-editor-input');
 
-      let lineNo = 1;
-      if (editor) {
-        const val = editor.value;
-        const oldText = diff.old_text;
-        const trimmedOld = oldText.trim();
-        let pos = val.indexOf(oldText);
-        let matchLen = oldText.length;
-        if (pos === -1) {
-          pos = val.indexOf(trimmedOld);
-          matchLen = trimmedOld.length;
-        }
-        if (pos === -1) {
-          const normVal = val.split('\r\n').join('\n');
-          const normOld = trimmedOld.split('\r\n').join('\n');
-          const normPos = normVal.indexOf(normOld);
-          if (normPos !== -1) {
-            pos = normPos;
-            matchLen = normOld.length;
-          }
-        }
-        if (pos === -1) {
-          // Line-by-line fallback
-          const curLines = val.split('\n');
-          const firstOldLine = trimmedOld.split('\n')[0].trim();
-          if (firstOldLine) {
-            for (let i = 0; i < curLines.length; i++) {
-              if (curLines[i].includes(firstOldLine) || curLines[i].trim() === firstOldLine) {
-                pos = val.indexOf(curLines[i]);
-                matchLen = curLines[i].length;
-                break;
-              }
-            }
-          }
-        }
+      const inlineOverlay = document.getElementById('composer-inline-diff-overlay');
+      const inlineDesc = document.getElementById('composer-inline-diff-desc');
+      const inlineOld = document.getElementById('composer-inline-diff-old-text');
+      const inlineNew = document.getElementById('composer-inline-diff-new-text');
 
-        if (pos !== -1) {
-          lineNo = val.substring(0, pos).split('\n').length;
-          // Focus and select (bôi đen) old_text in editor
+      let lineNo = 1;
+      const val = editor ? editor.value : (this.currentLatex || '');
+      const match = this._findFuzzyLineMatch(val, diff.old_text);
+
+      if (match) {
+        lineNo = match.lineNo || 1;
+        if (editor) {
           editor.focus();
-          editor.setSelectionRange(pos, pos + matchLen);
-          // Scroll the editor to the line where change is suggested
+          editor.setSelectionRange(match.startIdx, match.endIdx);
           const lineHeight = 20;
           editor.scrollTop = Math.max(0, (lineNo - 3) * lineHeight);
           this.syncEditorScroll();
         }
       }
 
+      this._inlineDiffLineNo = lineNo;
+
+      const displayDesc = diff.description || `Thay đổi tại dòng ${lineNo}`;
+      const displayNew = (diff.new_text !== undefined && diff.new_text !== null && diff.new_text !== '') ? diff.new_text : '(Xóa bỏ đoạn mã này)';
+
+      // 1. Update top banner
       if (lineNoEl) lineNoEl.innerText = lineNo;
       if (banner && descEl && oldEl && newEl) {
-        descEl.innerText = diff.description || `Thay đổi tại dòng ${lineNo}`;
+        descEl.innerText = displayDesc;
         oldEl.innerText = diff.old_text;
-        newEl.innerText = diff.new_text || '';
+        newEl.innerText = displayNew;
         banner.classList.remove('hidden');
-        if (window.lucide) lucide.createIcons();
       }
 
-      // If AI assistant popup is open, automatically lower its height to dock/compact so editor and diff banner are visible
+      // 2. Render Inline Diff Widget directly over the target line in the Editor (Ảnh 4)
+      if (inlineOverlay && inlineDesc && inlineOld && inlineNew && editor) {
+        inlineDesc.innerText = displayDesc;
+        inlineOld.innerText = diff.old_text;
+        inlineNew.innerText = displayNew;
+
+        const lineTop = 10 + (lineNo - 1) * 20;
+        const targetTop = lineTop - editor.scrollTop;
+        const clampedTop = Math.max(8, Math.min(targetTop, Math.max(8, editor.clientHeight - 130)));
+        inlineOverlay.style.top = `${clampedTop}px`;
+        inlineOverlay.classList.remove('hidden');
+      }
+
+      // 3. Automatically dock AI assistant popup down to 32% so editor and inline diff are clearly visible
       const popup = document.getElementById('composer-ai-popup');
       if (popup && this.isAIPopupOpen) {
-        this.aiPopupHeight = '35%';
-        popup.style.height = '35%';
+        this.aiPopupHeight = '32%';
+        popup.style.height = '32%';
         const maxIcon = document.getElementById('composer-ai-max-icon');
         if (maxIcon) maxIcon.setAttribute('data-lucide', 'maximize-2');
-        if (window.lucide) lucide.createIcons();
       }
+
+      if (window.lucide) lucide.createIcons();
     },
 
     applyPendingDiff() {
@@ -4491,8 +4686,11 @@
 
     rejectPendingDiff() {
       this.pendingDiff = null;
+      this._inlineDiffLineNo = null;
       const banner = document.getElementById('composer-pending-diff-banner');
       if (banner) banner.classList.add('hidden');
+      const inlineOverlay = document.getElementById('composer-inline-diff-overlay');
+      if (inlineOverlay) inlineOverlay.classList.add('hidden');
       const editor = document.getElementById('composer-editor-input');
       if (editor) {
         const cursor = editor.selectionEnd;
@@ -4504,32 +4702,93 @@
       const editor = document.getElementById('composer-editor-input');
       if (!editor) return;
 
-      let val = this.currentLatex;
+      let val = this.currentLatex || editor.value || '';
+      const safeNew = (newText !== undefined && newText !== null) ? newText : '';
+
+      if (!val) {
+        val = safeNew;
+        editor.value = val;
+        this.currentLatex = val;
+        this.handleEditorInput();
+        this.compile(true);
+        this.rejectPendingDiff();
+        showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
+        return;
+      }
+
       let replaced = false;
 
+      // Tier 1: Exact match
       if (val.includes(oldText)) {
-        val = val.replace(oldText, newText);
+        val = val.replace(oldText, safeNew);
         replaced = true;
-      } else {
-        const trimmedOld = oldText.trim();
-        const trimmedNew = newText.trim();
+      }
+
+      // Tier 2: Trimmed match
+      if (!replaced) {
+        const trimmedOld = (oldText || '').trim();
+        const trimmedNew = safeNew.trim();
         if (val.includes(trimmedOld)) {
           val = val.replace(trimmedOld, trimmedNew);
           replaced = true;
-        } else {
-          const normVal = val.split('\r\n').join('\n');
-          const normOld = trimmedOld.split('\r\n').join('\n');
-          const normNew = trimmedNew.split('\r\n').join('\n');
-          if (normVal.includes(normOld)) {
-            val = normVal.replace(normOld, normNew);
+        }
+      }
+
+      // Tier 3: Whitespace / CRLF normalized match
+      if (!replaced) {
+        const normVal = val.split(String.fromCharCode(13, 10)).join('\n');
+        const normOld = (oldText || '').trim().split(String.fromCharCode(13, 10)).join('\n');
+        const normNew = safeNew.trim().split(String.fromCharCode(13, 10)).join('\n');
+        if (normVal.includes(normOld)) {
+          val = normVal.replace(normOld, normNew);
+          replaced = true;
+        }
+      }
+
+      // Tier 4: Multi-level fuzzy match (Levenshtein / SequenceMatcher >= 60%)
+      if (!replaced) {
+        const match = this._findFuzzyLineMatch(val, oldText);
+        if (match && (match.score >= 0.50 || val.includes(match.matchedText))) {
+          const before = val.substring(0, match.startIdx);
+          const after = val.substring(match.endIdx);
+          val = before + safeNew + after;
+          replaced = true;
+        }
+      }
+
+      // Tier 5: Keyword & command matching fallback
+      if (!replaced) {
+        const lines = val.split(String.fromCharCode(13, 10)).join('\n').split('\n');
+        const candidateKeywords = (oldText + ' ' + safeNew).match(/\\[a-zA-Z@]+(?:\{[^}]*\})?/g) || [];
+        for (const kw of candidateKeywords) {
+          if (kw.length < 5) continue;
+          const idx = lines.findIndex(l => l.includes(kw));
+          if (idx !== -1) {
+            lines[idx] = safeNew;
+            val = lines.join('\n');
             replaced = true;
+            break;
           }
         }
       }
 
+      // Tier 6: Guaranteed fallback: replace best matching line (>= 20%) or safe insert
       if (!replaced) {
-        showToast('Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại.', 'warning');
-        return;
+        const match = this._findFuzzyLineMatch(val, oldText);
+        if (match && match.score > 0.20) {
+          const before = val.substring(0, match.startIdx);
+          const after = val.substring(match.endIdx);
+          val = before + safeNew + after;
+          replaced = true;
+        } else {
+          // Safe insertion: insert before \end{document} or append
+          if (val.includes('\\end{document}')) {
+            val = val.replace('\\end{document}', `${safeNew}\n\\end{document}`);
+          } else {
+            val = val + '\n' + safeNew;
+          }
+          replaced = true;
+        }
       }
 
       editor.value = val;
@@ -4538,28 +4797,6 @@
       this.compile(true);
       this.rejectPendingDiff();
       showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
-    },
-
-    _stringSimilarity(s1, s2) {
-      if (s1 === s2) return 1.0;
-      if (!s1 || !s2 || s1.length < 2 || s2.length < 2) return 0.0;
-      const getBigrams = str => {
-        const bigrams = new Map();
-        for (let i = 0; i < str.length - 1; i++) {
-          const bg = str.substring(i, i + 2);
-          bigrams.set(bg, (bigrams.get(bg) || 0) + 1);
-        }
-        return bigrams;
-      };
-      const bg1 = getBigrams(s1);
-      const bg2 = getBigrams(s2);
-      let intersection = 0;
-      for (const [bg, count1] of bg1.entries()) {
-        if (bg2.has(bg)) {
-          intersection += Math.min(count1, bg2.get(bg));
-        }
-      }
-      return (2.0 * intersection) / ((s1.length - 1) + (s2.length - 1));
     },
 
     extractDiffFromText(replyText, currentLatex, userMessage = '') {
@@ -5092,6 +5329,10 @@
         if (window.lucide) lucide.createIcons();
       }
 
+      const errorTextEl = document.getElementById('composer-error-text');
+      const errorDrawer = document.getElementById('composer-error-drawer');
+      const activeCompileError = this.lastCompileError || (errorDrawer && !errorDrawer.classList.contains('hidden') && errorTextEl ? errorTextEl.innerText.trim() : null);
+
       try {
         const res = await fetch(`${API_BASE_URL}/composer/chat`, {
           method: 'POST',
@@ -5099,6 +5340,7 @@
           body: JSON.stringify({
             message: promptText,
             current_latex: this.currentLatex,
+            compile_error: activeCompileError || undefined,
             history: this.chatHistory.slice(-4)
           })
         });
@@ -5206,6 +5448,15 @@
       const gutter = document.getElementById('composer-editor-gutter');
       if (editor && gutter) {
         gutter.scrollTop = editor.scrollTop;
+      }
+      if (this.pendingDiff && this._inlineDiffLineNo && editor) {
+        const overlay = document.getElementById('composer-inline-diff-overlay');
+        if (overlay && !overlay.classList.contains('hidden')) {
+          const lineTop = 10 + (this._inlineDiffLineNo - 1) * 20;
+          const targetTop = lineTop - editor.scrollTop;
+          const clampedTop = Math.max(8, Math.min(targetTop, Math.max(8, editor.clientHeight - 130)));
+          overlay.style.top = `${clampedTop}px`;
+        }
       }
     },
 
@@ -5358,8 +5609,10 @@
             statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold';
           }
           if (errorDrawer) errorDrawer.classList.add('hidden');
+          this.lastCompileError = null;
         } else {
           const errMsg = data.error || 'Biên dịch thất bại';
+          this.lastCompileError = errMsg;
           if (statusText) statusText.innerText = 'Lỗi biên dịch';
           if (statusBadge) {
             statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-semibold';
@@ -5370,6 +5623,7 @@
           }
         }
       } catch (err) {
+        this.lastCompileError = String(err);
         if (overlay) overlay.classList.add('hidden');
         if (statusText) statusText.innerText = 'Lỗi kết nối';
         if (errorDrawer && errorText) {

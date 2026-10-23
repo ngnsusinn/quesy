@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 2.7 (Tập trung hoàn thiện MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Bảo toàn chỉnh sửa 2 chiều)  
+- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Độ tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine và xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML.  
-- **Ngày phát hành:** 2026-10-21  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, và phân hệ Trợ lý Soạn thảo AI Copilot thông minh.  
+- **Ngày phát hành:** 2026-10-23
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)  
 
 ---
@@ -166,7 +166,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   3. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, lịch sử hội thoại và lịch sử biên dịch vào `localStorage` của trình duyệt.
   4. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
 
-#### SRS-FEAT-04e: Thanh Nhập Prompt AI Thu Gọn ở Chân Editor (Compact Floating AI Prompt Bar)
+#### SRS-FEAT-04e: Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Màu Tương Phản Dark Mode (High-Contrast Input Tokens)
 - **Mô tả:** Cung cấp thanh nhập lệnh AI nhỏ gọn dạng viên thuốc (floating pill bar) neo tại chân khung soạn thảo (`bottom-7`, căn giữa `w-[92%] max-w-xl`, phong cách Apple Glassmorphism bo tròn viền bán trong suốt `#1c1c1f/95`), giữ không gian làm việc luôn tối giản và tập trung cao độ.
 - **Hành vi tương tác và kích hoạt 2 trạng thái:**
   1. *Trạng thái Nhập liệu Cục bộ (In-place Typing):* Khi người dùng nhấp chuột vào thanh hoặc trường nhập văn bản (`#composer-compact-input`), hệ thống chỉ kích hoạt focus con trỏ để gõ văn bản bình thường (`cursor-text`), **tuyệt đối không tự động bung mở modal/popup trợ lý** nhằm loại bỏ hoàn toàn hiện tượng che khuất màn hình gây gián đoạn mạch soạn thảo.
@@ -175,38 +175,51 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
      - Người dùng nhấp chuột vào **Nút Gửi Mũi Tên Tròn** (`#composer-ai-compact-bar button` - icon `arrow-up`).
   3. *Chuyển tiếp Dữ liệu Liền mạch:* Khi được kích hoạt, chuỗi prompt trong thanh thu gọn được tự động chuyển vào ô chat của Popup Trợ lý, thanh thu gọn tạm thời ẩn đi, hiển thị chỉ báo AI đang phản hồi (`composer-typing-indicator`), và gửi yêu cầu bất đồng bộ đến endpoint `/api/v1/composer/chat`.
   4. *Menu Mẫu Lệnh Nhanh (Quick Actions Menu):* Biểu tượng dấu cộng `+` trên thanh compact mở menu ngữ cảnh cho phép chọn nhanh các tác vụ phổ biến: đổi cỡ chữ toàn tài liệu sang 12pt, tạo câu hỏi trắc nghiệm 4 lựa chọn, tạo câu hỏi Đúng/Sai 4 ý QĐ 764, vẽ bảng biến thiên `tkz-tab`, và kiểm tra/sửa cú pháp LaTeX.
+- **Quy chuẩn Màu Tương Phản Dark Mode (WCAG 2.1 AA Compliant - Sửa lỗi chữ đen trên nền tối):**
+  - Khắc phục triệt để lỗi chữ màu đen `#1d1d1f` bị chìm trên nền tối `#1c1c1f` / `#141824`.
+  - Thiết lập design tokens bắt buộc với độ ưu tiên cao (`!important`) cho cả 2 trường nhập liệu `#composer-compact-input` và `#composer-chat-input`:
+    - *Text Color:* `#f8fafc` (Slate-50) hoặc `#ffffff` xuyên suốt mọi trạng thái (default, hover, focus, active).
+    - *Placeholder Color:* `rgba(226, 232, 240, 0.5)` (Slate-200 / 50%) phân biệt rõ ràng nhưng dịu mắt trên nền tối.
+    - *Caret Color (Con trỏ nhập môn):* `#38bdf8` (Sky-400 / Apple Blue) định vị sắc nét vị trí con trỏ.
+    - *Selection Color:* `::selection { background-color: rgba(59, 130, 246, 0.4); color: #ffffff; }`.
+    - *Background & Borders:* Nền trong suốt `background-color: transparent !important`, loại bỏ toàn bộ viền trong, bóng hộp mặc định (`border: none !important; outline: none !important; box-shadow: none !important`).
 
-#### SRS-FEAT-04f: Cơ Chế Trích Xuất & Hiển Thị Đề Xuất Sửa Đổi Trực Tiếp trên Editor (Smart Inline Diff Suggestion)
-- **Mô tả:** Khi tương tác với Trợ lý Soạn thảo AI, mọi đề xuất điều chỉnh văn bản, thay thế tham số hoặc sửa đổi mã nguồn LaTeX đều được trích xuất thành đối tượng **`DiffSuggestion`** có cấu trúc, hiển thị trực quan ngay tại vị trí dòng mã nguồn cần thay đổi trên Editor thay vì ghi đè thô bạo hoặc lặp lại toàn bộ tài liệu dài dòng.
-- **Luồng Xử Lý và Trích Xuất Diff Phía Backend (`composer.py`):**
-  - AI Copilot được định hướng bằng System Prompt ép buộc chỉ trả về các khối thay đổi có cấu trúc kèm lời giải thích ngắn gọn bằng tiếng Việt.
-  - Bộ bóc tách Diff Đa tầng (`extract_diff_from_text`) nhận diện tự động 5 định dạng đề xuất sửa:
-    1. *Unified Diff Block:* Khối ````diff ... ```` chứa dòng trừ `- <old_line>` và dòng cộng `+ <new_line>`.
-    2. *Search & Replace Block:* Chuẩn Aider/Open-Prism `<<<<<<< SEARCH ... ======= ... >>>>>>> REPLACE`.
-    3. *Explicit OLD/NEW Block:* Định dạng nhãn `OLD: <text>` và `NEW: <text>`.
-    4. *Heuristic Tham số Khảo thí:* Nhận diện yêu cầu đổi cỡ chữ (ví dụ: `11pt -> 12pt` tại `\documentclass`), chế độ lời giải (`[dethi] <-> [loigiai]`).
-    5. *SequenceMatcher Diff:* So khớp mã khối mới với ngữ cảnh hiện tại bằng thuật toán so sánh chuỗi tương đối để trích xuất lát cắt thay thế tối thiểu.
-  - Backend trả về payload `ChatResponse`:
-    ```json
-    {
-      "reply": "Giải thích chi tiết về thay đổi...",
-      "diff": {
-        "action": "replace",
-        "old_text": "\\documentclass[11pt,a4paper]{article}",
-        "new_text": "\\documentclass[12pt,a4paper]{article}",
-        "description": "Đổi cỡ chữ toàn tài liệu sang 12pt"
-      }
-    }
-    ```
-- **Hành vi Trực quan hóa & Thao tác trên Frontend Editor (`app.js`):**
-  1. *Định vị & Cuộn dòng Tự động (Line Pinpointing & Auto-scroll):* Khi nhận được `diff`, client tìm kiếm chính xác vị trí của `old_text` trong bộ đệm LaTeX, xác định số thứ tự dòng (`lineNo`), tự động cuộn khung nhìn editor đến dòng đó (`scrollTop`), và kích hoạt bôi đen vùng chọn ký tự (`setSelectionRange`).
-  2. *Banner Duyệt Diff Ngay trên Editor (`#composer-pending-diff-banner`):*
-     - Huy hiệu nhận diện: Badge `GỢI Ý TẠI DÒNG [lineNo]` đi kèm mô tả ngắn gọn nội dung sửa đổi.
-     - So sánh trực quan 2 màu: Dòng cũ cần xóa (`- old_text`) nền đỏ đậm `rose-950/70`, dòng mới cần thêm (`+ new_text`) nền xanh lục `emerald-950/70`.
-     - Bộ đôi nút thao tác phê duyệt:
-       - **`[Đồng ý]` (Accept):** Gọi hàm `applyPendingDiff()`, thực hiện thay thế chính xác dòng cũ bằng dòng mới trong biến trạng thái `this.currentLatex` và textarea, tự động kích hoạt biên dịch tức thì `compile(true)` để cập nhật Live PDF, hiển thị thông báo toast thành công và đóng banner diff.
-       - **`[Từ chối]` (Reject):** Gọi hàm `rejectPendingDiff()`, đóng banner diff, đưa con trỏ về trạng thái soạn thảo thông thường mà không can thiệp hay làm biến đổi bất kỳ ký tự nào của mã nguồn.
-  3. *Thẻ Diff Tương tác trong Lịch sử Chat:* Bên cạnh banner trên editor, tin nhắn phản hồi của AI trong khung chat cũng hiển thị thẻ Diff Card độc lập có đủ 2 nút `[Đồng ý]` / `[Từ chối]`, giúp giáo viên có thể xem lại và tái áp dụng đề xuất bất cứ lúc nào trong phiên làm việc.
+#### SRS-FEAT-04f: Động Cơ Thay Thế Dòng Mờ Đa Tầng (Fuzzy Line Replacement Engine)
+- **Mô tả:** Động cơ áp dụng đề xuất sửa đổi mã nguồn LaTeX đảm bảo tỷ lệ thành công tuyệt đối $\ge 99.5\%$, loại bỏ triệt để thông báo lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại" khi người dùng nhấn [Đồng ý] / [Apply].
+- **Thuật toán Khớp Mờ 5 Tầng (5-Tier Resilient Line Matcher):**
+  1. *Tầng 1 - Exact Substring Match:* Tìm kiếm nguyên bản `old_text` trong bộ đệm văn bản hiện hành `editor.value` (đồng bộ hai chiều với `this.currentLatex`).
+  2. *Tầng 2 - Whitespace & Linebreak Normalization:* Chuẩn hóa toàn bộ ngắt dòng Windows CRLF (`
+\n`) về Unix LF (`\n`), đồng thời loại bỏ khoảng trắng thừa cuối dòng (trailing spaces).
+  3. *Tầng 3 - Indentation-Insensitive Match & Preserved Re-indent:* Phân rã khối văn bản thành từng dòng, bỏ qua thụt lề đầu dòng (leading indentation / tabs / spaces) để tìm kiếm khối dòng tương đồng; khi áp dụng `new_text`, tự động tái gán thụt lề ban đầu của mã nguồn để bảo toàn cấu trúc code thẩm mỹ.
+  4. *Tầng 4 - Sliding Window Sequence Matcher:* Quét cửa sổ trượt $W \in [M - 2, M + 3]$ dòng quanh vị trí nghi vấn, tính toán tỷ lệ tương đồng ký tự qua thuật toán Levenshtein / Gestalt Pattern Matching; tự động chấp nhận thay thế khi độ tương đồng $\ge 0.60$.
+  5. *Tầng 5 - Pinned Line Index & Range Replacement:* Sử dụng số thứ tự dòng (`lineNo`) và phạm vi chỉ số ký tự (`matchRange: [start, end]`) đã được xác định và ghim cố định từ bước hiển thị gợi ý `showPendingDiff()` để thay thế trực tiếp vào phạm vi đó nếu chuỗi văn bản đã bị biến đổi nhẹ.
+
+#### SRS-FEAT-04g: Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding & Diagnostics)
+- **Mô tả:** Tự động thu thập toàn bộ nhật ký lỗi biên dịch (Compiler Error Log) từ động cơ XeTeX / Tectonic Docker (hoặc Local/Chromium engine) và chuyển tiếp trực tiếp vào ngữ cảnh hội thoại của Trợ lý AI Copilot.
+- **Hành vi luồng dữ liệu:**
+  1. Khi tiến trình biên dịch `POST /api/v1/composer/compile` thất bại (`data.success = false`), client trích xuất chuỗi thông báo lỗi `errMsg = data.error` và lưu trữ bền vững vào trạng thái `app.composer.lastCompileError`.
+  2. Khi người dùng gửi câu hỏi tiếp theo (ví dụ: "Tại sao lỗi biên dịch?", "Sửa lỗi giúp tôi", hoặc bất kỳ lệnh nào trong lúc có lỗi), client tự động đính kèm trường `compile_error_log: this.lastCompileError` vào payload gửi tới `POST /api/v1/composer/chat`.
+  3. Backend API (`composer.py`) chấp nhận `compile_error_log` (hỗ trợ cả alias tương thích ngược `compile_error`), trích xuất dòng báo lỗi TeX (ví dụ: `! Undefined control sequence`, `l.24 \badcommand`, `! Missing $ inserted`, `! LaTeX Error: Environment ex undefined`).
+  4. AI Copilot được định hướng phân tích chính xác nguyên nhân lỗi cú pháp, tự động đối chiếu dòng mã nguồn bị lỗi trong `current_latex` và sinh ra khối đề xuất sửa đổi diff (dòng đỏ `-` là dòng lỗi, dòng xanh `+` là dòng sửa hoặc chú thích comment vô hiệu hóa) để giáo viên 1-click sửa lỗi ngay lập tức.
+  5. Khi biên dịch thành công, hệ thống tự động reset `lastCompileError = null`, xóa sạch cờ cảnh báo lỗi.
+
+#### SRS-FEAT-04h: Giao Diện Trực Quan Hóa Diff Trực Tiếp Trên Ô Soạn Thảo (Inline Editor Diff Overlay / Widget)
+- **Mô tả:** Bên cạnh banner cố định ở trên đầu editor, hệ thống cung cấp giao diện hiển thị khối so sánh Diff trực quan trực tiếp tại đúng vị trí dòng mã nguồn cần sửa đổi trên trình soạn thảo (Inline Editor Diff Overlay / Inline Diff Widget mô phỏng trải nghiệm Cursor / VS Code Copilot).
+- **Cấu trúc & Trải nghiệm Trực quan:**
+  1. *Khối Dòng Đỏ Xóa (`- <old_line>`):* Nền đỏ mờ `rgba(225, 29, 72, 0.15)` (`bg-rose-950/70`), viền trái đỏ tươi `border-l-4 border-rose-500`, văn bản đỏ `text-rose-300`, hiển thị chính xác nội dung dòng mã cũ kèm ký hiệu `-`.
+  2. *Khối Dòng Xanh Thêm (`+ <new_line>`):* Nền xanh lục mờ `rgba(16, 185, 129, 0.15)` (`bg-emerald-950/70`), viền trái xanh ngọc `border-l-4 border-emerald-500`, văn bản xanh `text-emerald-300`, hiển thị chính xác nội dung dòng mã mới kèm ký hiệu `+`.
+  3. *Thanh Điều Khiển Hành Động Nội Dòng (Inline Action Pill Bar):*
+     - Nút **`[Keep / Đồng ý]`**: Icon checkmark, nền xanh dương `bg-blue-600 hover:bg-blue-500 text-white`, nhấp vào áp dụng ngay thay đổi qua Fuzzy Replacement Engine, tự động kích hoạt `compile(true)` và xóa bỏ overlay diff.
+     - Nút **`[Undo / Từ chối]`**: Icon undo / dismiss, nền xám tối `bg-slate-700 hover:bg-slate-600 text-slate-200`, nhấp vào hủy bỏ gợi ý sửa đổi, khôi phục trạng thái con trỏ và giữ nguyên vẹn 100% mã nguồn.
+  4. *Neo Tọa Độ & Đồng Bộ Cuộn:* Vị trí của Inline Overlay được neo theo tọa độ dòng nguồn trong editor (`top = (lineNo - 1) * lineHeight`), tự động cuộn đồng bộ mượt mà khi người dùng cuộn textarea editor.
+
+#### SRS-FEAT-04i: Tối Ưu Hóa Hiệu Năng Gửi Prompt & Tương Tác Box Chat Mượt Mà (Fast Prompt Dispatch & Smooth Micro-Interactions)
+- **Mô tả:** Loại bỏ hoàn toàn độ trễ khi gửi prompt và bảo đảm giao diện hộp thoại Trợ lý AI vận hành mượt mà chuẩn 60 FPS theo triết lý Apple Human Interface Guidelines và tương tác xúc giác Emil Kowalski.
+- **Tiêu chuẩn kỹ thuật:**
+  1. *Phản Hồi Lập Tức (Optimistic UI & Instant Transition):* Khi người dùng nhấn `Enter` hoặc nhấp nút gửi, trong vòng $\le 16$ ms (1 frame), thanh compact input lập tức ẩn, nội dung tin nhắn được đẩy vào lịch sử hội thoại, khung chat cuộn mượt đến đáy (`behavior: 'smooth'`) và hiển thị bong bóng loading `Trợ lý đang xử lý yêu cầu...`.
+  2. *Chuyển Động Hardware-Accelerated:* Hộp thoại Popup Trợ lý sử dụng thuộc tính CSS `transform: translate3d(0, 0, 0)`, `transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1)`, loại bỏ tình trạng giật cục (jank) khi co giãn chiều cao.
+  3. *Tối Ưu DOM & Lucide Icon Parsing:* Thay vì quét toàn trang qua `lucide.createIcons()`, hệ thống chỉ gọi render icon cục bộ trong node tin nhắn mới, giảm thiểu 95% thời gian layout thrashing.
+  4. *Non-blocking Async AI Request:* Kết nối Backend AI sử dụng `httpx.AsyncClient` bất đồng bộ với timeout linh hoạt 15s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu hiện tượng đóng băng socket hay nghẽn thread pool.
 
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings

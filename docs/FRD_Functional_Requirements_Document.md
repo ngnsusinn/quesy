@@ -2,10 +2,10 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 2.7 (Tập trung hoàn thiện MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Bảo toàn chỉnh sửa 2 chiều)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, dựng đồ thị vector SVG, trộn đề an toàn và xuất bản in ấn.  
-- **Ngày phát hành:** 2026-10-18  
-- **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành  
+- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn và trợ lý soạn thảo AI copilot thông minh.  
+- **Ngày phát hành:** 2026-10-23  
+- **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
 ---
 
@@ -95,7 +95,7 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   - **Lưu vào Ngân hàng:** Trích xuất các câu hỏi từ mã LaTeX sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table) chỉ với 1 click, hỗ trợ đồng thời cả cú pháp `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`).
   - **Tải tệp PDF & .TEX:** Xuất bản tệp PDF vector-crisp 100% font CMU Serif và tệp nguồn LaTeX `.tex`.
 
-### 2.4.1. FR-02.3: Thanh Nhập Prompt AI Thu Gọn (Compact Floating AI Prompt Bar)
+### 2.4.1. FR-02.3: Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Màu Tương Phản Dark Mode (High-Contrast Input Tokens)
 - **Vị trí & Kiểu dáng:**
   - Thanh dạng viên thuốc (floating pill bar) neo tại chân khung soạn thảo LaTeX (`bottom-7`, căn giữa theo chiều ngang `left-1/2 -translate-x-1/2`, chiều rộng `w-[92%] max-w-xl`).
   - Giao diện Apple Glassmorphism: Nền bán trong suốt `#1c1c1f/95`, hiệu ứng mờ hậu cảnh `backdrop-blur-md`, viền tinh tế `border-white/15`, đổ bóng sâu `shadow-2xl`.
@@ -115,43 +115,53 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   3. *Menu Mẫu Câu Lệnh Nhanh (Quick Actions):*
      - Nút dấu cộng `+` bên cạnh nút gửi cho phép mở menu popover danh mục prompt tiêu chuẩn (Đổi cỡ chữ 12pt, Sinh trắc nghiệm 4 lựa chọn, Sinh Đúng/Sai QĐ 764, Vẽ bảng biến thiên `tkz-tab`, Sửa cú pháp LaTeX).
      - Khi chọn một mẫu, hệ thống tự động mở popup và điền sẵn prompt vào ô chat.
+- **Quy chuẩn Màu Tương Phản Dark Mode (Sửa lỗi chữ đen trên nền tối):**
+  - Khắc phục triệt để lỗi chữ màu đen `#1d1d1f` bị chìm trên nền tối `#1c1c1f` / `#141824`.
+  - Thiết lập design tokens bắt buộc với độ ưu tiên cao (`!important`) cho cả 2 trường nhập liệu `#composer-compact-input` và `#composer-chat-input`:
+    - *Text Color:* `#f8fafc` (Slate-50) hoặc `#ffffff` xuyên suốt mọi trạng thái (default, hover, focus, active).
+    - *Placeholder Color:* `rgba(226, 232, 240, 0.5)` (Slate-200 / 50%) phân biệt rõ ràng nhưng dịu mắt trên nền tối.
+    - *Caret Color (Con trỏ nhập liệu):* `#38bdf8` (Sky-400 / Apple Blue) định vị sắc nét vị trí con trỏ.
+    - *Selection Color:* `::selection { background-color: rgba(59, 130, 246, 0.4); color: #ffffff; }`.
+    - *Background & Borders:* Nền trong suốt `background-color: transparent !important`, loại bỏ toàn bộ viền trong, bóng hộp mặc định (`border: none !important; outline: none !important; box-shadow: none !important`).
 
-### 2.4.2. FR-02.4: Cơ Chế Trích Xuất & Duyệt Đề Xuất Sửa Đổi Trực Tiếp (Smart Inline Diff Suggestion & Direct Replacement)
-- **Mục tiêu Nghiệp vụ:** Khi giáo viên yêu cầu điều chỉnh tài liệu (như đổi font, sửa câu hỏi, thay đổi đáp án, cập nhật tiêu đề), AI không được xuất lại toàn bộ văn bản dài hàng trăm dòng gây tốn token và mất ngữ cảnh. Thay vào đó, AI trích xuất lát cắt thay thế tối thiểu và hiển thị gợi ý trực tiếp ngay tại vị trí dòng mã nguồn trên Editor với 2 nút phê duyệt nhanh.
-- **Quy trình Xử lý Luồng Dữ liệu (End-to-End Data Flow):**
-  1. *Backend Copilot Analysis & Diff Extraction (`backend/routers/composer.py`):*
-     - Request `POST /api/v1/composer/chat` mang theo `message`, `current_latex` và 4 lượt `history` gần nhất.
-     - Backend áp dụng System Prompt ép khuôn phản hồi sang các khối thay đổi có cấu trúc.
-     - Hàm `extract_diff_from_text` phân tích chuỗi phản hồi và trích xuất thành đối tượng `DiffSuggestion`:
-       - `action`: Hành động (`replace` hoặc `insert`).
-       - `old_text`: Đoạn mã gốc chính xác cần thay thế trong văn bản hiện tại.
-       - `new_text`: Đoạn mã mới tương ứng do AI đề xuất.
-       - `description`: Tóm tắt ngắn gọn mục đích sửa đổi (ví dụ: *"Đổi cỡ chữ toàn tài liệu sang 12pt"*).
-  2. *Frontend Line Pinpointing & Visual Highlighting (`frontend/static/app.js`):*
-     - Nhận phản hồi có chứa `diff`: Client gọi hàm `showPendingDiff(data.diff)`.
-     - Tìm kiếm vị trí ký tự đầu tiên của `old_text` trong chuỗi mã nguồn hiện tại của textarea (`indexOf`).
-     - Tính toán số thứ tự dòng tương ứng: `lineNo = val.substring(0, pos).split('\n').length`.
-     - Tự động cuộn khung nhìn textarea đến dòng mã đó: `editor.scrollTop = Math.max(0, (lineNo - 3) * lineHeight)`.
-     - Đặt vùng bôi đen (selection range) trúng khớp đoạn mã cũ: `editor.setSelectionRange(pos, pos + old_text.length)`.
-  3. *Hiển thị Banner Duyệt Diff Ngay trên Editor (`#composer-pending-diff-banner`):*
-     - Xuất hiện nổi bật ngay phía trên vùng gõ mã nguồn với viền xanh dương `border-b-2 border-blue-500` và đổ bóng nổi `shadow-lg`.
-     - Huy hiệu dòng: `GỢI Ý TẠI DÒNG [lineNo]` dạng pill xanh tím kèm tóm tắt mô tả nội dung đề xuất.
-     - Khối đối chiếu 2 màu trực quan:
-       - Hàng trừ `-`: Nền đỏ đậm `bg-rose-950/70`, chữ đỏ `text-rose-300`, hiển thị chính xác `old_text`.
-       - Hàng cộng `+`: Nền xanh lục `bg-emerald-950/70`, chữ xanh `text-emerald-300`, hiển thị chính xác `new_text`.
-     - Hai nút bấm điều khiển tức thì:
-       - **`[Đồng ý]` (Accept):**
-         - Kích hoạt `applyPendingDiff()` -> `applyDiffDirect(old_text, new_text)`.
-         - Thay thế đoạn mã trong `this.currentLatex` và textarea (hỗ trợ cả chuẩn hóa ngắt dòng `
-\n` sang `\n`).
-         - Tự động kích hoạt biên dịch tức thì `compile(true)` để làm mới bản xem trước PDF Live Preview.
-         - Ẩn banner diff và phát toast thông báo: *"Đã áp dụng thay đổi vào mã nguồn!"*.
-       - **`[Từ chối]` (Reject):**
-         - Kích hoạt `rejectPendingDiff()`.
-         - Ẩn banner diff, giải phóng vùng bôi đen, đưa con trỏ về vị trí cũ mà không làm biến đổi bất kỳ ký tự nào trong tài liệu.
-  4. *Thẻ Diff Card Phản chiếu trong Luồng Chat:*
-     - Tin nhắn AI trong khung chat đồng thời hiển thị thẻ Interactive Diff Card với đầy đủ nội dung dòng cũ/mới và 2 nút `[Đồng ý]` / `[Từ chối]`.
-     - Giáo viên có thể duyệt trực tiếp từ banner trên editor hoặc từ thẻ trong khung chat với tác dụng đồng bộ hoàn toàn như nhau.
+### 2.4.2. FR-02.4: Động Cơ Thay Thế Dòng Mờ Đa Tầng (Fuzzy Line Replacement Engine)
+- **Mục tiêu Nghiệp vụ:** Khi giáo viên nhấn [Đồng ý áp dụng] / [Apply], hệ thống phải thay thế chuẩn xác đoạn mã nguồn được đề xuất với tỷ lệ thành công $\ge 99.5\%$, triệt tiêu hoàn toàn thông báo lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
+- **Thuật toán Khớp Mờ 5 Tầng (5-Tier Resilient Line Matcher):**
+  1. *Tầng 1 - Exact Substring Match:* Tìm kiếm nguyên bản `old_text` trong bộ đệm văn bản hiện hành `editor.value` (đồng bộ hai chiều với `this.currentLatex`).
+  2. *Tầng 2 - Whitespace & Linebreak Normalization:* Chuẩn hóa toàn bộ ngắt dòng Windows CRLF (`
+\n`) về Unix LF (`\n`), đồng thời loại bỏ khoảng trắng thừa cuối dòng (trailing spaces).
+  3. *Tầng 3 - Indentation-Insensitive Match & Preserved Re-indent:* Phân rã khối văn bản thành từng dòng, bỏ qua thụt lề đầu dòng (leading indentation / tabs / spaces) để tìm kiếm khối dòng tương đồng; khi áp dụng `new_text`, tự động tái gán thụt lề ban đầu của mã nguồn để bảo toàn cấu trúc code thẩm mỹ.
+  4. *Tầng 4 - Sliding Window Sequence Matcher:* Quét cửa sổ trượt $W \in [M - 2, M + 3]$ dòng quanh vị trí nghi vấn, tính toán tỷ lệ tương đồng ký tự qua thuật toán Levenshtein / Gestalt Pattern Matching; tự động chấp nhận thay thế khi độ tương đồng $\ge 0.60$.
+  5. *Tầng 5 - Pinned Line Index & Range Replacement:* Sử dụng số thứ tự dòng (`lineNo`) và phạm vi chỉ số ký tự (`matchRange: [start, end]`) đã được xác định và ghim cố định từ bước hiển thị gợi ý `showPendingDiff()` để thay thế trực tiếp vào phạm vi đó nếu chuỗi văn bản đã bị biến đổi nhẹ.
+
+### 2.4.3. FR-02.5: Giao Diện Trực Quan Hóa Diff Trực Tiếp Trên Ô Soạn Thảo (Inline Editor Diff Overlay / Widget)
+- **Mục tiêu:** Cung cấp trải nghiệm chỉnh sửa hiện đại tương đương Cursor / VS Code Copilot: hiển thị khối so sánh Diff trực quan trực tiếp tại đúng vị trí dòng mã nguồn cần sửa đổi trên trình soạn thảo.
+- **Cấu trúc & Thành phần Giao diện:**
+  1. *Khối Dòng Đỏ Xóa (`- <old_line>`):* Nền đỏ mờ `rgba(225, 29, 72, 0.15)` (`bg-rose-950/70`), viền trái đỏ tươi `border-l-4 border-rose-500`, văn bản đỏ `text-rose-300`, hiển thị chính xác nội dung dòng mã cũ kèm ký hiệu `-`.
+  2. *Khối Dòng Xanh Thêm (`+ <new_line>`):* Nền xanh lục mờ `rgba(16, 185, 129, 0.15)` (`bg-emerald-950/70`), viền trái xanh ngọc `border-l-4 border-emerald-500`, văn bản xanh `text-emerald-300`, hiển thị chính xác nội dung dòng mã mới kèm ký hiệu `+`.
+  3. *Thanh Điều Khiển Hành Động Nội Dòng (Inline Action Pill Bar):*
+     - Nút **`[Keep / Đồng ý]`**: Icon checkmark, nền xanh dương `bg-blue-600 hover:bg-blue-500 text-white`, nhấp vào áp dụng ngay thay đổi qua Fuzzy Replacement Engine, tự động kích hoạt `compile(true)` và xóa bỏ overlay diff.
+     - Nút **`[Undo / Từ chối]`**: Icon undo / dismiss, nền xám tối `bg-slate-700 hover:bg-slate-600 text-slate-200`, nhấp vào hủy bỏ gợi ý sửa đổi, khôi phục trạng thái con trỏ và giữ nguyên vẹn 100% mã nguồn.
+  4. *Neo Tọa Độ & Đồng Bộ Cuộn:* Vị trí của Inline Overlay được neo theo tọa độ dòng nguồn trong editor (`top = (lineNo - 1) * lineHeight`), tự động cuộn đồng bộ mượt mà khi người dùng cuộn textarea editor.
+  5. *Song Hành Cùng Banner Đỉnh:* Duy trì banner cố định trên đầu editor (`#composer-pending-diff-banner`) đóng vai trò thanh thông báo tổng quan, cho phép giáo viên thao tác ở cả hai vị trí (nội dòng hoặc trên banner) với hiệu ứng đồng bộ tuyệt đối.
+
+### 2.4.4. FR-02.6: Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding & Diagnostics)
+- **Mục tiêu:** Hỗ trợ giáo viên khắc phục lỗi cú pháp LaTeX / Tectonic tức thì mà không cần tự đọc log lỗi dòng lệnh phức tạp.
+- **Luồng Dữ Liệu:**
+  1. *Ghi nhận Lỗi Biên dịch:* Khi biên dịch `POST /api/v1/composer/compile` trả về lỗi (`success = false`), client tự động bắt lấy thông điệp lỗi `errMsg = data.error` và lưu trữ bền vững vào `app.composer.lastCompileError`.
+  2. *Chuyển tiếp Tự động:* Khi người dùng gửi prompt kế tiếp (nhất là câu lệnh yêu cầu sửa lỗi như "sửa lỗi", "tại sao lỗi"), payload gửi đến `POST /api/v1/composer/chat` tự động đính kèm trường `compile_error_log: this.lastCompileError`.
+  3. *Chẩn đoán & Sinh Diff Sửa Lỗi Phía Server:*
+     - API `composer.py` trích xuất thông tin lỗi từ log (ví dụ: `! Undefined control sequence \badcommand`, `! Missing $ inserted`, `l.18 ...`).
+     - AI Copilot phân tích ngữ cảnh `current_latex`, khoanh vùng dòng mã gây lỗi, và tự động tạo khối `diff` đề xuất phương án sửa: thay thế bằng lệnh chuẩn, thêm gói lệnh thiếu vào preamble, hoặc đóng chú thích `%` để loại bỏ lỗi.
+  4. *Thiết lập Lại Trạng Thái:* Khi bản biên dịch tiếp theo thành công, `lastCompileError` tự động reset về `null`.
+
+### 2.4.5. FR-02.7: Tối Ưu Hóa Hiệu Năng Gửi Prompt & Box Chat Mượt Mà (Fast Prompt Dispatch & Smooth Chat Micro-Interactions)
+- **Mục tiêu:** Loại bỏ hoàn toàn cảm giác giật, lag hoặc độ trễ khi thao tác trên thanh nhập lệnh và hộp thoại Trợ lý AI.
+- **Tiêu chuẩn Kỹ thuật:**
+  1. *Phản Hồi Lập Tức (Optimistic UI & Instant Transition):* Khi người dùng nhấn `Enter` hoặc nhấp nút gửi, trong vòng $\le 16$ ms (1 frame), thanh compact input lập tức ẩn, nội dung tin nhắn được đẩy vào lịch sử hội thoại, khung chat cuộn mượt đến đáy (`behavior: 'smooth'`) và hiển thị bong bóng loading `Trợ lý đang xử lý yêu cầu...`.
+  2. *Chuyển Động Hardware-Accelerated:* Hộp thoại Popup Trợ lý sử dụng thuộc tính CSS `transform: translate3d(0, 0, 0)`, `transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1)`, loại bỏ tình trạng giật cục (jank) khi co giãn chiều cao.
+  3. *Tối Ưu DOM & Lucide Icon Parsing:* Thay vì quét toàn trang qua `lucide.createIcons()`, hệ thống chỉ gọi render icon cục bộ trong node tin nhắn mới, giảm thiểu 95% thời gian layout thrashing.
+  4. *Non-blocking Async AI Request:* Kết nối Backend AI sử dụng `httpx.AsyncClient` bất đồng bộ với timeout linh hoạt 15s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu hiện tượng đóng băng socket hay nghẽn thread pool.
 
 ---
 

@@ -9,7 +9,7 @@ import logging
 import re
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
@@ -56,6 +56,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(..., description="User query or command for the AI assistant")
     current_latex: Optional[str] = Field("", description="Current editor LaTeX code for context")
+    compile_error: Optional[str] = Field(None, description="Recent compile error log if any")
     history: Optional[List[ChatMessage]] = Field(default_factory=list)
 
 class DiffSuggestion(BaseModel):
@@ -178,22 +179,29 @@ def _clean_diff_description(text: str) -> Optional[str]:
     return None
 
 
-def find_in_latex(needle: str, current_latex: str) -> Optional[str]:
-    """Find the exact substring or best matching line slice in current_latex."""
+def find_in_latex(needle: str, current_latex: str, fuzzy_threshold: float = 0.65) -> Optional[str]:
+    """Find the exact substring or best matching line slice in current_latex,
+    resilient to differences in indentation, intra-line whitespace, newlines, and minor typos.
+    """
     if not needle or not current_latex:
         return None
+
+    # Step 1: Exact substring match
     if needle in current_latex:
         return needle
     stripped = needle.strip()
-    if stripped and stripped in current_latex:
+    if not stripped:
+        return None
+    if stripped in current_latex:
         return stripped
 
-    # CRLF normalize
+    # Step 2: Line ending (CRLF / LF) normalization
     crlf = chr(13) + chr(10)
     norm_cur = current_latex.replace(crlf, chr(10))
     norm_needle = stripped.replace(crlf, chr(10))
+    cur_lines = current_latex.splitlines()
+
     if norm_needle in norm_cur:
-        cur_lines = current_latex.splitlines()
         needle_lines = [l.strip() for l in norm_needle.splitlines() if l.strip()]
         if needle_lines:
             for i in range(len(cur_lines) - len(needle_lines) + 1):
@@ -201,12 +209,295 @@ def find_in_latex(needle: str, current_latex: str) -> Optional[str]:
                 if window == needle_lines:
                     return "\n".join(cur_lines[i : i + len(needle_lines)])
 
-    needle_clean = stripped.strip()
-    for line in current_latex.splitlines():
-        if needle_clean and needle_clean in line:
-            return line
-        if line.strip() and needle_clean and line.strip() == needle_clean:
-            return line
+    needle_lines_raw = [l for l in norm_needle.splitlines() if l.strip()]
+
+    # Step 3: Single-line matching (whitespace-collapsed, stripped equality, containment)
+    if len(needle_lines_raw) == 1:
+        single_needle = needle_lines_raw[0].strip()
+        single_needle_norm = re.sub(r'\s+', ' ', single_needle)
+
+        for line in cur_lines:
+            if line.strip() == single_needle:
+                return line
+        for line in cur_lines:
+            if re.sub(r'\s+', ' ', line.strip()) == single_needle_norm:
+                return line
+        for line in cur_lines:
+            if single_needle in line:
+                return line
+            if single_needle_norm in re.sub(r'\s+', ' ', line.strip()):
+                return line
+
+    # Step 4: Multi-line whitespace & blank line tolerant match
+    if needle_lines_raw:
+        norm_needle_lines = [re.sub(r'\s+', ' ', l.strip()) for l in needle_lines_raw]
+        M = len(norm_needle_lines)
+
+        for i in range(len(cur_lines)):
+            if re.sub(r'\s+', ' ', cur_lines[i].strip()) != norm_needle_lines[0]:
+                continue
+            k = 0
+            j = i
+            while j < len(cur_lines) and k < M:
+                c_norm = re.sub(r'\s+', ' ', cur_lines[j].strip())
+                if not c_norm:  # blank line in current_latex
+                    j += 1
+                    continue
+                if c_norm == norm_needle_lines[k]:
+                    k += 1
+                    j += 1
+                else:
+                    break
+            if k == M:
+                return "\n".join(cur_lines[i:j])
+
+    # Step 5: Fuzzy matching fallback (via SequenceMatcher)
+    clean_needle_text = re.sub(r'\s+', ' ', norm_needle).strip()
+    if len(clean_needle_text) >= 6:
+        m_lines = len(needle_lines_raw)
+        best_ratio = 0.0
+        best_slice = None
+
+        if m_lines <= 1:
+            for line in cur_lines:
+                clean_line = re.sub(r'\s+', ' ', line.strip())
+                if not clean_line:
+                    continue
+                ratio = difflib.SequenceMatcher(None, clean_needle_text, clean_line).ratio()
+                if ratio > best_ratio:
+                    best_ratio = ratio
+                    best_slice = line
+            if best_ratio >= fuzzy_threshold and best_slice:
+                return best_slice
+        else:
+            min_w = max(1, m_lines - 2)
+            max_w = min(len(cur_lines) + 1, m_lines + 5)
+            for w in range(min_w, max_w):
+                for i in range(len(cur_lines) - w + 1):
+                    window_lines = cur_lines[i : i + w]
+                    window_text = "\n".join(window_lines)
+                    clean_window = re.sub(r'\s+', ' ', window_text).strip()
+                    if not clean_window:
+                        continue
+                    ratio = difflib.SequenceMatcher(None, clean_needle_text, clean_window).ratio()
+                    if ratio > best_ratio:
+                        best_ratio = ratio
+                        best_slice = window_text
+
+            if best_ratio >= fuzzy_threshold and best_slice:
+                return best_slice
+
+    return None
+
+
+def _insert_in_preamble(current_latex: str, package_line: str) -> Optional[Tuple[str, str]]:
+    """Helper to find the best insertion point in preamble for a missing package or macro.
+    Returns (old_text, new_text) or None.
+    """
+    lines = current_latex.splitlines()
+    # 1. Prefer inserting after the last \usepackage line
+    last_pkg_idx = -1
+    for idx, l in enumerate(lines):
+        if l.strip().startswith(r"\usepackage") or l.strip().startswith(r"\tcbuselibrary"):
+            last_pkg_idx = idx
+
+    if last_pkg_idx != -1:
+        old_line = lines[last_pkg_idx]
+        new_line = f"{old_line}\n{package_line}"
+        return old_line, new_line
+
+    # 2. Or insert after \documentclass line
+    for idx, l in enumerate(lines):
+        if r"\documentclass" in l:
+            old_line = l
+            new_line = f"{old_line}\n{package_line}"
+            return old_line, new_line
+
+    # 3. Or before \begin{document}
+    for idx, l in enumerate(lines):
+        if r"\begin{document}" in l:
+            old_line = l
+            new_line = f"{package_line}\n{old_line}"
+            return old_line, new_line
+
+    return None
+
+
+def diagnose_compile_error(
+    compile_error: str,
+    current_latex: str,
+    user_message: str = ""
+) -> Optional[ChatResponse]:
+    """Analyze LaTeX compilation error log and diagnose the root cause to propose a targeted diff."""
+    if not compile_error or not current_latex:
+        return None
+
+    err_lower = compile_error.lower()
+    cur_lower = current_latex.lower()
+
+    # 1. Bad / invalid command such as \badcommand
+    if r"\badcommand" in cur_lower or r"\badcommand" in err_lower:
+        for line in current_latex.splitlines():
+            if r"\badcommand" in line:
+                fixed_line = line.replace(r"\badcommand", r"% \badcommand (lệnh lỗi đã vô hiệu hóa)")
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=line,
+                    new_text=fixed_line,
+                    description=r"Sửa lỗi biên dịch: Vô hiệu hóa lệnh \badcommand không tồn tại"
+                )
+                reply = (
+                    "Tôi phát hiện lỗi biên dịch do lệnh `\\badcommand` không hợp lệ trong LaTeX.\n\n"
+                    f"```diff\n- {line}\n+ {fixed_line}\n```\n\n"
+                    "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để khắc phục lỗi này."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+
+    # 2. Missing tikz / tkz-tab packages
+    if any(k in err_lower for k in ("tikzpicture undefined", "environment tikzpicture undefined", "tkztabinit undefined", "package tikz error")) or \
+       ("undefined control sequence" in err_lower and any(cmd in err_lower for cmd in ("\\tkztab", "\\tikzpicture", "tkztabinit", "tkztabline", "tkztabvar"))):
+        if r"\usepackage{tikz" not in cur_lower and r"\usepackage[tikz" not in cur_lower:
+            ins = _insert_in_preamble(current_latex, r"\usepackage{tikz,tkz-tab}")
+            if ins:
+                old_text, new_text = ins
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=old_text,
+                    new_text=new_text,
+                    description="Bổ sung gói tikz và tkz-tab để sửa lỗi Environment tikzpicture undefined"
+                )
+                reply = (
+                    "Tôi phát hiện lỗi biên dịch: môi trường `tikzpicture` hoặc lệnh `tkz-tab` chưa được khai báo do thiếu gói lệnh vẽ hình.\n\n"
+                    "Tôi đề xuất bổ sung `\\usepackage{tikz,tkz-tab}` vào phần khai báo (preamble):\n\n"
+                    f"```diff\n- {old_text}\n+ {new_text}\n```\n\n"
+                    "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+        elif "tkz-tab" not in cur_lower:
+            for line in current_latex.splitlines():
+                if "usepackage" in line and "tikz" in line:
+                    new_line = line.replace("tikz", "tikz,tkz-tab")
+                    diff = DiffSuggestion(
+                        action="replace",
+                        old_text=line,
+                        new_text=new_line,
+                        description="Bổ sung thư viện tkz-tab vào khai báo gói tikz"
+                    )
+                    reply = (
+                        "Tôi phát hiện lỗi thiếu gói `tkz-tab` để vẽ bảng biến thiên.\n\n"
+                        f"```diff\n- {line}\n+ {new_line}\n```\n\n"
+                        "Bấm **Đồng ý** trên thanh gợi ý để sửa lỗi."
+                    )
+                    return ChatResponse(reply=reply, diff=diff)
+
+    # 3. Missing ex_test package
+    if any(k in err_lower for k in ("environment ex undefined", "ex_test", "choicetf undefined", "shortans undefined")) or \
+       ("undefined control sequence" in err_lower and any(cmd in err_lower for cmd in ("\\choice", "\\choicetf", "\\shortans", "\\immini", "\\itemch"))):
+        if "ex_test" not in cur_lower:
+            ins = _insert_in_preamble(current_latex, r"\usepackage[dethi]{ex_test}")
+            if ins:
+                old_text, new_text = ins
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=old_text,
+                    new_text=new_text,
+                    description="Bổ sung gói ex_test để sửa lỗi Environment ex undefined"
+                )
+                reply = (
+                    "Tôi phát hiện lỗi biên dịch: môi trường đề thi `\\begin{ex}` hoặc các lệnh `\\choice`, `\\choiceTF`, `\\shortans` chưa được khai báo.\n\n"
+                    "Tôi đề xuất bổ sung gói `\\usepackage[dethi]{ex_test}` vào phần khai báo:\n\n"
+                    f"```diff\n- {old_text}\n+ {new_text}\n```\n\n"
+                    "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+
+    # 4. Missing amsmath / amssymb package
+    if "undefined control sequence" in err_lower and any(cmd in err_lower for cmd in ("\\dfrac", "\\mathbb", "\\iint", "\\iiint", "\\align")):
+        if "amsmath" not in cur_lower:
+            ins = _insert_in_preamble(current_latex, r"\usepackage{amsmath,amssymb}")
+            if ins:
+                old_text, new_text = ins
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=old_text,
+                    new_text=new_text,
+                    description="Bổ sung gói amsmath,amssymb để hiển thị công thức toán"
+                )
+                reply = (
+                    "Tôi phát hiện lỗi biên dịch do thiếu gói ký hiệu toán học chuẩn `amsmath,amssymb`.\n\n"
+                    "Tôi đề xuất bổ sung gói vào phần khai báo:\n\n"
+                    f"```diff\n- {old_text}\n+ {new_text}\n```\n\n"
+                    "Bấm **Đồng ý** để áp dụng thay đổi này."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+
+    # 5. Obsolete vietnam package
+    if "vietnam" in err_lower or "utf8x" in err_lower:
+        for line in current_latex.splitlines():
+            if "usepackage" in line and "vietnam" in line:
+                new_line = re.sub(r'\\usepackage(\[[^\]]*\])?\{vietnam\}', r'\\usepackage{fontspec}', line)
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=line,
+                    new_text=new_line,
+                    description="Thay thế gói vietnam bằng fontspec tương thích XeTeX/Tectonic"
+                )
+                reply = (
+                    "Gói `vietnam.sty` đã lỗi thời và không tương thích với trình biên dịch XeTeX/Tectonic hiện đại.\n\n"
+                    "Tôi đề xuất thay thế bằng `\\usepackage{fontspec}`:\n\n"
+                    f"```diff\n- {line}\n+ {new_line}\n```\n\n"
+                    "Bấm **Đồng ý** để sửa lỗi."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+
+    # 6. Unclosed environment ended by \end{document}
+    m_unclosed = re.search(r'\\begin\{([a-zA-Z0-9_*]+)\}(?:[^\n]*?)ended by \\end\{document\}', compile_error, re.IGNORECASE)
+    if not m_unclosed:
+        m_unclosed = re.search(r'environment\s+([a-zA-Z0-9_*]+)\s+(?:[^\n]*?)ended by \\end\{document\}', compile_error, re.IGNORECASE)
+    if m_unclosed:
+        env_name = m_unclosed.group(1)
+        for line in current_latex.splitlines():
+            if r"\end{document}" in line:
+                indent = line[: len(line) - len(line.lstrip())]
+                new_line = f"{indent}\\end{{{env_name}}}\n{line}"
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=line,
+                    new_text=new_line,
+                    description=f"Đóng môi trường {env_name} bằng \\end{{{env_name}}}"
+                )
+                reply = (
+                    f"Phát hiện môi trường `\\begin{{{env_name}}}` chưa được đóng trước khi kết thúc tài liệu `\\end{{document}}`.\n\n"
+                    f"```diff\n- {line}\n+ {new_line}\n```\n\n"
+                    "Bấm **Đồng ý** để đóng môi trường này."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+
+    # 7. Common syntax typos (e.g. \fracc, \begindocument, \choiceft, \vecto)
+    typo_mappings = [
+        (r'\fracc', r'\dfrac'),
+        (r'\begindocument', r'\begin{document}'),
+        (r'\enddocument', r'\end{document}'),
+        (r'\vecto', r'\overrightarrow'),
+        (r'\choiceft', r'\choiceTF'),
+    ]
+    for bad_cmd, good_cmd in typo_mappings:
+        if bad_cmd in compile_error or bad_cmd in cur_lower:
+            for line in current_latex.splitlines():
+                if bad_cmd in line:
+                    new_line = line.replace(bad_cmd, good_cmd)
+                    diff = DiffSuggestion(
+                        action="replace",
+                        old_text=line,
+                        new_text=new_line,
+                        description=f"Sửa lệnh sai cú pháp '{bad_cmd}' thành '{good_cmd}'"
+                    )
+                    reply = (
+                        f"Phát hiện lệnh sai cú pháp `{bad_cmd}` trong mã nguồn:\n\n"
+                        f"```diff\n- {line}\n+ {new_line}\n```\n\n"
+                        f"Bấm **Đồng ý** để sửa thành `{good_cmd}`."
+                    )
+                    return ChatResponse(reply=reply, diff=diff)
 
     return None
 
@@ -305,6 +596,8 @@ def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_m
         diff_content = m_diff.group(1)
         old_lines = []
         new_lines = []
+        ctx_before = []
+        ctx_after = []
         for l in diff_content.splitlines():
             if l.startswith('---') or l.startswith('+++'):
                 continue
@@ -312,10 +605,35 @@ def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_m
                 old_lines.append(re.sub(r'^\s*-\s*', '', l))
             elif re.match(r'^\s*\+\s*', l):
                 new_lines.append(re.sub(r'^\s*\+\s*', '', l))
+            else:
+                clean_ctx = l.strip()
+                if clean_ctx and not clean_ctx.startswith('@@'):
+                    if not new_lines and not old_lines:
+                        ctx_before.append(clean_ctx)
+                    else:
+                        ctx_after.append(clean_ctx)
+
         old_raw = '\n'.join(old_lines).strip()
         new_raw = '\n'.join(new_lines).strip()
+
+        if not old_raw and new_raw:
+            # Pure insertion diff with context lines
+            if ctx_before:
+                matched_ctx = find_in_latex(ctx_before[-1], current_latex)
+                if matched_ctx:
+                    old_raw = matched_ctx
+                    new_raw = f"{matched_ctx}\n{new_raw}"
+            elif ctx_after:
+                matched_ctx = find_in_latex(ctx_after[0], current_latex)
+                if matched_ctx:
+                    old_raw = matched_ctx
+                    new_raw = f"{new_raw}\n{matched_ctx}"
+
+        if old_raw and not new_raw:
+            if r"\badcommand" in old_raw or "lỗi" in reply_text.lower():
+                new_raw = f"% {old_raw} (đã vô hiệu hóa để sửa lỗi biên dịch)"
         matched_old = find_in_latex(old_raw, current_latex)
-        if matched_old and matched_old != new_raw:
+        if matched_old and (matched_old != new_raw or not new_raw):
             desc = _clean_diff_description(reply_text[:m_diff.start()]) or "Thay đổi theo gợi ý AI"
             return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
 
@@ -430,7 +748,7 @@ def composer_chat_endpoint(req: ChatRequest):
         "3. Đồ thị hàm số và hình học BẮT BUỘC dùng khối \\begin{tikzpicture} ... \\end{tikzpicture}.\n"
         "4. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n\n"
         "QUY TẮC PHẢN HỒI (BẮT BUỘC TUÂN THỦ):\n"
-        "1. KHI NGƯỜI DÙNG YÊU CẦU SỬA ĐỔI, ĐIỀU CHỈNH HOẶC THAY THẾ (như đổi font, sửa tiêu đề, đổi đáp án):\n"
+        "1. KHI NGƯỜI DÙNG YÊU CẦU SỬA ĐỔI, ĐIỀU CHỈNH HOẶC THAY THẾ (như đổi font, sửa tiêu đề, đổi đáp án, sửa/fix lỗi biên dịch):\n"
         "   - TUYỆT ĐỐI KHÔNG xuất lại toàn bộ tài liệu cũ dài dòng!\n"
         "   - BẮT BUỘC chỉ xuất khối ```diff chứa đúng dòng cũ cần thay và dòng mới:\n"
         "     ```diff\n"
@@ -438,17 +756,19 @@ def composer_chat_endpoint(req: ChatRequest):
         "     + <dòng mã mới>\n"
         "     ```\n"
         "   - Kèm lời giải thích ngắn gọn bằng tiếng Việt.\n"
+        "   - Nếu người dùng yêu cầu sửa lỗi biên dịch (ví dụ lệnh không xác định như \\badcommand{abc}), BẮT BUỘC xuất dòng đỏ (-) là dòng lỗi và dòng xanh (+) là lệnh đúng hoặc ghi chú comment lại dòng lỗi để loại bỏ lỗi hoàn toàn.\n"
         "2. KHI NGƯỜI DÙNG YÊU CẦU TẠO MỚI CÂU HỎI HOẶC HÌNH VẼ:\n"
         "   - Xuất mã LaTeX tự chứa trong khối ```latex ... ``` để chèn vào vị trí con trỏ.\n"
     )
 
     prompt = f"Yêu cầu của giáo viên: {req.message}\n\n"
+    if req.compile_error and req.compile_error.strip():
+        prompt += f"--- LOG LỖI BIÊN DỊCH GẦN NHẤT ---\n{req.compile_error.strip()}\n---------------------------------\n\n"
     if req.current_latex and req.current_latex.strip():
-        # Truncate context to last 2000 chars if very long
         ctx = req.current_latex.strip()
-        if len(ctx) > 3000:
-            ctx = ctx[-3000:]
-        prompt += f"--- NỘI DUNG TÀI LIỆU HIỆN TẠI (TRÍCH ĐOẠN) ---\n{ctx}\n--------------------------------------------\n"
+        if len(ctx) > 25000:
+            ctx = ctx[:12000] + "\n... [đoạn giữa được rút gọn] ...\n" + ctx[-12000:]
+        prompt += f"--- NỘI DUNG TÀI LIỆU HIỆN TẠI ---\n{ctx}\n--------------------------------------------\n"
 
     # Attempt to query configured AI provider
     try:
@@ -490,6 +810,17 @@ def composer_chat_endpoint(req: ChatRequest):
 
     # Targeted edits (diff replacements)
     cur_latex = req.current_latex or ""
+
+    # 0. Check if compile error is reported or user asks to fix compile errors
+    if req.compile_error and req.compile_error.strip():
+        diag_resp = diagnose_compile_error(req.compile_error, cur_latex, req.message)
+        if diag_resp:
+            return diag_resp
+
+    if any(k in user_msg_lower for k in ("fix lỗi", "sửa lỗi", "lỗi biên dịch", "compile error", "khắc phục lỗi")):
+        diag_resp = diagnose_compile_error(req.compile_error or req.message, cur_latex, req.message)
+        if diag_resp:
+            return diag_resp
 
     # 1. Check if user prompt requests font / font size changes
     font_diff = extract_diff_from_text("", cur_latex, user_message=req.message)

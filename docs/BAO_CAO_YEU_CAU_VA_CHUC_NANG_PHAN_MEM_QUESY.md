@@ -301,17 +301,21 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
   1. **Không gian Làm việc Phân tách 2 Cột (6:4 Split View):**
      - Cột trái (60%): Editor mã nguồn Dark mode (`#141824`), toolbar `MỚI`, `THÊM ▾` (7 mẫu lệnh `ex_test`), đánh số dòng, hoàn tác/làm lại, dọn dẹp, sao chép.
      - Cột phải (40%): Xem trước trực tiếp tệp PDF biên dịch từ XeTeX Engine (Live Preview), tab Lịch sử biên dịch, công tắc LỜI GIẢI (`[dethi]` $\leftrightarrow$ `[loigiai]`), menu xuất PDF/TeX/Ngân hàng và thanh nút bấm nổi bật màu xanh **`BIÊN DỊCH`**.
-  2. **Thanh Nhập Prompt AI Thu Gọn ở Chân Editor (Compact Floating AI Prompt Bar):**
+  2. **Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Tương Phản Dark Mode (High-Contrast Tokens):**
      - Thanh dạng viên thuốc (floating pill bar) neo tại chân editor (`#composer-ai-compact-bar`), thiết kế bán trong suốt Apple Glassmorphism.
+     - *Độ tương phản Dark Mode (WCAG 2.1 AA):* Chữ trong ô input `#composer-compact-input` và ô chat chính `#composer-chat-input` hiển thị màu trắng sáng `#f8fafc`, caret màu xanh Apple `#38bdf8`, loại bỏ hoàn toàn lỗi chữ đen chìm trên nền tối.
      - *Hành vi click:* Nhấp chuột vào thanh chỉ để focus con trỏ văn bản (`cursor-text`) và nhập liệu bình thường; **tuyệt đối không tự động mở full popup trợ lý** để tránh gián đoạn không gian soạn thảo.
-     - *Kích hoạt mở rộng:* Chỉ khi người dùng nhấn phím **`Enter`** hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**, hệ thống mới mở bung giao diện Popup Trợ lý Soạn thảo (`#composer-ai-popup`), chuyển tiếp chuỗi prompt và kích hoạt luồng trả lời của AI Copilot.
+     - *Kích hoạt mở rộng & Optimistic Fast Dispatch:* Chỉ khi người dùng nhấn phím **`Enter`** hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**, hệ thống mới mở bung giao diện Popup Trợ lý Soạn thảo (`#composer-ai-popup`) với hiệu ứng phần cứng mượt mà trong $\le 16$ms, chuyển tiếp chuỗi prompt và kích hoạt luồng trả lời của AI Copilot.
      - *Menu mẫu lệnh nhanh:* Nút dấu cộng `+` cung cấp sẵn các mẫu prompt chuẩn (đổi cỡ chữ 12pt, tạo câu hỏi Phần I/II/III, vẽ bảng biến thiên `tkz-tab`, sửa lỗi cú pháp LaTeX).
-  3. **Cơ Chế Trích Xuất & Duyệt Đề Xuất Sửa Đổi Trực Tiếp (Smart Inline Diff Suggestion):**
-     - Thay vì xuất lại toàn bộ tài liệu dài dòng, AI Copilot tự động bóc tách đề xuất điều chỉnh thành đối tượng `DiffSuggestion` mang nội dung dòng cũ (`old_text`) và dòng mới (`new_text`).
-     - Client tự động quét và xác định chính xác số thứ tự dòng (`lineNo`) trong editor, tự động cuộn màn hình đến dòng đó và bôi đen đoạn mã.
-     - Banner Duyệt Diff (`#composer-pending-diff-banner`) hiển thị trực tiếp ngay trên editor với badge `GỢI Ý TẠI DÒNG [lineNo]`, hộp đối chiếu xóa đỏ (`- old_text`) và thêm xanh (`+ new_text`), kèm 2 nút bấm thao tác trực tiếp:
-       - **`[Đồng ý]` (Accept):** Thay thế chuẩn xác dòng mã cũ bằng dòng mới trong bộ nhớ đệm, tự động gọi biên dịch tức thì `compile(true)` cập nhật Live PDF và hiển thị thông báo thành công.
-       - **`[Từ chối]` (Reject):** Đóng banner gợi ý, giữ nguyên 100% mã nguồn ban đầu của giáo viên.
+  3. **Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding):**
+     - Khi biên dịch LaTeX qua Tectonic/XeTeX phát sinh lỗi (`success = false`), hệ thống tự động lưu giữ thông báo lỗi vào `lastCompileError`.
+     - Prompt tiếp theo của người dùng tự động đính kèm `compile_error_log` để AI Copilot phân tích cú pháp TeX và tự động đề xuất khối `diff` sửa lỗi trực tiếp dòng mã nguồn bị sai.
+  4. **Động Cơ Thay Thế Dòng Mờ (Fuzzy Replacement) & Inline Editor Diff Overlay Trực Tiếp Tại Dòng:**
+     - Bên cạnh banner đỉnh `#composer-pending-diff-banner`, hệ thống trang bị Giao diện Diff Nội Dòng (Inline Editor Diff Overlay / Widget) neo trực tiếp tại đúng vị trí dòng mã nguồn trên textarea:
+       + Dòng đỏ xóa (`- old_text`): Nền `rose-950/70`, viền trái đỏ tươi `border-l-4 border-rose-500`, chữ đỏ `text-rose-300`.
+       + Dòng xanh thêm (`+ new_text`): Nền `emerald-950/70`, viền trái xanh ngọc `border-l-4 border-emerald-500`, chữ xanh `text-emerald-300`.
+       + Nút điều khiển nội dòng: **`[Keep / Đồng ý]`** và **`[Undo / Từ chối]`** ngay tại dòng mã nguồn.
+     - Động cơ Khớp Mờ 5 Tầng (5-Tier Resilient Line Matcher): Chuẩn hóa ngắt dòng, bỏ qua thụt lề, quét cửa sổ trượt và thay thế theo phạm vi dòng đã ghim `pinnedRange`, bảo đảm tỷ lệ thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
      - Thẻ Diff Card tương tác song song trong luồng chat lịch sử cho phép xem lại và tái áp dụng đề xuất bất cứ lúc nào.
 
 ---

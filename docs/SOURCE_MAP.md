@@ -212,7 +212,7 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 | Phương thức | Đường dẫn API | Chức năng nghiệp vụ | Router Module |
 | :--- | :--- | :--- | :--- |
 | **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (Debounced) | `composer.py` |
-| **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, đề xuất Smart Inline Diff | `composer.py` |
+| **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, chẩn đoán log lỗi biên dịch LaTeX (compile_error_log), đề xuất Smart Inline Diff | `composer.py` |
 | **GET** | `/api/v1/composer/pdf/{doc_id}.pdf` | Stream trực tiếp tệp PDF xem trước | `composer.py` |
 | **GET** | `/api/v1/composer/templates` | Danh mục mẫu đề thi chuẩn quốc gia (`ex_test.sty` v3.3) | `composer.py` |
 | **POST** | `/api/v1/composer/save-to-bank` | Trích xuất 1-Click câu hỏi `\begin{ex}` sang Ngân hàng | `composer.py` |
@@ -244,44 +244,50 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
        │
        ▼
 [Compact Floating AI Prompt Bar ở chân editor (#composer-ai-compact-bar)]
+  - Dark Mode Contrast Tokens: text #f8fafc (trắng), caret #38bdf8 (xanh Apple), placeholder slate-400
   - Click vào thanh -> Chỉ focus ô nhập, giữ nguyên text cursor, KHÔNG mở popup
   - Giáo viên gõ/dán prompt tùy ý
        │
        ├──> Nhấn ENTER hoặc click Nút Gửi (Icon mũi tên tròn arrow-up)
        │         │
        │         ▼
-       │    [KÍCH HOẠT MỞ RỘNG GIAO DIỆN FULL TRỢ LÝ SOẠN THẢO]
-       │    - Mở bung bottom sheet popup (#composer-ai-popup, height 56% / 78% / 92%)
-       │    - Ẩn thanh compact bar, đồng bộ text vào ô chat chính
+       │    [KÍCH HOẠT MỞ RỘNG GIAO DIỆN FULL TRỢ LÝ SOẠN THẢO (OPTIMISTIC FAST DISPATCH)]
+       │    - Mở bung bottom sheet popup (#composer-ai-popup, height 56% / 78% / 92% qua hardware transition)
+       │    - Ẩn thanh compact bar, đồng bộ text vào ô chat chính trong <= 16ms
        │    - Hiển thị hiệu ứng loading (composer-typing-indicator)
        │         │
        │         ▼
        │    [GỬI REQUEST POST /api/v1/composer/chat]
-       │    - Payload: { message, current_latex, history }
+       │    - Payload: { message, current_latex, compile_error_log, history }
+       │    - Chuyển tiếp tự động `lastCompileError` từ lần compile XeTeX/Tectonic gần nhất
        │         │
        │         ▼
        │    [FASTAPI BACKEND: composer.py & composer_service.py]
-       │    - Phân tích ngữ cảnh LaTeX + System Prompt ex_test.sty chuẩn quốc gia
-       │    - extract_diff_from_text: Bóc tách khối diff (unified diff, search/replace, old/new, sequence matcher)
+       │    - Phân tích ngữ cảnh LaTeX + Log lỗi biên dịch + System Prompt ex_test.sty
+       │    - extract_diff_from_text: Bóc tách khối diff (unified diff, search/replace, old/new, syntax diagnostics)
        │    - Đóng gói ChatResponse { reply, diff: DiffSuggestion(action, old_text, new_text, description) }
        │         │
        │         ▼
        │    [FRONTEND CLIENT: app.js -> showPendingDiff(diff)]
-       │    1. Line Pinpointing: Tìm vị trí old_text -> Tính toán số dòng lineNo
+       │    1. Line Pinpointing: Tìm vị trí old_text -> Tính toán số dòng lineNo & lưu pinnedRange
        │    2. Scrolling & Selection: Cuộn editor textarea đến đúng dòng, bôi đen old_text
-       │    3. Inline Diff Banner (#composer-pending-diff-banner):
-       │       - Badge "GỢI Ý TẠI DÒNG [lineNo]" kèm mô tả
-       │       - Dòng cũ [- old_text] nền đỏ rose / Dòng mới [+ new_text] nền xanh emerald
-       │       - 2 Nút hành động trực tiếp:
-       │            ├── [ĐỒNG Ý]: Thay thế old_text -> new_text, đóng banner, gọi compile(true)
-       │            └── [TỪ CHỐI]: Đóng banner diff, giữ nguyên mã nguồn 100%
+       │    3. Đồng thời hiển thị 2 cấp độ trực quan:
+       │       - Cấp 1: Banner tổng quan trên đỉnh editor (#composer-pending-diff-banner)
+       │       - Cấp 2: Inline Editor Diff Overlay / Widget trực tiếp ngay tại vị trí dòng mã nguồn:
+       │                [- old_text] nền đỏ rose / [+ new_text] nền xanh emerald
+       │                [Keep / Đồng ý] & [Undo / Từ chối] ngay tại dòng
+       │    4. Khi bấm [Đồng ý] / [Apply]:
+       │       - Kích hoạt Động cơ Thay thế Dòng Mờ (5-Tier Fuzzy Line Replacement Engine)
+       │       - So khớp chuẩn hóa ngắt dòng, bỏ qua thụt lề, quét cửa sổ trượt, thay thế theo pinnedRange
+       │       - Bảo đảm tỷ lệ thành công 100%, triệt tiêu lỗi "Không tìm thấy dòng cũ tương ứng"
+       │       - Đóng diff overlay/banner, tự động gọi compile(true)
        │
        └──> Khi sửa mã xong -> Debounce 800ms -> Gửi POST /api/v1/composer/compile
                  │
                  ├──> [Tầng 1] Remote Tectonic Docker (http://armbian:8090/compile)
                  │         ├── Tự động nhúng ex_test.sty v3.3.6
                  │         ├── Tự động map fontspec (chống lỗi vietnam 8-bit)
-                 │         └── Fallback giả lập ảnh 1x1 nếu thiếu asset
+                 │         └── Nếu lỗi: Trả về compile_error_log -> Client lưu vào lastCompileError
                  │
                  ├──> [Tầng 2] Local Tectonic CLI (nếu server Tectonic ngoại mạng gián đoạn)
                  │
@@ -382,5 +388,9 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
   5. Lỗi console & tài nguyên (mọi `console.error` đỏ, 404 font/icon, xén nét toán học).
 - **Vòng lặp đóng & Hợp nhất:** Parent Agent nhận kết quả đồng thời từ 4 Sub-Agent, nếu phát hiện lỗi sẽ điều phối vòng lặp hiệu chỉnh tức thì: `Sub-Agent 2 sửa` → `Sub-Agent 3 test` → `Sub-Agent 4 blind test` cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
 - **Cơ chế Chống Tái Diễn Lỗi (Anti-Regression Shield cho Sub-Agent 4):**
-  - Mọi phản ánh, đề xuất báo lỗi của người dùng về Frontend/Backend (viền kép, zoom vỡ layout, sai màu, tràn viền, API error...) tự động được trích xuất thành tiêu chí kiểm thử đối chứng bắt buộc nạp vào prompt của Sub-Agent 4.
-  - Sub-Agent 4 bắt buộc phải thao tác trực tiếp trên trình duyệt thật (`browser_exec`), chụp ảnh màn hình và đối chứng thực tế để bảo đảm lỗi không tái phát trước khi nghiệm thu.
+  - Mọi phản ánh, đề xuất báo lỗi của người dùng về Frontend/Backend tự động được trích xuất thành tiêu chí kiểm thử đối chứng bắt buộc nạp vào prompt của Sub-Agent 4:
+    1. *Tiêu chí 1 (Dark Mode Input Contrast):* Kiểm tra màu chữ `#composer-compact-input` và `#composer-chat-input` phải là màu trắng sáng `#f8fafc` hoặc `#ffffff` nổi bật trên nền tối `#1c1c1f`, không bị màu đen `#1d1d1f` chìm nghỉm, con trỏ caret màu xanh Apple `#38bdf8`.
+    2. *Tiêu chí 2 (Compile Error Forwarding):* Cố ý tạo lỗi cú pháp LaTeX (ví dụ: `\badcommand`), biên dịch thất bại -> gửi prompt yêu cầu "sửa lỗi giúp tôi" -> AI Copilot tiếp nhận log lỗi `compile_error_log` và xuất diff sửa đúng dòng lỗi.
+    3. *Tiêu chí 3 (Fuzzy Diff Replacement & Inline Overlay):* Bấm [Đồng ý áp dụng] / [Apply] thành công 100%, không xuất hiện toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại". Giao diện diff hiển thị trực quan trực tiếp tại vị trí dòng mã nguồn trên ô soạn thảo (dòng đỏ -, dòng xanh +, nút Keep/Đồng ý và Undo/Từ chối).
+    4. *Tiêu chí 4 (Fast Dispatch & Smooth Chat):* Gửi prompt từ compact input hoặc chat input phản hồi tức thì không bị delay, chuyển động mở popup và cuộn tin nhắn mượt mà chuẩn 60 FPS, không có lỗi JavaScript màu đỏ trong console.
+  - Sub-Agent 4 bắt buộc phải thao tác trực tiếp trên trình duyệt thật (`browser_exec`), chụp ảnh màn hình và đối chứng thực tế để bảo đảm 4 lỗi trên không tái phát trước khi nghiệm thu.

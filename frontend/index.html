@@ -536,13 +536,13 @@
                     <span id="composer-diff-description" class="text-slate-200 text-xs font-semibold truncate"></span>
                   </div>
                   <div class="flex items-center space-x-2 shrink-0">
-                    <button type="button" onclick="app.composer.applyPendingDiff()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-xs font-bold flex items-center space-x-1.5 transition-all active:scale-95 shadow-sm cursor-pointer" title="Áp dụng thay đổi vào đúng dòng này">
+                    <button type="button" onclick="app.composer.applyPendingDiff()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-xs font-bold flex items-center space-x-1.5 transition-all active:scale-95 shadow-sm cursor-pointer" title="Áp dụng thay đổi vào đúng dòng này (Keep / Đồng ý)">
                       <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                      <span>Đồng ý</span>
+                      <span>Keep / Đồng ý</span>
                     </button>
-                    <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 bg-[#283247] hover:bg-[#35425c] text-slate-300 hover:text-white rounded-md text-xs font-semibold flex items-center space-x-1 transition-all cursor-pointer" title="Hủy bỏ">
+                    <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 bg-[#283247] hover:bg-[#35425c] text-slate-300 hover:text-white rounded-md text-xs font-semibold flex items-center space-x-1 transition-all cursor-pointer" title="Hủy bỏ (Undo / Từ chối)">
                       <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                      <span>Từ chối</span>
+                      <span>Undo / Từ chối</span>
                     </button>
                   </div>
                 </div>
@@ -567,6 +567,42 @@
                 </div>
                 <!-- Textarea with bottom padding for floating bar -->
                 <textarea id="composer-editor-input" spellcheck="false" oninput="app.composer.handleEditorInput()" onscroll="app.composer.syncEditorScroll()" onkeydown="app.composer.handleEditorKey(event)" class="flex-1 h-full min-h-0 p-2.5 bg-transparent border-none resize-none focus:ring-0 text-[#d7dce5] text-[12px] leading-5 font-mono overflow-y-auto overflow-x-auto whitespace-pre outline-none pb-16"></textarea>
+
+                <!-- Inline Diff Overlay on Editor (Ảnh 4 Style) -->
+                <div id="composer-inline-diff-overlay" class="hidden absolute left-12 right-4 z-20 pointer-events-auto rounded-lg border border-purple-500/50 bg-[#161b26]/95 shadow-2xl backdrop-blur-md overflow-hidden">
+                  <!-- Header Capsule & Keep / Undo Actions -->
+                  <div class="flex items-center justify-between px-3 py-1.5 bg-[#1e2538] border-b border-white/10 text-xs select-none">
+                    <div class="flex items-center space-x-2 min-w-0">
+                      <!-- Capsule 1/1 -->
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-purple-500/25 text-purple-300 border border-purple-500/40 font-mono text-[11px] font-bold shadow-xs">
+                        1/1
+                      </span>
+                      <span id="composer-inline-diff-desc" class="text-slate-200 text-xs font-semibold truncate">Gợi ý sửa đổi</span>
+                    </div>
+                    <!-- Actions: Keep and Undo buttons -->
+                    <div class="flex items-center space-x-1.5 shrink-0">
+                      <button type="button" onclick="app.composer.applyPendingDiff()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold flex items-center space-x-1 shadow-sm transition-all active:scale-95 cursor-pointer" title="Đồng ý thay đổi (Keep)">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Keep</span>
+                      </button>
+                      <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95 cursor-pointer" title="Từ chối thay đổi (Undo)">
+                        <i data-lucide="undo-2" class="w-3.5 h-3.5"></i>
+                        <span>Undo</span>
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Red line (-) & Green line (+) -->
+                  <div class="font-mono text-[11px] leading-5">
+                    <div id="composer-inline-diff-old" class="px-3 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/50 flex items-start space-x-2 whitespace-pre-wrap break-all">
+                      <span class="text-rose-400 font-bold select-none shrink-0">-</span>
+                      <span id="composer-inline-diff-old-text"></span>
+                    </div>
+                    <div id="composer-inline-diff-new" class="px-3 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2 whitespace-pre-wrap break-all">
+                      <span class="text-emerald-400 font-bold select-none shrink-0">+</span>
+                      <span id="composer-inline-diff-new-text"></span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Editor Sub-footer Status Bar -->
@@ -589,7 +625,7 @@
                 <!-- Left: Sparkles & Input Trigger -->
                 <div class="flex items-center space-x-2 flex-1 min-w-0 cursor-text" onclick="document.getElementById('composer-compact-input')?.focus()">
                   <i data-lucide="sparkles" class="w-4 h-4 text-purple-400 shrink-0"></i>
-                  <input type="text" id="composer-compact-input" placeholder="Yêu cầu AI sửa đổi, thêm câu hỏi, vẽ TikZ... (Nhấn Enter để gửi)" onkeydown="app.composer.handleCompactInputKey(event)" class="w-full bg-transparent text-xs text-white placeholder-slate-400 outline-none cursor-text font-sans" />
+                  <input type="text" id="composer-compact-input" placeholder="Yêu cầu AI sửa đổi, thêm câu hỏi, vẽ TikZ... (Nhấn Enter để gửi)" onkeydown="app.composer.handleCompactInputKey(event)" class="composer-chat-input w-full bg-transparent text-xs text-[#f1f5f9] placeholder-slate-400 outline-none cursor-text font-sans" style="color: #f1f5f9 !important; caret-color: #c084fc !important; background-color: transparent !important;" />
                 </div>
                 <!-- Right Controls (Matching Image 2) -->
                 <div class="flex items-center space-x-2 shrink-0">
@@ -684,7 +720,7 @@
                 <div class="px-3 pb-3 pt-1 shrink-0 bg-[#18181b]">
                   <div class="rounded-2xl bg-[#242426] border border-white/10 p-2.5 shadow-lg flex flex-col space-y-2">
                     <!-- Input Textarea -->
-                    <textarea id="composer-chat-input" rows="2" placeholder="Yêu cầu AI sinh câu hỏi, vẽ hình TikZ, sửa lỗi LaTeX..." onkeydown="app.composer.handleChatInputKey(event)" class="w-full text-xs bg-transparent border-none p-0 resize-none focus:ring-0 text-white placeholder-slate-400 outline-none leading-relaxed font-sans"></textarea>
+                    <textarea id="composer-chat-input" rows="2" placeholder="Yêu cầu AI sinh câu hỏi, vẽ hình TikZ, sửa lỗi LaTeX..." onkeydown="app.composer.handleChatInputKey(event)" class="composer-chat-input w-full text-xs bg-transparent border-none p-0 resize-none focus:ring-0 text-[#f1f5f9] placeholder-slate-400 outline-none leading-relaxed font-sans" style="color: #f1f5f9 !important; caret-color: #c084fc !important; background-color: transparent !important;"></textarea>
                     
                     <!-- Bottom Toolbar of the Input Card -->
                     <div class="flex items-center justify-between pt-1 border-t border-white/5 text-xs">

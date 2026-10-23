@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.routers.composer import DiffSuggestion, extract_diff_from_text
+from backend.routers.composer import DiffSuggestion, extract_diff_from_text, find_in_latex
 
 client = TestClient(app)
 
@@ -797,3 +797,445 @@ Hello
             assert data["diff"] is not None
             assert "11pt" in data["diff"]["old_text"]
             assert "12pt" in data["diff"]["new_text"]
+
+
+# ---------------------------------------------------------------------------
+# 4. Whitespace, Newline Tolerance & Fuzzy Matching Tests
+# ---------------------------------------------------------------------------
+
+def test_extract_diff_whitespace_intraline_discrepancy():
+    """extract_diff_from_text: Handle intra-line whitespace and tab differences."""
+    current_latex = r"""\documentclass[12pt]{article}
+\begin{document}
+  \textbf{Câu 1.}   Cho hàm số    $y = f(x)$
+\end{document}
+"""
+    reply_text = r"""Tôi đề xuất sửa lại câu hỏi 1:
+```diff
+- \textbf{Câu 1.} Cho hàm số $y = f(x)
++ \textbf{Câu 1.} Cho hàm số liên tục $y = f(x)
+```
+"""
+    diff = extract_diff_from_text(reply_text, current_latex)
+    assert diff is not None
+    assert diff.action == "replace"
+    assert diff.old_text == r"  \textbf{Câu 1.}   Cho hàm số    $y = f(x)$"
+    assert "liên tục" in diff.new_text
+
+
+def test_extract_diff_indentation_discrepancy_multiline():
+    """extract_diff_from_text: Multi-line block with indentation discrepancy."""
+    current_latex = r"""\begin{document}
+    \begin{ex}
+        \choice
+            {\True $A = 1$}
+            {$B = 2$}
+            {$C = 3$}
+            {$D = 4$}
+    \end{ex}
+\end{document}
+"""
+    reply_text = r"""Đổi đáp án đúng sang B:
+```diff
+- \choice
+-     {\True $A = 1$}
+-     {$B = 2$}
++ \choice
++     {$A = 1$}
++     {\True $B = 2$}
+```
+"""
+    diff = extract_diff_from_text(reply_text, current_latex)
+    assert diff is not None
+    assert "{\\True $A = 1$}" in diff.old_text
+    assert "{\\True $B = 2$}" in diff.new_text
+
+
+def test_extract_diff_newline_discrepancy_blank_lines():
+    """extract_diff_from_text: Code in current_latex has blank lines that diff omitted."""
+    current_latex = r"""\begin{ex}
+
+  \choice
+    {\True $A$}
+
+    {$B$}
+
+\end{ex}
+"""
+    reply_text = r"""Cập nhật các lựa chọn:
+```diff
+- \begin{ex}
+- \choice
+- {\True $A$}
+- {$B$}
+- \end{ex}
++ \begin{ex}
++ \choice
++ {$A$}
++ {\True $B$}
++ \end{ex}
+```
+"""
+    diff = extract_diff_from_text(reply_text, current_latex)
+    assert diff is not None
+    assert r"\choice" in diff.old_text
+    assert r"{\True $B$}" in diff.new_text
+
+
+def test_extract_diff_fuzzy_matching_slight_wording_variation():
+    """extract_diff_from_text: Fuzzy matching when AI has minor wording differences."""
+    current_latex = r"""\documentclass[12pt,a4paper]{article}
+\section*{PHẦN I. Câu hỏi trắc nghiệm nhiều phương án}
+\begin{document}
+\end{document}
+"""
+    reply_text = r"""Đổi tiêu đề phần I theo chuẩn mới:
+```diff
+- \section*{PHẦN I. Câu hỏi trắc nghiệm nhiều phương án lựa chọn}
++ \section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN}
+```
+"""
+    diff = extract_diff_from_text(reply_text, current_latex)
+    assert diff is not None
+    assert diff.old_text == r"\section*{PHẦN I. Câu hỏi trắc nghiệm nhiều phương án}"
+    assert diff.new_text == r"\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN}"
+
+
+def test_extract_diff_fuzzy_matching_search_replace_block():
+    """extract_diff_from_text: SEARCH/REPLACE format with whitespace variation."""
+    current_latex = r"""\documentclass[12pt]{article}
+  \usepackage[dethi]{ex_test}
+\begin{document}
+"""
+    reply_text = r"""<<<<<<< SEARCH
+\usepackage[dethi]{ex_test}
+=======
+\usepackage[solcolor]{ex_test}
+>>>>>>> REPLACE
+"""
+    diff = extract_diff_from_text(reply_text, current_latex)
+    assert diff is not None
+    assert r"\usepackage[dethi]{ex_test}" in diff.old_text
+    assert diff.new_text == r"\usepackage[solcolor]{ex_test}"
+
+
+def test_find_in_latex_direct_fuzzy_and_whitespace():
+    """Direct unit tests for find_in_latex helper function."""
+    current = r"""\documentclass[12pt]{article}
+\begin{document}
+    \title{KỲ THI THỬ 2026}
+    \tkzTabInit[nocadre,  lgt=1.2, espcl=2.5]{$x$/1, $y$/1}
+\end{document}
+"""
+    # 1. Whitespace within line
+    needle_ws = r"\tkzTabInit[nocadre, lgt=1.2, espcl=2.5]{$x$/1, $y$/1}"
+    res_ws = find_in_latex(needle_ws, current)
+    assert res_ws is not None
+    assert "tkzTabInit" in res_ws
+
+    # 2. Indentation
+    needle_indent = r"\title{KỲ THI THỬ 2026}"
+    res_indent = find_in_latex(needle_indent, current)
+    assert res_indent is not None
+    assert "KỲ THI THỬ 2026" in res_indent
+
+    # 3. Fuzzy match
+    needle_fuzzy = r"\title{KỲ THI THỬ NĂM 2026}"
+    res_fuzzy = find_in_latex(needle_fuzzy, current, fuzzy_threshold=0.7)
+    assert res_fuzzy is not None
+    assert "KỲ THI THỬ 2026" in res_fuzzy
+
+    # 4. Negative case: completely unrelated text returns None
+    assert find_in_latex(r"\section{HOÀN TOÀN KHÔNG TỒN TẠI}", current) is None
+    assert find_in_latex("", current) is None
+    assert find_in_latex(r"\title{test}", "") is None
+
+
+# ---------------------------------------------------------------------------
+# 5. API /api/v1/composer/chat: compile_error Diagnosis & Fix Diff Tests
+# ---------------------------------------------------------------------------
+
+def test_composer_chat_api_compile_error_missing_tikz():
+    """API /api/v1/composer/chat: diagnose compile_error with missing tikz package."""
+    current_latex = r"""\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb}
+
+\begin{document}
+\begin{tikzpicture}
+  \draw (0,0) -- (1,1);
+\end{tikzpicture}
+\end{document}
+"""
+    compile_err = "! LaTeX Error: Environment tikzpicture undefined.\nl.6 \\begin{tikzpicture}"
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Sửa lỗi biên dịch giúp tôi",
+                "current_latex": current_latex,
+                "compile_error": compile_err,
+                "history": []
+            }
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert "reply" in data
+        assert data["diff"] is not None
+        assert data["diff"]["action"] == "replace"
+        assert r"\usepackage{amsmath,amssymb}" in data["diff"]["old_text"]
+        assert r"\usepackage{tikz,tkz-tab}" in data["diff"]["new_text"]
+        assert "tikz" in data["diff"]["description"].lower()
+
+
+def test_composer_chat_api_compile_error_missing_extest():
+    """API /api/v1/composer/chat: diagnose compile_error with missing ex_test package."""
+    current_latex = r"""\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+
+\begin{document}
+\begin{ex}
+Câu hỏi trắc nghiệm
+\choice{$A$}{$B$}{$C$}{$D$}
+\end{ex}
+\end{document}
+"""
+    compile_err = "! LaTeX Error: Environment ex undefined.\nl.6 \\begin{ex}"
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Khắc phục lỗi biên dịch này",
+                "current_latex": current_latex,
+                "compile_error": compile_err,
+                "history": []
+            }
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["diff"] is not None
+        assert r"\usepackage[dethi]{ex_test}" in data["diff"]["new_text"]
+        assert "ex_test" in data["diff"]["description"].lower() or "ex" in data["diff"]["description"].lower()
+
+
+def test_composer_chat_api_compile_error_missing_amsmath():
+    """API /api/v1/composer/chat: diagnose compile_error with missing amsmath package."""
+    current_latex = r"""\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+
+\begin{document}
+Tính $I = \dfrac{1}{2}$
+\end{document}
+"""
+    compile_err = "! Undefined control sequence.\nl.5 Tính $I = \\dfrac"
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Sửa lỗi",
+                "current_latex": current_latex,
+                "compile_error": compile_err,
+                "history": []
+            }
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["diff"] is not None
+        assert r"\usepackage{amsmath,amssymb}" in data["diff"]["new_text"]
+
+
+def test_composer_chat_api_compile_error_unclosed_environment():
+    """API /api/v1/composer/chat: diagnose compile_error with unclosed environment before \\end{document}."""
+    current_latex = r"""\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+
+\begin{document}
+\begin{tikzpicture}
+  \draw (0,0) -- (1,1);
+\end{document}
+"""
+    compile_err = "! LaTeX Error: \\begin{tikzpicture} on input line 6 ended by \\end{document}."
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Sửa lỗi giúp tôi",
+                "current_latex": current_latex,
+                "compile_error": compile_err,
+                "history": []
+            }
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["diff"] is not None
+        assert data["diff"]["old_text"] == r"\end{document}"
+        assert r"\end{tikzpicture}" in data["diff"]["new_text"]
+        assert r"\end{document}" in data["diff"]["new_text"]
+
+
+def test_composer_chat_api_compile_error_obsolete_vietnam_package():
+    """API /api/v1/composer/chat: diagnose compile_error with obsolete vietnam package."""
+    current_latex = r"""\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{vietnam}
+\begin{document}
+Xin chào
+\end{document}
+"""
+    compile_err = "! LaTeX Error: File 'vietnam.sty' not found."
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Sửa lỗi biên dịch",
+                "current_latex": current_latex,
+                "compile_error": compile_err,
+                "history": []
+            }
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["diff"] is not None
+        assert r"\usepackage[utf8]{vietnam}" in data["diff"]["old_text"]
+        assert r"\usepackage{fontspec}" in data["diff"]["new_text"]
+
+
+def test_composer_chat_api_compile_error_command_typo():
+    """API /api/v1/composer/chat: diagnose compile_error with command typo \\fracc."""
+    current_latex = r"""\documentclass[11pt,a4paper]{article}
+\begin{document}
+Tính tích phân $I = \fracc{1}{2}$.
+\end{document}
+"""
+    compile_err = "! Undefined control sequence.\nl.3 Tính tích phân $I = \\fracc"
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Fix compile error",
+                "current_latex": current_latex,
+                "compile_error": compile_err,
+                "history": []
+            }
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["diff"] is not None
+        assert r"\fracc" in data["diff"]["old_text"]
+        assert r"\dfrac" in data["diff"]["new_text"]
+
+
+def test_composer_chat_api_compile_error_with_mocked_ai_provider():
+    """API /api/v1/composer/chat: Mocked AI provider receives compile_error in prompt and returns diff."""
+    current_latex = r"""\documentclass[12pt]{article}
+\begin{document}
+\invalidcommand{test}
+\end{document}
+"""
+    compile_err = "! Undefined control sequence.\nl.3 \\invalidcommand{test}"
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-api-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o-mini"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    captured_prompt = []
+
+    def mock_post(endpoint, headers=None, json=None):
+        nonlocal captured_prompt
+        # Store user prompt content for assertion
+        for msg in (json or {}).get("messages", []):
+            if msg["role"] == "user":
+                captured_prompt.append(msg["content"])
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": (
+                            "Tôi đã phân tích lỗi biên dịch và đề xuất sửa dòng lỗi:\n\n"
+                            "```diff\n"
+                            "- \\invalidcommand{test}\n"
+                            "+ % \\invalidcommand{test} (đã vô hiệu hóa)\n"
+                            "```"
+                        )
+                    }
+                }
+            ]
+        }
+        return mock_resp
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.side_effect = mock_post
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": "Sửa lỗi biên dịch này giúp tôi",
+                    "current_latex": current_latex,
+                    "compile_error": compile_err,
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert data["diff"] is not None
+            assert data["diff"]["old_text"] == r"\invalidcommand{test}"
+            assert "% \\invalidcommand{test}" in data["diff"]["new_text"]
+            # Verify compile_error was included in prompt sent to LLM
+            assert any("LOG LỖI BIÊN DỊCH" in p or "invalidcommand" in p for p in captured_prompt)
+
+
+def test_composer_chat_api_diff_with_whitespace_discrepancy():
+    """API /api/v1/composer/chat: Editor code has irregular spaces/tabs, AI returns clean diff."""
+    current_latex = r"""\documentclass[12pt]{article}
+\begin{document}
+    \textbf{Câu 1.}    Cho hàm số     $y = f(x)$
+\end{document}
+"""
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-api-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o-mini"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": (
+                        "Tôi đề xuất sửa lại như sau:\n\n"
+                        "```diff\n"
+                        "- \\textbf{Câu 1.} Cho hàm số $y = f(x)\n"
+                        "+ \\textbf{Câu 1.} Cho hàm số liên tục $y = f(x)\n"
+                        "```"
+                    )
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": "Sửa câu 1",
+                    "current_latex": current_latex,
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert data["diff"] is not None
+            # The matched old_text MUST match the editor buffer exact slice
+            assert data["diff"]["old_text"] == r"    \textbf{Câu 1.}    Cho hàm số     $y = f(x)$"

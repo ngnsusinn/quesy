@@ -120,21 +120,52 @@ select:focus, input[type="text"]:not(#composer-compact-input):focus, input[type=
   box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
 }
 
-/* Clean Chat Input with zero inner border / shadow */
+/* Clean Chat Input with zero inner border / shadow and high-contrast dark mode text */
 #composer-chat-input,
 #composer-chat-input:focus,
 #composer-chat-input:active,
 #composer-compact-input,
 #composer-compact-input:focus,
-#composer-compact-input:active {
+#composer-compact-input:active,
+.composer-chat-input,
+.composer-chat-input:focus,
+.composer-chat-input:active {
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
   background-color: transparent !important;
+  color: #f1f5f9 !important;
+  caret-color: #c084fc !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+}
+
+#composer-chat-input::placeholder,
+#composer-compact-input::placeholder,
+.composer-chat-input::placeholder {
+  color: rgba(241, 245, 249, 0.5) !important;
+  -webkit-text-fill-color: rgba(241, 245, 249, 0.5) !important;
+  opacity: 1 !important;
 }
 
 #composer-ai-popup {
   box-shadow: 0 -10px 40px -10px rgba(0, 0, 0, 0.65);
+  will-change: transform, height;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  transition: height 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#composer-ai-compact-bar {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+#composer-inline-diff-overlay {
+  will-change: transform, top;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  transition: top 0.12s ease-out;
 }
 
 #composer-chat-messages::-webkit-scrollbar,

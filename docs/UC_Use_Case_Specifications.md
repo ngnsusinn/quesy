@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 2.5 (Tập trung giải pháp tự động hóa khảo thí)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, dựng đồ thị vector SVG, trộn đề an toàn và xuất bản in ấn.  
-- **Ngày phát hành:** 2026-10-18  
+- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn và trợ lý soạn đề AI Copilot trực tiếp.  
+- **Ngày phát hành:** 2026-10-23
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)  
 
 ---
@@ -240,21 +240,25 @@
 
 #### Luồng sự kiện chính (Main Success Scenario):
 1. Người dùng soạn thảo mã LaTeX trên trình soạn thảo Dark mode (`#141824`).
-2. Khi cần hỗ trợ chỉnh sửa (ví dụ: đổi font 11pt sang 12pt, sửa đáp án, vẽ bảng biến thiên, kiểm tra lỗi cú pháp):
+2. Khi cần hỗ trợ chỉnh sửa (đổi font 11pt sang 12pt, sửa đáp án, vẽ bảng biến thiên, kiểm tra và sửa lỗi biên dịch):
    - Người dùng nhấp chuột vào Thanh Nhập Prompt AI thu gọn ở chân editor (`#composer-compact-bar`).
-   - Ô nhập nhận focus bình thường (`cursor-text`), **tuyệt đối không tự động mở full popup**, cho phép người dùng gõ hoặc dán nội dung yêu cầu mà không bị gián đoạn.
+   - Ô nhập nhận focus bình thường (`cursor-text`), chữ hiển thị màu trắng sáng `#f8fafc` và con trỏ `#38bdf8` rõ nét trên nền tối Dark mode, **tuyệt đối không tự động mở full popup**, cho phép người dùng gõ hoặc dán nội dung yêu cầu mà không bị che khuất màn hình.
 3. Người dùng nhấn phím **`Enter`** (hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**):
-   - Hệ thống tự động kích hoạt chuyển trạng thái: mở bung full Popup Trợ lý Soạn thảo (`#composer-ai-popup`), ẩn thanh compact bar, hiển thị hiệu ứng xoay loading và gửi yêu cầu đến `POST /api/v1/composer/chat`.
-4. Phía máy chủ AI Copilot phân tích yêu cầu cùng tài liệu hiện tại, bóc tách đề xuất sửa đổi thành cấu trúc `DiffSuggestion(action, old_text, new_text, description)`.
+   - Giao diện phản hồi tức thì (Optimistic Fast Dispatch $\le 16$ms): mở bung full Popup Trợ lý Soạn thảo (`#composer-ai-popup`), ẩn thanh compact bar, đưa tin nhắn vào lịch sử và cuộn mượt đến đáy.
+   - Nếu lần biên dịch trước đó gặp lỗi từ XeTeX/Tectonic, hệ thống tự động đính kèm `compile_error_log` vào payload gửi đến `POST /api/v1/composer/chat`.
+4. Phía máy chủ AI Copilot phân tích yêu cầu cùng tài liệu hiện tại và log lỗi biên dịch (nếu có), chẩn đoán nguyên nhân và bóc tách đề xuất sửa đổi thành cấu trúc `DiffSuggestion(action, old_text, new_text, description)`.
 5. Phía trình duyệt tiếp nhận phản hồi:
    - Thuật toán định vị tìm chính xác dòng mã nguồn của đoạn `old_text` trong editor, tự động cuộn khung nhìn textarea đến đúng dòng đó và bôi đen vùng chọn.
-   - Banner Gợi ý Sửa đổi (Inline Diff Banner) hiển thị nổi bật ngay trên đầu vùng soạn thảo với huy hiệu số dòng `GỢI Ý TẠI DÒNG [lineNo]`, khối xóa `- old_text` (nền đỏ) và khối thêm `+ new_text` (nền xanh).
+   - Đồng thời hiển thị 2 tầng giao diện trực quan:
+     + Banner Gợi ý Sửa đổi (Inline Diff Banner) trên đỉnh editor: huy hiệu số dòng `GỢI Ý TẠI DÒNG [lineNo]`.
+     + Giao diện Diff Nội Dòng (Inline Editor Diff Overlay / Widget) ngay tại đúng vị trí dòng mã nguồn trên textarea: khối dòng đỏ xóa `- old_text` và khối dòng xanh thêm `+ new_text` kèm hai nút điều khiển trực tiếp `[Keep / Đồng ý]` và `[Undo / Từ chối]`.
 6. Người dùng xem xét đề xuất sửa đổi và có 2 lựa chọn thao tác trực tiếp:
-   - **Kịch bản 6a - Người dùng nhấn [Đồng ý]:**
-     1. Hệ thống thực thi thay thế chính xác dòng cũ bằng dòng mới trong bộ nhớ đệm `currentLatex` và textarea.
-     2. Hệ thống tự động kích hoạt biên dịch tức thì `compile(true)` để làm mới tệp PDF Live Preview ở cột đối diện.
-     3. Ẩn banner diff và hiển thị thông báo toast thành công: *"Đã áp dụng thay đổi vào mã nguồn!"*.
-   - **Kịch bản 6b - Người dùng nhấn [Từ chối]:**
-     1. Hệ thống ẩn banner diff, hủy bỏ vùng bôi đen, đưa con trỏ về trạng thái bình thường.
+   - **Kịch bản 6a - Người dùng nhấn [Keep / Đồng ý]:**
+     1. Hệ thống kích hoạt Động cơ Thay thế Dòng mờ Đa tầng (5-Tier Fuzzy Line Replacement Engine): so khớp chuỗi chuẩn hóa, bỏ qua thụt lề, quét cửa sổ trượt hoặc thay thế theo phạm vi dòng đã ghim `pinnedRange`.
+     2. Đảm bảo thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
+     3. Hệ thống tự động kích hoạt biên dịch tức thì `compile(true)` để làm mới tệp PDF Live Preview ở cột đối diện.
+     4. Ẩn diff overlay & banner diff, hiển thị thông báo toast thành công: *"Đã áp dụng thay đổi vào mã nguồn!"*.
+   - **Kịch bản 6b - Người dùng nhấn [Undo / Từ chối]:**
+     1. Hệ thống ẩn diff overlay và banner diff, hủy bỏ vùng bôi đen, đưa con trỏ về trạng thái bình thường.
      2. Toàn bộ mã nguồn tài liệu được giữ nguyên vẹn 100% không bị thay đổi.
 7. Người dùng có thể tiếp tục trò chuyện hoặc tái áp dụng đề xuất từ thẻ Diff Card lưu trong lịch sử chat bất kỳ lúc nào.
