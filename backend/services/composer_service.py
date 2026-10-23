@@ -748,10 +748,6 @@ def compile_with_remote_tectonic_api(
 
         sanitized_latex = fix_immini_choice_nesting(sanitized_latex)
 
-        logger.info("=== SANITIZED LATEX SENT TO TECTONIC (FIRST 45 LINES) ===")
-        for i, l in enumerate(sanitized_latex.splitlines()[:45], 1):
-            logger.info(f"{i}: {l}")
-
         payload = json.dumps({
             "latex_code": sanitized_latex,
             "timeout_s": 60
