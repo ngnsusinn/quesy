@@ -3915,7 +3915,7 @@
       } else if (this.templates['circular_32_full_exam']) {
         this.currentLatex = this.templates['circular_32_full_exam'].latex;
       } else {
-        this.currentLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\begin{ex}\nCho hàm số bậc ba $y = f(x)$...\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n\n\\end{document}\n`;
+        this.currentLatex = `\\documentclass[11pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\begin{ex}\nCho hàm số bậc ba $y = f(x)$...\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n\n\\end{document}\n`;
       }
 
       if (editor) {
