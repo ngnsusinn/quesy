@@ -3907,7 +3907,8 @@
   }
 
   // ============================================================================
-  // 13. TAB 2: SOẠN ĐỀ (AI LATEX COMPOSER & LIVE PDF PREVIEW - OPEN-PRISM CLONE)
+  // ============================================================================
+  // 13. TAB 2: SOẠN ĐỀ (AI LATEX COMPOSER & LIVE PDF PREVIEW - NOCTORIUM CLONE)
   // ============================================================================
   const composer = {
     initialized: false,
@@ -3919,8 +3920,21 @@
     pdfUrl: '',
     zoomLevel: 1.0,
     aiPaneVisible: true,
+    aiPaneCollapsed: false,
+    showSolution: true,
     chatHistory: [],
+    compilationHistory: [],
     templates: {},
+
+    EX_TEST_TEMPLATES: {
+      'tracnghiem': `\\begin{ex}\n\n\\choice\n{}\n{}\n{}\n{}\n\\loigiai{\n\n}\n\\end{ex}\n`,
+      'dungsai': `\\begin{ex}\n\n\\choiceTFt\n{}\n{}\n{}\n{}\n\\loigiai{\n\\begin{itemchoice}\n\\itemch\n\\itemch\n\\itemch\n\\itemch\n\\end{itemchoice}\n}\n\\end{ex}\n`,
+      'traloingan': `\\begin{ex}\n\n\\par\n\\shortans[oly]{}\n\\loigiai{\n\n}\n\\end{ex}\n`,
+      'tuluan': `\\begin{bt}\n\n\\begin{enumerate}[a]\n\\item \n\\item \n\\end{enumerate}\n\\loigiai{\n\\begin{enumerate}[a]\n\\item \n\\item \n\\end{enumerate}\n}\n\\end{bt}\n`,
+      'hinhtikz': `\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]\n\n\\end{tikzpicture}\n`,
+      'hinhcanhchu': `\\immini[thm]{}{\n\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]\n\n\\end{tikzpicture}\n}\n`,
+      'loigiai': `\\loigiai{\n\n}\n`
+    },
 
     SNIPPETS: {
       '\\dfrac{a}{b}': '\\dfrac{a}{b}',
@@ -3964,7 +3978,7 @@
         console.warn('Could not load templates from API:', e);
       }
 
-      // 3. Restore Content or fallback to Circular 32 Full Exam
+      // 3. Restore Content or fallback to ex_test standard template
       const savedContent = localStorage.getItem('quesy_composer_content');
       const editor = document.getElementById('composer-editor-input');
       if (savedContent && savedContent.trim()) {
@@ -3974,7 +3988,7 @@
       } else if (this.templates['circular_32_full_exam']) {
         this.currentLatex = this.templates['circular_32_full_exam'].latex;
       } else {
-        this.currentLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\textbf{Câu 1.} Cho hàm số bậc ba $y = f(x)$...\n\\end{document}\n`;
+        this.currentLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\begin{ex}\nCho hàm số bậc ba $y = f(x)$...\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n\n\\end{document}\n`;
       }
 
       if (editor) {
@@ -3983,15 +3997,276 @@
         this.updateCharCount();
       }
 
-      // 4. Restore Chat
+      // 4. Restore Chat & History
       this.initChat();
+      this.initHistory();
 
-      // 5. Initial Compile
+      // 5. Setup global click-outside for dropdowns
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#btn-dropdown-gemini') && !e.target.closest('#composer-dropdown-gemini')) {
+          const m = document.getElementById('composer-dropdown-gemini');
+          if (m) m.classList.add('hidden');
+        }
+        if (!e.target.closest('#btn-dropdown-them') && !e.target.closest('#composer-dropdown-them')) {
+          const m = document.getElementById('composer-dropdown-them');
+          if (m) m.classList.add('hidden');
+        }
+        if (!e.target.closest('#btn-dropdown-export') && !e.target.closest('#composer-dropdown-export')) {
+          const m = document.getElementById('composer-dropdown-export');
+          if (m) m.classList.add('hidden');
+        }
+      });
+
+      // 6. Initial Compile
       setTimeout(() => {
         this.compile(false);
       }, 300);
 
       if (window.lucide) lucide.createIcons();
+    },
+
+    toggleDropdown(name) {
+      const allMenus = ['gemini', 'them', 'export'];
+      allMenus.forEach((m) => {
+        const el = document.getElementById(`composer-dropdown-${m}`);
+        if (el) {
+          if (m === name) {
+            el.classList.toggle('hidden');
+          } else {
+            el.classList.add('hidden');
+          }
+        }
+      });
+      if (window.lucide) lucide.createIcons();
+    },
+
+    insertTemplate(templateKey) {
+      const code = this.EX_TEST_TEMPLATES[templateKey];
+      if (!code) return;
+      this.insertSnippet(code);
+      const menu = document.getElementById('composer-dropdown-them');
+      if (menu) menu.classList.add('hidden');
+      showToast(`Đã chèn mẫu ${templateKey.toUpperCase()}!`, 'success');
+    },
+
+    triggerGeminiPrompt(type) {
+      const menu = document.getElementById('composer-dropdown-gemini');
+      if (menu) menu.classList.add('hidden');
+
+      const prompts = {
+        'tracnghiem': 'Tạo 1 câu trắc nghiệm 4 lựa chọn theo chuẩn gói ex_test (\\begin{ex} ... \\choice ... \\loigiai)',
+        'dungsai': 'Tạo 1 câu hỏi Đúng/Sai 4 khẳng định theo chuẩn Quyết định 764 dùng \\choiceTF và itemchoice',
+        'traloingan': 'Tạo 1 câu hỏi Trả lời ngắn theo chuẩn \\shortans',
+        'tkz_tab': 'Tạo 1 bảng biến thiên hàm số bằng gói tkz-tab',
+        'tikz': 'Vẽ 1 đồ thị toạ độ hoặc hình học không gian bằng TikZ',
+        'sualoi': 'Kiểm tra và sửa lỗi cú pháp LaTeX trong tài liệu đang soạn thảo',
+        'loigiai': 'Viết lời giải chi tiết theo môi trường \\loigiai cho câu hỏi hiện tại'
+      };
+
+      const promptText = prompts[type] || 'Hỗ trợ soạn câu hỏi Toán';
+      this.sendPrompt(promptText);
+    },
+
+    undo() {
+      const editor = document.getElementById('composer-editor-input');
+      if (editor) {
+        editor.focus();
+        document.execCommand('undo');
+        this.handleEditorInput();
+      }
+    },
+
+    redo() {
+      const editor = document.getElementById('composer-editor-input');
+      if (editor) {
+        editor.focus();
+        document.execCommand('redo');
+        this.handleEditorInput();
+      }
+    },
+
+    copyAll() {
+      if (!this.currentLatex) return;
+      navigator.clipboard.writeText(this.currentLatex);
+      showToast('Đã sao chép toàn bộ mã nguồn vào bộ nhớ tạm!', 'success');
+      const menu = document.getElementById('composer-dropdown-export');
+      if (menu) menu.classList.add('hidden');
+    },
+
+    downloadTex() {
+      if (!this.currentLatex) return;
+      const blob = new Blob([this.currentLatex], { type: 'text/x-tex;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${this.activeTitle.replace(/\\s+/g, '_')}.tex`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Đang tải tệp mã nguồn .tex...', 'info');
+      const menu = document.getElementById('composer-dropdown-export');
+      if (menu) menu.classList.add('hidden');
+    },
+
+    newDocument() {
+      if (confirm('Bạn có chắc chắn muốn tạo mới tài liệu?')) {
+        const cleanLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\n\\begin{ex}\n\n\\choice\n{}\n{}\n{}\n{}\n\\loigiai{\n\n}\n\\end{ex}\n\n\\end{document}\n`;
+        const editor = document.getElementById('composer-editor-input');
+        if (editor) {
+          editor.value = cleanLatex;
+          this.currentLatex = cleanLatex;
+          this.handleEditorInput();
+          this.compile(true);
+          showToast('Đã tạo mới tài liệu với mẫu ex_test!', 'success');
+        }
+      }
+    },
+
+    toggleSolution() {
+      this.showSolution = !this.showSolution;
+      const toggle = document.getElementById('composer-solution-toggle');
+      if (toggle) {
+        if (this.showSolution) {
+          toggle.className = 'w-8 h-4.5 bg-[#7c1925] rounded-full p-0.5 transition-colors flex items-center justify-end cursor-pointer';
+        } else {
+          toggle.className = 'w-8 h-4.5 bg-slate-300 rounded-full p-0.5 transition-colors flex items-center justify-start cursor-pointer';
+        }
+      }
+
+      // Update LaTeX package option in editor if present
+      let val = this.currentLatex;
+      if (this.showSolution) {
+        val = val.replace(/\\usepackage\[dethi\]\{ex_test\}/, '\\usepackage[loigiai]{ex_test}');
+        showToast('Đã bật chế độ LỜI GIẢI chi tiết.', 'info');
+      } else {
+        val = val.replace(/\\usepackage\[(?:loigiai|solcolor|color)\]\{ex_test\}/, '\\usepackage[dethi]{ex_test}');
+        showToast('Đã chuyển sang chế độ IN ĐỀ THI (ẩn lời giải).', 'info');
+      }
+
+      const editor = document.getElementById('composer-editor-input');
+      if (editor) {
+        editor.value = val;
+        this.currentLatex = val;
+        this.handleEditorInput();
+        this.compile(true);
+      }
+    },
+
+    switchPreviewTab(tab) {
+      const viewPreview = document.getElementById('composer-view-preview');
+      const viewHistory = document.getElementById('composer-view-history');
+      const btnPreview = document.getElementById('composer-tab-btn-preview');
+      const btnHistory = document.getElementById('composer-tab-btn-history');
+
+      if (tab === 'preview') {
+        if (viewPreview) viewPreview.classList.remove('hidden');
+        if (viewHistory) viewHistory.classList.add('hidden');
+        if (btnPreview) btnPreview.className = 'border-b-2 border-[#7c1925] text-[#7c1925] font-bold pb-1.5 pt-1 px-3 text-xs tracking-wider transition-all';
+        if (btnHistory) btnHistory.className = 'text-slate-500 hover:text-slate-800 pb-1.5 pt-1 px-3 text-xs font-semibold transition-all cursor-pointer';
+      } else {
+        if (viewPreview) viewPreview.classList.add('hidden');
+        if (viewHistory) viewHistory.classList.remove('hidden');
+        if (btnHistory) btnHistory.className = 'border-b-2 border-[#7c1925] text-[#7c1925] font-bold pb-1.5 pt-1 px-3 text-xs tracking-wider transition-all cursor-pointer';
+        if (btnPreview) btnPreview.className = 'text-slate-500 hover:text-slate-800 pb-1.5 pt-1 px-3 text-xs font-semibold transition-all';
+        this.renderHistory();
+      }
+      if (window.lucide) lucide.createIcons();
+    },
+
+    initHistory() {
+      const saved = localStorage.getItem('quesy_composer_compilation_history');
+      if (saved) {
+        try {
+          this.compilationHistory = JSON.parse(saved);
+        } catch (e) {
+          this.compilationHistory = [];
+        }
+      }
+    },
+
+    saveHistoryItem(pdfUrl) {
+      const item = {
+        id: Date.now(),
+        timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        title: this.activeTitle,
+        latex: this.currentLatex,
+        pdfUrl: pdfUrl
+      };
+      this.compilationHistory.unshift(item);
+      if (this.compilationHistory.length > 15) this.compilationHistory.pop();
+      localStorage.setItem('quesy_composer_compilation_history', JSON.stringify(this.compilationHistory));
+    },
+
+    renderHistory() {
+      const list = document.getElementById('composer-history-list');
+      if (!list) return;
+
+      if (!this.compilationHistory || this.compilationHistory.length === 0) {
+        list.innerHTML = `
+          <div class="py-8 text-center text-slate-400">
+            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+            <p>Chưa có lịch sử biên dịch nào.</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      list.innerHTML = this.compilationHistory.map((item, idx) => `
+        <div class="p-2.5 rounded-lg border border-slate-200/80 hover:border-brand-300 hover:bg-slate-50 flex items-center justify-between transition-all">
+          <div class="min-w-0 flex-1">
+            <div class="font-bold text-slate-800 truncate">${escapeHtml(item.title || 'Đề thi')}</div>
+            <div class="text-[10px] text-slate-400 font-mono mt-0.5">${item.timestamp} • ${item.latex.length} ký tự</div>
+          </div>
+          <div class="flex items-center space-x-1 ml-3 shrink-0">
+            <button type="button" onclick="app.composer.restoreHistory(${idx})" class="px-2 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded text-[11px] font-semibold transition-all" title="Khôi phục mã nguồn này">
+              Khôi phục
+            </button>
+            <a href="${item.pdfUrl}" target="_blank" class="p-1 hover:bg-slate-200 rounded text-slate-500" title="Mở PDF tab mới">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            </a>
+          </div>
+        </div>
+      `).join('');
+
+      if (window.lucide) lucide.createIcons();
+    },
+
+    restoreHistory(index) {
+      const item = this.compilationHistory[index];
+      if (!item) return;
+      if (confirm(`Khôi phục phiên bản lúc ${item.timestamp}?`)) {
+        const editor = document.getElementById('composer-editor-input');
+        if (editor) {
+          editor.value = item.latex;
+          this.currentLatex = item.latex;
+          this.handleEditorInput();
+          this.switchPreviewTab('preview');
+          this.compile(true);
+          showToast(`Đã khôi phục phiên bản lúc ${item.timestamp}!`, 'success');
+        }
+      }
+    },
+
+    clearHistory() {
+      if (confirm('Xóa sạch lịch sử các lần biên dịch?')) {
+        this.compilationHistory = [];
+        localStorage.removeItem('quesy_composer_compilation_history');
+        this.renderHistory();
+        showToast('Đã xóa sạch lịch sử.', 'info');
+      }
+    },
+
+    toggleAIPaneCollapse() {
+      const pane = document.getElementById('composer-ai-pane');
+      if (!pane) return;
+      this.aiPaneCollapsed = !this.aiPaneCollapsed;
+      if (this.aiPaneCollapsed) {
+        pane.style.height = '38px';
+      } else {
+        pane.style.height = '250px';
+      }
     },
 
     initChat() {
@@ -4364,6 +4639,7 @@
 
         if (res.ok && data.success && data.pdf_url) {
           this.pdfUrl = data.pdf_url;
+          this.saveHistoryItem(data.pdf_url);
           const iframe = document.getElementById('composer-pdf-iframe');
           if (iframe) {
             iframe.src = `${data.pdf_url}?t=${Date.now()}`;

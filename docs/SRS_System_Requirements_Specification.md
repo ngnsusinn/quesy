@@ -153,13 +153,17 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 - **Quy chuẩn in ấn:** Khổ giấy A4 Portrait (210 x 297 mm), lề trang 1.6 cm, dàn trang 1 cột với bảng đáp án thích ứng (4 cột / 2 cột / 1 cột), bảng thông tin thí sinh 3 cột chống rớt dòng, chân trang `Trang X - Mã đề thi Y`.
 - **Tạm thời ẩn xuất Word:** Trên giao diện tab số hóa AI (HITL Studio), tạm thời ẩn các nút xuất file Word (.docx) để tập trung hoàn thiện và vận hành luồng xuất bản PDF chất lượng cao.
 
-#### SRS-FEAT-04d: Phân hệ Soạn đề LaTeX Trực tiếp Tích hợp AI & Live PDF Preview (Open-Prism & ex_test v3.3 Architecture)
-- **Mô tả:** Thay thế hoàn toàn phân hệ số hóa ảnh/OCR cũ bằng phân hệ **Soạn đề** (LaTeX Exam Writing Workspace) mô phỏng toàn diện tính năng của dự án nguồn mở `assistant-ui/open-prism` kết hợp gói lệnh khảo thí quốc gia `ex_test.sty` (v3.3). Cung cấp không gian làm việc 3 ngăn tích hợp (3-Pane Split Workspace):
-  1. *Trợ lý Soạn thảo AI (assistant-ui clone):* Sidebar chat thông minh hỗ trợ giáo viên sinh câu hỏi theo chuẩn Thông tư 32/2018 và Quyết định 764/2025, hỗ trợ cú pháp `ex_test.sty` (`\begin{ex}`, `\choice`, `\choiceTF`, `\shortans`, `\immini`), sinh bảng biến thiên `tkz-tab`, vẽ đồ thị TikZ, và sửa lỗi cú pháp LaTeX. Cung cấp các nút tương tác 1-click trực tiếp trên khối mã: "Chèn vào con trỏ", "Thay thế toàn bộ tài liệu", "Sao chép mã".
-  2. *Trình soạn thảo mã nguồn LaTeX (Editor Pane):* Hỗ trợ đánh số dòng (gutter line numbers), phím tắt thụt lề Tab, phím tắt biên dịch nhanh Ctrl+S, thanh công cụ chèn nhanh ký hiệu toán học phổ thông (`\dfrac`, `\sqrt`, `\vec`, `\in \mathbb{R}`, `+ ex (4 PA)`, `+ ex (Đ/S)`, `+ ex (Điền số)`, `+ immini`) và cấu trúc hình học TikZ/tkz-tab.
-  3. *Bản xem trước PDF Trực tiếp (Live PDF Preview Pane):* Biên dịch tự động tức thì (debounced 800ms) hoặc biên dịch thủ công qua Tectonic XeTeX Engine (Docker microservice trên host ARM) hoặc Chromium Headless fallback, xuất bản PDF vector-crisp 100% font Computer Modern Unicode (CMU Serif) hiển thị trực tiếp trong khung xem trước kèm các nút thu phóng (Zoom), tải PDF, và ngăn hiển thị lỗi biên dịch (Error Console Drawer).
-  4. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản và hội thoại vào `localStorage` của trình duyệt, không bao giờ mất dữ liệu khi tải lại trang (F5).
-  5. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
+#### SRS-FEAT-04d: Phân hệ Soạn đề LaTeX Trực tiếp Tích hợp AI & Live PDF Preview (Noctorium & ex_test Architecture)
+- **Mô tả:** Thay thế hoàn toàn phân hệ số hóa ảnh/OCR cũ bằng phân hệ **Soạn đề** (LaTeX Exam Writing Workspace) mô phỏng thiết kế của `Noctorium` kết hợp gói lệnh khảo thí quốc gia `ex_test.sty` (v3.3). Cung cấp không gian làm việc 2 cột tích hợp (Split View Workspace):
+  1. *Cột bên trái:*
+     - *Khung trên:* Trình soạn thảo mã nguồn LaTeX (Dark mode) với toolbar `MỚI`, `GEMINI ▾`, `THÊM ▾` (7 template chuẩn `ex_test`), phím tắt hoàn tác (Undo/Redo), dọn dẹp, sao chép, đánh số dòng và hiển thị vị trí con trỏ.
+     - *Khung dưới:* Trợ lý Soạn thảo AI (Gemini Copilot) được chuyển xuống phía dưới khung soạn thảo theo yêu cầu người dùng, hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ `\immini` với các nút 1-click "Chèn vào con trỏ", "Thay thế", "Sao chép".
+  2. *Cột bên phải:*
+     - *Thanh công cụ:* Tab `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động đảo giữa in đề thi `[dethi]` và in đáp án `[loigiai]`), menu `XUẤT FILE ▾` (PDF, TeX, Ngân hàng, Copy).
+     - *Bản xem trước Live Preview:* Hiển thị trực tiếp trang PDF biên dịch sắc nét từ Tectonic XeTeX Engine (Docker trên host ARM) hoặc Chromium Headless.
+     - *Chân trang (Footer):* Nút bấm thanh ngang toàn chiều rộng nổi bật màu đỏ đô **`BIÊN DỊCH`**.
+  3. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, lịch sử hội thoại và lịch sử biên dịch vào `localStorage` của trình duyệt.
+  4. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
 
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings

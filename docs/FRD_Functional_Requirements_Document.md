@@ -75,12 +75,16 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.3. FR-02.1: Không Gian Soạn Thảo Đề Thi 3 Ngăn (3-Pane Workspace)
+### 2.3. FR-02.1: Không Gian Soạn Thảo Đề Thi Phân Tách 2 Cột (Noctorium & Open-Prism Split Layout)
 - **Màn hình liên quan:** `SCR-COMPOSER-STUDIO`
 - **Bố cục giao diện:**
-  - **Khung bên trái (30%):** Trợ lý Soạn thảo AI (assistant-ui clone) với hội thoại tương tác, các chip gợi ý nhanh (`+ ex_test`, `+ BBT tkz-tab`, `+ Đúng/Sai QĐ 764`, `+ Trả lời ngắn`) và nút 1-click "Chèn vào con trỏ", "Thay thế", "Sao chép".
-  - **Khung ở giữa (40%):** Trình soạn thảo mã nguồn LaTeX với số dòng (gutter), phím tắt thụt lề Tab, tự động đóng ngoặc, thanh chèn ký hiệu toán học nhanh và các nút snippet chuẩn gói `ex_test.sty` (`+ ex (4 PA)`, `+ ex (Đ/S)`, `+ ex (Điền số)`, `+ immini`, `+ BBT tkz-tab`).
-  - **Khung bên phải (30%):** Bản xem trước PDF Trực tiếp (Live PDF Preview) biên dịch tức thì qua Tectonic XeTeX Engine (Docker container trên host ARM) hoặc Chromium Headless với font Computer Modern Unicode (CMU Serif) thuần $\LaTeX$.
+  - **Cột bên trái (50%):**
+    - *Khung trên:* Trình soạn thảo mã nguồn LaTeX (Dark mode) với toolbar `MỚI`, `GEMINI ▾`, `THÊM ▾` (7 template chuẩn `ex_test`), các phím tắt `Undo`, `Redo`, `Xóa`, `Copy`, đánh số dòng (gutter), và thanh trạng thái dòng/cột.
+    - *Khung dưới:* Trợ lý Soạn thảo AI (Gemini Copilot) được bố trí ngay bên dưới khung soạn thảo với thanh gợi ý lệnh nhanh, hội thoại chat tương tác, 1-click chèn/thay thế mã và khung nhập liệu câu hỏi.
+  - **Cột bên phải (50%):**
+    - *Thanh công cụ trên (Light mode):* Hai tab điều hướng `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động chuyển đổi giữa chế độ in đề thi `[dethi]` và in lời giải `[loigiai]`), menu `XUẤT FILE ▾` (tải PDF, tải TeX, lưu Ngân hàng, sao chép mã).
+    - *Khung giữa:* Bản xem trước PDF Trực tiếp (Live Preview) hiển thị PDF biên dịch sắc nét từ Tectonic XeTeX engine hoặc danh sách lịch sử các phiên bản.
+    - *Chân trang (Footer):* Nút bấm toàn chiều rộng nổi bật màu đỏ đô **`BIÊN DỊCH`** kích hoạt biên dịch tài liệu tức thì.
 
 ### 2.4. FR-02.2: Tự Động Biên Dịch, Lưu Trữ Cục Bộ & Xuất Bản Đề Thi
 - **Hành vi thao tác:**
