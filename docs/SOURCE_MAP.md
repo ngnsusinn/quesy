@@ -166,7 +166,7 @@ quesy/
 │   └── comprehensive_loop_test.py     # Script kiểm thử vòng lặp toàn diện (664 dòng)
 │
 └── .github/workflows/
-    └── ci.yml                         # Quy trình CI/CD GitHub Actions trên Ubuntu runner (JS syntax check & pytest)
+    └── ci.yml                         # Quy trình CI/CD GitHub Actions trên Ubuntu runner (Strict CI Isolation: Độc quyền Sub-Agent 3, cấm các Sub-Agent khác đọc/ghi)
 ```
 
 ---
@@ -366,7 +366,7 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 | **Local Dev** | Web Server | FastAPI / Uvicorn lắng nghe cổng 8000 (auto-failover sang 8001 nếu cổng bận) |
 | **Server Deploy** | Tectonic Docker | Microservice `tectonic-compiler-api` trên host `armbian:8090` |
 | **Server Deploy** | Cache CTAN | Volume mount `/root/.cache/tectonic` lưu trữ vĩnh viễn 43MB packages |
-| **CI / CD** | GitHub Actions | Runner `ubuntu-latest`, Python 3.13, Node 20, 100% test suite đạt 71/71 |
+| **CI / CD** | GitHub Actions | Runner `ubuntu-latest`, Python 3.13, Node 20. Cổng kiểm soát Pre-Commit CI Gate bắt buộc (100% pass CI mới được commit), nguyên tắc Strict CI Isolation (độc quyền Sub-Agent 3, cấm các sub-agent khác đọc/ghi), và vòng lặp sửa lỗi CI Loop. |
 
 ---
 
@@ -387,10 +387,13 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 ## 9. QUY TRÌNH KÍCH HOẠT 4 SUB-AGENT ĐỒNG THỜI CHO MỖI YÊU CẦU TÍNH NĂNG
 
 Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi hệ thống bắt buộc phải kích hoạt 4 Sub-Agent chạy đồng thời (song song qua `delegate_task`), tuyệt đối không chạy đơn luồng tuần tự:
-1. **Sub-Agent 1 - Analysis, Specs & Docs:** Phân tích kiến trúc, rà soát tác động, đồng bộ toàn bộ tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
-2. **Sub-Agent 2 - Software Engineering & Coding:** Hiện thực hóa tính năng, lập trình backend/frontend, tuân thủ Apple HIG và thiết kế hệ thống.
-3. **Sub-Agent 3 - Automated Test & CI/CD Verification:** Viết mới/cập nhật test cases `pytest`, rà soát CI/CD `.github/workflows/`, chạy toàn bộ test suite đảm bảo 100% test cases vượt qua (71/71 PASSED).
-4. **Sub-Agent 4 - E2E Browser Blind Test & UI/UX Audit:** Mở trình duyệt thật qua `browser_exec`, thao tác thủ công (`fill_input`, `click_at_xy`), chụp màn hình, kiểm tra console log/error, đối chiếu toàn diện 5 nhóm khuyết tật phần mềm.
+1. **Sub-Agent 1 - Analysis, Specs & Docs:** Phân tích kiến trúc, rà soát tác động, đồng bộ toàn bộ tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`). **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`).
+2. **Sub-Agent 2 - Software Engineering & Coding:** Hiện thực hóa tính năng, lập trình backend/frontend, tuân thủ Apple HIG và thiết kế hệ thống. **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`). Chủ động cung cấp thông tin cập nhật mã nguồn/thư viện cho Sub-Agent 3.
+3. **Sub-Agent 3 - Automated Test & CI/CD Verification (Độc quyền CI/CD):**
+   - **Strict CI Isolation:** Là sub-agent DUY NHẤT được phép truy cập, đọc, viết, chỉnh sửa toàn bộ cấu hình CI/CD (`.github/workflows/`). Hoàn toàn tách biệt với các sub-agents còn lại.
+   - **Tiếp nhận thông tin một chiều:** Có toàn quyền đọc và tiếp nhận thông tin từ Sub-Agent 1, Sub-Agent 2, Sub-Agent 4 để cập nhật CI đồng bộ theo code mới, loại bỏ nguy cơ lỗi trên runner.
+   - **Kiểm thử tự động & Quản lý Cổng Pre-Commit Gate:** Viết mới/cập nhật test cases `pytest`, chạy toàn bộ test suite. Quản lý vòng lặp sửa lỗi CI (CI Loop) và chỉ cho phép commit khi 100% test cases vượt qua trên CI.
+4. **Sub-Agent 4 - E2E Browser Blind Test & UI/UX Audit:** Mở trình duyệt thật qua `browser_exec`, thao tác thủ công (`fill_input`, `click_at_xy`), chụp màn hình, kiểm tra console log/error, đối chiếu toàn diện 5 nhóm khuyết tật phần mềm. **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`).
 
 - **Định nghĩa "Lỗi" bao trùm 5 nhóm:**
   1. Lỗi logic nghiệp vụ & backend (API exception 500/422, sai điểm QĐ 764, treo port/process).
@@ -398,7 +401,12 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
   3. Lỗi màu sắc & phong cách (sai mã màu chuẩn như nút BIÊN DỊCH `#0071e3`, lỗi biến đổi màu nền trắng khi focus dark mode).
   4. Lỗi tương tác & hành vi UX (thiếu phản hồi scale 0.97, thay thế nhầm code, kẹt popup).
   5. Lỗi console & tài nguyên (mọi `console.error` đỏ, 404 font/icon, xén nét toán học).
-- **Vòng lặp đóng & Hợp nhất:** Parent Agent nhận kết quả đồng thời từ 4 Sub-Agent, nếu phát hiện lỗi sẽ điều phối vòng lặp hiệu chỉnh tức thì: `Sub-Agent 2 sửa` → `Sub-Agent 3 test` → `Sub-Agent 4 blind test` cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
+- **Vòng lặp đóng & Cổng Pre-Commit CI (CI Loop & Review Loop):**
+  - Parent Agent nhận kết quả đồng thời từ 4 Sub-Agent, thẩm định chéo.
+  - **Bắt buộc Pass CI trước khi commit:** Nếu CI test không pass:
+    `CI thất bại` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 test lại CI` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC COMMIT**.
+  - Nếu Sub-Agent 3 hoặc Sub-Agent 4 phát hiện bất kỳ lỗi nào trong 5 nhóm trên:
+    `Phát hiện lỗi` → `Sub-Agent 2 sửa` → `Sub-Agent 3 test` → `Sub-Agent 4 blind test` cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
 - **Cơ chế Chống Tái Diễn Lỗi (Anti-Regression Shield cho Sub-Agent 4):**
   - Mọi phản ánh, đề xuất báo lỗi của người dùng về Frontend/Backend tự động được trích xuất thành tiêu chí kiểm thử đối chứng bắt buộc nạp vào prompt của Sub-Agent 4:
     1. *Tiêu chí 1 (Dark Mode Input Contrast):* Kiểm tra màu chữ `#composer-compact-input` và `#composer-chat-input` phải là màu trắng sáng `#f8fafc` hoặc `#ffffff` nổi bật trên nền tối `#1c1c1f`, không bị màu đen `#1d1d1f` chìm nghỉm, con trỏ caret màu xanh Apple `#38bdf8`.
@@ -411,10 +419,14 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
 
 ---
 
-## 10. QUY TRÌNH QUẢN TRỊ PHIÊN BẢN & GIT WORKFLOW (STRICT COMMIT & PUSH ONLY)
+## 10. QUY TRÌNH QUẢN TRỊ PHIÊN BẢN & GIT WORKFLOW (STRICT PRE-COMMIT CI GATE, COMMIT & PUSH ONLY)
 
-- **Bắt buộc:** Sau khi hoàn thành việc triển khai, sửa lỗi hoặc refactor và kiểm thử thành công 100% test cases:
-  1. Thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+- **Cổng Kiểm Soát Bắt Buộc Trước Khi Commit (Pre-Commit CI Gate):**
+  - **Bắt buộc:** Trước khi thực hiện `git commit`, mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (`pytest`, syntax check, môi trường tương đương CI). Tuyệt đối cấm commit khi CI test chưa pass 100%.
+  - **Vòng lặp sửa lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
+    `CI thất bại` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 chạy lại CI test` → `Lặp lại quy trình` cho đến khi **100% PASS CI mới được phép thực hiện commit**.
+- **Quy trình Commit & Push:**
+  1. Sau khi 100% test cases vượt qua trên CI, thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
   2. Thực hiện `git push` lên nhánh làm việc (remote branch).
 - **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO/CẬP NHẬT PULL REQUEST:**
   - Nghiêm cấm các sub-agent tự ý chạy lệnh `gh pr create` hoặc gọi GitHub REST API để mở Pull Request.

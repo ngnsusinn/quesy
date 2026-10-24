@@ -24,14 +24,26 @@ Tài liệu này đặc tả chi tiết toàn bộ các yêu cầu kỹ thuật,
 ### 1.3. Khách thể Sử dụng (Audience)
 - **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
 
-### 1.4. Quy tắc Quản trị Git Workflow & Không Tự Động Tạo Pull Request (Mandatory Git Rule)
-- **Bắt buộc:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
+### 1.4. Quy tắc Quản trị Git Workflow, Cổng Pre-Commit CI Gate & Cô Lập CI/CD (Mandatory CI/CD & Git Rules)
+- **Cổng Pre-Commit CI Gate bắt buộc:** Trước khi thực hiện `git commit`, mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (100% test cases đạt). Tuyệt đối cấm commit mã nguồn khi CI test chưa đạt.
+- **Vòng lặp sửa lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
+  `CI thất bại` → `Sửa lỗi code / Cập nhật test & cấu hình CI` → `Chạy lại test CI` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT**.
+- **Đồng bộ CI liên tục (Continuous CI Synchronization):** Mỗi khi mã nguồn có cập nhật mới (dependencies trong `requirements.txt`/`package.json`, cấu hình font, biến môi trường, headless browser...), cấu hình CI workflow phải được cập nhật đồng bộ ngay lập tức để triệt tiêu mọi nguy cơ gây lỗi trên môi trường runner.
+- **Cô lập CI tuyệt đối (Strict CI Isolation & Role Separation):**
+  - Sub-Agent đảm nhận làm CI (Sub-Agent 3) tách biệt hoàn toàn với tất cả các sub-agents còn lại.
+  - **Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4...) tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
+  - Chỉ duy nhất Sub-Agent đảm nhận làm CI mới được phép đọc, viết, chỉnh sửa cấu hình CI/CD.
+  - Sub-Agent CI có toàn quyền đọc và tiếp nhận thông tin từ các sub-agents khác để phục vụ việc đồng bộ CI.
+- **Quy chuẩn Git Commit & Push:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
 - **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
+
+### 1.5. Đối tượng Sử dụng & Phân nhiệm Kỹ thuật (Audience & Roles)
+- **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
 - **Kỹ sư AI & Backend:** Xây dựng OCR pipeline, dịch vụ biên dịch TikZ SVG, MathJax Persistent Engine và thuật toán hoán vị an toàn.
 - **Kỹ sư Frontend:** Phát triển giao diện Studio Hậu kiểm (HITL) cuộn đồng bộ, hiển thị đồ thị SVG và render KaTeX thời gian thực.
-- **Kỹ sư QA/QC:** Xây dựng ma trận kiểm thử tự động và tiêu chuẩn nghiệm thu (55/55 automated tests).
+- **Kỹ sư QA/QC & CI/CD (Độc quyền Sub-Agent 3):** Xây dựng ma trận kiểm thử tự động, độc quyền quản trị và cập nhật cấu hình CI/CD (`.github/workflows/`), thực thi cổng Pre-Commit CI Gate bảo đảm 100% tests vượt qua.
 
-### 1.4. Phạm vi Sản phẩm & Bài toán Giải quyết (Product Scope)
+### 1.6. Phạm vi Sản phẩm & Bài toán Giải quyết (Product Scope)
 Hệ thống phần mềm dịch vụ Web ứng dụng Trí tuệ Nhân tạo Đa phương thức nhằm:
 1. **Giải quyết bài toán gõ lại đề thủ công:** Tiếp nhận tài liệu đề thi thô (.docx, .doc, .pdf scan, ảnh chụp), nhận diện layout, bóc tách công thức Toán/Khoa học sang LaTeX, tự động cắt ảnh đồ thị nén WebP, bóc tách đáp án và lời giải.
 2. **Giải quyết bài toán dựng đồ thị hàm số & hình học:** Tự động phát hiện mã nguồn hình học và biên dịch sang vector SVG sắc nét; có cơ chế Auto-clipping khống chế tỷ lệ khung hình hàm phân thức có tiệm cận, hỗ trợ đồ thị trong cả đề bài và 4 phương án trắc nghiệm A, B, C, D.
@@ -508,3 +520,4 @@ ightarrow$ `Tải mã nguồn TeX (.tex)`, nếu nội dung hiện tại là d�
 | **SRS-FEAT-05** | Test tích hợp | Câu hỏi có cosine similarity $\ge 0.90$ phải kích hoạt chặn lưu và hiển thị modal cảnh báo trùng lặp. |
 | **SRS-FEAT-08** | Unit Test thuật toán | Chạy 1.000 lần sinh mã đề hoán vị: $0\%$ câu hỏi chùm bị tách rời; $0\%$ phương án có cờ `is_fixed` bị đảo khỏi vị trí cố định. |
 | **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng MathType 7.0 OLE Vector WMF nét căng tuyệt đối, click đúp mở MathType 7 sửa được trực tiếp; bảng số liệu dạng native table không bị lỗi đen khi xuất PDF; khổ A4 dọc chuẩn. |
+| **SRS-VERIF-CI** | Test CI Runner + Pre-Commit Gate | 100% test cases vượt qua trên môi trường CI runner (`pytest`, syntax check) trước khi commit; tuân thủ nghiêm ngặt nguyên tắc Strict CI Isolation (chỉ duy nhất Sub-Agent CI đọc/ghi CI, cấm các sub-agent khác truy cập đọc); vòng lặp sửa lỗi CI loop lặp lại cho đến khi pass mới commit. |

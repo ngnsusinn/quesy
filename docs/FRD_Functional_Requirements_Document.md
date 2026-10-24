@@ -14,8 +14,17 @@
 ### 1.1. Mục đích
 Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý dữ liệu, giao diện người dùng, điều kiện biên, các API endpoints và quy tắc nghiệp vụ cho từng phân hệ trong hệ thống Quesy, giải quyết trực tiếp các khó khăn trong quy trình biên soạn và tổ chức kiểm tra đánh giá.
 
-### 1.2. Quy tắc Quản trị Git Workflow & Không Tự Động Tạo Pull Request (Mandatory Git Rule)
-- **Bắt buộc:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
+### 1.2. Quy tắc Quản trị Git Workflow, Cổng Pre-Commit CI Gate & Cô Lập CI/CD (Mandatory CI/CD & Git Rules)
+- **Cổng Pre-Commit CI Gate bắt buộc:** Trước khi thực hiện `git commit`, mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (100% test cases đạt). Tuyệt đối cấm commit mã nguồn khi CI test chưa đạt.
+- **Vòng lặp sửa lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
+  `CI thất bại` → `Sửa lỗi code / Cập nhật test & cấu hình CI` → `Chạy lại test CI` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT**.
+- **Đồng bộ CI liên tục (Continuous CI Synchronization):** Mỗi khi mã nguồn có cập nhật mới (dependencies trong `requirements.txt`/`package.json`, cấu hình font, biến môi trường, headless browser...), cấu hình CI workflow phải được cập nhật đồng bộ ngay lập tức để triệt tiêu mọi nguy cơ gây lỗi trên môi trường runner.
+- **Cô lập CI tuyệt đối (Strict CI Isolation & Role Separation):**
+  - Sub-Agent đảm nhận làm CI (Sub-Agent 3) tách biệt hoàn toàn với tất cả các sub-agents còn lại.
+  - **Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4...) tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
+  - Chỉ duy nhất Sub-Agent đảm nhận làm CI mới được phép đọc, viết, chỉnh sửa cấu hình CI/CD.
+  - Sub-Agent CI có toàn quyền đọc và tiếp nhận thông tin từ các sub-agents khác để phục vụ việc đồng bộ CI.
+- **Quy chuẩn Git Commit & Push:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
 - **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
 
 ### 1.3. Danh mục Phân hệ Chức năng

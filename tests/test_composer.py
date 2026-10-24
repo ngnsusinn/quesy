@@ -1881,7 +1881,8 @@ def test_composer_chat_api_returns_diffs_field():
             }
         ]
     }
-    with patch("backend.services.ai_provider_service.default_ai_provider_service.api_key", "sk-mock-key"):
+    with patch("backend.services.ai_provider_service.default_ai_provider_service.api_key", "sk-mock-key"), \
+         patch("backend.services.ai_provider_service.default_ai_provider_service.provider", "openai"):
         with patch("backend.routers.composer.httpx.Client") as mock_client_cls:
             mock_instance = MagicMock()
             mock_resp = MagicMock()
@@ -2156,7 +2157,8 @@ Cho khối chóp $S.ABC$ có đáy $ABC$ là tam giác vuông tại $B$, $AB=a$,
             }
         ]
     }
-    with patch("backend.services.ai_provider_service.default_ai_provider_service.api_key", "sk-test-key"):
+    with patch("backend.services.ai_provider_service.default_ai_provider_service.api_key", "sk-test-key"), \
+         patch("backend.services.ai_provider_service.default_ai_provider_service.provider", "openai"):
         with patch("backend.routers.composer.httpx.Client") as mock_client_cls:
             mock_inst = MagicMock()
             mock_http_resp = MagicMock()
@@ -2211,7 +2213,8 @@ def test_composer_chat_no_diff_safety_no_swallowed_code_and_no_false_positive():
             }
         ]
     }
-    with patch("backend.services.ai_provider_service.default_ai_provider_service.api_key", "sk-test-key"):
+    with patch("backend.services.ai_provider_service.default_ai_provider_service.api_key", "sk-test-key"), \
+         patch("backend.services.ai_provider_service.default_ai_provider_service.provider", "openai"):
         with patch("backend.routers.composer.httpx.Client") as mock_client_cls:
             mock_inst = MagicMock()
             mock_http_resp = MagicMock()
@@ -2715,6 +2718,60 @@ def test_composer_export_endpoint_get():
     assert res.status_code == 200
     assert r"\documentclass" in res.text
     assert r"\usepackage[dethi]{ex_test}" in res.text
+
+
+def test_composer_chat_api_gemini_provider_empty_or_mocked_key():
+    """Verify API /api/v1/composer/chat works when AI_PROVIDER='gemini' and AI_API_KEY='' (or mocked)."""
+    current_latex = r"""\documentclass[12pt]{article}
+\begin{document}
+\title{Đề Thi Gemini Test}
+\end{document}
+"""
+    mock_service = MagicMock()
+    mock_service.api_key = ""  # Empty api_key simulating CI state
+    mock_service.provider = "gemini"
+    mock_service.model = "gemini-1.5-flash"
+    mock_service.base_url = ""
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": (
+                        "Tôi đề xuất cập nhật tiêu đề cho Gemini:\n\n"
+                        "```diff\n"
+                        "- \\title{Đề Thi Gemini Test}\n"
+                        "+ \\title{Đề Thi Gemini Chính Thức 2026}\n"
+                        "```"
+                    )
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": "cập nhật tiêu đề",
+                    "current_latex": current_latex,
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert data["diff"] is not None
+            assert data["diff"]["old_text"] == r"\title{Đề Thi Gemini Test}"
+            assert data["diff"]["new_text"] == r"\title{Đề Thi Gemini Chính Thức 2026}"
+            assert mock_client.post.call_args[0][0] == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+
 
 
 

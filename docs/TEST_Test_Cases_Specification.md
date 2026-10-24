@@ -4,7 +4,7 @@
 - **Mã tài liệu:** QUESY-TEST-01  
 - **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 140+ Tests (100% Passed)  
+- **Tổng số kịch bản tự động hóa:** 146 Tests (100% Passed)  
 - **Ngày lập:** 2026-10-24  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
@@ -41,6 +41,7 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 | **TS-07** | Xuất bản File Word 2 Cột & In ấn | BR-05.1, FR-07, SRS-FEAT-09 | 4 | P0 (Must Have) |
 | **TS-08** | Bảo mật, RBAC & Khảo thí Thống kê | BR-05.2, BR-06, FR-08 | 3 | P1 / P2 |
 | **TS-09** | Soạn đề LaTeX AI & Live PDF (Tectonic) | FR-02.1, FR-02.2, NFR-COMP-02 | 15 | P0 (Must Have) |
+| **TS-10** | Quản trị CI/CD & Cổng Pre-Commit Gate | NFR-DEV-01..06, TC-DEV-01..02 | 2 | P0 (Critical) |
 
 ---
 
@@ -395,14 +396,28 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 - **Kết quả kỳ vọng:** Hệ thống phát hiện `\documentclass`, tự động kích hoạt nhánh Full Document Parser, bảo toàn các gói lệnh tùy chỉnh, tự động bổ sung gói thiếu nếu có dùng `ex_test`, biên dịch thành công 100% ra PDF.
 
 #### TC-COMP-26: Xuất Bản Mã Nguồn TeX Tự Động Đóng Gói Preamble Chuẩn (Full TeX Packaging)
-- **Mô tả:** Kiểm tra logic xuất bản mã nguồn `.tex` khi người dùng nhấn \"Tải mã nguồn TeX\": Nếu mã hiện thời trên editor không chứa `\documentclass`, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi xuất file.
+- **Mô tả:** Kiểm tra logic xuất bản mã nguồn `.tex` khi người dùng nhấn "Tải mã nguồn TeX": Nếu mã hiện thời trên editor không chứa `\documentclass`, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi xuất file.
 - **Kết quả kỳ vọng:** File `.tex` tải xuống độc lập, tự chứa đầy đủ preamble, có thể mở và biên dịch XeLaTeX thành công ngay trên TeXLive / Overleaf mà không bị thiếu gói lệnh.
+
+#### TC-COMP-27: Tích Hợp AI Provider Gemini (Google v1beta OpenAI Compatibility) & Cơ Chế Dự Phòng Fallback
+- **Mô tả:** Kiểm tra Composer Chat API `/api/v1/composer/chat` khi `provider` được cấu hình là `"gemini"`.
+  1. Xác nhận endpoint gọi chính xác tới `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`.
+  2. Xác nhận khả năng bóc tách khối diff (thay thế dòng/đổi tiêu đề/câu hỏi) từ phản hồi chuẩn Google Gemini.
+  3. Xác nhận xử lý an toàn, tự động kích hoạt Offline Rule-based Fallback khi `AI_API_KEY` rỗng (môi trường CI runner) hoặc khi mạng gặp sự cố.
+- **Kết quả kỳ vọng:** HTTP 200, phản hồi có cấu trúc hợp lệ (`reply`, `diff`, `diffs`), 100% test cases pass trên cả runner CI và máy dev cục bộ.
 
 #### TC-DEV-01: Quy Chuẩn Quản Trị Nhánh & Không Tự Động Tạo Pull Request (Git Workflow Guardrail)
 - **Mô tả:** Rà soát và xác thực hành vi của các agent và quy trình CI/CD:
   1. Chỉ thực hiện `git commit` và `git push` lên nhánh remote đang làm việc.
   2. Tuyệt đối không tự động kích hoạt `gh pr create` hoặc các API tương đương để tạo mới hay cập nhật Pull Request khi người dùng chưa ra lệnh trực tiếp bằng lời nói.
 - **Kết quả kỳ vọng:** Tuân thủ 100% quy định quản trị phiên bản; ngăn ngừa tình trạng spam Pull Request không mong muốn.
+
+#### TC-DEV-02: Cổng Kiểm Soát Pre-Commit CI Gate, Cô Lập CI Tuyệt Đối & Vòng Lặp Sửa Lỗi (CI Governance & Strict Isolation)
+- **Mô tả:** Kiểm tra quy trình thực thi CI/CD và phân định vai trò giữa các Sub-Agents:
+  1. *Cổng Pre-Commit CI Gate:* Bắt buộc chạy toàn bộ bài kiểm thử CI trên runner (`pytest`, syntax check) và đạt 100% test cases PASSED trước khi thực hiện `git commit`. Nghiêm cấm commit khi CI chưa pass.
+  2. *Vòng lặp sửa lỗi CI (CI Loop):* Nếu CI test thất bại, kích hoạt vòng lặp: sửa code/test/CI -> chạy lại CI cho đến khi 100% test cases đạt mới cho phép commit.
+  3. *Nguyên tắc Cô lập CI Tuyệt đối (Strict CI Isolation):* Sub-Agent phụ trách CI (Sub-Agent 3) độc quyền đọc, viết, chỉnh sửa cấu hình CI/CD (`.github/workflows/`); cấm mọi sub-agent khác (Sub-Agent 1, 2, 4...) truy cập và đọc CI; Sub-Agent CI tiếp nhận thông tin từ các sub-agents khác để cập nhật CI đồng bộ ngay khi code có thay đổi.
+- **Kết quả kỳ vọng:** 100% cam kết chất lượng mã nguồn trước khi commit vào kho lưu trữ; ngăn chặn lỗi môi trường runner và rò rỉ phân quyền giữa các sub-agents.
 
 ---
 

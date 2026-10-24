@@ -141,10 +141,19 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 
 ---
 
-## 8. QUẢN TRỊ PHÁT TRIỂN & QUY TẮC GIT WORKFLOW (DEVELOPMENT GOVERNANCE)
+## 8. QUẢN TRỊ PHÁT TRIỂN, CỔNG PRE-COMMIT CI GATE & QUY TẮC GIT WORKFLOW (DEVELOPMENT GOVERNANCE)
 
-- **NFR-DEV-01 (Quy chuẩn Git Commit & Push):** Mọi thay đổi mã nguồn phải được kiểm thử tự động đạt 100% test cases (`pytest`) trước khi thực hiện `git commit` tuân thủ chuẩn Conventional Commits và `git push` lên nhánh remote repository tương ứng.
+- **NFR-DEV-01 (Quy chuẩn Git Commit & Push qua Cổng Pre-Commit CI):** Mọi thay đổi mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (100% test cases PASSED) trước khi thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`) và `git push` lên nhánh remote repository tương ứng.
 - **NFR-DEV-02 (Tuyệt đối Không Tự Động Tạo Pull Request):**
   - Nghiêm cấm tuyệt đối các agent, tiến trình tự động hóa, hoặc script CI tự ý tạo Pull Request (`gh pr create`, REST API calls) hoặc tự động đẩy/cập nhật vào Pull Request.
   - Hành động mở hoặc cập nhật Pull Request chỉ được phép thực hiện khi và chỉ khi có yêu cầu bằng lời nói rõ ràng, tường minh từ người dùng (explicit user prompt).
 - **NFR-DEV-03 (Dọn dẹp Tiến trình Nền):** Sau khi chạy thử nghiệm hoặc kiểm thử, toàn bộ các tiến trình nền (uvicorn cổng 8000, worker Node.js, subprocess) phải được dọn dẹp và tắt triệt để, không để tồn đọng tiến trình mồ côi.
+- **NFR-DEV-04 (Cổng Kiểm Soát Pre-Commit CI Gate & Vòng Lặp Sửa Lỗi CI Loop):**
+  - **Pre-commit Gate:** Trước khi commit, bắt buộc phải test qua được CI. Tuyệt đối cấm commit khi CI chưa pass.
+  - **CI Loop:** Nếu CI test không pass, kích hoạt ngay vòng lặp: phân tích lỗi → sửa mã nguồn / cập nhật test & CI → chạy lại test CI cho đến khi 100% test cases đạt (`PASS CI`) mới được phép commit.
+- **NFR-DEV-05 (Nguyên Tắc Cô Lập CI Tuyệt Đối & Phân Định Vai Trò - Strict CI Isolation):**
+  - Sub-Agent đảm nhận làm CI (Sub-Agent 3) tách biệt hoàn toàn với tất cả các sub-agents còn lại.
+  - **Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4...) tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
+  - Chỉ duy nhất sub-Agent đảm nhận làm CI mới thực hiện viết, chỉnh sửa cấu hình CI/CD.
+  - Sub-Agent viết CI có toàn quyền đọc và tiếp nhận các thông tin từ các sub-agents khác (specs, code diffs, dependencies, test cases, bug reports).
+- **NFR-DEV-06 (Đồng Bộ CI Liên Tục Theo Code Mới):** Mỗi khi code có cập nhật gì mới (thư viện mới trong `requirements.txt`/`package.json`, fonts, môi trường headless browser, biến môi trường `.env`, cờ thực thi...), CI workflow bắt buộc phải được cập nhật đồng bộ ngay lập tức để loại bỏ mọi khả năng gây ra lỗi trên môi trường runner.

@@ -2,12 +2,21 @@
 
 ## 1. NGUYÊN TẮC CỐT LÕI (MANDATORY STANDING RULES)
 
-1. **QUY TẮC ĐỒNG BỘ TÀI LIỆU, ĐỐI CHIẾU CI/CD & COMMIT (DOCS, CI/CD & COMMIT ON EVERY CODE CHANGE):**
+1. **QUY TẮC ĐỒNG BỘ TÀI LIỆU, CÔ LẬP CI/CD (STRICT CI ISOLATION), VÒNG LẶP TEST CI & CỔNG COMMIT (DOCS, CI ISOLATION, CI LOOP & PRE-COMMIT GATE):**
    - **Bắt buộc:** Sau **bất kỳ** thay đổi, bổ sung, sửa lỗi (bug fix) hay refactor nào trong mã nguồn (`backend/`, `frontend/`, `tests/`):
-     1. Phải rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (bao gồm `SRS`, `FRD`, `BRD`, `NFR`, `TEST`, `UC`, `README.md`, v.v.) để phản ánh chính xác trạng thái kỹ thuật mới nhất.
-     2. **Bắt buộc đối chiếu và cập nhật cấu hình CI/CD (`.github/workflows/`):** Mỗi khi có thay đổi trong mã nguồn, phải chủ động rà soát xem có phát sinh dependencies mới (Python packages trong `requirements.txt`, npm packages trong `package.json`, font, headless browser/Chromium, biến môi trường `.env`, cờ thực thi...) hay không để cập nhật đồng bộ workflow CI/CD ngay lập tức, bảo đảm 100% test cases vượt qua trên mọi môi trường (Ubuntu/Linux runner).
-     3. Chạy toàn bộ test suite (`pytest`) đảm bảo 100% test cases đạt (`71/71 PASSED`).
-     4. Thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+     1. **Đồng bộ tài liệu dự án:** Phải rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (bao gồm `SRS`, `FRD`, `BRD`, `NFR`, `TEST`, `UC`, `README.md`, `SOURCE_MAP.md`, v.v.) để phản ánh chính xác trạng thái kỹ thuật mới nhất.
+     2. **Nguyên tắc Cô lập CI/CD & Phân định Vai trò Tuyệt đối (Strict CI Isolation & Role Separation):**
+        - **Tách biệt hoàn toàn:** Sub-Agent đảm nhận làm CI (Sub-Agent 3) tách biệt hoàn toàn với tất cả các sub-agents còn lại.
+        - **Cấm truy cập và đọc CI:** Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4, v.v.) **tuyệt đối KHÔNG ĐƯỢC PHÉP TRUY CẬP VÀ ĐỌC CI** (`.github/workflows/`, các tệp cấu hình CI).
+        - **Độc quyền chỉnh sửa CI:** Chỉ duy nhất sub-Agent đảm nhận làm CI (Sub-Agent 3) mới được phép thực hiện việc truy cập, đọc, viết, chỉnh sửa cấu hình CI/CD.
+        - **Tiếp nhận thông tin một chiều vào CI:** Sub-Agent viết CI có toàn quyền đọc và tiếp nhận các thông tin (đặc tả kiến trúc, mã nguồn mới, dependencies phát sinh, kết quả kiểm thử, báo cáo lỗi) từ các sub-agents khác để phục vụ việc tối ưu và cập nhật CI.
+     3. **Bắt buộc cập nhật CI đồng bộ theo code mới (Continuous CI Synchronization):**
+        - Mỗi khi code có bất kỳ cập nhật gì mới (thêm thư viện Python trong `requirements.txt`, gói npm trong `package.json`, cấu hình font, headless browser/Chromium, biến môi trường `.env`, cờ thực thi, logic test mới...), sub-Agent phụ trách CI bắt buộc phải cập nhật CI theo ngay lập tức để loại bỏ mọi khả năng gây ra lỗi trên môi trường runner (Ubuntu/Linux).
+     4. **Cổng kiểm soát Pre-Commit & Vòng lặp Sửa lỗi CI (Pre-Commit CI Gate & CI Fix-and-Test Loop):**
+        - **Bắt buộc test qua CI trước khi commit:** Trước khi thực hiện `git commit`, bắt buộc phải chạy và test qua được CI (chạy toàn bộ test suite, kiểm tra cú pháp và môi trường CI runner, 100% test cases đạt). Tuyệt đối cấm commit khi CI chưa pass.
+        - **Vòng lặp sửa lỗi CI (CI Loop):** Nếu CI không pass (bất kỳ test case nào fail hoặc môi trường CI bị lỗi):
+          `CI Test Thất bại` → `Phân tích nguyên nhân` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 chạy lại CI test` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT**.
+        - Sau khi CI pass 100%, thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 2. **CHUẨN MỰC KHẢO THÍ QUỐC GIA:**
    - **Thông tư 32/2018/TT-BGDĐT:** Phân cấp cây kiến thức 6 tầng theo Yêu cầu cần đạt (YCCĐ) và Dạng câu hỏi. **Tuyệt đối không phân chia theo các bộ sách giáo khoa thương mại** (như Cánh diều, Kết nối tri thức, Chân trời sáng tạo).
@@ -45,14 +54,19 @@
      1. **Sub-Agent 1 - Analysis, Specs & Docs (Đọc hiểu, Kiến trúc & Tài liệu):**
         - Chuyên trách đọc hiểu yêu cầu nghiệp vụ, mổ xẻ mã nguồn, phân tích kiến trúc, rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
         - Định vị chính xác các file, hàm, API bị ảnh hưởng và xây dựng bản đặc tả kỹ thuật chi tiết.
+        - **Tuyệt đối không được phép truy cập và đọc CI** (`.github/workflows/`).
      2. **Sub-Agent 2 - Software Engineering & Coding (Triển khai Mã nguồn):**
         - Chuyên trách lập trình mã nguồn, hiện thực hóa tính năng, sửa lỗi (bug fixes) và tối ưu hóa hiệu năng theo đúng thiết kế của Sub-Agent 1.
         - Giữ gìn chuẩn mực code, chuẩn Apple HIG, tương tác vi mô Emil Kowalski, không tự ý refactor ngoài phạm vi yêu cầu.
-     3. **Sub-Agent 3 - Automated Test & CI/CD Verification (Kiểm thử Chức năng Tự động & CI/CD):**
+        - **Tuyệt đối không được phép truy cập và đọc CI** (`.github/workflows/`). Chủ động cung cấp thông tin thay đổi code cho Sub-Agent 3.
+     3. **Sub-Agent 3 - Automated Test & CI/CD Verification (Kiểm thử Chức năng Tự động & Độc quyền CI/CD):**
+        - **Độc quyền cấu hình CI/CD:** Là Sub-Agent DUY NHẤT được phép truy cập, đọc, viết, chỉnh sửa cấu hình CI/CD (`.github/workflows/ci.yml`). Tách biệt hoàn toàn với các Sub-Agent khác.
+        - **Tiếp nhận thông tin một chiều:** Có quyền đọc và nhận thông tin từ các Sub-Agent khác (mã nguồn, dependencies, đặc tả, lỗi) để đồng bộ CI.
         - Chuyên trách viết mới, cập nhật test cases tự động (`pytest`), bảo đảm bao phủ kịch bản biên và âm tính.
-        - Rà soát đối chiếu cấu hình CI/CD (`.github/workflows/`), chạy toàn bộ test suite đảm bảo 100% test cases vượt qua (`71/71 PASSED`).
+        - Chạy kiểm thử tự động trên môi trường giả lập CI, đảm bảo 100% test cases vượt qua trước khi commit. Quản lý vòng lặp CI Loop: nếu CI fail, phối hợp Sub-Agent 2 sửa và test lại cho đến khi pass 100%.
      4. **Sub-Agent 4 - E2E Browser Blind Test & UI/UX Audit (Kiểm thử Mù Trình duyệt Thật):**
         - Kiểm thử độc lập, khách quan, không dựa vào giả định của coder để tìm ra các lỗi ẩn và lỗi trải nghiệm người dùng thực tế.
+        - **Tuyệt đối không được phép truy cập và đọc CI** (`.github/workflows/`).
         - **Yêu cầu bắt buộc:**
           - **Trực tiếp truy cập vào trình duyệt (Browser):** Khởi chạy trình duyệt thật để kiểm tra toàn bộ giao diện và luồng nghiệp vụ end-to-end.
           - **Thao tác thủ công toàn diện:** Tự động hóa việc **nhập text** (`fill_input`), **click chuột thủ công** (`click_at_xy`), cuộn trang, đổi tab, chuyển đổi chế độ xem.

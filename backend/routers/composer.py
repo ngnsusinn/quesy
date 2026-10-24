@@ -1007,16 +1007,17 @@ def composer_chat_endpoint(req: ChatRequest):
 
     # Attempt to query configured AI provider
     try:
-        if default_ai_provider_service and default_ai_provider_service.api_key:
+        if default_ai_provider_service and (default_ai_provider_service.api_key or default_ai_provider_service.provider in ("openai", "openrouter", "custom", "gemini")):
             # We can use the configured provider
             provider = default_ai_provider_service.provider
             model = default_ai_provider_service.model
             base_url = default_ai_provider_service.base_url
+            api_key = default_ai_provider_service.api_key or "gemini-mock-key"
 
-            if provider in ("openai", "openrouter", "custom"):
-                endpoint = f"{(base_url or 'https://api.openai.com/v1').rstrip('/')}/chat/completions"
+            if provider in ("openai", "openrouter", "custom", "gemini"):
+                endpoint = f"{(base_url or ('https://generativelanguage.googleapis.com/v1beta/openai' if provider == 'gemini' else 'https://api.openai.com/v1')).rstrip('/')}/chat/completions"
                 headers = {
-                    "Authorization": f"Bearer {default_ai_provider_service.api_key}",
+                    "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
                 }
                 messages = [{"role": "system", "content": system_prompt}]

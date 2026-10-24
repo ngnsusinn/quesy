@@ -259,7 +259,7 @@ python -m pytest -v --durations=10
 - `test_digitize_docx_export.py`: Tests print-quality PDF export and genuine MathType 7.0 Word generation.
 - `test_performance_budgets.py`: Enforces execution latency budgets (< 200 ms for matrix solving and shuffle generation).
 
-### CI/CD Workflow & Remote Branching Governance (`.github/workflows/ci.yml`)
+### CI/CD Workflow & Governance (`.github/workflows/ci.yml`)
 
 Every pull request and commit to remote branches executes a multi-runtime GitHub Actions workflow on `ubuntu-latest`:
 1. Sets up Python 3.13 and Node.js 20.
@@ -268,9 +268,17 @@ Every pull request and commit to remote branches executes a multi-runtime GitHub
 4. Executes the full test suite with mock AI adapters (`pytest`).
 
 > [!IMPORTANT]
-> **Quy tắc Git Workflow & Quản trị Nhánh (Standing Operational Rule):**
-> Toàn bộ quá trình phát triển tuân thủ nghiêm ngặt nguyên tắc **chỉ thực hiện `git commit` và `git push`** lên remote repository/feature branch.
-> **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt).
+> **Quy Chuẩn CI/CD Nghiêm Ngặt & Cổng Kiểm Soát Pre-Commit (Mandatory CI Rules):**
+> 1. **Cổng Pre-Commit CI Gate (Bắt buộc Pass CI trước khi commit):** Trước khi thực hiện `git commit`, toàn bộ mã nguồn bắt buộc phải vượt qua toàn diện bài test trên môi trường CI (100% tests PASSED). Tuyệt đối cấm commit mã nguồn khi CI test chưa đạt.
+> 2. **Đồng Bộ CI Theo Mọi Thay Đổi Code (Continuous CI Synchronization):** Mỗi khi mã nguồn có cập nhật mới (dependencies mới trong `requirements.txt`/`package.json`, cấu hình font, biến môi trường, headless browser, cờ thực thi...), CI workflow bắt buộc phải được cập nhật theo ngay lập tức để triệt tiêu mọi nguy cơ gây lỗi trên môi trường runner.
+> 3. **Cô Lập CI Tuyệt Đối & Phân Định Vai Trò (Strict CI Isolation & Role Separation):**
+>    - Sub-Agent đảm nhận làm CI hoàn toàn tách biệt với các sub-agents còn lại.
+>    - **Mọi sub-agent khác tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
+>    - Chỉ duy nhất Sub-Agent đảm nhận làm CI mới có quyền truy cập, đọc, viết, tối ưu hóa và chỉnh sửa cấu hình CI/CD.
+>    - Sub-Agent CI có toàn quyền đọc và tiếp nhận thông tin từ các sub-agents khác (specs, code diffs, dependencies, test cases, bug reports) để chủ động đồng bộ hóa CI.
+> 4. **Vòng Lặp Sửa Lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
+>    `CI Fail` → `Sửa lỗi mã nguồn / Cập nhật test & CI` → `Chạy lại test CI` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT**.
+> 5. **Quy Tắc Quản Trị Nhánh & Git Workflow:** Toàn bộ quá trình phát triển tuân thủ nghiêm ngặt nguyên tắc **chỉ thực hiện `git commit` và `git push`** lên remote repository/feature branch. **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO/CẬP NHẬT PULL REQUEST (`gh pr create`, API PR...)** trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt).
 
 ---
 
