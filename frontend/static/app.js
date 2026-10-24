@@ -4209,7 +4209,7 @@
 
       if (prefillPrompt && chatInput) {
         chatInput.value = prefillPrompt;
-      } else if (compactInput && compactInput.value && chatInput) {
+      } else if (!prefillPrompt && compactInput && compactInput.value && chatInput) {
         chatInput.value = compactInput.value;
         compactInput.value = '';
       }
@@ -4293,9 +4293,13 @@
       }
       if (compactInput) compactInput.value = '';
       const chatInput = document.getElementById('composer-chat-input');
-      if (chatInput) chatInput.value = '';
+      if (chatInput) {
+        chatInput.value = '';
+        chatInput.rows = 2;
+        chatInput.style.height = '';
+      }
 
-      this.openAIPopup(text);
+      this.openAIPopup('');
       this.sendPrompt(text);
     },
 
@@ -4777,6 +4781,8 @@
     },
 
     pendingDiff: null,
+    pendingDiffs: [],
+    currentDiffIndex: 0,
     _inlineDiffLineNo: null,
 
     _levenshteinSimilarity(s1, s2) {
@@ -4980,9 +4986,70 @@
       };
     },
 
+    showPendingDiffs(diffs) {
+      if (!diffs || !diffs.length) return;
+      this.pendingDiffs = Array.isArray(diffs) ? diffs.filter(d => d && (d.old_text || d.new_text)) : [diffs];
+      if (!this.pendingDiffs.length) return;
+      this.currentDiffIndex = 0;
+      this.renderCurrentDiff();
+    },
+
     showPendingDiff(diff) {
       if (!diff || !diff.old_text) return;
+      this.showPendingDiffs([diff]);
+    },
+
+    renderCurrentDiff() {
+      if (!this.pendingDiffs || !this.pendingDiffs.length) {
+        this.rejectPendingDiff();
+        return;
+      }
+      if (this.currentDiffIndex < 0) this.currentDiffIndex = 0;
+      if (this.currentDiffIndex >= this.pendingDiffs.length) this.currentDiffIndex = this.pendingDiffs.length - 1;
+
+      const diff = this.pendingDiffs[this.currentDiffIndex];
       this.pendingDiff = diff;
+      const total = this.pendingDiffs.length;
+      const current = this.currentDiffIndex + 1;
+
+      // Update multi-diff counter & navigation controls
+      const navGroup = document.getElementById('composer-diff-nav-group');
+      const counterEl = document.getElementById('composer-diff-counter');
+      const inlineCounterEl = document.getElementById('composer-inline-diff-counter');
+      const applyAllBtn = document.getElementById('composer-apply-all-btn');
+      const inlineApplyAllBtn = document.getElementById('composer-inline-apply-all-btn');
+
+      if (counterEl) counterEl.innerText = `GỢI Ý ${current}/${total}`;
+      if (inlineCounterEl) inlineCounterEl.innerText = `${current}/${total}`;
+
+      if (navGroup) {
+        if (total > 1) {
+          navGroup.classList.remove('hidden');
+          navGroup.classList.add('flex');
+        } else {
+          navGroup.classList.add('hidden');
+          navGroup.classList.remove('flex');
+        }
+      }
+      if (applyAllBtn) {
+        if (total > 1) {
+          applyAllBtn.classList.remove('hidden');
+          applyAllBtn.classList.add('flex');
+        } else {
+          applyAllBtn.classList.add('hidden');
+          applyAllBtn.classList.remove('flex');
+        }
+      }
+      if (inlineApplyAllBtn) {
+        if (total > 1) {
+          inlineApplyAllBtn.classList.remove('hidden');
+          inlineApplyAllBtn.classList.add('flex');
+        } else {
+          inlineApplyAllBtn.classList.add('hidden');
+          inlineApplyAllBtn.classList.remove('flex');
+        }
+      }
+
       const banner = document.getElementById('composer-pending-diff-banner');
       const descEl = document.getElementById('composer-diff-description');
       const oldEl = document.getElementById('composer-diff-old-text');
@@ -5024,7 +5091,7 @@
         banner.classList.remove('hidden');
       }
 
-      // 2. Render Inline Diff Widget directly over the target line in the Editor (Ảnh 4)
+      // 2. Render Inline Diff Widget directly over the target line in the Editor
       if (inlineOverlay && inlineDesc && inlineOld && inlineNew && editor) {
         inlineDesc.innerText = displayDesc;
         inlineOld.innerText = diff.old_text;
@@ -5049,45 +5116,26 @@
       if (window.lucide) lucide.createIcons();
     },
 
-    applyPendingDiff() {
-      if (!this.pendingDiff) return;
-      const { old_text, new_text } = this.pendingDiff;
-      this.applyDiffDirect(old_text, new_text);
-      this.rejectPendingDiff();
+    renderPendingDiff() {
+      this.renderCurrentDiff();
     },
 
-    rejectPendingDiff() {
-      this.pendingDiff = null;
-      this._inlineDiffLineNo = null;
-      const banner = document.getElementById('composer-pending-diff-banner');
-      if (banner) banner.classList.add('hidden');
-      const inlineOverlay = document.getElementById('composer-inline-diff-overlay');
-      if (inlineOverlay) inlineOverlay.classList.add('hidden');
-      const editor = document.getElementById('composer-editor-input');
-      if (editor) {
-        const cursor = editor.selectionEnd;
-        editor.setSelectionRange(cursor, cursor);
-      }
+    nextDiff() {
+      if (!this.pendingDiffs || this.pendingDiffs.length <= 1) return;
+      this.currentDiffIndex = (this.currentDiffIndex + 1) % this.pendingDiffs.length;
+      this.renderCurrentDiff();
     },
 
-    applyDiffDirect(oldText, newText) {
-      const editor = document.getElementById('composer-editor-input');
-      if (!editor) return;
+    prevDiff() {
+      if (!this.pendingDiffs || this.pendingDiffs.length <= 1) return;
+      this.currentDiffIndex = (this.currentDiffIndex - 1 + this.pendingDiffs.length) % this.pendingDiffs.length;
+      this.renderCurrentDiff();
+    },
 
-      let val = this.currentLatex || editor.value || '';
+    _replaceDiffInString(sourceText, oldText, newText) {
+      if (!sourceText) return { text: (newText || ''), replaced: true };
+      let val = sourceText;
       const safeNew = (newText !== undefined && newText !== null) ? newText : '';
-
-      if (!val) {
-        val = safeNew;
-        editor.value = val;
-        this.currentLatex = val;
-        this.handleEditorInput();
-        this.compile(true);
-        this.rejectPendingDiff();
-        showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
-        return;
-      }
-
       let replaced = false;
 
       // Tier 1: Exact match
@@ -5100,7 +5148,7 @@
       if (!replaced) {
         const trimmedOld = (oldText || '').trim();
         const trimmedNew = safeNew.trim();
-        if (val.includes(trimmedOld)) {
+        if (trimmedOld && val.includes(trimmedOld)) {
           val = val.replace(trimmedOld, trimmedNew);
           replaced = true;
         }
@@ -5111,13 +5159,13 @@
         const normVal = val.split(String.fromCharCode(13, 10)).join('\n');
         const normOld = (oldText || '').trim().split(String.fromCharCode(13, 10)).join('\n');
         const normNew = safeNew.trim().split(String.fromCharCode(13, 10)).join('\n');
-        if (normVal.includes(normOld)) {
+        if (normOld && normVal.includes(normOld)) {
           val = normVal.replace(normOld, normNew);
           replaced = true;
         }
       }
 
-      // Tier 4: Multi-level fuzzy match (Levenshtein / SequenceMatcher >= 60%)
+      // Tier 4: Multi-level fuzzy match (Levenshtein / SequenceMatcher >= 50%)
       if (!replaced) {
         const match = this._findFuzzyLineMatch(val, oldText);
         if (match && (match.score >= 0.50 || val.includes(match.matchedText))) {
@@ -5162,6 +5210,130 @@
           replaced = true;
         }
       }
+
+      return { text: val, replaced };
+    },
+
+    applyCurrentDiff() {
+      if (!this.pendingDiffs || !this.pendingDiffs.length) {
+        if (!this.pendingDiff) return;
+        this.applyDiffDirect(this.pendingDiff.old_text, this.pendingDiff.new_text);
+        return;
+      }
+      const cur = this.pendingDiffs[this.currentDiffIndex];
+      if (!cur) return;
+
+      const editor = document.getElementById('composer-editor-input');
+      let val = this.currentLatex || (editor ? editor.value : '') || '';
+      const res = this._replaceDiffInString(val, cur.old_text, cur.new_text);
+      val = res.text;
+
+      if (editor) editor.value = val;
+      this.currentLatex = val;
+      this.handleEditorInput();
+
+      this.pendingDiffs.splice(this.currentDiffIndex, 1);
+
+      if (this.pendingDiffs.length === 0) {
+        this.compile(true);
+        this.rejectPendingDiff();
+        showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
+      } else {
+        if (this.currentDiffIndex >= this.pendingDiffs.length) {
+          this.currentDiffIndex = 0;
+        }
+        this.renderCurrentDiff();
+        showToast(`Đã áp dụng 1 thay đổi. Còn ${this.pendingDiffs.length} gợi ý.`, 'info');
+      }
+    },
+
+    applyPendingDiff() {
+      this.applyCurrentDiff();
+    },
+
+    skipCurrentDiff() {
+      if (!this.pendingDiffs || !this.pendingDiffs.length) {
+        this.rejectPendingDiff();
+        return;
+      }
+      this.pendingDiffs.splice(this.currentDiffIndex, 1);
+      if (this.pendingDiffs.length === 0) {
+        this.rejectPendingDiff();
+        showToast('Đã đóng các gợi ý sửa đổi.', 'info');
+      } else {
+        if (this.currentDiffIndex >= this.pendingDiffs.length) {
+          this.currentDiffIndex = 0;
+        }
+        this.renderCurrentDiff();
+      }
+    },
+
+    applyAllPendingDiffs() {
+      if (!this.pendingDiffs || !this.pendingDiffs.length) {
+        if (this.pendingDiff) this.applyPendingDiff();
+        return;
+      }
+      const count = this.pendingDiffs.length;
+      const editor = document.getElementById('composer-editor-input');
+      let val = this.currentLatex || (editor ? editor.value : '') || '';
+
+      for (const d of this.pendingDiffs) {
+        if (d && (d.old_text || d.new_text)) {
+          const res = this._replaceDiffInString(val, d.old_text, d.new_text);
+          val = res.text;
+        }
+      }
+
+      if (editor) editor.value = val;
+      this.currentLatex = val;
+      this.handleEditorInput();
+      this.compile(true);
+      this.rejectPendingDiff();
+      showToast(`Đã áp dụng thành công tất cả ${count} thay đổi vào mã nguồn!`, 'success');
+    },
+
+    applyAllDiffs() {
+      this.applyAllPendingDiffs();
+    },
+
+    rejectPendingDiff() {
+      this.pendingDiff = null;
+      this.pendingDiffs = [];
+      this.currentDiffIndex = 0;
+      this._inlineDiffLineNo = null;
+      const banner = document.getElementById('composer-pending-diff-banner');
+      if (banner) banner.classList.add('hidden');
+      const inlineOverlay = document.getElementById('composer-inline-diff-overlay');
+      if (inlineOverlay) inlineOverlay.classList.add('hidden');
+      const navGroup = document.getElementById('composer-diff-nav-group');
+      if (navGroup) {
+        navGroup.classList.add('hidden');
+        navGroup.classList.remove('flex');
+      }
+      const applyAllBtn = document.getElementById('composer-apply-all-btn');
+      if (applyAllBtn) {
+        applyAllBtn.classList.add('hidden');
+        applyAllBtn.classList.remove('flex');
+      }
+      const inlineApplyAllBtn = document.getElementById('composer-inline-apply-all-btn');
+      if (inlineApplyAllBtn) {
+        inlineApplyAllBtn.classList.add('hidden');
+        inlineApplyAllBtn.classList.remove('flex');
+      }
+      const editor = document.getElementById('composer-editor-input');
+      if (editor) {
+        const cursor = editor.selectionEnd;
+        editor.setSelectionRange(cursor, cursor);
+      }
+    },
+
+    applyDiffDirect(oldText, newText) {
+      const editor = document.getElementById('composer-editor-input');
+      if (!editor) return;
+
+      let val = this.currentLatex || editor.value || '';
+      const res = this._replaceDiffInString(val, oldText, newText);
+      val = res.text;
 
       editor.value = val;
       this.currentLatex = val;
@@ -5613,6 +5785,8 @@
       const text = input.value.trim();
       if (!text) return;
       input.value = '';
+      input.rows = 2;
+      input.style.height = '';
 
       this.sendPrompt(text);
     },
@@ -5621,10 +5795,26 @@
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.submitChat();
+        const input = document.getElementById('composer-chat-input');
+        if (input) {
+          input.rows = 2;
+          input.style.height = '';
+        }
       }
     },
 
     async sendPrompt(promptText) {
+      const chatInput = document.getElementById('composer-chat-input');
+      if (chatInput) {
+        chatInput.value = '';
+        chatInput.rows = 2;
+        chatInput.style.height = '';
+      }
+      const compactInput = document.getElementById('composer-compact-input');
+      if (compactInput) {
+        compactInput.value = '';
+      }
+
       if (!this.isAIPopupOpen) {
         this.openAIPopup();
       }
@@ -5673,17 +5863,22 @@
 
         if (res.ok) {
           const data = await res.json();
-          let diff = data.diff;
-          if (!diff && this.extractDiffFromText) {
-            diff = this.extractDiffFromText(data.reply, this.currentLatex, promptText);
+          let diffs = (data.diffs && Array.isArray(data.diffs) && data.diffs.length) ? data.diffs : [];
+          if (!diffs.length && data.diff) {
+            diffs = [data.diff];
           }
-          this.chatHistory.push({ role: 'assistant', content: data.reply, diff: diff || null });
+          if (!diffs.length && this.extractDiffFromText) {
+            const single = this.extractDiffFromText(data.reply, this.currentLatex, promptText);
+            if (single) diffs = [single];
+          }
+          let diff = diffs.length ? diffs[0] : null;
+          this.chatHistory.push({ role: 'assistant', content: data.reply, diff: diff || null, diffs: diffs });
           this.archiveCurrentSession();
           localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory.slice(-20)));
           this.renderChatMessages();
 
-          if (diff) {
-            this.showPendingDiff(diff);
+          if (diffs.length) {
+            this.showPendingDiffs(diffs);
           }
         } else {
           this.chatHistory.push({ role: 'assistant', content: 'Rất tiếc, đã có lỗi kết nối với máy chủ AI. Vui lòng thử lại sau.' });

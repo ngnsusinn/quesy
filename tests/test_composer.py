@@ -1735,3 +1735,197 @@ def test_composer_api_and_ui_configuration_integrity():
     assert "Math.min(75, Math.max(25, pct))" in app_js
     assert "Math.max(0.4, Math.min(2.5," in app_js
 
+
+def test_extract_all_diffs_multi_block():
+    """Verify extract_all_diffs_from_text correctly extracts multiple diff blocks."""
+    from backend.routers.composer import extract_all_diffs_from_text, ChatResponse
+
+    current_latex = r"""\documentclass[11pt,a4paper]{article}
+\usepackage[dethi]{ex_test}
+\begin{document}
+Câu 1: Cho hàm số $y=f(x)$.
+\end{document}
+"""
+    reply = """Tôi đề xuất 2 thay đổi:
+1. Đổi font:
+```diff
+- \\documentclass[11pt,a4paper]{article}
++ \\documentclass[12pt,a4paper]{article}
+```
+
+2. Đổi gói lệnh:
+```diff
+- \\usepackage[dethi]{ex_test}
++ \\usepackage[color]{ex_test}
+```
+"""
+    diffs = extract_all_diffs_from_text(reply, current_latex)
+    assert len(diffs) == 2
+    assert diffs[0].new_text == r"\documentclass[12pt,a4paper]{article}"
+    assert diffs[1].new_text == r"\usepackage[color]{ex_test}"
+
+    # Verify ChatResponse sync
+    resp = ChatResponse(reply=reply, diffs=diffs)
+    assert resp.diff == diffs[0]
+    assert resp.diffs == diffs
+
+
+def test_extract_all_diffs_search_replace_and_old_new_multi():
+    """Verify extract_all_diffs_from_text correctly extracts multiple SEARCH/REPLACE and OLD/NEW blocks."""
+    from backend.routers.composer import extract_all_diffs_from_text
+
+    current_latex = (
+        "\\documentclass[12pt]{article}\n"
+        "\\title{KỲ THI THỬ 2025}\n"
+        "\\author{Thầy Nam}\n"
+        "\\begin{document}\n"
+        "Câu 1. Tính tích phân.\n"
+        "\\end{document}\n"
+    )
+    # 1. Multiple SEARCH / REPLACE blocks
+    sr1_open = "<" * 7 + " SEARCH\n"
+    sr1_div = "=" * 7 + "\n"
+    sr1_close = ">" * 7 + " REPLACE\n"
+    sr_reply = (
+        "Các thay đổi cần thực hiện:\n"
+        + sr1_open
+        + "\\title{KỲ THI THỬ 2025}\n"
+        + sr1_div
+        + "\\title{KỲ THI CHÍNH THỨC 2025}\n"
+        + sr1_close
+        + "\n"
+        + sr1_open
+        + "\\author{Thầy Nam}\n"
+        + sr1_div
+        + "\\author{Tổ Toán Tin}\n"
+        + sr1_close
+    )
+    sr_diffs = extract_all_diffs_from_text(sr_reply, current_latex)
+    assert len(sr_diffs) == 2
+    assert sr_diffs[0].new_text == "\\title{KỲ THI CHÍNH THỨC 2025}"
+    assert sr_diffs[1].new_text == "\\author{Tổ Toán Tin}"
+
+    # 2. Multiple OLD / NEW blocks
+    old_new_reply = (
+        "Đề xuất điều chỉnh:\n"
+        "OLD:\n"
+        "\\title{KỲ THI THỬ 2025}\n"
+        "NEW:\n"
+        "\\title{ĐỀ THI KHẢO SÁT CHẤT LƯỢNG}\n\n"
+        "OLD:\n"
+        "\\author{Thầy Nam}\n"
+        "NEW:\n"
+        "\\author{Ban Chuyên Môn}\n"
+    )
+    on_diffs = extract_all_diffs_from_text(old_new_reply, current_latex)
+    assert len(on_diffs) == 2
+    assert on_diffs[0].new_text == "\\title{ĐỀ THI KHẢO SÁT CHẤT LƯỢNG}"
+    assert on_diffs[1].new_text == "\\author{Ban Chuyên Môn}"
+
+
+def test_composer_chat_api_returns_diffs_field():
+    """Verify API /api/v1/composer/chat returns 'diffs' field containing full list of DiffSuggestion."""
+    latex_code = (
+        "\\documentclass[11pt,a4paper]{article}\n"
+        "\\usepackage{amsmath}\n"
+        "\\title{Đề Khảo Sát Toán 12}\n"
+        "\\begin{document}\n"
+        "Hello World\n"
+        "\\end{document}\n"
+    )
+    # 1. Test single rule-based diff returns diffs list with length 1
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "chỉnh font từ 11 sang 12",
+            "current_latex": latex_code,
+            "history": []
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "diffs" in data
+    assert isinstance(data["diffs"], list)
+    assert len(data["diffs"]) >= 1
+    assert data["diff"] is not None
+    assert data["diff"]["old_text"] == data["diffs"][0]["old_text"]
+    assert data["diff"]["new_text"] == data["diffs"][0]["new_text"]
+
+    # 2. Test mock multi-diff AI provider response returning complete diffs array
+    ai_multi_reply = (
+        "Dưới đây là các chỉnh sửa đề xuất:\n"
+        "```diff\n"
+        "- \\title{Đề Khảo Sát Toán 12}\n"
+        "+ \\title{ĐỀ THI TỐT NGHIỆP THPT NĂM 2025}\n"
+        "```\n\n"
+        "```diff\n"
+        "- \\usepackage{amsmath}\n"
+        "+ \\usepackage{amsmath,amssymb}\n"
+        "```\n"
+    )
+    mock_provider_resp = {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": ai_multi_reply
+                }
+            }
+        ]
+    }
+    with patch("backend.services.ai_provider_service.default_ai_provider_service.api_key", "sk-mock-key"):
+        with patch("backend.routers.composer.httpx.Client") as mock_client_cls:
+            mock_instance = MagicMock()
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = mock_provider_resp
+            mock_instance.post.return_value = mock_resp
+            mock_client_cls.return_value.__enter__.return_value = mock_instance
+
+            res_multi = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": "Cập nhật tiêu đề và bổ sung gói amssymb",
+                    "current_latex": latex_code,
+                    "history": []
+                }
+            )
+            assert res_multi.status_code == 200
+            multi_data = res_multi.json()
+            assert "diffs" in multi_data
+            assert len(multi_data["diffs"]) == 2
+            assert multi_data["diffs"][0]["new_text"] == "\\title{ĐỀ THI TỐT NGHIỆP THPT NĂM 2025}"
+            assert multi_data["diffs"][1]["new_text"] == "\\usepackage{amsmath,amssymb}"
+            assert multi_data["diff"] == multi_data["diffs"][0]
+
+
+def test_composer_ui_multi_diff_banner_and_apply_all_elements():
+    """Verify frontend HTML and JavaScript support multi-diff banner navigation (1/N) and 'Áp dụng tất cả'."""
+    root = Path(__file__).parent.parent
+    index_html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
+    app_js = (root / "frontend" / "static" / "app.js").read_text(encoding="utf-8")
+
+    # 1. HTML Banner elements for multi-diff
+    assert 'id="composer-pending-diff-banner"' in index_html
+    assert 'id="composer-diff-nav-group"' in index_html
+    assert 'id="composer-diff-counter"' in index_html
+    assert 'onclick="app.composer.prevDiff()"' in index_html
+    assert 'onclick="app.composer.nextDiff()"' in index_html
+
+    # 2. HTML Apply All button
+    assert 'id="composer-apply-all-btn"' in index_html
+    assert 'onclick="app.composer.applyAllPendingDiffs()"' in index_html
+    assert "Áp dụng tất cả" in index_html
+
+    # 3. JavaScript state and multi-diff methods in app.js
+    assert "pendingDiffs:" in app_js
+    assert "currentDiffIndex:" in app_js
+    assert "showPendingDiffs(" in app_js
+    assert "renderPendingDiff" in app_js
+    assert "prevDiff()" in app_js
+    assert "nextDiff()" in app_js
+    assert "applyAllPendingDiffs()" in app_js
+    assert "applyCurrentDiff()" in app_js
+
+
+

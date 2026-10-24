@@ -97,7 +97,7 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   - **Lưu vào Ngân hàng:** Trích xuất các câu hỏi từ mã LaTeX sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table) chỉ với 1 click, hỗ trợ đồng thời cả cú pháp `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`).
   - **Tải tệp PDF & .TEX:** Xuất bản tệp PDF vector-crisp 100% font CMU Serif và tệp nguồn LaTeX `.tex`.
 
-### 2.4.1. FR-02.3: Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Màu Tương Phản Dark Mode (High-Contrast Input Tokens)
+### 2.4.1. FR-02.3: Thanh Nhập Prompt AI Thu Gọn, Cơ Chế Xóa Sạch Lạc Quan (Optimistic Input Reset) & Quy Chuẩn Màu Tương Phản Dark Mode
 - **Vị trí & Kiểu dáng:**
   - Thanh dạng viên thuốc (floating pill bar) neo tại chân khung soạn thảo LaTeX (`bottom-7`, căn giữa theo chiều ngang `left-1/2 -translate-x-1/2`, chiều rộng `w-[92%] max-w-xl`).
   - Giao diện Apple Glassmorphism: Nền bán trong suốt `#1c1c1f/95`, hiệu ứng mờ hậu cảnh `backdrop-blur-md`, viền tinh tế `border-white/15`, đổ bóng sâu `shadow-2xl`.
@@ -114,7 +114,12 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
        - Thanh Compact Bar tạm thời ẩn (`hidden`) để nhường chỗ cho giao diện chat chuyên sâu.
        - Dữ liệu text trong Compact Input được tự động chuyển tiếp vào ô chat chính và xóa trắng ô thu gọn.
        - Nếu có nội dung text, hệ thống tự động kích hoạt tiến trình gửi yêu cầu `sendPrompt(text)` đến Backend, chèn tin nhắn người dùng vào lịch sử và hiển thị bong bóng loading `Trợ lý đang xử lý yêu cầu...`.
-  3. *Menu Mẫu Câu Lệnh Nhanh (Quick Actions):*
+  3. *Cơ Chế Xóa Sạch Lạc Quan (Optimistic Dual-Input Reset & Event Decoupling):*
+     - **Khắc phục lỗi:** Triệt tiêu hoàn toàn hiện tượng text chat cũ còn lưu kẹt trong ô nhập chat của trợ lý sau khi đã gửi đi (Ảnh 1).
+     - **Thực thi đồng bộ tại $t = 0\text{ms}$:** Ngay khi sự kiện gửi được kích hoạt (`submitChat`, `submitFromCompact`, hoặc `sendPrompt`), hệ thống lập tức gán `chatInput.value = ''` và `compactInput.value = ''` đồng thời, không đợi phản hồi mạng hoặc kết thúc hiệu ứng mở popup.
+     - **Tách bạch ngữ nghĩa `openAIPopup`:** `submitFromCompact()` chỉ gọi `this.openAIPopup('')` với chuỗi rỗng; tuyệt đối không truyền lại prompt vào `prefillPrompt` (loại bỏ lỗi gán ngược nội dung đã gửi vào `chatInput.value`). `prefillPrompt` chỉ được sử dụng khi giáo viên chủ động bấm chọn mẫu lệnh nhanh (`applyQuickPrompt`) để biên tập trước khi gửi.
+     - Con trỏ nhập liệu duy trì sẵn sàng ở đầu ô nhập trống với caret xanh Apple `#38bdf8`, sẵn sàng cho lượt chat tiếp theo.
+  4. *Menu Mẫu Câu Lệnh Nhanh (Quick Actions):*
      - Nút dấu cộng `+` bên cạnh nút gửi cho phép mở menu popover danh mục prompt tiêu chuẩn (Đổi cỡ chữ 12pt, Sinh trắc nghiệm 4 lựa chọn, Sinh Đúng/Sai QĐ 764, Vẽ bảng biến thiên `tkz-tab`, Sửa cú pháp LaTeX).
      - Khi chọn một mẫu, hệ thống tự động mở popup và điền sẵn prompt vào ô chat.
 - **Quy chuẩn Màu Tương Phản Dark Mode (Sửa lỗi chữ đen trên nền tối):**
@@ -141,11 +146,14 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 - **Cấu trúc & Thành phần Giao diện:**
   1. *Khối Dòng Đỏ Xóa (`- <old_line>`):* Nền đỏ mờ `rgba(225, 29, 72, 0.15)` (`bg-rose-950/70`), viền trái đỏ tươi `border-l-4 border-rose-500`, văn bản đỏ `text-rose-300`, hiển thị chính xác nội dung dòng mã cũ kèm ký hiệu `-`.
   2. *Khối Dòng Xanh Thêm (`+ <new_line>`):* Nền xanh lục mờ `rgba(16, 185, 129, 0.15)` (`bg-emerald-950/70`), viền trái xanh ngọc `border-l-4 border-emerald-500`, văn bản xanh `text-emerald-300`, hiển thị chính xác nội dung dòng mã mới kèm ký hiệu `+`.
-  3. *Thanh Điều Khiển Hành Động Nội Dòng (Inline Action Pill Bar):*
-     - Nút **`[Keep / Đồng ý]`**: Icon checkmark, nền xanh dương `bg-blue-600 hover:bg-blue-500 text-white`, nhấp vào áp dụng ngay thay đổi qua Fuzzy Replacement Engine, tự động kích hoạt `compile(true)` và xóa bỏ overlay diff.
-     - Nút **`[Undo / Từ chối]`**: Icon undo / dismiss, nền xám tối `bg-slate-700 hover:bg-slate-600 text-slate-200`, nhấp vào hủy bỏ gợi ý sửa đổi, khôi phục trạng thái con trỏ và giữ nguyên vẹn 100% mã nguồn.
+  3. *Thanh Điều Khiển Hành Động Hỗ Trợ Đa Diff (Multi-Diff Controls):*
+     - **Viên thuốc Đếm Động (Dynamic Capsule Counter):** Hiển thị vị trí diff hiện thời trên tổng số diff (ví dụ: `1/3`, `2/3`, `3/3`), thay thế số tĩnh `1/1`.
+     - **Bộ Điều Hướng Tuần Tự (Prev / Next Stepper):** Nút **`[< Trước]`** (`prevDiff()`) và nút **`[Sau >]`** (`nextDiff()`) cho phép chuyển đổi nhanh qua lại giữa các khối diff trong danh sách `pendingDiffs`. Tự động vô hiệu hóa/mờ khi ở biên hoặc khi chỉ có 1 diff duy nhất.
+     - Nút **`[Keep / Đồng ý]`**: Icon checkmark, nền xanh dương `bg-blue-600 hover:bg-blue-500 text-white`, nhấp vào áp dụng ngay thay đổi qua Fuzzy Replacement Engine. Tự động loại bỏ diff này khỏi danh sách `pendingDiffs`; nếu còn diff thì chuyển sang diff tiếp theo, nếu hết thì tự động đóng overlay và kích hoạt `compile(true)`.
+     - Nút **`[Undo / Từ chối]`**: Icon undo / dismiss, nền xám tối `bg-slate-700 hover:bg-slate-600 text-slate-200`, nhấp vào hủy bỏ gợi ý sửa đổi hiện tại và chuyển sang diff kế tiếp (nếu còn).
+     - Nút **`[Áp dụng tất cả] (Apply All)`**: Hiển thị khi `pendingDiffs.length > 1` trên cả Top Banner và Inline Overlay với nền xanh Apple nổi bật, cho phép hợp nhất toàn bộ các khối diff được gợi ý vào mã nguồn trong một thao tác duy nhất.
   4. *Neo Tọa Độ & Đồng Bộ Cuộn:* Vị trí của Inline Overlay được neo theo tọa độ dòng nguồn trong editor (`top = (lineNo - 1) * lineHeight`), tự động cuộn đồng bộ mượt mà khi người dùng cuộn textarea editor.
-  5. *Song Hành Cùng Banner Đỉnh:* Duy trì banner cố định trên đầu editor (`#composer-pending-diff-banner`) đóng vai trò thanh thông báo tổng quan, cho phép giáo viên thao tác ở cả hai vị trí (nội dòng hoặc trên banner) với hiệu ứng đồng bộ tuyệt đối.
+  5. *Song Hành Cùng Banner Đỉnh:* Duy trì banner cố định trên đầu editor (`#composer-pending-diff-banner`) đóng vai trò thanh thông báo tổng quan với đầy đủ bộ đếm động, nút duyệt tuần tự, Keep/Undo và nút [Áp dụng tất cả], đồng bộ trạng thái 100% với Inline Overlay.
   6. *Quy Tắc Bubble Chat Thuần Túy:* Bubble chat của trợ lý chỉ hiển thị phản hồi lời văn (text explanation), hướng dẫn sư phạm hoặc phân tích nguyên nhân lỗi, hoàn toàn không chèn widget diff hay nút duyệt diff lặp lại.
 
 ### 2.4.4. FR-02.6: Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding & Diagnostics)
@@ -182,13 +190,20 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   2. *Lưu trữ Phiên Cũ Tự động:* Khi bắt đầu phiên mới, nếu phiên hiện tại có $\ge 1$ tin nhắn người dùng, hệ thống tự động lưu trữ phiên này vào mảng `quesy_composer_chat_sessions` trong `localStorage`.
   3. *Bảng Lịch Sử Phiên Cũ (History Panel):* Khi người dùng nhấn nút **`[Lịch sử]`** (`#composer-ai-history-btn`), hiển thị danh sách các phiên cũ với timestamp, tóm tắt câu lệnh và số lượng trao đổi. Người dùng có thể xem lại câu lệnh cũ, tải lại phiên hoặc xóa sạch lịch sử.
 
-### 2.4.8. FR-02.10: Thanh Phân Tách Kéo Thả Ngang 2 Cột Editor & Live Preview (Horizontal Splitter & Dual-Pane Drag Resize)
-- **Mục tiêu:** Cho phép người dùng tùy ý phân bổ tỷ lệ chiều rộng giữa Cột Mã Nguồn (Editor) và Cột Xem Trước (Live Preview) theo nhu cầu thị giác.
+### 2.4.8. FR-02.10: Thanh Phân Tách Kéo Thả Ngang 2 Cột Editor & Live Preview Chuẩn Apple HIG (#composer-split-resizer)
+- **Mục tiêu:** Cho phép người dùng tùy ý phân bổ tỷ lệ chiều rộng giữa Cột Mã Nguồn (Editor) và Cột Xem Trước (Live Preview) với thiết kế thanh kéo tinh tế chuẩn Apple Human Interface Guidelines, khoảng cách đệm thẩm mỹ không đè sát viền box soạn thảo (Ảnh 2).
 - **Hành vi tương tác:**
-  1. *Thanh Splitter (#composer-col-splitter):* Nằm ở biên phải cột editor, hiển thị con trỏ `cursor-col-resize`, đổi màu viền khi hover/drag.
-  2. *Sự kiện kéo thả:* Bắt sự kiện chuột/cảm ứng, tính toán tỷ lệ bề rộng cột trái `leftPercent` từ $25\%$ đến $75\%$ tổng chiều rộng container.
-  3. *Tấm chắn con trỏ (Pointer Shield):* Bật `pointer-events: none` trên vùng xem trước PDF để ngăn chặn con trỏ bị bắt nhầm vào canvas/iframe khi kéo chuột nhanh.
-  4. *Lưu trữ cấu hình:* Lưu tỷ lệ vào `localStorage` (`quesy_composer_split_ratio`) và áp dụng ngay khi khởi tạo ứng dụng.
+  1. *Cấu trúc & Khoảng cách Đệm (Gutter Spacing):*
+     - Thanh kéo `#composer-split-resizer` (class `composer-col-splitter`) nằm trong rãnh riêng biệt có độ rộng công thái học `w-3.5` (14px) hoặc `w-4` (16px), tích hợp khoảng đệm biên `mx-1` / `mx-1.5`.
+     - Tuyệt đối không để vạch kéo hay hiệu ứng hover chạm đè hoặc dính sát vào đường viền bo góc của Cột Soạn thảo (`rounded-xl border border-[#272f42]`) hay Cột Xem trước (`rounded-xl border border-black/[0.08]`).
+  2. *Thanh Cầm Viên Thuốc Apple HIG (Apple Capsule Grabber Handle):*
+     - Vạch viên thuốc trung tâm: `w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]` mang phong cách Apple Deference.
+     - Hover feedback: Tự động chuyển màu xanh Apple `#0071e3`, kéo dài nhẹ `scale-y-110`, quầng sáng vi mô `group-hover:shadow-[0_0_8px_rgba(0,113,227,0.35)]`. Vùng hover mềm bao quanh bo góc `rounded-lg`, nằm lọt lòng trong rãnh đệm.
+     - Active feedback: Co nhẹ `scale-95` khi nhấn giữ (phản hồi xúc giác Emil Kowalski), bật cờ `.composer-resizing-h` trên toàn trang.
+  3. *Sự kiện kéo thả:* Bắt sự kiện chuột/cảm ứng, tính toán tỷ lệ bề rộng cột trái `leftPercent` từ $25\%$ đến $75\%$ tổng chiều rộng container.
+  4. *Tấm chắn con trỏ (Pointer Shield):* Bật `pointer-events: none` trên vùng xem trước PDF để ngăn chặn con trỏ bị bắt nhầm vào canvas/iframe khi kéo chuột nhanh.
+  5. *Khôi phục Tỷ lệ Mặc định:* Nháy đúp chuột (`dblclick`) vào resizer lập tức đặt lại tỷ lệ 60:40 và kích hoạt `fitToWidth(true)`.
+  6. *Lưu trữ cấu hình:* Lưu tỷ lệ vào `localStorage` (`quesy_composer_split_ratio`) và áp dụng ngay khi khởi tạo ứng dụng.
 
 ### 2.4.9. FR-02.11: Tự Động Co Giãn PDF Theo Chiều Rộng Cột & Khung Cuộn Ngang An Toàn (PDF Auto Fit-to-Width & Horizontal Scroll Resiliency)
 - **Mục tiêu:** Đảm bảo trang tài liệu PDF tự động co giãn theo chiều ngang khi kích thước khung preview thay đổi và cho phép cuộn ngang an toàn, không xén mất mép phải trang.
@@ -213,6 +228,58 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
      - Cập nhật tỷ lệ phóng thu `zoomLevel` mới trong khoảng $[0.4, 2.5]$, gán kích thước mới cho các thẻ trang trong DOM.
      - Cập nhật ngay tọa độ cuộn: $\text{scrollLeft} = \text{round}(r_x \times \text{scrollWidth}_{\text{new}} - dx)$, $\text{scrollTop} = \text{round}(r_y \times \text{scrollHeight}_{\text{new}} - dy)$.
   3. *Chống rung khi render lại:* Lưu giữ và phục hồi tọa độ cuộn khi `renderAllPages()` chạy lại với devicePixelRatio, đảm bảo không có bất kỳ hiện tượng nhảy giật khung hình nào.
+
+### 2.4.11. FR-02.13: Cơ Chế Bóc Tách Đa Khối Diff & Duyệt Hàng Loạt (Multi-Diff Extraction & Sequential / Batch State Machine)
+- **Mục tiêu Nghiệp vụ:** Cho phép AI Copilot đề xuất nhiều thay đổi đồng thời trong một phản hồi (ví dụ: đổi font, sửa đáp án, vẽ hình TikZ, sửa lỗi biên dịch) và hỗ trợ giáo viên duyệt từng sửa đổi (1/N, Trước/Sau, Keep/Undo) hoặc áp dụng toàn bộ chỉ với 1 cú click (Ảnh 3).
+- **Đặc tả Schema Hợp Đồng API (`/api/v1/composer/chat`):**
+  - **Mô hình Dữ liệu Đa Diff:**
+    ```python
+    class DiffSuggestion(BaseModel):
+        action: str = Field("replace", description="'replace' or 'insert'")
+        old_text: str = Field(..., description="Đoạn mã LaTeX cũ cần tìm để thay thế")
+        new_text: str = Field(..., description="Đoạn mã LaTeX mới cần đưa vào")
+        description: str = Field("", description="Tóm tắt ngắn gọn mục đích sửa đổi")
+
+    class ChatResponse(BaseModel):
+        reply: str
+        suggested_latex: Optional[str] = None
+        diff: Optional[DiffSuggestion] = None  # Khối diff đầu tiên (tương thích ngược)
+        diffs: Optional[List[DiffSuggestion]] = Field(default_factory=list, description="Danh sách toàn bộ các khối diff")
+    ```
+- **Thuật toán Bóc Tách Đa Khối (`extract_all_diffs_from_text`):**
+  1. *Backend Python & Frontend JS song hành:* Duyệt tìm toàn bộ các mẫu đề xuất thay đổi:
+     - Toàn bộ các khối ````diff ... ```` qua regex lặp (`re.finditer` / `matchAll`).
+     - Toàn bộ các khối `OLD: ... NEW: ...` hoặc `CŨ: ... MỚI: ...`.
+     - Toàn bộ các khối `SEARCH / REPLACE` (Aider standard format).
+     - Toàn bộ các khối `Thay thế: ```latex ... ``` bằng: ```latex ... ``` `.
+     - Các câu lệnh nội dòng `Thay thế `A` bằng `B``.
+     - Đổi font chữ và đổi đáp án trắc nghiệm `\choice`.
+  2. *Khử trùng lặp (Deduplication):* Loại bỏ các khối diff trùng `old_text` hoặc có `old_text == new_text`.
+  3. *Tương thích ngược:* Luôn gán `diff = diffs[0]` nếu `diffs` không rỗng.
+- **Quy Trình Duyệt & Cỗ Máy Trạng Thái (State Machine):**
+  - Trạng thái client: `pendingDiffs: []`, `currentDiffIndex: 0`, `pendingDiff: pendingDiffs[currentDiffIndex]`.
+  - Giao diện Hiển thị Kép (Top Banner `#composer-pending-diff-banner` & Inline Overlay `#composer-inline-diff-overlay`):
+    * **Huy hiệu Đếm Động (Dynamic Capsule Counter):** Thay thế số `1/1` cứng bằng viên thuốc hiển thị `${currentDiffIndex + 1}/${pendingDiffs.length}` (ví dụ: `1/3`, `2/3`, `3/3`).
+    * **Bộ Điều Hướng Tuần Tự (Prev / Next Stepper):**
+      - Nút **`[< Trước]`** (`prevDiff()`): Di chuyển về diff trước đó, tự động cuộn màn hình và bôi đen vị trí dòng tương ứng. Tự động disable/mờ khi `currentDiffIndex === 0`.
+      - Nút **`[Sau >]`** (`nextDiff()`): Di chuyển tới diff kế tiếp. Tự động disable/mờ khi `currentDiffIndex === pendingDiffs.length - 1`.
+      - Tự động ẩn hoặc vô hiệu hóa khi `pendingDiffs.length <= 1`.
+    * **Nút `[Keep / Đồng ý]` (`applyCurrentDiff()`):**
+      - Áp dụng diff hiện tại vào mã nguồn qua Động cơ Thay thế Mờ 6 Tầng (`applyDiffDirect`).
+      - Loại bỏ diff này khỏi danh sách (`pendingDiffs.splice(currentDiffIndex, 1)`).
+      - Nếu hết diff: Tự động đóng banner/overlay, hiển thị toast thành công và recompile PDF.
+      - Nếu còn diff: Tự động chuyển trọng tâm hiển thị sang diff kế tiếp trong danh sách (`renderCurrentDiff()`).
+    * **Nút `[Undo / Từ chối]` (`rejectCurrentDiff()`):**
+      - Bỏ qua diff hiện tại không áp dụng, loại bỏ khỏi `pendingDiffs`.
+      - Nếu hết diff: Tự động đóng banner/overlay.
+      - Nếu còn diff: Hiển thị diff tiếp theo.
+    * **Nút `[Áp dụng tất cả] (Apply All)` (`applyAllPendingDiffs()`):**
+      - Hiển thị nổi bật với nền xanh Apple (`bg-blue-600 hover:bg-blue-500 text-white font-bold`) khi `pendingDiffs.length > 1`.
+      - Duyệt qua toàn bộ danh sách `pendingDiffs` theo thứ tự từ trên xuống dưới, lần lượt áp dụng từng cặp `(old_text, new_text)` vào mã nguồn LaTeX.
+      - Cập nhật giá trị một lần vào textarea editor và `this.currentLatex`.
+      - Kích hoạt biên dịch lại PDF (`compile(true)`).
+      - Đóng sạch sẽ banner và overlay (`dismissPendingDiffs()`).
+      - Hiển thị Toast thông báo: *\"Đã áp dụng thành công toàn bộ N sửa đổi!\"*.
 
 ---
 

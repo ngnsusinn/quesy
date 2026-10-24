@@ -529,18 +529,33 @@
               <div id="composer-pending-diff-banner" class="hidden bg-[#161f33] border-b-2 border-blue-500 p-2.5 flex flex-col space-y-2 z-20 transition-all shadow-lg shrink-0">
                 <div class="flex items-center justify-between text-xs">
                   <div class="flex items-center space-x-2 min-w-0">
-                    <span class="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold border border-blue-500/30 flex items-center space-x-1">
+                    <span class="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold border border-blue-500/30 flex items-center space-x-1 shrink-0">
                       <i data-lucide="sparkles" class="w-3 h-3"></i>
                       <span>GỢI Ý TẠI DÒNG <span id="composer-diff-line-no">1</span></span>
                     </span>
+                    <!-- Multi-diff Counter & Navigation [<] [>] -->
+                    <div id="composer-diff-nav-group" class="flex items-center space-x-1 bg-[#10141f] border border-blue-500/30 rounded-md px-1.5 py-0.5 shrink-0">
+                      <button type="button" onclick="app.composer.prevDiff()" class="p-0.5 hover:bg-white/10 rounded text-slate-300 hover:text-white transition-all cursor-pointer" title="Gợi ý trước [<]">
+                        <i data-lucide="chevron-left" class="w-3 h-3"></i>
+                      </button>
+                      <span id="composer-diff-counter" class="font-mono text-[11px] font-bold text-blue-300 px-1">GỢI Ý 1/1</span>
+                      <button type="button" onclick="app.composer.nextDiff()" class="p-0.5 hover:bg-white/10 rounded text-slate-300 hover:text-white transition-all cursor-pointer" title="Gợi ý kế tiếp [>]">
+                        <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                      </button>
+                    </div>
                     <span id="composer-diff-description" class="text-slate-200 text-xs font-semibold truncate"></span>
                   </div>
                   <div class="flex items-center space-x-2 shrink-0">
-                    <button type="button" onclick="app.composer.applyPendingDiff()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-xs font-bold flex items-center space-x-1.5 transition-all active:scale-95 shadow-sm cursor-pointer" title="Áp dụng thay đổi vào đúng dòng này (Keep / Đồng ý)">
+                    <!-- Apply All button -->
+                    <button type="button" id="composer-apply-all-btn" onclick="app.composer.applyAllPendingDiffs()" class="px-2.5 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-md text-xs font-bold flex items-center space-x-1.5 transition-all active:scale-95 shadow-sm cursor-pointer" title="Áp dụng tất cả các gợi ý sửa đổi vào mã nguồn">
+                      <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
+                      <span>Áp dụng tất cả</span>
+                    </button>
+                    <button type="button" onclick="app.composer.applyCurrentDiff()" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-xs font-bold flex items-center space-x-1.5 transition-all active:scale-95 shadow-sm cursor-pointer" title="Áp dụng thay đổi vào đúng dòng này (Keep / Đồng ý)">
                       <i data-lucide="check" class="w-3.5 h-3.5"></i>
                       <span>Keep / Đồng ý</span>
                     </button>
-                    <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 bg-[#283247] hover:bg-[#35425c] text-slate-300 hover:text-white rounded-md text-xs font-semibold flex items-center space-x-1 transition-all cursor-pointer" title="Hủy bỏ (Undo / Từ chối)">
+                    <button type="button" onclick="app.composer.skipCurrentDiff()" class="px-2.5 py-1 bg-[#283247] hover:bg-[#35425c] text-slate-300 hover:text-white rounded-md text-xs font-semibold flex items-center space-x-1 transition-all cursor-pointer" title="Hủy bỏ / Bỏ qua gợi ý này">
                       <i data-lucide="x" class="w-3.5 h-3.5"></i>
                       <span>Undo / Từ chối</span>
                     </button>
@@ -573,19 +588,29 @@
                   <!-- Header Capsule & Keep / Undo Actions -->
                   <div class="flex items-center justify-between px-3 py-1.5 bg-[#1e2538] border-b border-white/10 text-xs select-none">
                     <div class="flex items-center space-x-2 min-w-0">
-                      <!-- Capsule 1/1 -->
-                      <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-purple-500/25 text-purple-300 border border-purple-500/40 font-mono text-[11px] font-bold shadow-xs">
-                        1/1
-                      </span>
+                      <!-- Capsule Counter with Prev / Next -->
+                      <div class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full bg-purple-500/25 text-purple-300 border border-purple-500/40 font-mono text-[11px] font-bold shadow-xs">
+                        <button type="button" onclick="app.composer.prevDiff()" class="p-0.5 hover:bg-white/10 rounded cursor-pointer leading-none text-purple-200" title="Trước [<]">
+                          <i data-lucide="chevron-left" class="w-3 h-3"></i>
+                        </button>
+                        <span id="composer-inline-diff-counter">1/1</span>
+                        <button type="button" onclick="app.composer.nextDiff()" class="p-0.5 hover:bg-white/10 rounded cursor-pointer leading-none text-purple-200" title="Tiếp [>]">
+                          <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                        </button>
+                      </div>
                       <span id="composer-inline-diff-desc" class="text-slate-200 text-xs font-semibold truncate">Gợi ý sửa đổi</span>
                     </div>
-                    <!-- Actions: Keep and Undo buttons -->
+                    <!-- Actions: Keep, Undo and Apply All buttons -->
                     <div class="flex items-center space-x-1.5 shrink-0">
-                      <button type="button" onclick="app.composer.applyPendingDiff()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold flex items-center space-x-1 shadow-sm transition-all active:scale-95 cursor-pointer" title="Đồng ý thay đổi (Keep)">
+                      <button type="button" id="composer-inline-apply-all-btn" onclick="app.composer.applyAllPendingDiffs()" class="hidden px-2.5 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded text-xs font-bold items-center space-x-1 shadow-sm transition-all active:scale-95 cursor-pointer" title="Áp dụng tất cả thay đổi">
+                        <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
+                        <span>Áp dụng tất cả</span>
+                      </button>
+                      <button type="button" onclick="app.composer.applyCurrentDiff()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold flex items-center space-x-1 shadow-sm transition-all active:scale-95 cursor-pointer" title="Đồng ý thay đổi (Keep)">
                         <i data-lucide="check" class="w-3.5 h-3.5"></i>
                         <span>Keep</span>
                       </button>
-                      <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95 cursor-pointer" title="Từ chối thay đổi (Undo)">
+                      <button type="button" onclick="app.composer.skipCurrentDiff()" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white rounded text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95 cursor-pointer" title="Từ chối / Bỏ qua thay đổi này (Undo)">
                         <i data-lucide="undo-2" class="w-3.5 h-3.5"></i>
                         <span>Undo</span>
                       </button>
@@ -784,8 +809,8 @@
           </div>
 
           <!-- ================= THANH SPLITTER KÉO THẢ RESIZE (HORIZONTAL SPLIT RESIZER) ================= -->
-          <div id="composer-split-resizer" class="composer-col-splitter hidden lg:flex w-2.5 shrink-0 cursor-col-resize items-center justify-center select-none group transition-colors relative z-20 hover:bg-blue-500/10" title="Kéo để chỉnh độ rộng 2 cột (Nháy đúp để đặt lại 60:40)">
-            <div class="w-1 h-10 rounded-full bg-slate-300 dark:bg-[#2d374d] group-hover:bg-blue-500 group-active:bg-blue-600 transition-colors"></div>
+          <div id="composer-split-resizer" class="composer-col-splitter hidden lg:flex w-5 mx-1 shrink-0 cursor-col-resize items-center justify-center select-none group transition-all relative z-20 hover:bg-blue-500/10 rounded-lg" title="Kéo để chỉnh độ rộng 2 cột (Nháy đúp để đặt lại 60:40)">
+            <div class="w-1.5 h-12 rounded-full bg-slate-400/40 dark:bg-slate-500/40 group-hover:bg-blue-500 group-hover:h-16 group-active:bg-blue-600 transition-all duration-150"></div>
           </div>
 
           <!-- ================= CỘT PHẢI (RIGHT COLUMN): LIVE PREVIEW & BIÊN DỊCH FOOTER (40% WIDTH) ================= -->

@@ -168,15 +168,20 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   4. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, cấu hình tỷ lệ chia cột, độ cao trợ lý và kho lưu trữ lịch sử các phiên chat vào `localStorage` của trình duyệt.
   5. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
 
-#### SRS-FEAT-04e: Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Màu Tương Phản Dark Mode (High-Contrast Input Tokens)
+#### SRS-FEAT-04e: Thanh Nhập Prompt AI Thu Gọn, Cơ Chế Xóa Sạch Lạc Quan (Optimistic Input Reset) & Quy Chuẩn Màu Tương Phản Dark Mode
 - **Mô tả:** Cung cấp thanh nhập lệnh AI nhỏ gọn dạng viên thuốc (floating pill bar) neo tại chân khung soạn thảo (`bottom-7`, căn giữa `w-[92%] max-w-xl`, phong cách Apple Glassmorphism bo tròn viền bán trong suốt `#1c1c1f/95`), giữ không gian làm việc luôn tối giản và tập trung cao độ.
 - **Hành vi tương tác và kích hoạt 2 trạng thái:**
   1. *Trạng thái Nhập liệu Cục bộ (In-place Typing):* Khi người dùng nhấp chuột vào thanh hoặc trường nhập văn bản (`#composer-compact-input`), hệ thống chỉ kích hoạt focus con trỏ để gõ văn bản bình thường (`cursor-text`), **tuyệt đối không tự động bung mở modal/popup trợ lý** nhằm loại bỏ hoàn toàn hiện tượng che khuất màn hình gây gián đoạn mạch soạn thảo.
   2. *Trạng thái Kích hoạt Mở rộng (Expansion & Dispatch Trigger):* Hệ thống chỉ mở bung toàn bộ giao diện Popup Trợ lý Soạn thảo (`composer-ai-popup`, độ cao mặc định 56%, có thể phóng to 78% hoặc 92%) khi xảy ra một trong hai điều kiện sau:
      - Người dùng nhấn phím **`Enter`** trong ô nhập liệu.
      - Người dùng nhấp chuột vào **Nút Gửi Mũi Tên Tròn** (`#composer-ai-compact-bar button` - icon `arrow-up`).
-  3. *Chuyển tiếp Dữ liệu Liền mạch:* Khi được kích hoạt, chuỗi prompt trong thanh thu gọn được tự động chuyển vào ô chat của Popup Trợ lý, thanh thu gọn tạm thời ẩn đi, hiển thị chỉ báo AI đang phản hồi (`composer-typing-indicator`), và gửi yêu cầu bất đồng bộ đến endpoint `/api/v1/composer/chat`.
-  4. *Menu Mẫu Lệnh Nhanh (Quick Actions Menu):* Biểu tượng dấu cộng `+` trên thanh compact mở menu ngữ cảnh cho phép chọn nhanh các tác vụ phổ biến: đổi cỡ chữ toàn tài liệu sang 12pt, tạo câu hỏi trắc nghiệm 4 lựa chọn, tạo câu hỏi Đúng/Sai 4 ý QĐ 764, vẽ bảng biến thiên `tkz-tab`, và kiểm tra/sửa cú pháp LaTeX.
+  3. *Cơ Chế Xóa Sạch Lạc Quan (Optimistic Dual-Input Reset & Event Decoupling):*
+     - Khắc phục triệt để lỗi văn bản cũ còn lưu kẹt trong ô nhập chat của trợ lý sau khi đã gửi đi (Ảnh 1).
+     - Ngay tại thời điểm kích hoạt gửi ($t = 0\text{ms}$ khi bắt sự kiện `submitChat`, `submitFromCompact`, hoặc `sendPrompt`), hệ thống đồng thời xóa sạch giá trị (`chatInput.value = ''` và `compactInput.value = ''`) TRƯỚC BẤT KỲ tác vụ bất đồng bộ hoặc render DOM nào.
+     - Phân định rõ ngữ nghĩa hàm mở popup: Khi mở do gửi lệnh (`submitFromCompact`), gọi `openAIPopup('')` với tham số rỗng, không truyền lại chuỗi prompt đã gửi vào `prefillPrompt` (loại bỏ hoàn toàn cơ chế gán ngược `chatInput.value = prefillPrompt`). Chỉ khi người dùng bấm mẫu lệnh nhanh (`applyQuickPrompt`), chuỗi mẫu mới được điền vào ô nhập để biên tập.
+     - Duy trì con trỏ phím (caret) sẵn sàng tại ô nhập rỗng với màu Apple blue `#38bdf8`, sẵn sàng cho câu lệnh kế tiếp mà không cần xóa thủ công.
+  4. *Chuyển tiếp Dữ liệu Liền mạch:* Khi được kích hoạt, chuỗi prompt được đẩy vào lịch sử phiên hiện tại, thanh thu gọn tạm thời ẩn đi, hiển thị chỉ báo AI đang phản hồi (`composer-typing-indicator`), và gửi yêu cầu bất đồng bộ đến endpoint `/api/v1/composer/chat`.
+  5. *Menu Mẫu Lệnh Nhanh (Quick Actions Menu):* Biểu tượng dấu cộng `+` trên thanh compact mở menu ngữ cảnh cho phép chọn nhanh các tác vụ phổ biến: đổi cỡ chữ toàn tài liệu sang 12pt, tạo câu hỏi trắc nghiệm 4 lựa chọn, tạo câu hỏi Đúng/Sai 4 ý QĐ 764, vẽ bảng biến thiên `tkz-tab`, và kiểm tra/sửa cú pháp LaTeX.
 - **Quy chuẩn Màu Tương Phản Dark Mode (WCAG 2.1 AA Compliant - Sửa lỗi chữ đen trên nền tối):**
   - Khắc phục triệt để lỗi chữ màu đen `#1d1d1f` bị chìm trên nền tối `#1c1c1f` / `#141824`.
   - Thiết lập design tokens bắt buộc với độ ưu tiên cao (`!important`) cho cả 2 trường nhập liệu `#composer-compact-input` và `#composer-chat-input`:
@@ -252,15 +257,24 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
        + Chiều cao tối đa: $92\%$ chiều cao khung editor để không bao giờ che lấp thanh công cụ trên cùng (`MỚI`, `THÊM ▾`, `LỜI GIẢI`, `XUẤT FILE`).
      - Khi `mouseup` / `touchend`: Kết thúc thao tác kéo, khôi phục lại hiệu ứng chuyển động và lưu chiều cao tùy chỉnh vào `localStorage` (`quesy_composer_ai_height`).
 
-#### SRS-FEAT-04l: Thanh Phân Tách Kéo Thả Ngang 2 Cột Editor & Live Preview (Horizontal Splitter & Dual-Pane Drag Resize)
-- **Mô tả:** Trang bị thanh chia cột tương tác (`#composer-col-splitter`) nằm giữa Cột Soạn thảo LaTeX (Left Pane) và Cột Live Preview (Right Pane), thay thế tỷ lệ cố định 60:40 bằng cơ chế điều chỉnh kích thước hai chiều linh hoạt.
+#### SRS-FEAT-04l: Thanh Phân Tách Kéo Thả Ngang 2 Cột Editor & Live Preview Chuẩn Apple HIG (#composer-split-resizer)
+- **Mô tả:** Trang bị thanh chia cột tương tác (`#composer-split-resizer` / `#composer-col-splitter`) nằm giữa Cột Soạn thảo LaTeX (Left Pane) và Cột Live Preview (Right Pane), tái thiết kế chuẩn Apple Human Interface Guidelines với khoảng cách đệm thẩm mỹ, không đè sát viền box soạn thảo (Ảnh 2).
 - **Cấu trúc & Tiêu chuẩn Kỹ thuật:**
-  1. *Phần tử Phân tách (Interactive Splitter Element):* Thanh dọc mỏng kích thước `w-2` (hover `w-2.5`), nền trong suốt kèm vạch chỉ báo Apple Minimalist đổi màu sáng xanh nhẹ `#0071e3/40` khi di chuột hoặc đang kéo, con trỏ chuột dạng `cursor-col-resize`.
-  2. *Quy trình Kéo thả Ngang (Horizontal Drag Lifecycle):*
-     - Bắt sự kiện `mousedown` / `touchstart` trên splitter: Ghi nhận tọa độ `startX` và bề rộng container.
+  1. *Khoảng Cách Đệm & Vùng Âm Bản (Negative Space & Gutter Layout):*
+     - Mở rộng rãnh phân cách công thái học với chiều rộng rãnh `w-3.5` (14px) hoặc `w-4` (16px), tích hợp khoảng đệm phân cách an toàn `mx-1` / `mx-1.5` giữa Cột Trái (`rounded-xl border border-[#272f42]`) và Cột Phải (`rounded-xl border border-black/[0.08]`).
+     - Trục của thanh kéo luôn cách đều viền 2 card từ 6px đến 8px, loại bỏ hoàn toàn hiện tượng thanh kéo và quầng highlight hover bị chèn ép, đè dính hoặc lấn vào đường viền bo góc của box soạn thảo.
+  2. *Thanh Cầm Viên Thuốc Apple HIG (Apple Capsule Grabber Handle):*
+     - Trục viên thuốc: Chiều rộng $4\text{px}$ (`w-1`), chiều cao $36\text{px}$ (`h-9`), bo tròn hoàn toàn (`rounded-full`).
+     - Trạng thái bình thường: Nền xám kim loại trung tính `bg-slate-300 dark:bg-[#34415e]` kết hợp viền mờ chống lóa, ẩn mình nhường chỗ cho nội dung chính (Deference principle).
+     - Trạng thái di chuột (Hover): Tự động mở rộng nhẹ chiều cao (`group-hover:scale-y-110 group-hover:h-10`), đổi sang màu xanh Apple System Blue (`#0071e3`), tỏa quầng sáng vi mô `group-hover:shadow-[0_0_8px_rgba(0,113,227,0.35)]` với đường cong chuyển động mượt mà `cubic-bezier(0.16, 1, 0.3, 1)`.
+     - Vùng hover mềm bao quanh: Thẻ chứa có hiệu ứng hover nhẹ `group-hover:bg-blue-500/[0.08]` bo góc `rounded-lg`, nằm gọn bên trong rãnh và không bao giờ chạm viền của 2 card lân cận.
+     - Trạng thái kéo giữ (Active / Dragging): Phản hồi xúc giác Emil Kowalski co nhẹ `scale-95`, màu xanh đậm đà `bg-[#0071e3]`, kích hoạt con trỏ `cursor: col-resize` và class `.composer-resizing-h` trên toàn trang.
+  3. *Quy trình Kéo thả Ngang (Horizontal Drag Lifecycle):*
+     - Bắt sự kiện `mousedown` / `touchstart` trên resizer: Ghi nhận tọa độ `startX` và bề rộng container.
      - Lắng nghe `mousemove` / `touchmove` trên `window`: Tính toán bề rộng cột trái theo phần trăm `leftPercent = ((startWidth + (currentX - startX)) / containerWidth) * 100`.
      - Bộ kẹp giới hạn (Clamping Range): Tỷ lệ cột trái được giới hạn nghiêm ngặt từ $25\%$ đến $75\%$ (bảo đảm mỗi cột luôn rộng tối thiểu $320\text{px}$, không bị vỡ giao diện trên mọi kích thước màn hình).
      - Cơ chế chống gián đoạn (Pointer Shield): Tự động áp dụng `pointer-events: none` lên canvas/iframe xem trước PDF trong quá trình kéo chuột nhanh để loại bỏ hiện tượng giật con trỏ khi đi qua frame tài liệu.
+     - Nhấp đúp chuột (`dblclick`): Khôi phục tức thì về tỷ lệ vàng mặc định 60% Left : 40% Right.
      - Tự động lưu cấu hình tỷ lệ vào `localStorage` (`quesy_composer_split_ratio`) và khôi phục chính xác khi giáo viên tải lại trang.
 
 #### SRS-FEAT-04m: Tự Động Co Giãn PDF Theo Chiều Rộng Cột & Khung Cuộn Ngang An Toàn (PDF Auto Fit-to-Width & Horizontal Scroll Resiliency)
@@ -305,6 +319,33 @@ ight)$$
   3. *Bảo Toàn Trạng Thái Khi Dựng Hình Lại (High-DPI Re-rendering Persistence):*
      - Cơ chế render lại trang canvas ở độ phân giải thực (`renderAllPages` với devicePixelRatio) chạy sau khoảng trễ debounce 100ms tự động lưu giữ và khôi phục giá trị `scrollTop` và `scrollLeft`, loại bỏ tuyệt đối hiện tượng chớp nháy hoặc nhảy góc $(0, 0)$.
 
+#### SRS-FEAT-04o: Kiến Trúc Duyệt & Áp Dụng Đa Khối Diff AI (Multi-Diff Sequential Review & Batch Apply Engine)
+- **Mô tả:** Cho phép AI Copilot phản hồi nhiều khối sửa đổi cùng một lúc trong một lượt trả lời (đổi font, sửa đáp án, chèn gói tikz, sửa lỗi cú pháp). Hệ thống hỗ trợ duyệt tuần tự từng sửa đổi (1/N, Trước/Sau, Keep/Undo) và cung cấp nút [Áp dụng tất cả] (Apply All) để hợp nhất toàn bộ các thay đổi vào mã nguồn chỉ với 1 thao tác (Ảnh 3).
+- **Mô hình Dữ liệu Đa Khối Diff (Multi-Diff Contract):**
+  - Mở rộng schema `ChatResponse`:
+    ```python
+    class ChatResponse(BaseModel):
+        reply: str
+        suggested_latex: Optional[str] = None
+        diff: Optional[DiffSuggestion] = None  # Khối diff đầu tiên (tương thích ngược)
+        diffs: Optional[List[DiffSuggestion]] = Field(default_factory=list, description="Danh sách toàn bộ các khối diff")
+    ```
+  - Thuật toán bóc tách đa khối `extract_all_diffs_from_text`: Quét toàn bộ các khối ````diff ... ````, các cặp `OLD: ... NEW: ...`, các khối `SEARCH / REPLACE`, các block replace và các câu lệnh thay thế nội dòng, loại bỏ trùng lặp và trả về danh sách `diffs: List[DiffSuggestion]`.
+- **Cỗ Máy Trạng Thái Duyệt Tuần Tự & Hàng Loạt (Sequential & Batch State Machine):**
+  - Trạng thái client: `pendingDiffs: []`, `currentDiffIndex: 0`, `pendingDiff: pendingDiffs[currentDiffIndex]`.
+  - Hiển thị song hành trên cả Top Banner (`#composer-pending-diff-banner`) và Inline Overlay (`#composer-inline-diff-overlay`):
+    1. *Huy hiệu Đếm Động (Dynamic Capsule Counter):* Thay thế huy hiệu tĩnh `1/1` bằng viên thuốc định vị `${currentDiffIndex + 1}/${pendingDiffs.length}` (ví dụ: `1/3`, `2/3`, `3/3`).
+    2. *Bộ Điều Hướng Tuần Tự (Sequential Stepper `<` / `>`):*
+       - Nút **`[< Trước]`** (`prevDiff()`): Di chuyển về diff trước đó, tự động cuộn màn hình và bôi đen vị trí dòng tương ứng trong editor. Tự động disable/mờ đi khi đang ở diff đầu tiên (`currentDiffIndex === 0`).
+       - Nút **`[Sau >]`** (`nextDiff()`): Di chuyển tới diff kế tiếp. Tự động disable/mờ đi khi đang ở diff cuối cùng (`currentDiffIndex === pendingDiffs.length - 1`).
+       - Cả hai nút tự động ẩn hoặc vô hiệu hóa khi tổng số diff $\le 1$.
+    3. *Duyệt Từng Khối Sửa Đổi (Individual Accept / Reject):*
+       - Nút **`[Keep / Đồng ý]`** (`applyCurrentDiff()`): Áp dụng diff hiện tại vào mã nguồn qua Động cơ Thay thế Mờ 6 Tầng (`applyDiffDirect`), loại bỏ diff khỏi `pendingDiffs`. Nếu hết diff, tự động đóng giao diện diff; nếu còn diff, tự động chuyển trọng tâm hiển thị sang diff kế tiếp và làm nổi bật dòng mới.
+       - Nút **`[Undo / Từ chối]`** (`rejectCurrentDiff()`): Hủy bỏ diff hiện tại, loại bỏ khỏi `pendingDiffs` và chuyển sang diff kế tiếp (nếu có).
+    4. *Áp Dụng Hàng Loạt (Batch Apply All):*
+       - Nút **`[Áp dụng tất cả] (Apply All)`** (`applyAllPendingDiffs()`): Hiển thị nổi bật với nền xanh Apple (`bg-blue-600 hover:bg-blue-500 text-white font-bold`) khi `pendingDiffs.length > 1`.
+       - Khi người dùng nhấn nút: Hệ thống tự động lặp qua toàn bộ danh sách `pendingDiffs` theo thứ tự xuất hiện, tuần tự áp dụng từng cặp `(old_text, new_text)` vào mã nguồn LaTeX qua thuật toán thay thế an toàn.
+       - Cập nhật giá trị vào textarea editor và `currentLatex`, kích hoạt `compile(true)` một lần duy nhất, đóng toàn bộ banner/overlay diff và hiển thị thông báo toast: *\"Đã áp dụng toàn bộ N sửa đổi vào mã nguồn!\"*.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.

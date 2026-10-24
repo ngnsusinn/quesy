@@ -265,9 +265,12 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 - **Mô tả:** Khi AI đề xuất diff sửa đổi, kiểm tra giao diện Inline Diff Overlay hiển thị trực tiếp tại đúng vị trí dòng mã nguồn trên textarea (khối đỏ `-`, khối xanh `+`, nút `Keep / Đồng ý` và `Undo / Từ chối`). Khi nhấn `[Đồng ý]`, kích hoạt 5-Tier Fuzzy Replacement Engine.
 - **Kết quả kỳ vọng:** Mã nguồn được thay thế chuẩn xác 100%, không xuất hiện toast cảnh báo "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại", tự động kích hoạt `compile(true)`.
 
-#### TC-COMP-10: Hiệu Năng Gửi Prompt Không Độ Trễ & Box Chat Mượt Chuẩn Apple HIG
-- **Mô tả:** Kiểm tra hành động nhấn Enter hoặc click nút gửi prompt: phản hồi optimistic UI lập tức ($\le 16$ms), ẩn compact bar và mở bung popup chat với hiệu ứng hardware transition mượt mà, cuộn mượt đến đáy và hiển thị typing indicator không giật khung hình.
-- **Kết quả kỳ vọng:** Thao tác gửi tức thì không độ trễ, 0 lỗi JavaScript màu đỏ trong Console DevTools.
+#### TC-COMP-10: Hiệu Năng Gửi Prompt, Xóa Sạch Lạc Quan (Optimistic Input Reset) & Box Chat Chuẩn Apple HIG
+- **Mô tả:** Kiểm tra hành động nhấn Enter hoặc click nút gửi prompt từ cả thanh compact bar và popup chat:
+  1. *Cơ chế Xóa Sạch Lạc Quan:* Ngay tại thời điểm kích hoạt gửi ($t = 0\text{ms}$), kiểm tra giá trị của cả `#composer-compact-input` và `#composer-chat-input` lập tức được xóa trắng (`value = ''`), loại bỏ triệt để hiện tượng lưu kẹt text cũ (Ảnh 1).
+  2. Kiểm tra `submitFromCompact()` không truyền lại prompt đã gửi vào `prefillPrompt` của `openAIPopup()`, đảm bảo ô chat popup khi mở ra hoàn toàn sạch sẽ.
+  3. Phản hồi optimistic UI lập tức ($\le 16$ms), ẩn compact bar và mở bung popup chat với hiệu ứng hardware transition mượt mà, cuộn mượt đến đáy và hiển thị typing indicator không giật khung hình.
+- **Kết quả kỳ vọng:** Thao tác gửi tức thì không độ trễ, ô nhập rỗng ngay lập tức với con trỏ caret màu xanh Apple `#38bdf8` sẵn sàng nhận lệnh mới, 0 lỗi JavaScript màu đỏ trong Console DevTools.
 
 #### TC-COMP-11: Tính Toàn Vẹn Của API Chat & Bóc Tách Diff Độc Lập Hiển Thị Frontend
 - **Mô tả:** Kiểm tra API `/api/v1/composer/chat` bảo toàn tính toàn vẹn của cấu trúc `ChatResponse` (bao gồm `reply`, `diff`, `suggested_latex`). Cơ chế bóc tách diff (`extract_diff_from_text`) hoàn toàn phân tách giữa nội dung giải thích tự nhiên hiển thị trong luồng hội thoại chat và payload diff vận hành trên khung soạn thảo (`DiffSuggestion` với `old_text` và `new_text`).
@@ -295,13 +298,14 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
   5. Sau khi kéo thả, tải lại trang (F5): Kiểm tra độ cao tùy chỉnh được khôi phục từ `localStorage` (`quesy_composer_ai_height`).
 - **Kết quả kỳ vọng:** Giao diện tối giản chuẩn Apple HIG với duy nhất 1 thanh pill; co giãn độ cao trực quan mượt mà, không làm vỡ bố cục editor hay che khuất toolbar đỉnh.
 
-#### TC-COMP-15: Kéo Thả Thanh Phân Tách Ngang 2 Cột Editor & Live Preview (Horizontal Splitter & Dual-Pane Drag Resize)
-- **Mô tả:** Kiểm tra khả năng co giãn chiều rộng của 2 cột Editor và Live Preview thông qua thanh phân tách ngang:
-  1. Di chuột vào phần tử phân cách `#composer-col-splitter`: Con trỏ hiển thị `cursor-col-resize`, vạch phân cách đổi hiệu ứng hover.
-  2. Nhấn giữ chuột (`mousedown`) và kéo sang trái/phải (`mousemove`): Chiều rộng cột trái (`#composer-left-col`) thay đổi mượt mà, tỷ lệ co giãn được giới hạn nghiêm ngặt trong khoảng $25\%$ đến $75\%$.
-  3. Trong lúc kéo, kiểm tra vùng canvas PDF có áp dụng `pointer-events: none` chống giật chuột.
-  4. Khi thả chuột (`mouseup`), tỷ lệ mới được lưu vào `localStorage` (`quesy_composer_split_ratio`) và tự động kích hoạt `syncEditorScroll()`. Tải lại trang (F5), tỷ lệ chia cột được bảo toàn nguyên vẹn.
-- **Kết quả kỳ vọng:** Thao tác chia cột mượt mà 60 FPS, tỷ lệ phản hồi chính xác, không phát sinh bất kỳ lỗi console nào.
+#### TC-COMP-15: Kéo Thả Thanh Phân Tách Ngang 2 Cột Editor & Live Preview Chuẩn Apple HIG (#composer-split-resizer)
+- **Mô tả:** Kiểm tra thanh phân tách ngang `#composer-split-resizer` (class `composer-col-splitter`) được tái thiết kế chuẩn Apple HIG với khoảng cách đệm thẩm mỹ, không đè sát viền box soạn thảo (Ảnh 2):
+  1. *Kiểm tra Bố Cục & Khoảng Cách Đệm:* Rãnh phân tách có độ rộng công thái học `w-3.5` / `w-4` (14-16px) với lề `mx-1` / `mx-1.5`. Trục viên thuốc cách đều viền Cột Soạn thảo và Cột Live Preview từ 6px đến 8px, không chạm đè lên viền card bên cạnh.
+  2. *Kiểm tra Kiểu Dáng Apple Capsule:* Vạch kéo có dạng viên thuốc `w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]`. Khi hover, đổi màu xanh Apple `#0071e3`, tỏa quầng sáng vi mô `shadow-[0_0_8px_rgba(0,113,227,0.35)]`, vạch mở rộng nhẹ `scale-y-110`. Vùng hover mềm bo góc `rounded-lg` nằm gọn trong rãnh đệm.
+  3. *Kiểm tra Kéo Thả:* Nhấn giữ chuột (`mousedown`) và kéo sang trái/phải (`mousemove`): Chiều rộng cột trái (`#composer-left-col`) thay đổi mượt mà 60 FPS, tỷ lệ co giãn được giới hạn nghiêm ngặt trong khoảng $25\%$ đến $75\%$. Tấm chắn con trỏ `pointer-events: none` được kích hoạt trên canvas PDF.
+  4. *Kiểm tra Nháy Đúp:* Nháy đúp chuột (`dblclick`) vào resizer lập tức đặt lại tỷ lệ vàng 60% Left : 40% Right và kích hoạt `fitToWidth(true)`.
+  5. *Lưu Trữ Bền Vững:* Khi thả chuột (`mouseup`), tỷ lệ mới được lưu vào `localStorage` (`quesy_composer_split_ratio`). Tải lại trang (F5), tỷ lệ chia cột được bảo toàn nguyên vẹn.
+- **Kết quả kỳ vọng:** Giao diện tinh tế chuẩn Apple HIG, khoảng cách đệm thông thoáng không dính viền, thao tác chia cột mượt mà 60 FPS, tỷ lệ phản hồi chính xác, 0 lỗi console.
 
 #### TC-COMP-16: Tự Động Co Giãn PDF Theo Chiều Rộng Cột & Khung Cuộn Ngang An Toàn (PDF Auto Fit-to-Width & Horizontal Scroll Resiliency)
 - **Mô tả:** Kiểm tra cơ chế tự động co giãn kích thước trang PDF khi chiều rộng cột thay đổi và tính năng cuộn ngang không xén lề phải:
@@ -332,6 +336,28 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
      - Sau khi dừng thao tác zoom 100ms, hàm `renderAllPages` vẽ lại canvas ở độ phân giải retina thực:
      - Xác nhận vị trí cuộn `scrollTop` và `scrollLeft` được bảo toàn ổn định, không xuất hiện hiện tượng chớp nháy hoặc nhảy giật vị trí cuộn.
 - **Kết quả kỳ vọng:** Trải nghiệm phóng to / thu nhỏ mượt mà chuẩn Apple HIG; bảo toàn điểm neo chính xác tuyệt đối; 0 lỗi Console.
+
+#### TC-COMP-18: Bóc Tách Đa Khối Diff (`extract_all_diffs_from_text`) & Hợp Đồng Schema API Đa Khối
+- **Mô tả:** Kiểm tra khả năng trích xuất toàn bộ các khối diff khi AI trả về nhiều đề xuất thay đổi trong một lượt (ví dụ: đổi font size sang 12pt VÀ đổi đáp án câu trắc nghiệm VÀ sửa lỗi cú pháp):
+  1. Gửi phản hồi chứa 2 hoặc nhiều khối ````diff ... ```` hoặc block replaces tới API và hàm `extract_all_diffs_from_text`.
+  2. Kiểm tra `ChatResponse` trả về trường `diffs: List[DiffSuggestion]` có số lượng $N \ge 2$, trường `diff` lưu diff đầu tiên (`diffs[0]`) để giữ tương thích ngược.
+  3. Kiểm tra tính toàn vẹn của từng đối tượng `DiffSuggestion` (`action`, `old_text`, `new_text`, `description`), xác nhận không bị xáo trộn nội dung giữa các khối.
+- **Kết quả kỳ vọng:** API và hàm trích xuất nhận diện trọn vẹn 100% các khối diff trong nội dung trả về, 0 khối diff bị bỏ sót.
+
+#### TC-COMP-19: Giao Diện Duyệt Tuần Tự Đa Diff (1/N Stepper, Keep/Undo) & Nút Áp Dụng Tất Cả (Apply All)
+- **Mô tả:** Kiểm tra cỗ máy trạng thái và giao diện duyệt đa diff trên cả Top Banner và Inline Overlay (Ảnh 3):
+  1. *Kiểm tra Bộ Đếm Động (Capsule Counter):* Huy hiệu định vị hiển thị chính xác `${currentDiffIndex + 1}/${pendingDiffs.length}` (ví dụ `1/3`, `2/3`, `3/3`), không còn hiển thị số `1/1` cứng.
+  2. *Kiểm tra Điều Hướng Tuần Tự (Prev/Next Stepper):*
+     - Click nút **`[Sau >]`**: Con trỏ `currentDiffIndex` tăng lên, editor tự động cuộn đến dòng của diff tiếp theo và bôi đen vị trí tương ứng. Nút `[Sau >]` bị disabled ở mục cuối.
+     - Click nút **`[< Trước]`**: Nhảy lùi về diff trước đó. Bị disabled ở mục đầu tiên.
+  3. *Kiểm tra Chấp nhận Từng Khối (`[Keep / Đồng ý]`):*
+     - Click `[Keep]`: Diff hiện tại được áp dụng vào mã nguồn, loại bỏ khỏi `pendingDiffs`. Editor tự động chuyển sang diff kế tiếp trong danh sách.
+  4. *Kiểm tra Từ chối Từng Khối (`[Undo / Từ chối]`):*
+     - Click `[Undo]`: Bỏ qua diff hiện tại, chuyển sang diff kế tiếp mà không sửa đổi mã nguồn tại vị trí đó.
+  5. *Kiểm tra [Áp Dụng Tất Cả] (`applyAllPendingDiffs` - Ảnh 3):*
+     - Nút `[Áp dụng tất cả]` hiển thị nổi bật với nền xanh Apple khi `pendingDiffs.length > 1`.
+     - Click `[Áp dụng tất cả]`: Hệ thống áp dụng tuần tự toàn bộ $N$ khối diff vào mã nguồn, cập nhật editor, kích hoạt `compile(true)` một lần duy nhất, đóng toàn bộ banner/overlay và hiển thị toast thông báo thành công.
+- **Kết quả kỳ vọng:** Trải nghiệm duyệt đa diff mượt mà chuẩn Cursor/VS Code, điều hướng 1/N trực quan, áp dụng hàng loạt chính xác 100%, 0 lỗi Console.
 
 ---
 

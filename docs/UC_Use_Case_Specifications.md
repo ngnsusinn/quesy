@@ -244,43 +244,56 @@
    - Người dùng nhấp chuột vào Thanh Nhập Prompt AI thu gọn ở chân editor (`#composer-compact-bar`).
    - Ô nhập nhận focus bình thường (`cursor-text`), chữ hiển thị màu trắng sáng `#f8fafc` và con trỏ `#38bdf8` rõ nét trên nền tối Dark mode, **tuyệt đối không tự động mở full popup**, cho phép người dùng gõ hoặc dán nội dung yêu cầu mà không bị che khuất màn hình.
 3. Người dùng nhấn phím **`Enter`** (hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**):
+   - **Cơ chế Xóa Sạch Lạc Quan (Optimistic Input Reset $\le 0\text{ms}$):** Hệ thống lập tức xóa trắng cả 2 ô nhập (`compactInput.value = ''` và `chatInput.value = ''`), loại bỏ hoàn toàn hiện tượng text chat cũ còn kẹt trong ô nhập (Ảnh 1).
    - Giao diện phản hồi tức thì (Optimistic Fast Dispatch $\le 16$ms): mở bung full Popup Trợ lý Soạn thảo (`#composer-ai-popup`), ẩn thanh compact bar, đưa tin nhắn vào lịch sử phiên hiện tại và cuộn mượt đến đáy.
    - Nếu lần biên dịch trước đó gặp lỗi từ XeTeX/Tectonic, hệ thống tự động đính kèm `compile_error_log` vào payload gửi đến `POST /api/v1/composer/chat`.
-4. Phía máy chủ AI Copilot phân tích yêu cầu cùng tài liệu hiện tại và log lỗi biên dịch (nếu có), chẩn đoán nguyên nhân và bóc tách đề xuất sửa đổi thành cấu trúc `DiffSuggestion(action, old_text, new_text, description)`.
+4. Phía máy chủ AI Copilot phân tích yêu cầu cùng tài liệu hiện tại và log lỗi biên dịch (nếu có), chẩn đoán nguyên nhân và bóc tách toàn bộ đề xuất sửa đổi thành cấu trúc đa diff `ChatResponse(reply, diff, diffs)`:
+   - Trường `diffs`: Danh sách toàn bộ các khối `DiffSuggestion(action, old_text, new_text, description)` trích xuất được (Ảnh 3).
+   - Trường `diff`: Khối diff đầu tiên phục vụ tương thích ngược.
 5. Phía trình duyệt tiếp nhận phản hồi:
    - Trong bubble chat của Trợ lý: Chỉ hiển thị lời văn giải thích ngắn gọn, phân tích nguyên nhân lỗi cú pháp hoặc hướng dẫn sư phạm dưới dạng markdown thuần túy. **Quy tắc bắt buộc:** Tuyệt đối KHÔNG hiển thị widget diff hay nút duyệt diff lặp lại bên trong bubble chat.
-   - Trên vùng Code Editor: Thuật toán định vị tìm chính xác dòng mã nguồn của đoạn `old_text` trong editor, tự động cuộn khung nhìn textarea đến đúng dòng đó và bôi đen vùng chọn. Đồng thời kích hoạt hiển thị khối so sánh diff:
-     + Banner Gợi ý Sửa đổi (Inline Diff Banner) trên đỉnh editor: huy hiệu số dòng `GỢI Ý TẠI DÒNG [lineNo]`.
-     + Giao diện Diff Nội Dòng (Inline Editor Diff Overlay / Widget) ngay tại đúng vị trí dòng mã nguồn trên textarea: khối dòng đỏ xóa `- old_text` và khối dòng xanh thêm `+ new_text` kèm hai nút điều khiển trực tiếp `[Keep / Đồng ý]` và `[Undo / Từ chối]`.
-6. Người dùng xem xét đề xuất sửa đổi và có 2 lựa chọn thao tác trực tiếp trên Editor:
-   - **Kịch bản 6a - Người dùng nhấn [Keep / Đồng ý]:**
-     1. Hệ thống kích hoạt Động cơ Thay thế Dòng mờ Đa tầng (5-Tier Fuzzy Line Replacement Engine): so khớp chuỗi chuẩn hóa, bỏ qua thụt lề, quét cửa sổ trượt hoặc thay thế theo phạm vi dòng đã ghim `pinnedRange`.
-     2. Đảm bảo thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
-     3. Hệ thống tự động kích hoạt biên dịch tức thì `compile(true)` để làm mới tệp PDF Live Preview ở cột đối diện.
-     4. Ẩn diff overlay & banner diff, hiển thị thông báo toast thành công: *"Đã áp dụng thay đổi vào mã nguồn!"*.
-   - **Kịch bản 6b - Người dùng nhấn [Undo / Từ chối]:**
-     1. Hệ thống ẩn diff overlay và banner diff, hủy bỏ vùng bôi đen, đưa con trỏ về trạng thái bình thường.
-     2. Toàn bộ mã nguồn tài liệu được giữ nguyên vẹn 100% không bị thay đổi.
+   - Trên vùng Code Editor: Khởi tạo cỗ máy trạng thái `pendingDiffs = diffs` và trỏ con trỏ `currentDiffIndex = 0`. Thuật toán định vị tìm chính xác dòng mã nguồn của đoạn `old_text` của diff hiện tại, tự động cuộn khung nhìn textarea đến đúng dòng đó và bôi đen vùng chọn. Đồng thời kích hoạt hiển thị khối so sánh diff song hành trên cả Top Banner và Inline Overlay:
+     + Huy hiệu định vị động: Hiển thị viên thuốc `${currentDiffIndex + 1}/${pendingDiffs.length}` (thay thế số `1/1` tĩnh).
+     + Bộ điều hướng tuần tự: Nút **`[< Trước]`** và nút **`[Sau >]`** cho phép lật qua lại giữa các đề xuất sửa đổi nếu có nhiều hơn 1 khối diff.
+     + Hai nút thao tác đơn lẻ `[Keep / Đồng ý]` và `[Undo / Từ chối]` cho diff hiện hành.
+     + Nút **`[Áp dụng tất cả] (Apply All)`**: Hiển thị nổi bật với nền xanh Apple khi `pendingDiffs.length > 1`.
+6. Người dùng xem xét đề xuất sửa đổi và thực hiện thao tác trực tiếp trên Editor:
+   - **Kịch bản 6a - Người dùng nhấn [Keep / Đồng ý] trên diff hiện tại:**
+     1. Hệ thống kích hoạt Động cơ Thay thế Dòng mờ Đa tầng (6-Tier Fuzzy Line Replacement Engine): áp dụng đoạn mã mới của diff hiện tại.
+     2. Loại bỏ diff này khỏi danh sách (`pendingDiffs.splice(currentDiffIndex, 1)`).
+     3. Nếu hết diff (`pendingDiffs.length === 0`): Tự động đóng banner & overlay, tự động recompile `compile(true)` và hiển thị thông báo toast: *"Đã áp dụng thay đổi vào mã nguồn!"*.
+     4. Nếu vẫn còn diff: Giữ nguyên giao diện, tự động chuyển trọng tâm hiển thị sang diff kế tiếp (`renderCurrentDiff()`), cuộn màn hình và bôi đen vị trí dòng tương ứng.
+   - **Kịch bản 6b - Người dùng nhấn [Undo / Từ chối] trên diff hiện tại:**
+     1. Hệ thống bỏ qua không áp dụng diff hiện tại, loại bỏ khỏi `pendingDiffs`.
+     2. Nếu hết diff: Ẩn diff overlay và banner diff, hủy bỏ vùng bôi đen, đưa con trỏ về trạng thái bình thường.
+     3. Nếu còn diff: Chuyển sang hiển thị diff kế tiếp.
+   - **Kịch bản 6c - Người dùng nhấn [Áp dụng tất cả] (Apply All - Ảnh 3):**
+     1. Hệ thống tự động duyệt qua toàn bộ $N$ khối diff trong `pendingDiffs` theo thứ tự từ trên xuống dưới.
+     2. Áp dụng tuần tự toàn bộ các đoạn mã thay thế `(old_text, new_text)` vào buffer mã nguồn.
+     3. Cập nhật mã nguồn mới vào editor một lần duy nhất, kích hoạt `compile(true)` để làm mới PDF ở cột Live Preview.
+     4. Đóng toàn bộ banner & overlay diff (`dismissPendingDiffs()`).
+     5. Hiển thị thông báo Toast thành công: *"Đã áp dụng toàn bộ N sửa đổi vào mã nguồn!"*.
 
 #### Các luồng phụ (Alternate Flows):
-- **Luồng 6c - Kéo thả thanh Splitter ngang điều chỉnh tỷ lệ 2 cột (Horizontal Split Resize):**
-  1. Người dùng di chuột vào thanh phân cách `#composer-col-splitter` giữa cột Editor và Live Preview (con trỏ đổi thành `cursor-col-resize`).
-  2. Người dùng nhấn giữ và kéo chuột sang trái hoặc sang phải.
-  3. Hệ thống kích hoạt tấm chắn bảo vệ `pointer-events: none` trên khung PDF Preview, tính toán tỷ lệ bề rộng phần trăm cột trái theo thời gian thực (60 FPS) trong dải an toàn $25\% - 75\%$.
-  4. Khi thả chuột, hệ thống cập nhật layout, kích hoạt `syncEditorScroll()`, và lưu tỷ lệ mới vào `localStorage` (`quesy_composer_split_ratio`).
-- **Luồng 6d - Kéo thả điều chỉnh độ cao Box Trợ lý Soạn thảo (Vertical Drag Resize & Single Pill Handle):**
+- **Luồng 6d - Kéo thả thanh Splitter ngang điều chỉnh tỷ lệ 2 cột chuẩn Apple HIG (#composer-split-resizer - Ảnh 2):**
+  1. Người dùng di chuột vào thanh phân cách `#composer-split-resizer` giữa cột Editor và Live Preview (con trỏ đổi thành `cursor-col-resize`). Thanh nằm trong rãnh đệm thông thoáng `w-3.5` / `w-4` với lề `mx-1` / `mx-1.5`, trục viên thuốc cách đều viền 2 card từ 6px đến 8px, không chạm đè lên viền của box soạn thảo.
+  2. Vạch viên thuốc `w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]` chuyển màu xanh Apple System Blue `#0071e3`, quầng sáng vi mô tỏa nhẹ và vạch giãn nhẹ `scale-y-110`.
+  3. Người dùng nhấn giữ và kéo chuột sang trái hoặc sang phải. Hệ thống kích hoạt phản hồi xúc giác `scale-95`, bật tấm chắn bảo vệ `pointer-events: none` trên khung PDF Preview, tính toán tỷ lệ bề rộng phần trăm cột trái theo thời gian thực (60 FPS) trong dải an toàn $25\% - 75\%$.
+  4. Khi thả chuột, hệ thống cập nhật layout, kích hoạt `syncEditorScroll()`, tự động tính toán lại `fitToWidth(true)` và lưu tỷ lệ mới vào `localStorage` (`quesy_composer_split_ratio`).
+  5. Nếu người dùng nháy đúp (`dblclick`) vào thanh splitter: Tỷ lệ 2 cột lập tức quay về tỷ lệ vàng mặc định 60% Left : 40% Right.
+- **Luồng 6e - Kéo thả điều chỉnh độ cao Box Trợ lý Soạn thảo (Vertical Drag Resize & Single Pill Handle):**
   1. Người dùng di chuột vào thanh ngang viên thuốc duy nhất (`#composer-ai-resize-handle`) ở trung tâm header của popup trợ lý (hoặc viền trên).
   2. Người dùng nhấn giữ và kéo chuột/ngón tay lên trên (tăng chiều cao) hoặc xuống dưới (giảm chiều cao).
   3. Hệ thống tạm thời ngắt CSS transition, cập nhật độ cao liên tục trong phạm vi $180\text{px}$ (hoặc $20\%$) đến $92\%$ chiều cao khung editor.
   4. Khi thả chuột, hệ thống lưu độ cao tùy chỉnh vào `localStorage` (`quesy_composer_ai_height`). Nếu người dùng chỉ click nhanh hoặc nhấp đúp vào pill handle mà không kéo, hệ thống toggle nhanh giữa 56% và 78%.
-- **Luồng 6e - Quản lý Phiên mới & Tra cứu Lịch sử Phiên cũ:**
+- **Luồng 6f - Quản lý Phiên mới & Tra cứu Lịch sử Phiên cũ:**
   1. Khi người dùng muốn bắt đầu phiên thảo luận mới, nhấp vào nút `newChat` (icon reset xoay vòng): Phiên hiện tại (nếu có tin nhắn người dùng) được đóng gói và lưu trữ vào kho phiên cũ `quesy_composer_chat_sessions`. Khung chat active lập tức được dọn dẹp sạch sẽ và hiển thị lời chào ban đầu.
   2. Khi người dùng muốn xem lại các câu lệnh trước đó, nhấp vào nút **`[Lịch sử]`** (`#composer-ai-history-btn`): Khung chat tạm ẩn, mở ra panel danh sách lịch sử với đầy đủ các phiên cũ. Người dùng có thể nhấp vào một câu lệnh cũ để nạp lại vào ô nhập hoặc tải lại phiên cũ, sau đó bấm "✕ Đóng" để tiếp tục làm việc.
-- **Luồng 6f - Tự động Co giãn Chiều rộng PDF & Cuộn Ngang An Toàn (Auto Fit-to-Width & Horizontal Scroll):**
-  1. Khi người dùng kéo thanh splitter `#composer-col-splitter` làm thay đổi bề rộng Cột Xem Trước (Live Preview) hoặc đổi cỡ cửa sổ:
+- **Luồng 6g - Tự động Co giãn Chiều rộng PDF & Cuộn Ngang An Toàn (Auto Fit-to-Width & Horizontal Scroll):**
+  1. Khi người dùng kéo thanh splitter `#composer-split-resizer` làm thay đổi bề rộng Cột Xem Trước (Live Preview) hoặc đổi cỡ cửa sổ:
   2. Nếu hệ thống đang ở chế độ xem mặc định (`isAutoFit === true`), tỷ lệ `fitZoom` được tự động tính toán lại theo chiều rộng khả dụng (`clientWidth - 48px`), co giãn trực tiếp thẻ trang PDF và canvas theo thời gian thực (60 FPS trong lúc kéo), sau đó vẽ lại vector sắc nét (debounced 100ms).
   3. Khung cuộn `#composer-pdf-scroll-container` kích hoạt thuộc tính `overflow-x-auto`, khi kích thước trang vượt quá bề rộng khung nhìn, thanh cuộn ngang hiển thị trơn tru, cho phép giáo viên cuộn xem trọn vẹn lề phải tài liệu mà không bao giờ bị cắt xén.
-- **Luồng 6g - Phóng to / Thu nhỏ Thông Minh theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point):**
+- **Luồng 6h - Phóng to / Thu nhỏ Thông Minh theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point):**
   1. *Trường hợp A (Con trỏ nằm trên PDF):* Người dùng giữ `Ctrl` và lăn chuột (`wheel`): Hệ thống lấy chính xác tọa độ con trỏ chuột $(x_v, y_v)$ làm điểm neo, phóng to / thu nhỏ mà điểm nội dung ngay dưới con trỏ chuột được ghim bất biến, không bị trôi lệch.
   2. *Trường hợp B (Con trỏ nằm ngoài PDF hoặc bấm nút thanh công cụ):* Người dùng nhấp vào nút `+` hoặc `-` trên floating toolbar: Hệ thống lấy tâm điểm màn hình làm điểm neo, tài liệu phóng to / thu nhỏ đồng tâm từ chính giữa khung nhìn của giáo viên.
   3. Triệt tiêu hoàn toàn hiện tượng giật cục hoặc bị nhảy về góc trên cùng bên trái $(0, 0)$. Khôi phục ổn định tọa độ cuộn khi vẽ lại canvas ở độ phân giải thực.

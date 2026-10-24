@@ -298,27 +298,29 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
 * **Mã phân hệ:** `MOD-10`
 * **Mục tiêu:** Cung cấp không gian làm việc chuyên nghiệp chuẩn hóa theo gói lệnh quốc gia `ex_test.sty` v3.3, biên dịch PDF thời gian thực (Live Preview) và tích hợp Trợ lý AI Copilot hỗ trợ soạn thảo, đề xuất sửa lỗi cục bộ thông minh.
 * **Các chức năng chi tiết:**
-  1. **Không gian Làm việc Phân tách 2 Cột Co Giãn Linh Hoạt (Resizable Split View):**
+  1. **Không gian Làm việc Phân tách 2 Cột Co Giãn Linh Hoạt & Thanh Splitter Chuẩn Apple HIG:**
      - Cột trái: Editor mã nguồn Dark mode (`#141824`), toolbar `MỚI`, `THÊM ▾` (7 mẫu lệnh `ex_test`), đánh số dòng, hoàn tác/làm lại, dọn dẹp, sao chép.
-     - Thanh phân cách ngang (`#composer-col-splitter`): Nằm giữa 2 cột, hỗ trợ kéo thả chuột/cảm ứng để tùy biến tỷ lệ bề rộng từ 25% đến 75% (mặc định 60:40, tự động ghi nhớ cấu hình vào `localStorage`).
+     - Thanh phân cách ngang (`#composer-split-resizer`): Nằm giữa 2 cột với khoảng cách đệm công thái học `w-3.5` / `w-4` và lề an toàn `mx-1` / `mx-1.5`, không đè sát viền box soạn thảo (Ảnh 2). Trục viên thuốc `w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]` mang phong cách Apple HIG, quầng sáng xanh Apple `#0071e3` khi hover, hỗ trợ kéo thả chuột/cảm ứng tùy biến tỷ lệ 25% - 75% (nháy đúp về 60:40, lưu `localStorage`).
      - Cột phải: Xem trước trực tiếp tệp PDF biên dịch từ XeTeX Engine (Live Preview), tab Lịch sử biên dịch, công tắc LỜI GIẢI (`[dethi]` <-> `[loigiai]`), menu xuất PDF/TeX/Ngân hàng và thanh nút bấm nổi bật màu xanh **`BIÊN DỊCH`**.
-  2. **Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Tương Phản Dark Mode (High-Contrast Tokens):**
+  2. **Thanh Nhập Prompt AI Thu Gọn, Cơ Chế Xóa Sạch Lạc Quan (Optimistic Input Reset) & Tương Phản Dark Mode:**
      - Thanh dạng viên thuốc (floating pill bar) neo tại chân editor (`#composer-ai-compact-bar`), thiết kế bán trong suốt Apple Glassmorphism.
      - *Độ tương phản Dark Mode (WCAG 2.1 AA):* Chữ trong ô input `#composer-compact-input` và ô chat chính `#composer-chat-input` hiển thị màu trắng sáng `#f8fafc`, caret màu xanh Apple `#38bdf8`, loại bỏ hoàn toàn lỗi chữ đen chìm trên nền tối.
      - *Hành vi click:* Nhấp chuột vào thanh chỉ để focus con trỏ văn bản (`cursor-text`) và nhập liệu bình thường; **tuyệt đối không tự động mở full popup trợ lý** để tránh gián đoạn không gian soạn thảo.
      - *Kích hoạt mở rộng & Optimistic Fast Dispatch:* Chỉ khi người dùng nhấn phím **`Enter`** hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**, hệ thống mới mở bung giao diện Popup Trợ lý Soạn thảo (`#composer-ai-popup`) với hiệu ứng phần cứng mượt mà trong $\le 16$ms, chuyển tiếp chuỗi prompt và kích hoạt luồng trả lời của AI Copilot.
+     - *Cơ chế Xóa Sạch Lạc Quan (Optimistic Dual-Input Reset):* Xóa sạch ngay lập tức cả 2 ô nhập (`compactInput.value = ''` và `chatInput.value = ''`) tại $t = 0\text{ms}$ khi gửi lệnh, triệt tiêu hoàn toàn lỗi text cũ còn kẹt trong ô nhập (Ảnh 1).
      - *Menu mẫu lệnh nhanh:* Nút dấu cộng `+` cung cấp sẵn các mẫu prompt chuẩn (đổi cỡ chữ 12pt, tạo câu hỏi Phần I/II/III, vẽ bảng biến thiên `tkz-tab`, sửa lỗi cú pháp LaTeX).
   3. **Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding):**
      - Khi biên dịch LaTeX qua Tectonic/XeTeX phát sinh lỗi (`success = false`), hệ thống tự động lưu giữ thông báo lỗi vào `lastCompileError`.
      - Prompt tiếp theo của người dùng tự động đính kèm `compile_error_log` để AI Copilot phân tích cú pháp TeX và tự động đề xuất khối `diff` sửa lỗi trực tiếp dòng mã nguồn bị sai.
-  4. **Động Cơ Thay Thế Dòng Mờ (Fuzzy Replacement) & Inline Editor Diff Overlay Độc Quyền Trên Khung Soạn Thảo:**
-     - Khi AI đề xuất sửa đổi/diff, hệ thống hiển thị trực quan khối so sánh Diff trực tiếp và độc quyền trên trình soạn thảo mã nguồn LaTeX (thông qua Inline Editor Diff Overlay tại đúng dòng bị ảnh hưởng và/hoặc Inline Diff Banner trên đỉnh editor).
+  4. **Động Cơ Thay Thế Dòng Mờ & Duyệt Đa Khối Diff (Multi-Diff 1/N, Apply All) Độc Quyền Trên Khung Soạn Thảo:**
+     - Khi AI đề xuất sửa đổi (hỗ trợ nhiều khối diff cùng lúc `diffs: List[DiffSuggestion]`), hệ thống hiển thị trực quan khối so sánh Diff trực tiếp và độc quyền trên trình soạn thảo mã nguồn LaTeX (thông qua Inline Editor Diff Overlay tại đúng dòng bị ảnh hưởng và Top Diff Banner trên đỉnh editor).
      - **Bắt buộc:** Tuyệt đối KHÔNG hiển thị widget diff trùng lặp trong bubble chat của Trợ lý. Khung chat chỉ hiển thị lời giải thích, hướng dẫn sư phạm hoặc phân tích lỗi ngắn gọn.
-     - Khối so sánh trên Editor:
-       + Dòng đỏ xóa (`- old_text`): Nền `rose-950/70`, viền trái đỏ tươi `border-l-4 border-rose-500`, chữ đỏ `text-rose-300`.
-       + Dòng xanh thêm (`+ new_text`): Nền `emerald-950/70`, viền trái xanh ngọc `border-l-4 border-emerald-500`, chữ xanh `text-emerald-300`.
-       + Nút điều khiển nội dòng: **`[Keep / Đồng ý]`** và **`[Undo / Từ chối]`** ngay tại dòng mã nguồn.
-     - Động cơ Khớp Mờ 5 Tầng (5-Tier Resilient Line Matcher): Chuẩn hóa ngắt dòng, bỏ qua thụt lề, quét cửa sổ trượt và thay thế theo phạm vi dòng đã ghim `pinnedRange`, bảo đảm tỷ lệ thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
+     - Bộ điều khiển đa diff trên Editor (Ảnh 3):
+       + Huy hiệu đếm động: Hiển thị vị trí diff hiện thời `${currentDiffIndex + 1}/${pendingDiffs.length}` (thay vì cố định `1/1`).
+       + Bộ điều hướng tuần tự: Nút **`[< Trước]`** và nút **`[Sau >]`** cho phép lật qua lại giữa các khối diff cần duyệt.
+       + Thao tác từng khối: **`[Keep / Đồng ý]`** áp dụng diff hiện tại và chuyển tiếp; **`[Undo / Từ chối]`** bỏ qua diff hiện tại.
+       + Nút **`[Áp dụng tất cả] (Apply All)`**: Cho phép giáo viên áp dụng toàn bộ các thay đổi được gợi ý cùng một lúc với 1 click duy nhất.
+     - Động cơ Khớp Mờ 6 Tầng (6-Tier Resilient Line Matcher): Chuẩn hóa ngắt dòng, bỏ qua thụt lề, quét cửa sổ trượt và thay thế theo phạm vi dòng đã ghim `pinnedRange`, bảo đảm tỷ lệ thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
   5. **Kéo Thả Điều Chỉnh Độ Cao Box Trợ Lý Soạn Thảo Linh Hoạt (Vertical Drag Resize & Unified Single Pill Handle):**
      - Hợp nhất hoàn toàn thanh kéo biên trên và thanh pill trong header thành duy nhất một thanh ngang viên thuốc (`#composer-ai-resize-handle`) ở trung tâm header của popup trợ lý (loại bỏ hoàn toàn thanh pill phụ bên trên mép popup).
      - Co giãn độ cao mượt mà theo phương đứng (giới hạn an toàn từ 180px đến 92% chiều cao khung editor).

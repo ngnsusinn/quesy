@@ -201,6 +201,8 @@ select:focus, input[type="text"]:not(#composer-compact-input):focus, input[type=
 #composer-split-resizer {
   cursor: col-resize !important;
   touch-action: none;
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 .composer-resizing-h {
