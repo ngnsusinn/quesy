@@ -2,14 +2,18 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn và trợ lý soạn đề AI Copilot trực tiếp.  
-- **Ngày phát hành:** 2026-10-23
-- **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)  
+- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.
+- **Ngày phát hành:** 2026-10-24  
+- **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
 ---
 
 ## 1. SƠ ĐỒ TỔNG THỂ USE CASE (SYSTEM USE CASE DIAGRAM)
+
+### 1.1. Quy tắc Quản trị Git Workflow & Không Tự Động Tạo Pull Request (Mandatory Git Rule)
+- **Bắt buộc:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
+- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
 
 ```
                        ┌────────────────────────────────────────────────────────┐
@@ -231,34 +235,97 @@
 
 ---
 
-### UC-11: SOẠN ĐỀ VỚI TRỢ LÝ AI COPILOT & DUYỆT DIFF TRỰC TIẾP
+### UC-11: SOẠN ĐỀ VỚI TRỢ LÝ AI COPILOT, KÉO THẢ RESIZE ĐA CHIỀU & DUYỆT DIFF TRÊN EDITOR
 - **Mã Use Case:** `UC-11`
-- **Tên Use Case:** Soạn thảo đề thi với Trợ lý AI Copilot, Thanh Compact Prompt Bar và Duyệt Diff trực tiếp trên Editor
+- **Tên Use Case:** Soạn thảo đề thi với Trợ lý AI Copilot, Kéo thả Resize Đa chiều, Quản lý Phiên sạch sẽ và Duyệt Diff độc quyền trên Editor
 - **Tác nhân chính:** Giáo viên Bộ môn
 - **Tác nhân hỗ trợ:** AI Copilot Service (`/api/v1/composer/chat`), Tectonic Compiler Engine
 - **Điều kiện tiên quyết:** Người dùng truy cập phân hệ Soạn đề (`/composer`).
 
 #### Luồng sự kiện chính (Main Success Scenario):
-1. Người dùng soạn thảo mã LaTeX trên trình soạn thảo Dark mode (`#141824`).
+1. Người dùng soạn thảo mã LaTeX trên trình soạn thảo Dark mode (`#141824`). Mỗi phiên mới bắt đầu với màn hình chat sạch sẽ và lời chào mặc định từ Quesy Copilot.
 2. Khi cần hỗ trợ chỉnh sửa (đổi font 11pt sang 12pt, sửa đáp án, vẽ bảng biến thiên, kiểm tra và sửa lỗi biên dịch):
    - Người dùng nhấp chuột vào Thanh Nhập Prompt AI thu gọn ở chân editor (`#composer-compact-bar`).
    - Ô nhập nhận focus bình thường (`cursor-text`), chữ hiển thị màu trắng sáng `#f8fafc` và con trỏ `#38bdf8` rõ nét trên nền tối Dark mode, **tuyệt đối không tự động mở full popup**, cho phép người dùng gõ hoặc dán nội dung yêu cầu mà không bị che khuất màn hình.
 3. Người dùng nhấn phím **`Enter`** (hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**):
-   - Giao diện phản hồi tức thì (Optimistic Fast Dispatch $\le 16$ms): mở bung full Popup Trợ lý Soạn thảo (`#composer-ai-popup`), ẩn thanh compact bar, đưa tin nhắn vào lịch sử và cuộn mượt đến đáy.
+   - **Cơ chế Xóa Sạch Lạc Quan (Optimistic Input Reset $\le 0\text{ms}$):** Hệ thống lập tức xóa trắng cả 2 ô nhập (`compactInput.value = ''` và `chatInput.value = ''`), loại bỏ hoàn toàn hiện tượng text chat cũ còn kẹt trong ô nhập (Ảnh 1).
+   - Giao diện phản hồi tức thì (Optimistic Fast Dispatch $\le 16$ms): mở bung full Popup Trợ lý Soạn thảo (`#composer-ai-popup`), ẩn thanh compact bar, đưa tin nhắn vào lịch sử phiên hiện tại và cuộn mượt đến đáy.
    - Nếu lần biên dịch trước đó gặp lỗi từ XeTeX/Tectonic, hệ thống tự động đính kèm `compile_error_log` vào payload gửi đến `POST /api/v1/composer/chat`.
-4. Phía máy chủ AI Copilot phân tích yêu cầu cùng tài liệu hiện tại và log lỗi biên dịch (nếu có), chẩn đoán nguyên nhân và bóc tách đề xuất sửa đổi thành cấu trúc `DiffSuggestion(action, old_text, new_text, description)`.
+4. Phía máy chủ AI Copilot phân tích yêu cầu cùng tài liệu hiện tại và log lỗi biên dịch (nếu có), chẩn đoán nguyên nhân và bóc tách toàn bộ đề xuất sửa đổi thành cấu trúc đa diff `ChatResponse(reply, diff, diffs)`:
+   - Trường `diffs`: Danh sách toàn bộ các khối `DiffSuggestion(action, old_text, new_text, description)` trích xuất được (Ảnh 3).
+   - Trường `diff`: Khối diff đầu tiên phục vụ tương thích ngược.
 5. Phía trình duyệt tiếp nhận phản hồi:
-   - Thuật toán định vị tìm chính xác dòng mã nguồn của đoạn `old_text` trong editor, tự động cuộn khung nhìn textarea đến đúng dòng đó và bôi đen vùng chọn.
-   - Đồng thời hiển thị 2 tầng giao diện trực quan:
-     + Banner Gợi ý Sửa đổi (Inline Diff Banner) trên đỉnh editor: huy hiệu số dòng `GỢI Ý TẠI DÒNG [lineNo]`.
-     + Giao diện Diff Nội Dòng (Inline Editor Diff Overlay / Widget) ngay tại đúng vị trí dòng mã nguồn trên textarea: khối dòng đỏ xóa `- old_text` và khối dòng xanh thêm `+ new_text` kèm hai nút điều khiển trực tiếp `[Keep / Đồng ý]` và `[Undo / Từ chối]`.
-6. Người dùng xem xét đề xuất sửa đổi và có 2 lựa chọn thao tác trực tiếp:
-   - **Kịch bản 6a - Người dùng nhấn [Keep / Đồng ý]:**
-     1. Hệ thống kích hoạt Động cơ Thay thế Dòng mờ Đa tầng (5-Tier Fuzzy Line Replacement Engine): so khớp chuỗi chuẩn hóa, bỏ qua thụt lề, quét cửa sổ trượt hoặc thay thế theo phạm vi dòng đã ghim `pinnedRange`.
-     2. Đảm bảo thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
-     3. Hệ thống tự động kích hoạt biên dịch tức thì `compile(true)` để làm mới tệp PDF Live Preview ở cột đối diện.
-     4. Ẩn diff overlay & banner diff, hiển thị thông báo toast thành công: *"Đã áp dụng thay đổi vào mã nguồn!"*.
-   - **Kịch bản 6b - Người dùng nhấn [Undo / Từ chối]:**
-     1. Hệ thống ẩn diff overlay và banner diff, hủy bỏ vùng bôi đen, đưa con trỏ về trạng thái bình thường.
-     2. Toàn bộ mã nguồn tài liệu được giữ nguyên vẹn 100% không bị thay đổi.
-7. Người dùng có thể tiếp tục trò chuyện hoặc tái áp dụng đề xuất từ thẻ Diff Card lưu trong lịch sử chat bất kỳ lúc nào.
+   - Trong bubble chat của Trợ lý: Chỉ hiển thị lời văn giải thích ngắn gọn, phân tích nguyên nhân lỗi cú pháp hoặc hướng dẫn sư phạm dưới dạng markdown thuần túy. **Quy tắc bắt buộc:** Tuyệt đối KHÔNG hiển thị widget diff hay nút duyệt diff lặp lại bên trong bubble chat.
+   - Trên vùng Code Editor: Khởi tạo cỗ máy trạng thái `pendingDiffs = diffs` và trỏ con trỏ `currentDiffIndex = 0`. Thuật toán định vị tìm chính xác dòng mã nguồn của đoạn `old_text` của diff hiện tại, tự động cuộn khung nhìn textarea đến đúng dòng đó và bôi đen vùng chọn. Đồng thời kích hoạt hiển thị khối so sánh diff song hành trên cả Top Banner và Inline Overlay:
+     + Huy hiệu định vị động: Hiển thị viên thuốc `${currentDiffIndex + 1}/${pendingDiffs.length}` (thay thế số `1/1` tĩnh).
+     + Bộ điều hướng tuần tự: Nút **`[< Trước]`** và nút **`[Sau >]`** cho phép lật qua lại giữa các đề xuất sửa đổi nếu có nhiều hơn 1 khối diff.
+     + Hai nút thao tác đơn lẻ `[Keep / Đồng ý]` và `[Undo / Từ chối]` cho diff hiện hành.
+     + Nút **`[Áp dụng tất cả] (Apply All)`**: Hiển thị nổi bật với nền xanh Apple khi `pendingDiffs.length > 1`.
+6. Người dùng xem xét đề xuất sửa đổi và thực hiện thao tác trực tiếp trên Editor:
+   - **Kịch bản 6a - Người dùng nhấn [Keep / Đồng ý] trên diff hiện tại:**
+     1. Hệ thống kích hoạt Động cơ Thay thế Dòng mờ Đa tầng (6-Tier Fuzzy Line Replacement Engine): áp dụng đoạn mã mới của diff hiện tại.
+     2. Loại bỏ diff này khỏi danh sách (`pendingDiffs.splice(currentDiffIndex, 1)`).
+     3. Nếu hết diff (`pendingDiffs.length === 0`): Tự động đóng banner & overlay, tự động recompile `compile(true)` và hiển thị thông báo toast: *"Đã áp dụng thay đổi vào mã nguồn!"*.
+     4. Nếu vẫn còn diff: Giữ nguyên giao diện, tự động chuyển trọng tâm hiển thị sang diff kế tiếp (`renderCurrentDiff()`), cuộn màn hình và bôi đen vị trí dòng tương ứng.
+   - **Kịch bản 6b - Người dùng nhấn [Undo / Từ chối] trên diff hiện tại:**
+     1. Hệ thống bỏ qua không áp dụng diff hiện tại, loại bỏ khỏi `pendingDiffs`.
+     2. Nếu hết diff: Ẩn diff overlay và banner diff, hủy bỏ vùng bôi đen, đưa con trỏ về trạng thái bình thường.
+     3. Nếu còn diff: Chuyển sang hiển thị diff kế tiếp.
+   - **Kịch bản 6c - Người dùng nhấn [Áp dụng tất cả] (Apply All - Ảnh 3):**
+     1. Hệ thống tự động duyệt qua toàn bộ $N$ khối diff trong `pendingDiffs` theo thứ tự từ trên xuống dưới.
+     2. Áp dụng tuần tự toàn bộ các đoạn mã thay thế `(old_text, new_text)` vào buffer mã nguồn.
+     3. Cập nhật mã nguồn mới vào editor một lần duy nhất, kích hoạt `compile(true)` để làm mới PDF ở cột Live Preview.
+     4. Đóng toàn bộ banner & overlay diff (`dismissPendingDiffs()`).
+     5. Hiển thị thông báo Toast thành công: *"Đã áp dụng toàn bộ N sửa đổi vào mã nguồn!"*.
+
+#### Các luồng phụ (Alternate Flows):
+- **Luồng 6d - Kéo thả thanh Splitter ngang điều chỉnh tỷ lệ 2 cột chuẩn Apple HIG (#composer-split-resizer - Ảnh 2):**
+  1. Người dùng di chuột vào thanh phân cách `#composer-split-resizer` giữa cột Editor và Live Preview (con trỏ đổi thành `cursor-col-resize`). Thanh nằm trong rãnh đệm thông thoáng `w-3.5` / `w-4` với lề `mx-1` / `mx-1.5`, trục viên thuốc cách đều viền 2 card từ 6px đến 8px, không chạm đè lên viền của box soạn thảo.
+  2. Vạch viên thuốc `w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]` chuyển màu xanh Apple System Blue `#0071e3`, quầng sáng vi mô tỏa nhẹ và vạch giãn nhẹ `scale-y-110`.
+  3. Người dùng nhấn giữ và kéo chuột sang trái hoặc sang phải. Hệ thống kích hoạt phản hồi xúc giác `scale-95`, bật tấm chắn bảo vệ `pointer-events: none` trên khung PDF Preview, tính toán tỷ lệ bề rộng phần trăm cột trái theo thời gian thực (60 FPS) trong dải an toàn $25\% - 75\%$.
+  4. Khi thả chuột, hệ thống cập nhật layout, kích hoạt `syncEditorScroll()`, tự động tính toán lại `fitToWidth(true)` và lưu tỷ lệ mới vào `localStorage` (`quesy_composer_split_ratio`).
+  5. Nếu người dùng nháy đúp (`dblclick`) vào thanh splitter: Tỷ lệ 2 cột lập tức quay về tỷ lệ vàng mặc định 60% Left : 40% Right.
+- **Luồng 6e - Kéo thả điều chỉnh độ cao Box Trợ lý Soạn thảo (Vertical Drag Resize & Single Pill Handle):**
+  1. Người dùng di chuột vào thanh ngang viên thuốc duy nhất (`#composer-ai-resize-handle`) ở trung tâm header của popup trợ lý (hoặc viền trên).
+  2. Người dùng nhấn giữ và kéo chuột/ngón tay lên trên (tăng chiều cao) hoặc xuống dưới (giảm chiều cao).
+  3. Hệ thống tạm thời ngắt CSS transition, cập nhật độ cao liên tục trong phạm vi $180\text{px}$ (hoặc $20\%$) đến $92\%$ chiều cao khung editor.
+  4. Khi thả chuột, hệ thống lưu độ cao tùy chỉnh vào `localStorage` (`quesy_composer_ai_height`). Nếu người dùng chỉ click nhanh hoặc nhấp đúp vào pill handle mà không kéo, hệ thống toggle nhanh giữa 56% và 78%.
+- **Luồng 6f - Quản lý Phiên mới & Tra cứu Lịch sử Phiên cũ:**
+  1. Khi người dùng muốn bắt đầu phiên thảo luận mới, nhấp vào nút `newChat` (icon reset xoay vòng): Phiên hiện tại (nếu có tin nhắn người dùng) được đóng gói và lưu trữ vào kho phiên cũ `quesy_composer_chat_sessions`. Khung chat active lập tức được dọn dẹp sạch sẽ và hiển thị lời chào ban đầu.
+  2. Khi người dùng muốn xem lại các câu lệnh trước đó, nhấp vào nút **`[Lịch sử]`** (`#composer-ai-history-btn`): Khung chat tạm ẩn, mở ra panel danh sách lịch sử với đầy đủ các phiên cũ. Người dùng có thể nhấp vào một câu lệnh cũ để nạp lại vào ô nhập hoặc tải lại phiên cũ, sau đó bấm "✕ Đóng" để tiếp tục làm việc.
+- **Luồng 6g - Tự động Co giãn Chiều rộng PDF & Cuộn Ngang An Toàn (Auto Fit-to-Width & Horizontal Scroll):**
+  1. Khi người dùng kéo thanh splitter `#composer-split-resizer` làm thay đổi bề rộng Cột Xem Trước (Live Preview) hoặc đổi cỡ cửa sổ:
+  2. Nếu hệ thống đang ở chế độ xem mặc định (`isAutoFit === true`), tỷ lệ `fitZoom` được tự động tính toán lại theo chiều rộng khả dụng (`clientWidth - 48px`), co giãn trực tiếp thẻ trang PDF và canvas theo thời gian thực (60 FPS trong lúc kéo), sau đó vẽ lại vector sắc nét (debounced 100ms).
+  3. Khung cuộn `#composer-pdf-scroll-container` kích hoạt thuộc tính `overflow-x-auto`, khi kích thước trang vượt quá bề rộng khung nhìn, thanh cuộn ngang hiển thị trơn tru, cho phép giáo viên cuộn xem trọn vẹn lề phải tài liệu mà không bao giờ bị cắt xén.
+- **Luồng 6h - Phóng to / Thu nhỏ Thông Minh theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point):**
+  1. *Trường hợp A (Con trỏ nằm trên PDF):* Người dùng giữ `Ctrl` và lăn chuột (`wheel`): Hệ thống lấy chính xác tọa độ con trỏ chuột $(x_v, y_v)$ làm điểm neo, phóng to / thu nhỏ mà điểm nội dung ngay dưới con trỏ chuột được ghim bất biến, không bị trôi lệch.
+  2. *Trường hợp B (Con trỏ nằm ngoài PDF hoặc bấm nút thanh công cụ):* Người dùng nhấp vào nút `+` hoặc `-` trên floating toolbar: Hệ thống lấy tâm điểm màn hình làm điểm neo, tài liệu phóng to / thu nhỏ đồng tâm từ chính giữa khung nhìn của giáo viên.
+  3. Triệt tiêu hoàn toàn hiện tượng giật cục hoặc bị nhảy về góc trên cùng bên trái $(0, 0)$. Khôi phục ổn định tọa độ cuộn khi vẽ lại canvas ở độ phân giải thực.
+- **Luồng 6i - Thay thế Câu hỏi Chuyên sâu qua Ngôn ngữ Tự nhiên & Bảo toàn Khối mã Chat Bubble (Question Replacement & Safe Sync):**
+  1. Người dùng nhập câu lệnh yêu cầu thay thế câu hỏi cụ thể trong đề thi (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"* hoặc *"Thay câu 2 bằng câu khác"*).
+  2. Phía backend tiếp nhận yêu cầu, hàm `find_question_block(current_latex, n)` bóc tách chính xác khối mã LaTeX của câu hỏi thứ $n$ trong tài liệu hiện tại (chuẩn `ex_test.sty` hoặc nhãn `\textbf{Câu n.}`).
+  3. Cơ chế Smart Diff Binding liên kết trực tiếp `old_text = câu_hỏi_cũ` và `new_text = câu_hỏi_mới` do AI hoặc local fallback sinh ra, bỏ qua hoàn toàn việc so sánh tương đồng chuỗi `SequenceMatcher` (vốn thất bại khi câu mới khác đề tài câu cũ).
+  4. Phản hồi API trả về `diff` và `diffs` hợp lệ:
+     - Trên editor: Kích hoạt Inline Diff Overlay và Top Banner tại đúng vị trí câu thứ $n$, bôi đen vùng mã cũ để giáo viên duyệt.
+     - Trong chat bubble: Ẩn khối mã diff, hiển thị badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"*.
+  5. *Luồng ngoại lệ (Nếu diff rỗng hoặc câu hỏi N không tìm thấy trong editor):*
+     - Hệ thống giữ nguyên vẹn khối mã nguồn LaTeX trong chat bubble.
+     - Hiển thị 3 nút bấm tương tác: `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`.
+     - Tuyệt đối không xóa nuốt mất mã của người dùng và không hiển thị badge gợi ý sai lệch.
+- **Luồng 6j - Soạn thảo Đề thi Tinh gọn Không Preamble & Tự Động Nhúng Ngầm Canonical Preamble (Preamble-Free Authoring & Mode Switch):**
+  1. Người dùng mở phân hệ Soạn đề (`/composer`):
+     - Textarea editor `#composer-editor-input` nạp sẵn nội dung đề thi tinh gọn chỉ gồm tiêu đề và các câu hỏi chuẩn `ex_test.sty` (`\begin{ex}...\end{ex}`), hoàn toàn không chứa khai báo `\documentclass`, `\usepackage`, hay `\begin{document}`.
+     - Giao diện hiển thị chỉ báo trạng thái: *"Preamble tiêu chuẩn đã được nạp tự động (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4)"*.
+  2. Người dùng nhập mới, chỉnh sửa các câu hỏi trắc nghiệm (`\choice`), Đúng/Sai (`\choiceTF`), Trả lời ngắn (`\shortans`), chèn đồ thị TikZ (`\begin{tikzpicture}`) hoặc hình ảnh cạnh chữ (`\immini`).
+  3. Khi gửi biên dịch (nhấn `BIÊN DỊCH` hoặc auto-compile sau 800ms):
+     - Trình duyệt gửi request `POST /api/v1/composer/compile` với payload `{ latex_code, title, mode }`.
+     - Máy chủ phát hiện mã không có `\documentclass`, tự động tiêm Canonical Preamble tích hợp đầy đủ các gói `fontspec`, `amsmath,amssymb`, `tikz,tkz-tab`, `tcolorbox`, `xparse` và `\usepackage[{mode}]{ex_test}` khổ giấy A4 chuẩn lề 18mm.
+     - PDF được biên dịch ra sắc nét và hiển thị trực tiếp trên Live Preview.
+  4. Người dùng gạt công tắc `LỜI GIẢI` (`#composer-solution-toggle`):
+     - Giao diện chuyển đổi trạng thái `this.showSolution` giữa `true` (Hiện lời giải) và `false` (Ẩn lời giải).
+     - Hệ thống gửi yêu cầu biên dịch với cờ `mode = 'loigiai'` hoặc `mode = 'dethi'`.
+     - Backend biên dịch tức thì với tùy chọn tương ứng của `ex_test`, không sửa đổi bất kỳ ký tự nào trong textarea editor của người dùng.
+  5. Khi người dùng dán toàn bộ tài liệu TeX cũ có sẵn `\documentclass`:
+     - Backend tự động nhận diện chế độ toàn vẹn, bảo toàn cấu trúc tài liệu của người dùng, nâng cấp các gói lệnh tương thích XeTeX và đồng bộ tùy chọn `[dethi]` / `[loigiai]`.
+  6. Khi người dùng chọn menu `XUẤT FILE ▾` -> `Tải mã nguồn TeX (.tex)`:
+     - Hệ thống tự động kiểm tra: nếu mã trong editor là dạng tinh gọn không preamble, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi lưu tệp tải về, đảm bảo giáo viên có thể biên dịch độc lập ngay trên TeXLive / Overleaf.

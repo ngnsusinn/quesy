@@ -3833,6 +3833,24 @@
     }
   }
 
+  // Helper: Strip outer preamble (\documentclass, \usepackage, \begin{document}, etc.) to ensure Preamble-Free editor
+  function extractPreambleFreeBody(latex) {
+    if (!latex || typeof latex !== 'string') return '';
+    if (!latex.includes('\\documentclass')) {
+      return latex;
+    }
+    const docMatch = latex.match(/\\begin\{document\}([\s\S]*?)\\end\{document\}/);
+    let body = docMatch ? docMatch[1].trim() : latex;
+    body = body.replace(/\\documentclass(\[[^\]]*\])?\{[^}]*\}/g, '');
+    body = body.replace(/\\usepackage(\[[^\]]*\])?\{[^}]*\}/g, '');
+    body = body.replace(/\\tcbuselibrary\{[^}]*\}/g, '');
+    body = body.replace(/\\pagestyle\{[^}]*\}/g, '');
+    body = body.replace(/\\thispagestyle\{[^}]*\}/g, '');
+    body = body.replace(/\\begin\{document\}/g, '');
+    body = body.replace(/\\end\{document\}/g, '');
+    return body.trim();
+  }
+
   // ============================================================================
   // ============================================================================
   // 13. TAB 2: SOẠN ĐỀ (AI LATEX COMPOSER & LIVE PDF PREVIEW - NOCTORIUM CLONE)
@@ -3850,6 +3868,8 @@
     aiPaneCollapsed: false,
     showSolution: true,
     chatHistory: [],
+    sessions: [],
+    currentSessionId: null,
     compilationHistory: [],
     templates: {},
 
@@ -3909,13 +3929,13 @@
       const savedContent = localStorage.getItem('quesy_composer_content');
       const editor = document.getElementById('composer-editor-input');
       if (savedContent && savedContent.trim()) {
-        this.currentLatex = savedContent;
+        this.currentLatex = extractPreambleFreeBody(savedContent);
       } else if (this.templates['ex_test_standard_exam']) {
-        this.currentLatex = this.templates['ex_test_standard_exam'].latex;
+        this.currentLatex = extractPreambleFreeBody(this.templates['ex_test_standard_exam'].latex);
       } else if (this.templates['circular_32_full_exam']) {
-        this.currentLatex = this.templates['circular_32_full_exam'].latex;
+        this.currentLatex = extractPreambleFreeBody(this.templates['circular_32_full_exam'].latex);
       } else {
-        this.currentLatex = `\\documentclass[11pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\begin{ex}\nCho hàm số bậc ba $y = f(x)$...\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n\n\\end{document}\n`;
+        this.currentLatex = `\\begin{center}\n  \\textbf{\\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\\\\\n  \\textbf{\\large MÔN THI: TOÁN HỌC}\\\\\\n  \\textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}\n\\end{center}\n\\vspace{0.4cm}\n\n\\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}\n\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}\n\n\\begin{ex}\n\\immini{\n  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.\n  Hàm số đã cho đồng biến trên khoảng nào dưới đây?\n}{\n  \\begin{tikzpicture}[scale=0.55, >=stealth]\n    \\draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};\n    \\draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};\n    \\node[below left] at (0, 0) {$O$};\n    \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};\n    \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};\n    \\draw[thick, smooth, domain=-2.3:3.1] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n    \\fill (-1, 3) circle (1.5pt);\n    \\fill (2, -2) circle (1.5pt);\n  \\end{tikzpicture}\n}\n\\choice\n{\\True $(-\\infty; -1)$}\n{$(-1; 2)$}\n{$(0; 2)$}\n{$(-\\infty; 2)$}\n\\begin{loigiai}\nDựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty; -1)$ và $(2; +\\infty)$.\n\\end{loigiai}\n\\end{ex}\n`;
       }
 
       if (editor) {
@@ -3924,9 +3944,11 @@
         this.updateCharCount();
       }
 
-      // 4. Restore Chat & History
+      // 4. Restore Chat & History & Resizers
       this.initChat();
       this.initHistory();
+      this.initAIPopupResizer();
+      this.initSplitResizer();
 
       // 5. Setup global click-outside for dropdowns
       document.addEventListener('click', (e) => {
@@ -4020,32 +4042,71 @@
       if (menu) menu.classList.add('hidden');
     },
 
-    downloadTex() {
+    async downloadTex() {
       if (!this.currentLatex) return;
-      const blob = new Blob([this.currentLatex], { type: 'text/x-tex;charset=utf-8' });
+      const menu = document.getElementById('composer-dropdown-export');
+      if (menu) menu.classList.add('hidden');
+      try {
+        const res = await fetch(`${API_BASE_URL}/composer/export`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            latex_code: this.currentLatex,
+            mode: this.showSolution ? 'loigiai' : 'dethi',
+            title: this.activeTitle
+          })
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${this.activeTitle.replace(/\s+/g, '_')}.tex`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('Đã tải tệp mã nguồn .tex hoàn chỉnh!', 'success');
+          return;
+        }
+      } catch (err) {
+        console.warn('Fallback to local export:', err);
+      }
+      let exportLatex = this.currentLatex;
+      // If code is preamble-free, wrap with canonical preamble for standalone compile in external TeX editors
+      if (!exportLatex.includes('\\documentclass')) {
+        const solOpt = this.showSolution ? 'loigiai' : 'dethi';
+        exportLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb,amsfonts}\n\\usepackage[left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm]{geometry}\n\\usepackage{multicol}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[${solOpt}]{ex_test}\n\n\\begin{document}\n${exportLatex}\n\\end{document}\n`;
+      }
+      const blob = new Blob([exportLatex], { type: 'text/x-tex;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${this.activeTitle.replace(/\\s+/g, '_')}.tex`;
+      a.download = `${this.activeTitle.replace(/\s+/g, '_')}.tex`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast('Đang tải tệp mã nguồn .tex...', 'info');
-      const menu = document.getElementById('composer-dropdown-export');
-      if (menu) menu.classList.add('hidden');
+      showToast('Đang tải tệp mã nguồn .tex hoàn chỉnh...', 'info');
     },
 
     newDocument() {
       if (confirm('Bạn có chắc chắn muốn tạo mới tài liệu?')) {
-        const cleanLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\n\\begin{ex}\n\n\\choice\n{}\n{}\n{}\n{}\n\\loigiai{\n\n}\n\\end{ex}\n\n\\end{document}\n`;
+        let cleanLatex = '';
+        if (this.templates && this.templates['blank_exam']) {
+          cleanLatex = extractPreambleFreeBody(this.templates['blank_exam'].latex);
+        } else if (this.templates && this.templates['ex_test_standard_exam']) {
+          cleanLatex = extractPreambleFreeBody(this.templates['ex_test_standard_exam'].latex);
+        } else {
+          cleanLatex = `\\begin{center}\n  \\textbf{\\large BÀI KIỂM TRA ĐỊNH KỲ MÔN TOÁN}\\\\\n  \\textit{Họ và tên: .................................................... Lớp: ................}\n\\end{center}\n\\vspace{0.4cm}\n\n\\begin{ex}\nNội dung câu hỏi thứ nhất soạn thảo theo chuẩn ex_test tại đây...\n\\choice\n{\\True Phương án A đúng}\n{Phương án B}\n{Phương án C}\n{Phương án D}\n\\begin{loigiai}\nLời giải chi tiết câu 1.\n\\end{loigiai}\n\\end{ex}\n`;
+        }
         const editor = document.getElementById('composer-editor-input');
         if (editor) {
           editor.value = cleanLatex;
           this.currentLatex = cleanLatex;
           this.handleEditorInput();
           this.compile(true);
-          showToast('Đã tạo mới tài liệu với mẫu ex_test!', 'success');
+          showToast('Đã tạo mới tài liệu với mẫu ex_test tinh gọn!', 'success');
         }
       }
     },
@@ -4061,23 +4122,28 @@
         }
       }
 
-      // Update LaTeX package option in editor if present
+      // Backward compatibility: If currentLatex has full preamble with ex_test, update option in editor
       let val = this.currentLatex;
-      if (this.showSolution) {
-        val = val.replace(/\\usepackage\[dethi\]\{ex_test\}/, '\\usepackage[loigiai]{ex_test}');
-        showToast('Đã bật chế độ LỜI GIẢI chi tiết.', 'info');
-      } else {
-        val = val.replace(/\\usepackage\[(?:loigiai|solcolor|color)\]\{ex_test\}/, '\\usepackage[dethi]{ex_test}');
-        showToast('Đã chuyển sang chế độ IN ĐỀ THI (ẩn lời giải).', 'info');
+      if (val.includes('\\usepackage[dethi]{ex_test}') || val.includes('\\usepackage[loigiai]{ex_test}')) {
+        if (this.showSolution) {
+          val = val.replace(/\\usepackage\[dethi\]\{ex_test\}/, '\\usepackage[loigiai]{ex_test}');
+        } else {
+          val = val.replace(/\\usepackage\[(?:loigiai|solcolor|color)\]\{ex_test\}/, '\\usepackage[dethi]{ex_test}');
+        }
+        const editor = document.getElementById('composer-editor-input');
+        if (editor) {
+          editor.value = val;
+          this.currentLatex = val;
+          this.handleEditorInput();
+        }
       }
 
-      const editor = document.getElementById('composer-editor-input');
-      if (editor) {
-        editor.value = val;
-        this.currentLatex = val;
-        this.handleEditorInput();
-        this.compile(true);
+      if (this.showSolution) {
+        showToast('Đã bật chế độ LỜI GIẢI chi tiết.', 'info');
+      } else {
+        showToast('Đã chuyển sang chế độ IN ĐỀ THI (ẩn lời giải).', 'info');
       }
+      this.compile(true);
     },
 
     switchPreviewTab(tab) {
@@ -4205,7 +4271,7 @@
 
       if (prefillPrompt && chatInput) {
         chatInput.value = prefillPrompt;
-      } else if (compactInput && compactInput.value && chatInput) {
+      } else if (!prefillPrompt && compactInput && compactInput.value && chatInput) {
         chatInput.value = compactInput.value;
         compactInput.value = '';
       }
@@ -4289,9 +4355,13 @@
       }
       if (compactInput) compactInput.value = '';
       const chatInput = document.getElementById('composer-chat-input');
-      if (chatInput) chatInput.value = '';
+      if (chatInput) {
+        chatInput.value = '';
+        chatInput.rows = 2;
+        chatInput.style.height = '';
+      }
 
-      this.openAIPopup(text);
+      this.openAIPopup('');
       this.sendPrompt(text);
     },
 
@@ -4321,14 +4391,50 @@
       }
     },
 
+    archiveCurrentSession() {
+      if (!this.chatHistory || !this.chatHistory.some(m => m.role === 'user')) return;
+      if (!this.currentSessionId) {
+        this.currentSessionId = 'session_' + Date.now();
+      }
+      const firstUser = this.chatHistory.find(m => m.role === 'user');
+      const title = (firstUser ? firstUser.content : 'Phiên trò chuyện').slice(0, 50);
+      const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('vi-VN');
+
+      const existingIdx = this.sessions.findIndex(s => s.id === this.currentSessionId);
+      const sessionObj = {
+        id: this.currentSessionId,
+        title: title,
+        timestamp: existingIdx >= 0 && this.sessions[existingIdx].timestamp ? this.sessions[existingIdx].timestamp : nowStr,
+        updatedAt: nowStr,
+        messages: JSON.parse(JSON.stringify(this.chatHistory))
+      };
+
+      if (existingIdx >= 0) {
+        this.sessions[existingIdx] = sessionObj;
+      } else {
+        this.sessions.unshift(sessionObj);
+      }
+
+      if (this.sessions.length > 30) {
+        this.sessions = this.sessions.slice(0, 30);
+      }
+
+      try {
+        localStorage.setItem('quesy_composer_sessions', JSON.stringify(this.sessions));
+      } catch (e) {
+        console.warn('Could not save sessions:', e);
+      }
+    },
+
     newChat() {
+      this.archiveCurrentSession();
+      this.currentSessionId = 'session_' + Date.now();
       this.chatHistory = [
         {
           role: 'assistant',
           content: 'Cuộc trò chuyện mới đã bắt đầu! Bạn có thể yêu cầu tôi đổi cỡ chữ (`12pt`), tạo câu hỏi trắc nghiệm chuẩn, chèn bảng biến thiên `tkz-tab` hoặc vẽ hình TikZ.'
         }
       ];
-      localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory));
       this.renderChatMessages();
       this.renderHistoryList();
       showToast('Đã bắt đầu phiên trò chuyện mới!', 'info');
@@ -4337,16 +4443,24 @@
     toggleHistoryView() {
       const historyPanel = document.getElementById('composer-ai-history-panel');
       const chatMessages = document.getElementById('composer-chat-messages');
+      const inputContainer = document.getElementById('composer-chat-input-container');
+      const popup = document.getElementById('composer-ai-popup');
       if (!historyPanel || !chatMessages) return;
 
       this.isHistoryViewOpen = !this.isHistoryViewOpen;
       if (this.isHistoryViewOpen) {
+        if (popup && popup.offsetHeight < 320) {
+          popup.style.height = '56%';
+          this.aiPopupHeight = '56%';
+        }
         this.renderHistoryList();
         historyPanel.classList.remove('hidden');
         chatMessages.classList.add('hidden');
+        if (inputContainer) inputContainer.classList.add('hidden');
       } else {
         historyPanel.classList.add('hidden');
         chatMessages.classList.remove('hidden');
+        if (inputContainer) inputContainer.classList.remove('hidden');
       }
     },
 
@@ -4354,31 +4468,107 @@
       const listEl = document.getElementById('composer-ai-history-list');
       if (!listEl) return;
 
-      const userMessages = (this.chatHistory || []).filter(m => m.role === 'user');
-      if (!userMessages.length) {
+      try {
+        const saved = localStorage.getItem('quesy_composer_sessions');
+        if (saved) {
+          this.sessions = JSON.parse(saved);
+        }
+      } catch (e) {}
+
+      if (!this.sessions || this.sessions.length === 0) {
         listEl.innerHTML = `
-          <div class="py-6 text-center text-slate-500 text-xs">
+          <div class="py-8 text-center text-slate-500 text-xs select-none">
             <i data-lucide="history" class="w-8 h-8 mx-auto mb-2 text-slate-600 stroke-[1.5]"></i>
-            <p>Chưa có lịch sử câu lệnh nào trong phiên này</p>
+            <p class="font-medium text-slate-400">Chưa có phiên lịch sử nào</p>
+            <p class="text-[11px] text-slate-600 mt-1">Các phiên trò chuyện trước sẽ tự động lưu lại ở đây khi bạn tương tác với Trợ lý.</p>
           </div>
         `;
         if (window.lucide) lucide.createIcons();
         return;
       }
 
-      listEl.innerHTML = userMessages.slice().reverse().map((msg, idx) => {
-        const text = escapeHtml(msg.content);
-        return `
-          <div onclick="app.composer.selectHistoryItem('${encodeURIComponent(msg.content)}')" class="p-2.5 rounded-xl bg-[#222226] hover:bg-[#2c2c32] border border-white/5 hover:border-white/15 transition-all cursor-pointer flex items-center justify-between text-xs text-slate-300">
-            <div class="flex items-center space-x-2 min-w-0">
-              <span class="w-5 h-5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] flex items-center justify-center shrink-0">#${userMessages.length - idx}</span>
-              <span class="truncate font-sans font-medium text-slate-200">${text}</span>
+      listEl.innerHTML = this.sessions.map((sess) => {
+        const userMsgs = (sess.messages || []).filter(m => m.role === 'user');
+        const msgCount = userMsgs.length;
+        const isCurrent = sess.id === this.currentSessionId;
+        const titleEscaped = escapeHtml(sess.title || 'Phiên trò chuyện');
+        const timeDisplay = escapeHtml(sess.updatedAt || sess.timestamp || '');
+
+        const promptsList = userMsgs.slice(-3).map(m => {
+          const rawTextB64 = btoa(unescape(encodeURIComponent(m.content || '')));
+          return `
+            <div onclick="app.composer.selectHistoryItemB64('${rawTextB64}')" class="px-2 py-1 rounded bg-[#1c1c20] hover:bg-[#282830] text-slate-300 text-[11px] truncate cursor-pointer transition-colors flex items-center space-x-1.5" title="Bấm để dùng lại câu lệnh này">
+              <span class="text-purple-400 font-bold text-[10px]">›</span>
+              <span class="truncate">${escapeHtml(m.content)}</span>
             </div>
-            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+          `;
+        }).join('');
+
+        return `
+          <div class="p-3 rounded-xl bg-[#202024] border ${isCurrent ? 'border-purple-500/40 bg-purple-950/10' : 'border-white/5'} hover:border-white/15 transition-all text-xs space-y-2">
+            <div class="flex items-center justify-between min-w-0">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center space-x-2">
+                  <span class="font-bold text-slate-200 truncate font-sans text-xs">${titleEscaped}</span>
+                  ${isCurrent ? '<span class="px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 text-[9px] font-bold">Hiện tại</span>' : ''}
+                </div>
+                <div class="text-[10px] text-slate-400 mt-0.5 flex items-center space-x-2">
+                  <span>${timeDisplay}</span>
+                  <span>•</span>
+                  <span>${msgCount} câu lệnh</span>
+                </div>
+              </div>
+              <div class="flex items-center space-x-1 shrink-0 ml-2">
+                <button type="button" onclick="app.composer.loadSession('${sess.id}')" class="px-2.5 py-1 bg-purple-600/90 hover:bg-purple-600 text-white rounded-lg text-[11px] font-semibold flex items-center space-x-1 active:scale-95 transition-all cursor-pointer shadow-xs" title="Nạp lại toàn bộ phiên này">
+                  <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                  <span>Nạp lại</span>
+                </button>
+                <button type="button" onclick="app.composer.deleteSession('${sess.id}')" class="p-1 hover:bg-rose-900/30 text-slate-500 hover:text-rose-400 rounded-lg transition-all cursor-pointer" title="Xóa phiên này">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+            ${promptsList ? `<div class="space-y-1 pt-1 border-t border-white/5">${promptsList}</div>` : ''}
           </div>
         `;
       }).join('');
+
       if (window.lucide) lucide.createIcons();
+    },
+
+    loadSession(sessionId) {
+      const sess = this.sessions.find(s => s.id === sessionId);
+      if (!sess) return;
+      this.currentSessionId = sess.id;
+      this.chatHistory = JSON.parse(JSON.stringify(sess.messages || []));
+
+      const historyPanel = document.getElementById('composer-ai-history-panel');
+      const chatMessages = document.getElementById('composer-chat-messages');
+      if (historyPanel) historyPanel.classList.add('hidden');
+      if (chatMessages) chatMessages.classList.remove('hidden');
+      const inputContainer = document.getElementById('composer-chat-input-container');
+      if (inputContainer) inputContainer.classList.remove('hidden');
+      this.isHistoryViewOpen = false;
+
+      this.renderChatMessages();
+      showToast(`Đã nạp lại phiên: ${sess.title}`, 'success');
+    },
+
+    deleteSession(sessionId) {
+      this.sessions = this.sessions.filter(s => s.id !== sessionId);
+      try {
+        localStorage.setItem('quesy_composer_sessions', JSON.stringify(this.sessions));
+      } catch (e) {}
+      this.renderHistoryList();
+      showToast('Đã xóa phiên khỏi lịch sử!', 'info');
+    },
+
+    clearAllSessions() {
+      if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử các phiên trước?')) return;
+      this.sessions = [];
+      localStorage.removeItem('quesy_composer_sessions');
+      this.renderHistoryList();
+      showToast('Đã xóa toàn bộ lịch sử các phiên!', 'info');
     },
 
     selectHistoryItem(encodedText) {
@@ -4387,12 +4577,260 @@
       const chatMessages = document.getElementById('composer-chat-messages');
       if (historyPanel) historyPanel.classList.add('hidden');
       if (chatMessages) chatMessages.classList.remove('hidden');
+      const inputContainer = document.getElementById('composer-chat-input-container');
+      if (inputContainer) inputContainer.classList.remove('hidden');
       this.isHistoryViewOpen = false;
 
       const input = document.getElementById('composer-chat-input');
       if (input) {
         input.value = text;
         input.focus();
+      }
+    },
+
+    selectHistoryItemB64(b64) {
+      try {
+        const text = decodeURIComponent(escape(atob(b64)));
+        this.selectHistoryItem(encodeURIComponent(text));
+      } catch (e) {
+        console.error('Error selecting history item:', e);
+      }
+    },
+
+    initAIPopupResizer() {
+      const popup = document.getElementById('composer-ai-popup');
+      const handle = document.getElementById('composer-ai-resize-handle');
+      const editorPane = document.getElementById('composer-editor-pane');
+      if (!popup || !editorPane) return;
+
+      const savedHeight = localStorage.getItem('quesy_composer_ai_height');
+      if (savedHeight) {
+        this.aiPopupHeight = savedHeight;
+        popup.style.height = savedHeight;
+      }
+
+      let isDragging = false;
+      let startY = 0;
+      let hasDragged = false;
+
+      const onMouseDown = (e) => {
+        e.preventDefault();
+        isDragging = true;
+        hasDragged = false;
+        startY = e.clientY;
+        popup.style.transition = 'none';
+        document.body.classList.add('composer-resizing-v');
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      };
+
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+        if (Math.abs(e.clientY - startY) > 4) {
+          hasDragged = true;
+        }
+        const paneRect = editorPane.getBoundingClientRect();
+        if (!paneRect.height) return;
+
+        const newHeightPx = paneRect.bottom - e.clientY;
+        let pct = (newHeightPx / paneRect.height) * 100;
+        pct = Math.min(90, Math.max(20, pct));
+
+        popup.style.height = `${pct.toFixed(1)}%`;
+        this.aiPopupHeight = `${pct.toFixed(1)}%`;
+      };
+
+      const onMouseUp = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        popup.style.transition = '';
+        document.body.classList.remove('composer-resizing-v');
+
+        if (this.aiPopupHeight) {
+          localStorage.setItem('quesy_composer_ai_height', this.aiPopupHeight);
+        }
+
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      if (handle) {
+        handle.addEventListener('mousedown', onMouseDown);
+        handle.addEventListener('click', (e) => {
+          if (hasDragged) {
+            e.stopPropagation();
+            hasDragged = false;
+          }
+        }, true);
+      }
+    },
+
+    initSplitResizer() {
+      const container = document.getElementById('composer-split-container');
+      const leftCol = document.getElementById('composer-left-col');
+      const resizer = document.getElementById('composer-split-resizer');
+      if (!container || !leftCol || !resizer) return;
+
+      const savedRatio = localStorage.getItem('quesy_composer_split_ratio');
+      if (savedRatio) {
+        const r = parseFloat(savedRatio);
+        if (!isNaN(r) && r >= 25 && r <= 75) {
+          leftCol.style.width = `${r}%`;
+        }
+      }
+
+      let isDragging = false;
+
+      const onMouseDown = (e) => {
+        if (window.innerWidth < 1024) return;
+        e.preventDefault();
+        isDragging = true;
+        document.body.classList.add('composer-resizing-h');
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      };
+
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+        const rect = container.getBoundingClientRect();
+        if (!rect.width) return;
+
+        const offsetX = e.clientX - rect.left;
+        let pct = (offsetX / rect.width) * 100;
+        pct = Math.min(75, Math.max(25, pct));
+
+        leftCol.style.width = `${pct.toFixed(1)}%`;
+
+        const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+        if (scrollContainer && this.pdfBaseViewports && this.pdfBaseViewports[0]) {
+          const baseW = this.pdfBaseViewports[0].width;
+          const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+          const currentW = baseW * (this.zoomLevel || 1.0);
+          if (this.isFitWidth || currentW > availableW) {
+            this.fitToWidth(false);
+          }
+        }
+      };
+
+      const onMouseUp = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        document.body.classList.remove('composer-resizing-h');
+
+        const pct = parseFloat(leftCol.style.width);
+        if (!isNaN(pct)) {
+          localStorage.setItem('quesy_composer_split_ratio', pct.toFixed(1));
+        }
+
+        const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+        if (scrollContainer && this.pdfBaseViewports && this.pdfBaseViewports[0]) {
+          const baseW = this.pdfBaseViewports[0].width;
+          const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+          const currentW = baseW * (this.zoomLevel || 1.0);
+          if (this.isFitWidth || currentW > availableW) {
+            this.fitToWidth(true);
+          } else {
+            this.renderPDF();
+          }
+        } else {
+          this.renderPDF();
+        }
+
+        window.dispatchEvent(new Event('resize'));
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      resizer.addEventListener('mousedown', onMouseDown);
+
+      resizer.addEventListener('dblclick', () => {
+        leftCol.style.width = '60%';
+        localStorage.setItem('quesy_composer_split_ratio', '60');
+        const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+        if (scrollContainer && this.pdfBaseViewports && this.pdfBaseViewports[0]) {
+          const baseW = this.pdfBaseViewports[0].width;
+          const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+          const currentW = baseW * (this.zoomLevel || 1.0);
+          if (this.isFitWidth || currentW > availableW) {
+            this.fitToWidth(true);
+          } else {
+            this.renderPDF();
+          }
+        } else {
+          this.renderPDF();
+        }
+        window.dispatchEvent(new Event('resize'));
+        showToast('Đã đặt lại tỷ lệ chia 60:40', 'info');
+      });
+
+      if (!window._composerSplitResizeBound) {
+        window._composerSplitResizeBound = true;
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            if (window.app && window.app.composer && window.app.composer.pdfBaseViewports && window.app.composer.pdfBaseViewports[0]) {
+              const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+              if (scrollContainer) {
+                const baseW = window.app.composer.pdfBaseViewports[0].width;
+                const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+                const currentW = baseW * (window.app.composer.zoomLevel || 1.0);
+                if (window.app.composer.isFitWidth || currentW > availableW) {
+                  window.app.composer.fitToWidth(true);
+                }
+              }
+            }
+          }, 150);
+        });
+      }
+    },
+
+    fitToWidth(fullRender = true) {
+      const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+      if (!scrollContainer || !this.pdfBaseViewports || !this.pdfBaseViewports[0]) return;
+      const baseW = this.pdfBaseViewports[0].width;
+      if (baseW <= 0) return;
+      const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+
+      const fitScale = +(availableW / baseW).toFixed(2);
+      this.zoomLevel = Math.max(0.2, Math.min(3.0, fitScale));
+      this.isFitWidth = true;
+
+      const zoomDisplay = document.getElementById('composer-zoom-display');
+      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
+
+      if (this.pdfPages && this.pdfPages.length) {
+        const z = this.zoomLevel;
+        for (let i = 0; i < this.pdfPages.length; i++) {
+          const baseVp = this.pdfBaseViewports[i];
+          const card = document.getElementById(`pdf-page-${i + 1}`);
+          const canvas = document.getElementById(`pdf-canvas-${i + 1}`);
+          if (card && baseVp) {
+            const displayWidth = Math.round(baseVp.width * z);
+            const displayHeight = Math.round(baseVp.height * z);
+            card.style.width = `${displayWidth}px`;
+            card.style.height = `${displayHeight}px`;
+            if (canvas) {
+              canvas.style.width = `${displayWidth}px`;
+              canvas.style.height = `${displayHeight}px`;
+            }
+          }
+        }
+
+        if (fullRender) {
+          clearTimeout(this._renderTimer);
+          this._renderTimer = setTimeout(() => {
+            this.renderAllPages();
+          }, 80);
+        }
+      }
+    },
+
+    renderPDF() {
+      if (typeof this.renderAllPages === 'function' && this.pdfPages && this.pdfPages.length > 0) {
+        this.fitToWidth(true);
       }
     },
 
@@ -4405,6 +4843,8 @@
     },
 
     pendingDiff: null,
+    pendingDiffs: [],
+    currentDiffIndex: 0,
     _inlineDiffLineNo: null,
 
     _levenshteinSimilarity(s1, s2) {
@@ -4608,9 +5048,70 @@
       };
     },
 
+    showPendingDiffs(diffs) {
+      if (!diffs || !diffs.length) return;
+      this.pendingDiffs = Array.isArray(diffs) ? diffs.filter(d => d && (d.old_text || d.new_text)) : [diffs];
+      if (!this.pendingDiffs.length) return;
+      this.currentDiffIndex = 0;
+      this.renderCurrentDiff();
+    },
+
     showPendingDiff(diff) {
       if (!diff || !diff.old_text) return;
+      this.showPendingDiffs([diff]);
+    },
+
+    renderCurrentDiff() {
+      if (!this.pendingDiffs || !this.pendingDiffs.length) {
+        this.rejectPendingDiff();
+        return;
+      }
+      if (this.currentDiffIndex < 0) this.currentDiffIndex = 0;
+      if (this.currentDiffIndex >= this.pendingDiffs.length) this.currentDiffIndex = this.pendingDiffs.length - 1;
+
+      const diff = this.pendingDiffs[this.currentDiffIndex];
       this.pendingDiff = diff;
+      const total = this.pendingDiffs.length;
+      const current = this.currentDiffIndex + 1;
+
+      // Update multi-diff counter & navigation controls
+      const navGroup = document.getElementById('composer-diff-nav-group');
+      const counterEl = document.getElementById('composer-diff-counter');
+      const inlineCounterEl = document.getElementById('composer-inline-diff-counter');
+      const applyAllBtn = document.getElementById('composer-apply-all-btn');
+      const inlineApplyAllBtn = document.getElementById('composer-inline-apply-all-btn');
+
+      if (counterEl) counterEl.innerText = `GỢI Ý ${current}/${total}`;
+      if (inlineCounterEl) inlineCounterEl.innerText = `${current}/${total}`;
+
+      if (navGroup) {
+        if (total > 1) {
+          navGroup.classList.remove('hidden');
+          navGroup.classList.add('flex');
+        } else {
+          navGroup.classList.add('hidden');
+          navGroup.classList.remove('flex');
+        }
+      }
+      if (applyAllBtn) {
+        if (total > 1) {
+          applyAllBtn.classList.remove('hidden');
+          applyAllBtn.classList.add('flex');
+        } else {
+          applyAllBtn.classList.add('hidden');
+          applyAllBtn.classList.remove('flex');
+        }
+      }
+      if (inlineApplyAllBtn) {
+        if (total > 1) {
+          inlineApplyAllBtn.classList.remove('hidden');
+          inlineApplyAllBtn.classList.add('flex');
+        } else {
+          inlineApplyAllBtn.classList.add('hidden');
+          inlineApplyAllBtn.classList.remove('flex');
+        }
+      }
+
       const banner = document.getElementById('composer-pending-diff-banner');
       const descEl = document.getElementById('composer-diff-description');
       const oldEl = document.getElementById('composer-diff-old-text');
@@ -4636,6 +5137,21 @@
           editor.scrollTop = Math.max(0, (lineNo - 3) * lineHeight);
           this.syncEditorScroll();
         }
+      } else if (editor) {
+        // Fallback: try finding first line of old_text in editor
+        const firstOldLine = (diff.old_text || '').split('\n').map(l => l.trim()).find(l => l.length > 0);
+        if (firstOldLine) {
+          const lines = val.split('\n');
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes(firstOldLine) || (lines[i].trim() && firstOldLine.includes(lines[i].trim()))) {
+              lineNo = i + 1;
+              const lineHeight = 20;
+              editor.scrollTop = Math.max(0, (lineNo - 3) * lineHeight);
+              this.syncEditorScroll();
+              break;
+            }
+          }
+        }
       }
 
       this._inlineDiffLineNo = lineNo;
@@ -4643,16 +5159,16 @@
       const displayDesc = diff.description || `Thay đổi tại dòng ${lineNo}`;
       const displayNew = (diff.new_text !== undefined && diff.new_text !== null && diff.new_text !== '') ? diff.new_text : '(Xóa bỏ đoạn mã này)';
 
-      // 1. Update top banner
+      // 1. Update top banner - ALWAYS display banner on editor
       if (lineNoEl) lineNoEl.innerText = lineNo;
-      if (banner && descEl && oldEl && newEl) {
-        descEl.innerText = displayDesc;
-        oldEl.innerText = diff.old_text;
-        newEl.innerText = displayNew;
+      if (banner) {
+        if (descEl) descEl.innerText = displayDesc;
+        if (oldEl) oldEl.innerText = diff.old_text;
+        if (newEl) newEl.innerText = displayNew;
         banner.classList.remove('hidden');
       }
 
-      // 2. Render Inline Diff Widget directly over the target line in the Editor (Ảnh 4)
+      // 2. Render Inline Diff Widget directly over the target line in the Editor
       if (inlineOverlay && inlineDesc && inlineOld && inlineNew && editor) {
         inlineDesc.innerText = displayDesc;
         inlineOld.innerText = diff.old_text;
@@ -4677,45 +5193,26 @@
       if (window.lucide) lucide.createIcons();
     },
 
-    applyPendingDiff() {
-      if (!this.pendingDiff) return;
-      const { old_text, new_text } = this.pendingDiff;
-      this.applyDiffDirect(old_text, new_text);
-      this.rejectPendingDiff();
+    renderPendingDiff() {
+      this.renderCurrentDiff();
     },
 
-    rejectPendingDiff() {
-      this.pendingDiff = null;
-      this._inlineDiffLineNo = null;
-      const banner = document.getElementById('composer-pending-diff-banner');
-      if (banner) banner.classList.add('hidden');
-      const inlineOverlay = document.getElementById('composer-inline-diff-overlay');
-      if (inlineOverlay) inlineOverlay.classList.add('hidden');
-      const editor = document.getElementById('composer-editor-input');
-      if (editor) {
-        const cursor = editor.selectionEnd;
-        editor.setSelectionRange(cursor, cursor);
-      }
+    nextDiff() {
+      if (!this.pendingDiffs || this.pendingDiffs.length <= 1) return;
+      this.currentDiffIndex = (this.currentDiffIndex + 1) % this.pendingDiffs.length;
+      this.renderCurrentDiff();
     },
 
-    applyDiffDirect(oldText, newText) {
-      const editor = document.getElementById('composer-editor-input');
-      if (!editor) return;
+    prevDiff() {
+      if (!this.pendingDiffs || this.pendingDiffs.length <= 1) return;
+      this.currentDiffIndex = (this.currentDiffIndex - 1 + this.pendingDiffs.length) % this.pendingDiffs.length;
+      this.renderCurrentDiff();
+    },
 
-      let val = this.currentLatex || editor.value || '';
+    _replaceDiffInString(sourceText, oldText, newText) {
+      if (!sourceText) return { text: (newText || ''), replaced: true };
+      let val = sourceText;
       const safeNew = (newText !== undefined && newText !== null) ? newText : '';
-
-      if (!val) {
-        val = safeNew;
-        editor.value = val;
-        this.currentLatex = val;
-        this.handleEditorInput();
-        this.compile(true);
-        this.rejectPendingDiff();
-        showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
-        return;
-      }
-
       let replaced = false;
 
       // Tier 1: Exact match
@@ -4728,7 +5225,7 @@
       if (!replaced) {
         const trimmedOld = (oldText || '').trim();
         const trimmedNew = safeNew.trim();
-        if (val.includes(trimmedOld)) {
+        if (trimmedOld && val.includes(trimmedOld)) {
           val = val.replace(trimmedOld, trimmedNew);
           replaced = true;
         }
@@ -4739,13 +5236,13 @@
         const normVal = val.split(String.fromCharCode(13, 10)).join('\n');
         const normOld = (oldText || '').trim().split(String.fromCharCode(13, 10)).join('\n');
         const normNew = safeNew.trim().split(String.fromCharCode(13, 10)).join('\n');
-        if (normVal.includes(normOld)) {
+        if (normOld && normVal.includes(normOld)) {
           val = normVal.replace(normOld, normNew);
           replaced = true;
         }
       }
 
-      // Tier 4: Multi-level fuzzy match (Levenshtein / SequenceMatcher >= 60%)
+      // Tier 4: Multi-level fuzzy match (Levenshtein / SequenceMatcher >= 50%)
       if (!replaced) {
         const match = this._findFuzzyLineMatch(val, oldText);
         if (match && (match.score >= 0.50 || val.includes(match.matchedText))) {
@@ -4791,12 +5288,187 @@
         }
       }
 
+      return { text: val, replaced };
+    },
+
+    applyCurrentDiff() {
+      if (!this.pendingDiffs || !this.pendingDiffs.length) {
+        if (!this.pendingDiff) return;
+        this.applyDiffDirect(this.pendingDiff.old_text, this.pendingDiff.new_text);
+        return;
+      }
+      const cur = this.pendingDiffs[this.currentDiffIndex];
+      if (!cur) return;
+
+      const editor = document.getElementById('composer-editor-input');
+      let val = this.currentLatex || (editor ? editor.value : '') || '';
+      const res = this._replaceDiffInString(val, cur.old_text, cur.new_text);
+      val = res.text;
+
+      if (editor) editor.value = val;
+      this.currentLatex = val;
+      this.handleEditorInput();
+
+      this.pendingDiffs.splice(this.currentDiffIndex, 1);
+
+      if (this.pendingDiffs.length === 0) {
+        this.compile(true);
+        this.rejectPendingDiff();
+        showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
+      } else {
+        if (this.currentDiffIndex >= this.pendingDiffs.length) {
+          this.currentDiffIndex = 0;
+        }
+        this.renderCurrentDiff();
+        showToast(`Đã áp dụng 1 thay đổi. Còn ${this.pendingDiffs.length} gợi ý.`, 'info');
+      }
+    },
+
+    applyPendingDiff() {
+      this.applyCurrentDiff();
+    },
+
+    skipCurrentDiff() {
+      if (!this.pendingDiffs || !this.pendingDiffs.length) {
+        this.rejectPendingDiff();
+        return;
+      }
+      this.pendingDiffs.splice(this.currentDiffIndex, 1);
+      if (this.pendingDiffs.length === 0) {
+        this.rejectPendingDiff();
+        showToast('Đã đóng các gợi ý sửa đổi.', 'info');
+      } else {
+        if (this.currentDiffIndex >= this.pendingDiffs.length) {
+          this.currentDiffIndex = 0;
+        }
+        this.renderCurrentDiff();
+      }
+    },
+
+    applyAllPendingDiffs() {
+      if (!this.pendingDiffs || !this.pendingDiffs.length) {
+        if (this.pendingDiff) this.applyPendingDiff();
+        return;
+      }
+      const count = this.pendingDiffs.length;
+      const editor = document.getElementById('composer-editor-input');
+      let val = this.currentLatex || (editor ? editor.value : '') || '';
+
+      for (const d of this.pendingDiffs) {
+        if (d && (d.old_text || d.new_text)) {
+          const res = this._replaceDiffInString(val, d.old_text, d.new_text);
+          val = res.text;
+        }
+      }
+
+      if (editor) editor.value = val;
+      this.currentLatex = val;
+      this.handleEditorInput();
+      this.compile(true);
+      this.rejectPendingDiff();
+      showToast(`Đã áp dụng thành công tất cả ${count} thay đổi vào mã nguồn!`, 'success');
+    },
+
+    applyAllDiffs() {
+      this.applyAllPendingDiffs();
+    },
+
+    rejectPendingDiff() {
+      this.pendingDiff = null;
+      this.pendingDiffs = [];
+      this.currentDiffIndex = 0;
+      this._inlineDiffLineNo = null;
+      const banner = document.getElementById('composer-pending-diff-banner');
+      if (banner) banner.classList.add('hidden');
+      const inlineOverlay = document.getElementById('composer-inline-diff-overlay');
+      if (inlineOverlay) inlineOverlay.classList.add('hidden');
+      const navGroup = document.getElementById('composer-diff-nav-group');
+      if (navGroup) {
+        navGroup.classList.add('hidden');
+        navGroup.classList.remove('flex');
+      }
+      const applyAllBtn = document.getElementById('composer-apply-all-btn');
+      if (applyAllBtn) {
+        applyAllBtn.classList.add('hidden');
+        applyAllBtn.classList.remove('flex');
+      }
+      const inlineApplyAllBtn = document.getElementById('composer-inline-apply-all-btn');
+      if (inlineApplyAllBtn) {
+        inlineApplyAllBtn.classList.add('hidden');
+        inlineApplyAllBtn.classList.remove('flex');
+      }
+      const editor = document.getElementById('composer-editor-input');
+      if (editor) {
+        const cursor = editor.selectionEnd;
+        editor.setSelectionRange(cursor, cursor);
+      }
+    },
+
+    applyDiffDirect(oldText, newText) {
+      const editor = document.getElementById('composer-editor-input');
+      if (!editor) return;
+
+      let val = this.currentLatex || editor.value || '';
+      const res = this._replaceDiffInString(val, oldText, newText);
+      val = res.text;
+
       editor.value = val;
       this.currentLatex = val;
       this.handleEditorInput();
       this.compile(true);
       this.rejectPendingDiff();
       showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
+    },
+
+    findNthQuestionInLatex(latexCode, n) {
+      if (!latexCode || n < 1) return null;
+      // 1. ex_test.sty syntax (\begin{ex} ... \end{ex})
+      const exRegex = /\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}/g;
+      const exMatches = [];
+      let m;
+      while ((m = exRegex.exec(latexCode)) !== null) {
+        exMatches.push(m[0]);
+      }
+      if (exMatches.length > 0) {
+        return (n >= 1 && n <= exMatches.length) ? exMatches[n - 1] : null;
+      }
+      // 1b. Unclosed ex_test environments: \begin{ex} ... (ending at next \begin{ex} or \end{document} or EOF)
+      const unclosedRegex = /\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?(?=(?:\\begin\{(?:ex|bt|vd)\}|\\end\{document\}|$))/g;
+      const unclosedMatches = [];
+      while ((m = unclosedRegex.exec(latexCode)) !== null) {
+        unclosedMatches.push(m[0].trim());
+      }
+      if (unclosedMatches.length > 0) {
+        return (n >= 1 && n <= unclosedMatches.length) ? unclosedMatches[n - 1] : null;
+      }
+      // 2. Classic \textbf{Câu X.} or Câu X. syntax
+      const classicRegex = /(?:\\(?:noindent|medskip|bigskip)\s*)?\\textbf\{\s*Câu\s*(\d+)[\.:]?\s*\}|(?<![\w\\{])Câu\s*(\d+)[\.:]/gi;
+      const classicMatches = [];
+      while ((m = classicRegex.exec(latexCode)) !== null) {
+        classicMatches.push({
+          index: m.index,
+          num: parseInt(m[1] || m[2], 10)
+        });
+      }
+      if (!classicMatches.length) return null;
+      let targetIdx = classicMatches.findIndex(item => item.num === n);
+      if (targetIdx === -1 && n >= 1 && n <= classicMatches.length) {
+        targetIdx = n - 1;
+      }
+      if (targetIdx === -1) return null;
+      const startPos = classicMatches[targetIdx].index;
+      let endPos = latexCode.length;
+      if (targetIdx + 1 < classicMatches.length) {
+        endPos = classicMatches[targetIdx + 1].index;
+      } else {
+        const tail = latexCode.substring(startPos);
+        const endDoc = tail.match(/(\\end\{document\}|\\section\*?\{)/);
+        if (endDoc) {
+          endPos = startPos + endDoc.index;
+        }
+      }
+      const extracted = latexCode.substring(startPos, endPos).trimEnd();
+      return extracted || null;
     },
 
     extractDiffFromText(replyText, currentLatex, userMessage = '') {
@@ -4878,14 +5550,15 @@
         const targetChoice = choiceMatch[1].toUpperCase();
         const targetIdx = { A: 0, B: 1, C: 2, D: 3 }[targetChoice];
         if (targetIdx !== undefined) {
-          const chRegex = /\\choice\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/;
+          const chRegex = /\\choice\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/;
           const chMatch = currentLatex.match(chRegex);
           if (chMatch) {
             const oldFull = chMatch[0];
             const opts = [chMatch[1], chMatch[2], chMatch[3], chMatch[4]];
             const cleanedOpts = opts.map(o => o.replace(/\\True\s*/g, '').trim());
             cleanedOpts[targetIdx] = '\\True ' + cleanedOpts[targetIdx];
-            const newFull = `\\choice{${cleanedOpts[0]}}{${cleanedOpts[1]}}{${cleanedOpts[2]}}{${cleanedOpts[3]}}`;
+            const sep = oldFull.includes('\n') ? '\n' : '';
+            const newFull = `\\choice${sep}{${cleanedOpts[0]}}${sep}{${cleanedOpts[1]}}${sep}{${cleanedOpts[2]}}${sep}{${cleanedOpts[3]}}`;
             if (oldFull !== newFull) {
               return {
                 action: 'replace',
@@ -4980,6 +5653,40 @@
         }
       }
 
+      // Question N replacement heuristic: "thay thế câu (\d+)", "thay câu (\d+)", "sửa câu (\d+)", "đổi câu (\d+)", "replace question (\d+)"
+      const replaceQMatch = combinedLower.match(/(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)/i) ||
+                            combinedLower.match(/(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)/i);
+      if (replaceQMatch) {
+        const targetQ = parseInt(replaceQMatch[1], 10);
+        const oldQ = this.findNthQuestionInLatex ? this.findNthQuestionInLatex(currentLatex, targetQ) : null;
+        if (oldQ) {
+          let newQ = null;
+          // Check diff block for + lines first
+          const diffM = replyText.match(/```diff\s*\n([\s\S]*?)```/i);
+          if (diffM) {
+            const added = diffM[1].split('\n').filter(l => /^\s*\+/.test(l) && !l.startsWith('+++')).map(l => l.replace(/^\s*\+\s?/, ''));
+            if (added.length > 0) newQ = added.join('\n').trim();
+          }
+          if (!newQ) {
+            const codeM = replyText.match(/```(?:latex|tex)?\s*\n([\s\S]*?)```/i);
+            if (codeM && !codeM[1].trim().startsWith('\\documentclass')) {
+              newQ = codeM[1].trim();
+            } else {
+              const exM = replyText.match(/\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{(?:ex|bt|vd)\}/i);
+              if (exM) newQ = exM[0].trim();
+            }
+          }
+          if (newQ && newQ !== oldQ) {
+            return {
+              action: 'replace',
+              old_text: oldQ,
+              new_text: newQ,
+              description: `Thay thế Câu ${targetQ}`
+            };
+          }
+        }
+      }
+
       // 7. Code block comparison: AI returns revised LaTeX block (```latex ... ```)
       const codeMatch = replyText.match(/```(?:latex|tex)?\s*\n([\s\S]*?)```/);
       if (codeMatch) {
@@ -5021,23 +5728,46 @@
       const chatContainer = document.getElementById('composer-chat-messages');
       if (!chatContainer) return;
 
-      const savedChat = localStorage.getItem('quesy_composer_chat');
-      if (savedChat) {
-        try {
-          this.chatHistory = JSON.parse(savedChat);
-        } catch (e) {
-          this.chatHistory = [];
-        }
+      // 1. Load stored sessions from localStorage
+      try {
+        const savedSessions = localStorage.getItem('quesy_composer_sessions');
+        this.sessions = savedSessions ? JSON.parse(savedSessions) : [];
+      } catch (e) {
+        this.sessions = [];
       }
 
-      if (!this.chatHistory || this.chatHistory.length === 0) {
-        this.chatHistory = [
-          {
-            role: 'assistant',
-            content: 'Chào bạn! Tôi là **Trợ lý soạn thảo** (Quesy Copilot). Bạn có thể yêu cầu tôi đổi cỡ chữ (`12pt`), tạo câu hỏi trắc nghiệm, tạo bảng biến thiên `tkz-tab`, vẽ đồ thị TikZ hoặc kiểm tra và sửa lỗi cú pháp LaTeX trực tiếp.'
+      // 2. Migrate legacy single-chat history if it exists and has user messages
+      try {
+        const legacyChat = localStorage.getItem('quesy_composer_chat');
+        if (legacyChat) {
+          const parsed = JSON.parse(legacyChat);
+          if (Array.isArray(parsed) && parsed.some(m => m.role === 'user')) {
+            const firstUser = parsed.find(m => m.role === 'user');
+            const legacySess = {
+              id: 'session_' + Date.now(),
+              title: (firstUser ? firstUser.content : 'Phiên trước').slice(0, 50),
+              timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('vi-VN'),
+              messages: parsed
+            };
+            if (!this.sessions.some(s => s.title === legacySess.title)) {
+              this.sessions.unshift(legacySess);
+              localStorage.setItem('quesy_composer_sessions', JSON.stringify(this.sessions));
+            }
           }
-        ];
+        }
+      } catch (e) {
+        console.warn('Migration error:', e);
       }
+
+      // 3. New session starts fresh with ONLY the default greeting message
+      this.currentSessionId = 'session_' + Date.now();
+      this.chatHistory = [
+        {
+          role: 'assistant',
+          content: 'Chào bạn! Tôi là **Trợ lý soạn thảo** (Quesy Copilot). Bạn có thể yêu cầu tôi đổi cỡ chữ (`12pt`), tạo câu hỏi trắc nghiệm, tạo bảng biến thiên `tkz-tab`, vẽ đồ thị TikZ hoặc kiểm tra và sửa lỗi cú pháp LaTeX trực tiếp.'
+        }
+      ];
+
       this.renderChatMessages();
       this.renderHistoryList();
 
@@ -5100,115 +5830,60 @@
       if (!text) return '';
       let html = text;
 
-      // Smart fallback diff extraction if diff not provided
-      if (!diff && this.extractDiffFromText) {
-        diff = this.extractDiffFromText(text, this.currentLatex);
+      // Smart fallback diff extraction if diff not provided or missing valid old_text
+      if ((!diff || !diff.old_text || !diff.old_text.trim()) && this.extractDiffFromText) {
+        const fallbackDiff = this.extractDiffFromText(text, this.currentLatex);
+        if (fallbackDiff && fallbackDiff.old_text && fallbackDiff.old_text.trim()) {
+          diff = fallbackDiff;
+        }
       }
 
-      // If diff payload is provided and text doesn't already have an inline diff block
-      if (diff && diff.old_text && !html.includes('```diff')) {
-        const b64Old = btoa(unescape(encodeURIComponent(diff.old_text)));
-        const b64New = btoa(unescape(encodeURIComponent(diff.new_text || '')));
-        const diffBlock = `
-          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
-            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
-              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý thay đổi trực tiếp (${escapeHtml(diff.description || 'Chỉnh sửa dòng')})</span>
-              <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý áp dụng</span>
-                </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
-                  <span>✖ Từ chối</span>
-                </button>
+      // CHỈ coi là có diff khi diff && diff.old_text && diff.old_text.trim().length > 0
+      const hasDiff = Boolean(
+        diff && diff.old_text && typeof diff.old_text === 'string' && diff.old_text.trim().length > 0
+      );
+
+      if (hasDiff) {
+        // 1. Remove ```diff ... ``` blocks from chat bubble when diff is valid and shown on editor
+        html = html.replace(/```diff\s*[\s\S]*?```/gi, '');
+
+        // 2. Remove OLD / NEW or CŨ / MỚI replacement blocks from chat bubble
+        const oldNewRegex = /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|$)/gi;
+        html = html.replace(oldNewRegex, '');
+
+        // 3. Remove block replacement code fences from chat bubble if it was just replacing code
+        const blockRepRegex = /(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n[\s\S]*?\n```\s*\n*(?:thành|bằng|sang|mới|sau):/gi;
+        html = html.replace(blockRepRegex, '');
+      } else {
+        // KHÔNG ẩn khối code ```diff: render khối code diff kèm nút Chèn vào con trỏ và Áp dụng thay thế
+        html = html.replace(/```diff\s*([\s\S]*?)```/gi, (match, diffContent) => {
+          const rawCode = diffContent.trim();
+          const plusLines = rawCode.split('\n').filter(l => /^\s*\+/.test(l) && !l.startsWith('+++')).map(l => l.replace(/^\s*\+\s?/, ''));
+          const insertPayload = (plusLines.length > 0 ? plusLines.join('\n') : rawCode).trim();
+          const b64Code = btoa(unescape(encodeURIComponent(insertPayload)));
+          return `
+            <div class="code-block-wrapper my-2 rounded-xl overflow-hidden border border-slate-700/80 shadow-xs">
+              <div class="code-block-actions flex items-center justify-between bg-slate-800 text-slate-300 px-3 py-1.5 text-[10px]">
+                <span class="font-mono text-purple-400 font-semibold">Diff Code</span>
+                <div class="flex items-center space-x-1.5">
+                  <button type="button" onclick="app.composer.insertB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-all active:scale-95 flex items-center space-x-1" title="Chèn vào vị trí con trỏ trong mã nguồn">
+                    <span>📥 Chèn vào con trỏ</span>
+                  </button>
+                  <button type="button" onclick="app.composer.replaceB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-white font-semibold transition-all active:scale-95 flex items-center space-x-1" title="Áp dụng thay thế">
+                    <span>⚡ Áp dụng thay thế</span>
+                  </button>
+                  <button type="button" onclick="app.composer.copyB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Sao chép">
+                    <span>📋 Sao chép</span>
+                  </button>
+                </div>
               </div>
+              <pre class="bg-slate-900 text-amber-300 p-2.5 font-mono text-[11px] overflow-x-auto leading-relaxed max-h-56 select-text whitespace-pre"><code>${escapeHtml(rawCode)}</code></pre>
             </div>
-            <div class="diff-body text-[11px] leading-relaxed">
-              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
-                <span class="text-rose-400 font-bold select-none">-</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(diff.old_text)}</span>
-              </div>
-              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
-                <span class="text-emerald-400 font-bold select-none">+</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(diff.new_text || '')}</span>
-              </div>
-            </div>
-          </div>
-        `;
-        // Strip out redundant full-file latex snippet block
-        html = html.replace(/```(?:latex|tex)?\s*[\s\S]*?```/g, '');
-        html += diffBlock;
+          `;
+        });
       }
 
-      // 1. Interactive Diff Blocks (```diff ... ```)
-      html = html.replace(/```diff\s*([\s\S]*?)```/g, (match, diffContent) => {
-        const lines = diffContent.trim().split('\n');
-        const oldLines = lines.filter(l => l.trim().startsWith('-')).map(l => l.trim().replace(/^-\s*/, '')).join('\n');
-        const newLines = lines.filter(l => l.trim().startsWith('+')).map(l => l.trim().replace(/^\+\s*/, '')).join('\n');
-        const b64Old = btoa(unescape(encodeURIComponent(oldLines)));
-        const b64New = btoa(unescape(encodeURIComponent(newLines)));
-
-        return `
-          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
-            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
-              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
-              <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý áp dụng</span>
-                </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
-                  <span>✖ Từ chối</span>
-                </button>
-              </div>
-            </div>
-            <div class="diff-body text-[11px] leading-relaxed">
-              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
-                <span class="text-rose-400 font-bold select-none">-</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(oldLines)}</span>
-              </div>
-              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
-                <span class="text-emerald-400 font-bold select-none">+</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(newLines)}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-
-      // 2. Interactive OLD / NEW or CŨ / MỚI replacement blocks
-      const oldNewRegex = /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|$)/gi;
-      html = html.replace(oldNewRegex, (match, oldContent, newContent) => {
-        const oldClean = oldContent.trim();
-        const newClean = newContent.trim();
-        const b64Old = btoa(unescape(encodeURIComponent(oldClean)));
-        const b64New = btoa(unescape(encodeURIComponent(newClean)));
-        return `
-          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
-            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
-              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
-              <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý áp dụng</span>
-                </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
-                  <span>✖ Từ chối</span>
-                </button>
-              </div>
-            </div>
-            <div class="diff-body text-[11px] leading-relaxed">
-              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
-                <span class="text-rose-400 font-bold select-none">-</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(oldClean)}</span>
-              </div>
-              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
-                <span class="text-emerald-400 font-bold select-none">+</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(newClean)}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-
-      // 2. Standard LaTeX Snippets (```latex ... ```)
+      // 4. Standard LaTeX Snippets (```latex ... ```) - keep for code reference with insert/replace/copy buttons
       html = html.replace(/```(?:latex|tex)?\s*([\s\S]*?)```/g, (match, code) => {
         const rawCode = code.trim();
         const b64Code = btoa(unescape(encodeURIComponent(rawCode)));
@@ -5219,6 +5894,9 @@
               <div class="flex items-center space-x-1.5">
                 <button type="button" onclick="app.composer.insertB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-all active:scale-95 flex items-center space-x-1" title="Chèn vào vị trí con trỏ trong mã nguồn">
                   <span>📥 Chèn vào con trỏ</span>
+                </button>
+                <button type="button" onclick="app.composer.replaceB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-white font-semibold transition-all active:scale-95 flex items-center space-x-1" title="Áp dụng thay thế">
+                  <span>⚡ Áp dụng thay thế</span>
                 </button>
                 <button type="button" onclick="app.composer.copyB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Sao chép">
                   <span>📋 Sao chép</span>
@@ -5234,7 +5912,18 @@
       html = html.replace(/\*([^*]+)\*/g, '<em class="text-slate-300">$1</em>');
       html = html.replace(/`([^`]+)`/g, '<code class="bg-[#2d2d31] text-purple-300 border border-white/10 px-1.5 py-0.5 rounded font-mono text-[11px] font-semibold">$1</code>');
       html = html.replace(/\n\n/g, '<br><br>');
-      return html;
+
+      // 5. If a diff was detected, add brief unobtrusive notification note ONLY when hasDiff is true
+      if (hasDiff) {
+        html += `
+          <div class="my-2 px-2.5 py-1.5 rounded-lg bg-blue-950/40 border border-blue-500/25 text-blue-300 text-[11px] flex items-center space-x-1.5 select-none">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+            <span>Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn</span>
+          </div>
+        `;
+      }
+
+      return html.trim();
     },
 
     insertB64Code(b64) {
@@ -5253,23 +5942,49 @@
         const editor = document.getElementById('composer-editor-input');
         if (!editor) return;
 
-        // Safety guard: prevent replacing entire exam if code is just a small snippet
-        if (!code.includes('\\documentclass') && this.currentLatex && this.currentLatex.length > 80) {
-          showToast('Đoạn mã này là đoạn trích ngắn, không thể thay thế toàn bộ tài liệu!', 'warning');
+        // If code is a full document, replace all
+        if (code.includes('\\documentclass')) {
+          if (this.currentLatex && this.currentLatex.length > 50) {
+            if (!confirm('Bạn có chắc chắn muốn thay thế toàn bộ tài liệu hiện tại bằng mã mới?')) {
+              return;
+            }
+          }
+          editor.value = code;
+          this.currentLatex = code;
+          this.handleEditorInput();
+          this.compile(true);
+          showToast('Đã thay thế toàn bộ tài liệu bằng mã mới!', 'success');
           return;
         }
 
-        if (this.currentLatex && this.currentLatex.length > 50) {
-          if (!confirm('Bạn có chắc chắn muốn thay thế toàn bộ tài liệu hiện tại bằng mã mới?')) {
-            return;
-          }
+        // If code is a question or snippet, find matching question or block in currentLatex
+        let candidateDiff = null;
+        if (this.extractDiffFromText) {
+          candidateDiff = this.extractDiffFromText('```latex\n' + code + '\n```', this.currentLatex, 'thay thế');
+        }
+        if (candidateDiff && candidateDiff.old_text) {
+          this.showPendingDiffs([candidateDiff]);
+          showToast('Đã tạo gợi ý thay thế trên ô soạn thảo! Nhấn "Keep / Đồng ý" để áp dụng.', 'info');
+          return;
         }
 
-        editor.value = code;
-        this.currentLatex = code;
-        this.handleEditorInput();
-        this.compile(true);
-        showToast('Đã thay thế toàn bộ tài liệu bằng mã mới!', 'success');
+        // Fallback: If user has text selected in editor, replace selection
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        if (start !== undefined && end !== undefined && start !== end) {
+          const val = editor.value;
+          const newVal = val.substring(0, start) + code + val.substring(end);
+          editor.value = newVal;
+          this.currentLatex = newVal;
+          this.handleEditorInput();
+          this.compile(true);
+          showToast('Đã thay thế đoạn văn bản được chọn!', 'success');
+          return;
+        }
+
+        // Otherwise insert snippet at cursor
+        this.insertSnippet(code);
+        showToast('Đã chèn đoạn mã vào vị trí con trỏ!', 'success');
       } catch (e) {
         console.error('Error replacing code:', e);
       }
@@ -5291,6 +6006,8 @@
       const text = input.value.trim();
       if (!text) return;
       input.value = '';
+      input.rows = 2;
+      input.style.height = '';
 
       this.sendPrompt(text);
     },
@@ -5299,14 +6016,31 @@
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.submitChat();
+        const input = document.getElementById('composer-chat-input');
+        if (input) {
+          input.rows = 2;
+          input.style.height = '';
+        }
       }
     },
 
     async sendPrompt(promptText) {
+      const chatInput = document.getElementById('composer-chat-input');
+      if (chatInput) {
+        chatInput.value = '';
+        chatInput.rows = 2;
+        chatInput.style.height = '';
+      }
+      const compactInput = document.getElementById('composer-compact-input');
+      if (compactInput) {
+        compactInput.value = '';
+      }
+
       if (!this.isAIPopupOpen) {
         this.openAIPopup();
       }
       this.chatHistory.push({ role: 'user', content: promptText });
+      this.archiveCurrentSession();
       this.renderChatMessages();
       this.renderHistoryList();
 
@@ -5350,30 +6084,42 @@
 
         if (res.ok) {
           const data = await res.json();
-          let diff = data.diff;
-          if (!diff && this.extractDiffFromText) {
-            diff = this.extractDiffFromText(data.reply, this.currentLatex, promptText);
+          let diffs = (data.diffs && Array.isArray(data.diffs) && data.diffs.length) ? data.diffs : [];
+          if (!diffs.length && data.diff) {
+            diffs = [data.diff];
           }
-          this.chatHistory.push({ role: 'assistant', content: data.reply, diff: diff || null });
+          if (!diffs.length && this.extractDiffFromText) {
+            const single = this.extractDiffFromText(data.reply, this.currentLatex, promptText);
+            if (single) diffs = [single];
+          }
+          // Filter out diffs with invalid or empty old_text
+          diffs = diffs.filter(d => d && d.old_text && typeof d.old_text === 'string' && d.old_text.trim().length > 0);
+
+          let diff = diffs.length ? diffs[0] : null;
+          this.chatHistory.push({ role: 'assistant', content: data.reply, diff: diff || null, diffs: diffs });
+          this.archiveCurrentSession();
           localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory.slice(-20)));
           this.renderChatMessages();
 
-          if (diff) {
-            this.showPendingDiff(diff);
+          if (diffs.length) {
+            this.showPendingDiffs(diffs);
           }
         } else {
           this.chatHistory.push({ role: 'assistant', content: 'Rất tiếc, đã có lỗi kết nối với máy chủ AI. Vui lòng thử lại sau.' });
+          this.archiveCurrentSession();
           this.renderChatMessages();
         }
       } catch (err) {
         const typingEl = document.getElementById(tempId);
         if (typingEl) typingEl.remove();
         this.chatHistory.push({ role: 'assistant', content: `Lỗi kết nối: ${err.message}` });
+        this.archiveCurrentSession();
         this.renderChatMessages();
       }
     },
 
     clearChat() {
+      this.currentSessionId = 'session_' + Date.now();
       this.chatHistory = [
         {
           role: 'assistant',
@@ -5383,7 +6129,7 @@
       localStorage.removeItem('quesy_composer_chat');
       this.renderChatMessages();
       this.renderHistoryList();
-      showToast('Đã xóa sạch lịch sử hội thoại.', 'info');
+      showToast('Đã xóa sạch nội dung hội thoại hiện tại.', 'info');
     },
 
     handleEditorInput() {
@@ -5542,11 +6288,12 @@
         }
       }
 
+      const cleanTmplLatex = extractPreambleFreeBody(tmpl.latex);
       const editor = document.getElementById('composer-editor-input');
       const titleInput = document.getElementById('composer-doc-title');
       if (editor) {
-        editor.value = tmpl.latex;
-        this.currentLatex = tmpl.latex;
+        editor.value = cleanTmplLatex;
+        this.currentLatex = cleanTmplLatex;
         this.handleEditorInput();
       }
       if (titleInput && tmpl.title) {
@@ -5585,7 +6332,9 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             latex_code: this.currentLatex,
-            title: this.activeTitle
+            title: this.activeTitle,
+            mode: this.showSolution ? 'loigiai' : 'dethi',
+            show_solution: !!this.showSolution
           })
         });
 
@@ -5681,7 +6430,7 @@
             if (e.ctrlKey || e.metaKey) {
               e.preventDefault();
               const delta = e.deltaY < 0 ? 0.1 : -0.1;
-              app.composer.zoomPreview(delta);
+              app.composer.zoomPreview(delta, { clientX: e.clientX, clientY: e.clientY });
             }
           }, { passive: false });
 
@@ -5726,12 +6475,15 @@
 
         // Calculate initial zoom to fit container width nicely
         if (scrollContainer && this.pdfBaseViewports[0]) {
-          const availableW = scrollContainer.clientWidth - 48;
-          if (availableW > 200 && this.pdfBaseViewports[0].width > 0) {
-            const fitZoom = +(availableW / this.pdfBaseViewports[0].width).toFixed(1);
-            this.zoomLevel = Math.max(0.5, Math.min(2.0, fitZoom));
+          const baseW = this.pdfBaseViewports[0].width;
+          const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+          if (availableW > 200 && baseW > 0) {
+            const fitZoom = +(availableW / baseW).toFixed(2);
+            this.zoomLevel = Math.max(0.2, Math.min(3.0, fitZoom));
+            this.isFitWidth = true;
           } else {
             this.zoomLevel = 1.0;
+            this.isFitWidth = false;
           }
         }
         const zoomDisplay = document.getElementById('composer-zoom-display');
@@ -5776,8 +6528,78 @@
       }
     },
 
-    zoomPreview(delta) {
-      this.zoomLevel = Math.max(0.4, Math.min(2.5, +(this.zoomLevel + delta).toFixed(1)));
+    zoomPreview(delta, anchorPoint = null) {
+      this.isFitWidth = false;
+      const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+      const oldScale = this.zoomLevel || 1.0;
+      const newScale = Math.max(0.4, Math.min(2.5, +(oldScale + delta).toFixed(1)));
+      if (newScale === oldScale) return;
+
+      const zoomDisplay = document.getElementById('composer-zoom-display');
+      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(newScale * 100)}%`;
+
+      let originX = 0;
+      let originY = 0;
+      let oldScrollLeft = 0;
+      let oldScrollTop = 0;
+
+      if (scrollContainer) {
+        oldScrollLeft = scrollContainer.scrollLeft;
+        oldScrollTop = scrollContainer.scrollTop;
+        const containerRect = scrollContainer.getBoundingClientRect();
+        if (
+          anchorPoint &&
+          typeof anchorPoint.clientX === 'number' &&
+          typeof anchorPoint.clientY === 'number' &&
+          anchorPoint.clientX >= containerRect.left &&
+          anchorPoint.clientX <= containerRect.right &&
+          anchorPoint.clientY >= containerRect.top &&
+          anchorPoint.clientY <= containerRect.bottom
+        ) {
+          originX = anchorPoint.clientX - containerRect.left;
+          originY = anchorPoint.clientY - containerRect.top;
+        } else {
+          originX = scrollContainer.clientWidth / 2;
+          originY = scrollContainer.clientHeight / 2;
+        }
+      }
+
+      this.zoomLevel = newScale;
+      const ratio = newScale / oldScale;
+
+      if (this.pdfPages && this.pdfPages.length) {
+        const z = this.zoomLevel;
+        for (let i = 0; i < this.pdfPages.length; i++) {
+          const baseVp = this.pdfBaseViewports[i];
+          const card = document.getElementById(`pdf-page-${i + 1}`);
+          const canvas = document.getElementById(`pdf-canvas-${i + 1}`);
+          if (card && baseVp) {
+            const displayWidth = Math.round(baseVp.width * z);
+            const displayHeight = Math.round(baseVp.height * z);
+            card.style.width = `${displayWidth}px`;
+            card.style.height = `${displayHeight}px`;
+            if (canvas) {
+              canvas.style.width = `${displayWidth}px`;
+              canvas.style.height = `${displayHeight}px`;
+            }
+          }
+        }
+
+        if (scrollContainer) {
+          scrollContainer.scrollLeft = (oldScrollLeft + originX) * ratio - originX;
+          scrollContainer.scrollTop = (oldScrollTop + originY) * ratio - originY;
+        }
+
+        clearTimeout(this._renderTimer);
+        this._renderTimer = setTimeout(() => {
+          this.renderAllPages();
+        }, 100);
+      }
+    },
+
+    resetZoom() {
+      this.isFitWidth = false;
+      this.zoomLevel = 1.0;
       const zoomDisplay = document.getElementById('composer-zoom-display');
       if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
 
@@ -5798,30 +6620,8 @@
             }
           }
         }
-
-        clearTimeout(this._renderTimer);
-        this._renderTimer = setTimeout(() => {
-          this.renderAllPages();
-        }, 120);
+        this.renderAllPages();
       }
-    },
-
-    resetZoom() {
-      const scrollContainer = document.getElementById('composer-pdf-scroll-container');
-      if (scrollContainer && this.pdfBaseViewports[0]) {
-        const availableW = scrollContainer.clientWidth - 48;
-        if (availableW > 200 && this.pdfBaseViewports[0].width > 0) {
-          const fitZoom = +(availableW / this.pdfBaseViewports[0].width).toFixed(1);
-          this.zoomLevel = Math.max(0.5, Math.min(2.0, fitZoom));
-        } else {
-          this.zoomLevel = 1.0;
-        }
-      } else {
-        this.zoomLevel = 1.0;
-      }
-      const zoomDisplay = document.getElementById('composer-zoom-display');
-      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
-      this.renderAllPages();
     },
 
     downloadPdf() {

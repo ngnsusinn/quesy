@@ -2,12 +2,21 @@
 
 ## 1. NGUYÊN TẮC CỐT LÕI (MANDATORY STANDING RULES)
 
-1. **QUY TẮC ĐỒNG BỘ TÀI LIỆU, ĐỐI CHIẾU CI/CD & COMMIT (DOCS, CI/CD & COMMIT ON EVERY CODE CHANGE):**
+1. **QUY TẮC ĐỒNG BỘ TÀI LIỆU, CÔ LẬP CI/CD (STRICT CI ISOLATION), VÒNG LẶP TEST CI & CỔNG COMMIT (DOCS, CI ISOLATION, CI LOOP & PRE-COMMIT GATE):**
    - **Bắt buộc:** Sau **bất kỳ** thay đổi, bổ sung, sửa lỗi (bug fix) hay refactor nào trong mã nguồn (`backend/`, `frontend/`, `tests/`):
-     1. Phải rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (bao gồm `SRS`, `FRD`, `BRD`, `NFR`, `TEST`, `UC`, `README.md`, v.v.) để phản ánh chính xác trạng thái kỹ thuật mới nhất.
-     2. **Bắt buộc đối chiếu và cập nhật cấu hình CI/CD (`.github/workflows/`):** Mỗi khi có thay đổi trong mã nguồn, phải chủ động rà soát xem có phát sinh dependencies mới (Python packages trong `requirements.txt`, npm packages trong `package.json`, font, headless browser/Chromium, biến môi trường `.env`, cờ thực thi...) hay không để cập nhật đồng bộ workflow CI/CD ngay lập tức, bảo đảm 100% test cases vượt qua trên mọi môi trường (Ubuntu/Linux runner).
-     3. Chạy toàn bộ test suite (`pytest`) đảm bảo 100% test cases đạt (`71/71 PASSED`).
-     4. Thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+     1. **Đồng bộ tài liệu dự án:** Phải rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (bao gồm `SRS`, `FRD`, `BRD`, `NFR`, `TEST`, `UC`, `README.md`, `SOURCE_MAP.md`, v.v.) để phản ánh chính xác trạng thái kỹ thuật mới nhất.
+     2. **Nguyên tắc Cô lập CI/CD & Phân định Vai trò Tuyệt đối (Strict CI Isolation & Role Separation):**
+        - **Tách biệt hoàn toàn:** Sub-Agent đảm nhận làm CI (Sub-Agent 3) tách biệt hoàn toàn với tất cả các sub-agents còn lại.
+        - **Cấm truy cập và đọc CI:** Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4, v.v.) **tuyệt đối KHÔNG ĐƯỢC PHÉP TRUY CẬP VÀ ĐỌC CI** (`.github/workflows/`, các tệp cấu hình CI).
+        - **Độc quyền chỉnh sửa CI:** Chỉ duy nhất sub-Agent đảm nhận làm CI (Sub-Agent 3) mới được phép thực hiện việc truy cập, đọc, viết, chỉnh sửa cấu hình CI/CD.
+        - **Tiếp nhận thông tin một chiều vào CI:** Sub-Agent viết CI có toàn quyền đọc và tiếp nhận các thông tin (đặc tả kiến trúc, mã nguồn mới, dependencies phát sinh, kết quả kiểm thử, báo cáo lỗi) từ các sub-agents khác để phục vụ việc tối ưu và cập nhật CI.
+     3. **Bắt buộc cập nhật CI đồng bộ theo code mới (Continuous CI Synchronization):**
+        - Mỗi khi code có bất kỳ cập nhật gì mới (thêm thư viện Python trong `requirements.txt`, gói npm trong `package.json`, cấu hình font, headless browser/Chromium, biến môi trường `.env`, cờ thực thi, logic test mới...), sub-Agent phụ trách CI bắt buộc phải cập nhật CI theo ngay lập tức để loại bỏ mọi khả năng gây ra lỗi trên môi trường runner (Ubuntu/Linux).
+     4. **Cổng kiểm soát Pre-Commit & Vòng lặp Sửa lỗi CI (Pre-Commit CI Gate & CI Fix-and-Test Loop):**
+        - **Bắt buộc test qua CI trước khi commit:** Trước khi thực hiện `git commit`, bắt buộc phải chạy và test qua được CI (chạy toàn bộ test suite, kiểm tra cú pháp và môi trường CI runner, 100% test cases đạt). Tuyệt đối cấm commit khi CI chưa pass.
+        - **Vòng lặp sửa lỗi CI (CI Loop):** Nếu CI không pass (bất kỳ test case nào fail hoặc môi trường CI bị lỗi):
+          `CI Test Thất bại` → `Phân tích nguyên nhân` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 chạy lại CI test` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT**.
+        - Sau khi CI pass 100%, thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 2. **CHUẨN MỰC KHẢO THÍ QUỐC GIA:**
    - **Thông tư 32/2018/TT-BGDĐT:** Phân cấp cây kiến thức 6 tầng theo Yêu cầu cần đạt (YCCĐ) và Dạng câu hỏi. **Tuyệt đối không phân chia theo các bộ sách giáo khoa thương mại** (như Cánh diều, Kết nối tri thức, Chân trời sáng tạo).
@@ -39,25 +48,40 @@
      2. **Tuyệt đối không để sót tiến trình chạy ngầm dồn ứ (no leftover background processes)** gây chiếm dụng RAM, rò rỉ tài nguyên hệ thống, hoặc chiếm giữ cổng mạng gây xung đột phiên bản mã nguồn cũ giữa các lượt tương tác của người dùng.
      3. Mọi tiến trình nền phục vụ kiểm nghiệm chỉ được chạy tạm thời, phải dọn dẹp sạch sẽ trước khi kết thúc lượt phản hồi.
 
-7. **QUY TRÌNH KÍCH HOẠT 4 SUB-AGENT ĐỒNG THỜI CHO MỖI YÊU CẦU TÍNH NĂNG (PARALLEL CONCURRENT 4-SUBAGENT ORCHESTRATION):**
-   - **Bắt buộc:** Với **mỗi lệnh / yêu cầu về tính năng (feature request), nâng cấp hoặc sửa đổi hệ thống**, Parent Agent **bắt buộc phải kích hoạt 4 Sub-Agent chạy đồng thời (song song qua `delegate_task`)**, tuyệt đối **không chạy đơn luồng tuần tự (no sequential execution)**.
-   - **Phân công 4 Sub-Agent đồng thời:**
-     1. **Sub-Agent 1 - Analysis, Specs & Docs (Đọc hiểu, Kiến trúc & Tài liệu):**
-        - Chuyên trách đọc hiểu yêu cầu nghiệp vụ, mổ xẻ mã nguồn, phân tích kiến trúc, rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
+7. **QUY TRÌNH PHỐI HỢP & HOẠT ĐỘNG CỦA 4 SUB-AGENT (SUB-AGENT ORCHESTRATION & EXECUTION PROTOCOL):**
+   - **QUY ĐỊNH VỀ MÔ HÌNH AI (SUB-AGENT MODEL MAPPING):**
+     1. **Sub-Agent 1 (Analysis, Specs & Docs):** Sử dụng model `gemini 3.8 flash high`, `thinking: ultra`, `temp: 0.2`.
+     2. **Sub-Agent 2 (Software Engineering & Coding):** Sử dụng model `gemini 3 flash`, `thinking: medium`.
+     3. **Sub-Agent 3 (Automated Test & CI/CD Verification):** Sử dụng model `gemini 3.5 flash lite`.
+     4. **Sub-Agent 4 (E2E Browser Blind Test & UI/UX Audit):** Sử dụng model `gemini 3.8 flash high`, `thinking: ultra`, `temp: 0.2`.
+
+   - **QUY ĐỊNH VỀ TRÌNH TỰ HOẠT ĐỘNG & TƯƠNG TÁC GIỮA CÁC SUB-AGENT (EXECUTION PROTOCOL & HANDOFF):**
+     1. **Pha 1 - Đọc hiểu, Phân tích & Đặc tả Kiến trúc (Sub-Agent 1):**
+        - Sub-Agent 1 chuyên trách đọc hiểu yêu cầu nghiệp vụ, mổ xẻ mã nguồn, phân tích kiến trúc, rà soát và cập nhật đồng bộ toàn bộ tài liệu dự án trong `docs/` (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
         - Định vị chính xác các file, hàm, API bị ảnh hưởng và xây dựng bản đặc tả kỹ thuật chi tiết.
-     2. **Sub-Agent 2 - Software Engineering & Coding (Triển khai Mã nguồn):**
-        - Chuyên trách lập trình mã nguồn, hiện thực hóa tính năng, sửa lỗi (bug fixes) và tối ưu hóa hiệu năng theo đúng thiết kế của Sub-Agent 1.
+        - **Quy tắc cô lập CI:** Tuyệt đối không được phép truy cập và đọc CI (`.github/workflows/`).
+     2. **Pha 2 - Triển khai Mã nguồn & Trao đổi Làm rõ (Sub-Agent 2):**
+        - Sub-Agent 2 chuyên trách lập trình mã nguồn, hiện thực hóa tính năng, sửa lỗi (bug fixes) và tối ưu hóa hiệu năng theo đúng thiết kế của Sub-Agent 1.
         - Giữ gìn chuẩn mực code, chuẩn Apple HIG, tương tác vi mô Emil Kowalski, không tự ý refactor ngoài phạm vi yêu cầu.
-     3. **Sub-Agent 3 - Automated Test & CI/CD Verification (Kiểm thử Chức năng Tự động & CI/CD):**
-        - Chuyên trách viết mới, cập nhật test cases tự động (`pytest`), bảo đảm bao phủ kịch bản biên và âm tính.
-        - Rà soát đối chiếu cấu hình CI/CD (`.github/workflows/`), chạy toàn bộ test suite đảm bảo 100% test cases vượt qua (`71/71 PASSED`).
-     4. **Sub-Agent 4 - E2E Browser Blind Test & UI/UX Audit (Kiểm thử Mù Trình duyệt Thật):**
-        - Kiểm thử độc lập, khách quan, không dựa vào giả định của coder để tìm ra các lỗi ẩn và lỗi trải nghiệm người dùng thực tế.
-        - **Yêu cầu bắt buộc:**
-          - **Trực tiếp truy cập vào trình duyệt (Browser):** Khởi chạy trình duyệt thật để kiểm tra toàn bộ giao diện và luồng nghiệp vụ end-to-end.
-          - **Thao tác thủ công toàn diện:** Tự động hóa việc **nhập text** (`fill_input`), **click chuột thủ công** (`click_at_xy`), cuộn trang, đổi tab, chuyển đổi chế độ xem.
-          - **Chụp ảnh màn hình (Capture Screen):** Chụp và lưu ảnh màn hình thực tế để làm bằng chứng trực quan đối chiếu kết quả hiển thị.
-          - **Đọc Log & Console Trình duyệt:** Đọc chi tiết log máy chủ và bảng điều khiển `console.log` / `console.error` của trình duyệt để phát hiện các lỗi ngầm, lỗi CSS/JS hoặc lỗi mạng 404/500.
+        - **Quy tắc hỏi lại Sub-Agent 1:** Trong quá trình thực hiện, **nếu Sub-Agent 2 cần làm rõ bất kỳ điều gì (về nghiệp vụ, logic dữ liệu, API contract, hoặc kiến trúc), bắt buộc phải hỏi lại Sub-Agent 1** để được làm rõ và thống nhất giải pháp trước khi tiếp tục code.
+        - **Quy tắc cô lập CI:** Tuyệt đối không được phép truy cập và đọc CI (`.github/workflows/`). Chủ động cung cấp thông tin thay đổi code cho Sub-Agent 3.
+     3. **Pha 3 - Cổng Kiểm thử Song song (Parallel Verification Gate - Sub-Agent 3 & Sub-Agent 4):**
+        - **QUY TẮC BẮT BUỘC:** **Sub-Agent 3 và Sub-Agent 4 CHỈ ĐƯỢC PHÉP CHẠY SAU KHI Sub-Agent 2 ĐÃ CHẠY XONG HOÀN TOÀN.** Tuyệt đối không kích hoạt Sub-Agent 3 và 4 khi Sub-Agent 2 chưa hoàn thành mã nguồn.
+        - Sau khi Sub-Agent 2 hoàn thành mã nguồn, Sub-Agent 3 và Sub-Agent 4 được kích hoạt song song:
+          + **Sub-Agent 3 (Automated Test & Độc quyền CI/CD):**
+            - *Độc quyền cấu hình CI/CD:* Là Sub-Agent DUY NHẤT được phép truy cập, đọc, viết, chỉnh sửa cấu hình CI/CD (`.github/workflows/ci.yml`). Tách biệt hoàn toàn với các Sub-Agent khác.
+            - *Tiếp nhận thông tin một chiều:* Đọc và nhận thông tin từ các Sub-Agent khác (mã nguồn, dependencies, đặc tả, lỗi) để đồng bộ CI.
+            - Chuyên trách viết mới, cập nhật test cases tự động (`pytest`), bảo đảm bao phủ kịch bản biên và âm tính.
+            - Chạy kiểm thử tự động trên môi trường giả lập CI, đảm bảo 100% test cases vượt qua trước khi commit.
+          + **Sub-Agent 4 (E2E Browser Blind Test & UI/UX Audit):**
+            - Kiểm thử độc lập, khách quan trên trình duyệt thật (`browser_exec`), thao tác thủ công toàn diện (`fill_input`, `click_at_xy`), chụp ảnh màn hình, đọc DevTools console log/error.
+            - *Quy tắc cô lập CI:* Tuyệt đối không được phép truy cập và đọc CI (`.github/workflows/`).
+     4. **Pha 4 - Quy trình Xử lý Lỗi & Vòng lặp Hiệu chỉnh (Defect Clarification & Refactoring Loop):**
+        - **QUY TẮC BẮT BUỘC:** **Nếu Sub-Agent 3 hoặc Sub-Agent 4 run fail, xảy ra lỗi hoặc tìm ra bất kỳ lỗi nào** (trong 5 nhóm khuyết tật phần mềm hoặc fail test CI):
+          1. Sub-Agent 3 và/hoặc Sub-Agent 4 **bắt buộc phải đưa toàn bộ thông tin lỗi (log, traceback, console error, screenshot) và trao đổi lại với Sub-Agent 1 để làm rõ lỗi ở đâu** (nghiệp vụ, kiến trúc, API contract, CSS hay logic).
+          2. Sau khi Sub-Agent 1 phân tích và làm rõ nguyên nhân gốc rễ, **Sub-Agent 1 chỉ thị và bắt Sub-Agent 2 code lại (refactor / bug fix)** theo đúng định hướng giải pháp.
+          3. Sau khi Sub-Agent 2 code lại xong, hệ thống **tiến hành tiếp tục trình tự tiếp theo:** kích hoạt lại Sub-Agent 3 và Sub-Agent 4 để kiểm thử lại mã nguồn mới.
+          4. Lặp lại vòng lặp này liên tục cho đến khi 100% test cases đạt, CI pass và không còn bất kỳ lỗi nào mới được phép nghiệm thu và commit.
 
    - **ĐỊNH NGHĨA TOÀN DIỆN VỀ "LỖI" TRONG KIỂM THỬ (COMPREHENSIVE DEFECT DEFINITION):**
      - **Bắt buộc:** Khái niệm "Lỗi" trong kiểm thử của Sub-Agent 3 và Sub-Agent 4 tuyệt đối **không chỉ giới hạn ở lỗi logic nghiệp vụ hay lỗi backend**, mà bao trùm toàn diện 5 nhóm khuyết tật phần mềm:
@@ -66,11 +90,6 @@
        3. *Lỗi Màu sắc & Đồng nhất Phong cách (Color & Theme Consistency):* Màu sắc không đồng nhất, sai mã màu quy định (ví dụ nút BIÊN DỊCH phải là xanh dương `#0071e3`), lỗi biến đổi màu nền ngoài ý muốn khi con trỏ focus/active (như nền dark mode bị biến thành màu trắng).
        4. *Lỗi Tương tác & Hành vi Người dùng (Interaction & UX):* Nút bấm không phản hồi xúc giác (scale 0.97), dropdown không đóng, thao tác thay thế text làm mất sạch code cũ thay vì chỉ sửa đúng dòng chỉ định, thiếu trạng thái loading/thông báo toast.
        5. *Lỗi Console & Tài nguyên Trình duyệt (Console & Network Assets):* Mọi lỗi màu đỏ trong DevTools `console.error`, unhandled promise rejections, cảnh báo deprecated, lỗi tải font/ảnh 404 hoặc xén nét công thức toán LaTeX/TikZ.
-
-   - **Cơ chế Hợp nhất & Vòng lặp Hiệu chỉnh (Parent Orchestration & Review Loop):**
-     - Parent Agent tiếp nhận đồng thời kết quả từ cả 4 Sub-Agent, thẩm định chéo tính toàn vẹn.
-     - Nếu Sub-Agent 3 hoặc Sub-Agent 4 phát hiện bất kỳ lỗi nào trong 5 nhóm trên:
-       `Phát hiện lỗi` → `Sub-Agent 2 (Coding) sửa đổi` → `Sub-Agent 3 (Test) chạy kiểm thử` → `Sub-Agent 4 (Blind Test) thẩm định trên trình duyệt thực tế` → `Lặp lại quy trình` cho đến khi **hoàn thành 100% mọi yêu cầu mà không còn bất kỳ lỗi nào**.
 
 8. **QUY TẮC TỰ ĐỘNG CHUYỂN HÓA BÁO LỖI THÀNH BÀI TEST CHỐNG TÁI DIỄN CHO SUB-AGENT 4 (AUTOMATIC DEFECT-TO-TEST CONVERSION & ANTI-REGRESSION SHIELD):**
    - **Bắt buộc:** Bất cứ khi nào Người dùng (User) phản ánh, đề xuất, nhắc nhở hoặc báo cáo bất kỳ lỗi nào liên quan đến **Backend** hoặc **Frontend** (ví dụ: lỗi viền kép textarea, lỗi zoom làm co khung preview, sai lệch màu sắc nút bấm, kẹt thanh cuộn, lỗi API 500/422, xén nét ký hiệu LaTeX/TikZ, v.v.):

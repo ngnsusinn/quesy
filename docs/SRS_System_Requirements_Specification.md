@@ -2,11 +2,11 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Độ tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
+- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, và phân hệ Trợ lý Soạn thảo AI Copilot thông minh.  
-- **Ngày phát hành:** 2026-10-23
-- **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, phân hệ Soạn đề tinh gọn không cần khai báo preamble (Canonical Preamble Injection tự động nhúng fontspec, tikz, tkz-tab, tcolorbox, ex_test v3.3), bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, phân hệ Trợ lý Soạn thảo AI Copilot thông minh, và quy chuẩn quản trị phát triển Git.
+- **Ngày phát hành:** 2026-10-24  
+- **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
 ---
 
@@ -23,11 +23,27 @@ Tài liệu này đặc tả chi tiết toàn bộ các yêu cầu kỹ thuật,
 
 ### 1.3. Khách thể Sử dụng (Audience)
 - **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
+
+### 1.4. Quy tắc Quản trị Git Workflow, Cổng Pre-Commit CI Gate & Cô Lập CI/CD (Mandatory CI/CD & Git Rules)
+- **Cổng Pre-Commit CI Gate bắt buộc:** Trước khi thực hiện `git commit`, mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (100% test cases đạt). Tuyệt đối cấm commit mã nguồn khi CI test chưa đạt.
+- **Vòng lặp sửa lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
+  `CI thất bại` → `Sửa lỗi code / Cập nhật test & cấu hình CI` → `Chạy lại test CI` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT**.
+- **Đồng bộ CI liên tục (Continuous CI Synchronization):** Mỗi khi mã nguồn có cập nhật mới (dependencies trong `requirements.txt`/`package.json`, cấu hình font, biến môi trường, headless browser...), cấu hình CI workflow phải được cập nhật đồng bộ ngay lập tức để triệt tiêu mọi nguy cơ gây lỗi trên môi trường runner.
+- **Cô lập CI tuyệt đối (Strict CI Isolation & Role Separation):**
+  - Sub-Agent đảm nhận làm CI (Sub-Agent 3) tách biệt hoàn toàn với tất cả các sub-agents còn lại.
+  - **Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4...) tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
+  - Chỉ duy nhất Sub-Agent đảm nhận làm CI mới được phép đọc, viết, chỉnh sửa cấu hình CI/CD.
+  - Sub-Agent CI có toàn quyền đọc và tiếp nhận thông tin từ các sub-agents khác để phục vụ việc đồng bộ CI.
+- **Quy chuẩn Git Commit & Push:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
+- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
+
+### 1.5. Đối tượng Sử dụng & Phân nhiệm Kỹ thuật (Audience & Roles)
+- **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
 - **Kỹ sư AI & Backend:** Xây dựng OCR pipeline, dịch vụ biên dịch TikZ SVG, MathJax Persistent Engine và thuật toán hoán vị an toàn.
 - **Kỹ sư Frontend:** Phát triển giao diện Studio Hậu kiểm (HITL) cuộn đồng bộ, hiển thị đồ thị SVG và render KaTeX thời gian thực.
-- **Kỹ sư QA/QC:** Xây dựng ma trận kiểm thử tự động và tiêu chuẩn nghiệm thu (55/55 automated tests).
+- **Kỹ sư QA/QC & CI/CD (Độc quyền Sub-Agent 3):** Xây dựng ma trận kiểm thử tự động, độc quyền quản trị và cập nhật cấu hình CI/CD (`.github/workflows/`), thực thi cổng Pre-Commit CI Gate bảo đảm 100% tests vượt qua.
 
-### 1.4. Phạm vi Sản phẩm & Bài toán Giải quyết (Product Scope)
+### 1.6. Phạm vi Sản phẩm & Bài toán Giải quyết (Product Scope)
 Hệ thống phần mềm dịch vụ Web ứng dụng Trí tuệ Nhân tạo Đa phương thức nhằm:
 1. **Giải quyết bài toán gõ lại đề thủ công:** Tiếp nhận tài liệu đề thi thô (.docx, .doc, .pdf scan, ảnh chụp), nhận diện layout, bóc tách công thức Toán/Khoa học sang LaTeX, tự động cắt ảnh đồ thị nén WebP, bóc tách đáp án và lời giải.
 2. **Giải quyết bài toán dựng đồ thị hàm số & hình học:** Tự động phát hiện mã nguồn hình học và biên dịch sang vector SVG sắc nét; có cơ chế Auto-clipping khống chế tỷ lệ khung hình hàm phân thức có tiệm cận, hỗ trợ đồ thị trong cả đề bài và 4 phương án trắc nghiệm A, B, C, D.
@@ -154,27 +170,34 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 - **Tạm thời ẩn xuất Word:** Trên giao diện tab số hóa AI (HITL Studio), tạm thời ẩn các nút xuất file Word (.docx) để tập trung hoàn thiện và vận hành luồng xuất bản PDF chất lượng cao.
 
 #### SRS-FEAT-04d: Phân hệ Soạn đề LaTeX Trực tiếp Tích hợp AI & Live PDF Preview (Noctorium & ex_test Architecture)
-- **Mô tả:** Thay thế hoàn toàn phân hệ số hóa ảnh/OCR cũ bằng phân hệ **Soạn đề** (LaTeX Exam Writing Workspace) mô phỏng thiết kế của `Noctorium` kết hợp gói lệnh khảo thí quốc gia `ex_test.sty` (v3.3). Cung cấp không gian làm việc 2 cột tích hợp (Split View Workspace):
-  1. *Cột bên trái:*
+- **Mô tả:** Thay thế hoàn toàn phân hệ số hóa ảnh/OCR cũ bằng phân hệ **Soạn đề** (LaTeX Exam Writing Workspace) mô phỏng thiết kế của `Noctorium` kết hợp gói lệnh khảo thí quốc gia `ex_test.sty` (v3.3). Cung cấp không gian làm việc 2 cột tích hợp có khả năng kéo thả điều chỉnh kích thước linh hoạt (Resizable Split View Workspace):
+  1. *Cột bên trái (Editor Pane):*
      - *Khung trên:* Trình soạn thảo mã nguồn LaTeX Dark mode (`#141824`, bảo toàn màu nền khi click con trỏ focus, thanh cuộn mượt mà không kẹt `overflow-y: scroll`) với toolbar `MỚI`, `THÊM ▾` (7 template chuẩn `ex_test`), phím tắt hoàn tác (Undo/Redo), dọn dẹp, sao chép, đánh số dòng và hiển thị vị trí con trỏ.
      - *Thanh Banner Gợi ý Sửa đổi (Inline Diff Banner):* Hiển thị trực tiếp số dòng cần sửa, tự động cuộn và bôi đen vị trí cần thay thế trên editor, hiển thị trực quan khối so sánh `- old_text` (đỏ) và `+ new_text` (xanh), cho phép duyệt nhanh với 2 nút bấm **`[Đồng ý]`** và **`[Từ chối]`**.
-     - *Khung dưới:* Trợ lý Soạn thảo AI Copilot hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ `\immini`.
-  2. *Cột bên phải:*
+     - *Khung dưới:* Trợ lý Soạn thảo AI Copilot hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ `\immini`, hỗ trợ kéo thả thanh ngang hoặc biên trên để co giãn độ cao tùy ý.
+  2. *Thanh Phân Tách Ngang (Horizontal Splitter):*
+     - Nằm giữa Cột Trái và Cột Phải (`#composer-col-splitter`), hỗ trợ kéo thả chuột/cảm ứng để thay đổi tỷ lệ chiều ngang linh hoạt từ 25% đến 75% (mặc định 60% Left : 40% Right), ghi nhớ tỷ lệ vào `localStorage`.
+  3. *Cột bên phải (Live Preview Pane):*
      - *Thanh công cụ:* Tab `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động đảo giữa in đề thi `[dethi]` và in đáp án `[loigiai]`), menu `XUẤT FILE ▾` (PDF, TeX, Ngân hàng, Copy).
      - *Bản xem trước Live Preview:* Hiển thị trực tiếp trang PDF biên dịch sắc nét từ Tectonic XeTeX Engine (Docker trên host ARM) hoặc Chromium Headless.
      - *Chân trang (Footer):* Nút bấm thanh ngang toàn chiều rộng nổi bật màu xanh dương **`BIÊN DỊCH`** (`#0071e3`).
-  3. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, lịch sử hội thoại và lịch sử biên dịch vào `localStorage` của trình duyệt.
-  4. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
+  4. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, cấu hình tỷ lệ chia cột, độ cao trợ lý và kho lưu trữ lịch sử các phiên chat vào `localStorage` của trình duyệt.
+  5. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
 
-#### SRS-FEAT-04e: Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Màu Tương Phản Dark Mode (High-Contrast Input Tokens)
+#### SRS-FEAT-04e: Thanh Nhập Prompt AI Thu Gọn, Cơ Chế Xóa Sạch Lạc Quan (Optimistic Input Reset) & Quy Chuẩn Màu Tương Phản Dark Mode
 - **Mô tả:** Cung cấp thanh nhập lệnh AI nhỏ gọn dạng viên thuốc (floating pill bar) neo tại chân khung soạn thảo (`bottom-7`, căn giữa `w-[92%] max-w-xl`, phong cách Apple Glassmorphism bo tròn viền bán trong suốt `#1c1c1f/95`), giữ không gian làm việc luôn tối giản và tập trung cao độ.
 - **Hành vi tương tác và kích hoạt 2 trạng thái:**
   1. *Trạng thái Nhập liệu Cục bộ (In-place Typing):* Khi người dùng nhấp chuột vào thanh hoặc trường nhập văn bản (`#composer-compact-input`), hệ thống chỉ kích hoạt focus con trỏ để gõ văn bản bình thường (`cursor-text`), **tuyệt đối không tự động bung mở modal/popup trợ lý** nhằm loại bỏ hoàn toàn hiện tượng che khuất màn hình gây gián đoạn mạch soạn thảo.
   2. *Trạng thái Kích hoạt Mở rộng (Expansion & Dispatch Trigger):* Hệ thống chỉ mở bung toàn bộ giao diện Popup Trợ lý Soạn thảo (`composer-ai-popup`, độ cao mặc định 56%, có thể phóng to 78% hoặc 92%) khi xảy ra một trong hai điều kiện sau:
      - Người dùng nhấn phím **`Enter`** trong ô nhập liệu.
      - Người dùng nhấp chuột vào **Nút Gửi Mũi Tên Tròn** (`#composer-ai-compact-bar button` - icon `arrow-up`).
-  3. *Chuyển tiếp Dữ liệu Liền mạch:* Khi được kích hoạt, chuỗi prompt trong thanh thu gọn được tự động chuyển vào ô chat của Popup Trợ lý, thanh thu gọn tạm thời ẩn đi, hiển thị chỉ báo AI đang phản hồi (`composer-typing-indicator`), và gửi yêu cầu bất đồng bộ đến endpoint `/api/v1/composer/chat`.
-  4. *Menu Mẫu Lệnh Nhanh (Quick Actions Menu):* Biểu tượng dấu cộng `+` trên thanh compact mở menu ngữ cảnh cho phép chọn nhanh các tác vụ phổ biến: đổi cỡ chữ toàn tài liệu sang 12pt, tạo câu hỏi trắc nghiệm 4 lựa chọn, tạo câu hỏi Đúng/Sai 4 ý QĐ 764, vẽ bảng biến thiên `tkz-tab`, và kiểm tra/sửa cú pháp LaTeX.
+  3. *Cơ Chế Xóa Sạch Lạc Quan (Optimistic Dual-Input Reset & Event Decoupling):*
+     - Khắc phục triệt để lỗi văn bản cũ còn lưu kẹt trong ô nhập chat của trợ lý sau khi đã gửi đi (Ảnh 1).
+     - Ngay tại thời điểm kích hoạt gửi ($t = 0\text{ms}$ khi bắt sự kiện `submitChat`, `submitFromCompact`, hoặc `sendPrompt`), hệ thống đồng thời xóa sạch giá trị (`chatInput.value = ''` và `compactInput.value = ''`) TRƯỚC BẤT KỲ tác vụ bất đồng bộ hoặc render DOM nào.
+     - Phân định rõ ngữ nghĩa hàm mở popup: Khi mở do gửi lệnh (`submitFromCompact`), gọi `openAIPopup('')` với tham số rỗng, không truyền lại chuỗi prompt đã gửi vào `prefillPrompt` (loại bỏ hoàn toàn cơ chế gán ngược `chatInput.value = prefillPrompt`). Chỉ khi người dùng bấm mẫu lệnh nhanh (`applyQuickPrompt`), chuỗi mẫu mới được điền vào ô nhập để biên tập.
+     - Duy trì con trỏ phím (caret) sẵn sàng tại ô nhập rỗng với màu Apple blue `#38bdf8`, sẵn sàng cho câu lệnh kế tiếp mà không cần xóa thủ công.
+  4. *Chuyển tiếp Dữ liệu Liền mạch:* Khi được kích hoạt, chuỗi prompt được đẩy vào lịch sử phiên hiện tại, thanh thu gọn tạm thời ẩn đi, hiển thị chỉ báo AI đang phản hồi (`composer-typing-indicator`), và gửi yêu cầu bất đồng bộ đến endpoint `/api/v1/composer/chat`.
+  5. *Menu Mẫu Lệnh Nhanh (Quick Actions Menu):* Biểu tượng dấu cộng `+` trên thanh compact mở menu ngữ cảnh cho phép chọn nhanh các tác vụ phổ biến: đổi cỡ chữ toàn tài liệu sang 12pt, tạo câu hỏi trắc nghiệm 4 lựa chọn, tạo câu hỏi Đúng/Sai 4 ý QĐ 764, vẽ bảng biến thiên `tkz-tab`, và kiểm tra/sửa cú pháp LaTeX.
 - **Quy chuẩn Màu Tương Phản Dark Mode (WCAG 2.1 AA Compliant - Sửa lỗi chữ đen trên nền tối):**
   - Khắc phục triệt để lỗi chữ màu đen `#1d1d1f` bị chìm trên nền tối `#1c1c1f` / `#141824`.
   - Thiết lập design tokens bắt buộc với độ ưu tiên cao (`!important`) cho cả 2 trường nhập liệu `#composer-compact-input` và `#composer-chat-input`:
@@ -203,8 +226,8 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   4. AI Copilot được định hướng phân tích chính xác nguyên nhân lỗi cú pháp, tự động đối chiếu dòng mã nguồn bị lỗi trong `current_latex` và sinh ra khối đề xuất sửa đổi diff (dòng đỏ `-` là dòng lỗi, dòng xanh `+` là dòng sửa hoặc chú thích comment vô hiệu hóa) để giáo viên 1-click sửa lỗi ngay lập tức.
   5. Khi biên dịch thành công, hệ thống tự động reset `lastCompileError = null`, xóa sạch cờ cảnh báo lỗi.
 
-#### SRS-FEAT-04h: Giao Diện Trực Quan Hóa Diff Trực Tiếp Trên Ô Soạn Thảo (Inline Editor Diff Overlay / Widget)
-- **Mô tả:** Bên cạnh banner cố định ở trên đầu editor, hệ thống cung cấp giao diện hiển thị khối so sánh Diff trực quan trực tiếp tại đúng vị trí dòng mã nguồn cần sửa đổi trên trình soạn thảo (Inline Editor Diff Overlay / Inline Diff Widget mô phỏng trải nghiệm Cursor / VS Code Copilot).
+#### SRS-FEAT-04h: Giao Diện Trực Quan Hóa Diff Trực Tiếp Trên Ô Soạn Thảo (Inline Editor Diff Overlay / Banner Độc Quyền)
+- **Mô tả:** Khi AI đề xuất sửa đổi/diff mã nguồn, hệ thống hiển thị trực quan khối so sánh Diff trực tiếp và độc quyền trên trình soạn thảo mã nguồn LaTeX (thông qua Inline Editor Diff Overlay tại đúng dòng bị ảnh hưởng và/hoặc Inline Diff Banner trên đỉnh editor). **Bắt buộc:** Tuyệt đối KHÔNG hiển thị widget diff trùng lặp trong bubble chat của Trợ lý để giữ không gian hội thoại gọn gàng, tinh tế và tập trung cao độ.
 - **Cấu trúc & Trải nghiệm Trực quan:**
   1. *Khối Dòng Đỏ Xóa (`- <old_line>`):* Nền đỏ mờ `rgba(225, 29, 72, 0.15)` (`bg-rose-950/70`), viền trái đỏ tươi `border-l-4 border-rose-500`, văn bản đỏ `text-rose-300`, hiển thị chính xác nội dung dòng mã cũ kèm ký hiệu `-`.
   2. *Khối Dòng Xanh Thêm (`+ <new_line>`):* Nền xanh lục mờ `rgba(16, 185, 129, 0.15)` (`bg-emerald-950/70`), viền trái xanh ngọc `border-l-4 border-emerald-500`, văn bản xanh `text-emerald-300`, hiển thị chính xác nội dung dòng mã mới kèm ký hiệu `+`.
@@ -212,6 +235,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
      - Nút **`[Keep / Đồng ý]`**: Icon checkmark, nền xanh dương `bg-blue-600 hover:bg-blue-500 text-white`, nhấp vào áp dụng ngay thay đổi qua Fuzzy Replacement Engine, tự động kích hoạt `compile(true)` và xóa bỏ overlay diff.
      - Nút **`[Undo / Từ chối]`**: Icon undo / dismiss, nền xám tối `bg-slate-700 hover:bg-slate-600 text-slate-200`, nhấp vào hủy bỏ gợi ý sửa đổi, khôi phục trạng thái con trỏ và giữ nguyên vẹn 100% mã nguồn.
   4. *Neo Tọa Độ & Đồng Bộ Cuộn:* Vị trí của Inline Overlay được neo theo tọa độ dòng nguồn trong editor (`top = (lineNo - 1) * lineHeight`), tự động cuộn đồng bộ mượt mà khi người dùng cuộn textarea editor.
+  5. *Bubble Chat Tinh Gọn:* Khung tin nhắn Assistant chỉ hiển thị lời chào, giải thích ngắn gọn, phân tích lỗi cú pháp hoặc hướng dẫn sư phạm dưới dạng markdown thuần túy, không chèn các khối card `- / +` hay nút bấm duyệt diff lặp lại.
 
 #### SRS-FEAT-04i: Tối Ưu Hóa Hiệu Năng Gửi Prompt & Tương Tác Box Chat Mượt Mà (Fast Prompt Dispatch & Smooth Micro-Interactions)
 - **Mô tả:** Loại bỏ hoàn toàn độ trễ khi gửi prompt và bảo đảm giao diện hộp thoại Trợ lý AI vận hành mượt mà chuẩn 60 FPS theo triết lý Apple Human Interface Guidelines và tương tác xúc giác Emil Kowalski.
@@ -221,6 +245,175 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   3. *Tối Ưu DOM & Lucide Icon Parsing:* Thay vì quét toàn trang qua `lucide.createIcons()`, hệ thống chỉ gọi render icon cục bộ trong node tin nhắn mới, giảm thiểu 95% thời gian layout thrashing.
   4. *Non-blocking Async AI Request:* Kết nối Backend AI sử dụng `httpx.AsyncClient` bất đồng bộ với timeout linh hoạt 15s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu hiện tượng đóng băng socket hay nghẽn thread pool.
 
+#### SRS-FEAT-04j: Quản Lý Khởi Tạo Phiên Chat Mới Sạch Sẽ & Ngăn Kéo Lưu Trữ Lịch Sử Phiên Cũ (Session Lifecycle & Clean Workspace)
+- **Mô tả:** Tách biệt tuyệt đối giữa phiên làm việc hiện tại (Active Session) và kho lưu trữ lịch sử các phiên trước đó (Archived Chat Sessions).
+- **Hành vi nghiệp vụ:**
+  1. *Khởi đầu Sạch sẽ (Fresh Initial State):* Khi người dùng truy cập màn hình `/composer` hoặc khi mở một phiên mới, khung chat active luôn bắt đầu sạch sẽ với duy nhất 1 tin nhắn chào mặc định từ Trợ lý soạn thảo Quesy Copilot. Tuyệt đối không tự động nạp lại hàng loạt tin nhắn trao đổi cũ gây rối mắt.
+  2. *Lưu trữ Tự động vào Kho Phiên Cũ:* Khi người dùng bắt đầu phiên mới (`newChat()`), nếu phiên hiện tại đã có tương tác (có $\ge 1$ tin nhắn người dùng), hệ thống tự động đóng gói toàn bộ hội thoại của phiên đó vào danh sách phiên lưu trữ trong `localStorage` (`quesy_composer_chat_sessions`).
+  3. *Ngăn kéo Lịch sử (History Drawer / Panel):* Chỉ khi người dùng nhấp vào nút **`[Lịch sử]`** (`#composer-ai-history-btn`), hệ thống mới mở giao diện danh sách các phiên cũ. Mỗi mục hiển thị: thời gian tạo, câu lệnh đầu tiên làm tiêu đề, số lượng trao đổi. Người dùng có thể:
+     - Nhấp vào một phiên cũ để xem lại hoặc tải lại các câu lệnh/mã nguồn đã thảo luận.
+     - Bấm nút đóng để quay lại phiên hội thoại hiện tại.
+     - Bấm nút dọn dẹp để xóa sạch kho lưu trữ lịch sử.
+
+#### SRS-FEAT-04k: Kéo Thả Điều Chỉnh Độ Cao Linh Hoạt Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Unified Single Pill Handle)
+- **Mô tả:** Cho phép giáo viên tùy biến độ cao của Box Trợ lý Soạn thảo (`#composer-ai-popup`) một cách linh hoạt, mượt mà theo phương thẳng đứng bằng thao tác kéo chuột hoặc vuốt chạm cảm ứng.
+- **Tiêu chuẩn tương tác & Giới hạn:**
+  1. *Điểm chạm Kéo thả Hợp nhất (Unified Single Pill Handle):*
+     - Hợp nhất hoàn toàn thanh kéo biên trên và thanh pill trong header thành **duy nhất 1 thanh ngang viên thuốc** (`#composer-ai-resize-handle`) đặt tại trung tâm header của popup trợ lý (giữa nút thu gọn bên trái và các nút tác vụ bên phải).
+     - Loại bỏ dứt điểm thanh pill phụ trùng lặp bên ngoài đỉnh popup, tối ưu hóa diện tích hiển thị và tuân thủ chặt chẽ Apple Human Interface Guidelines cho modal bottom sheet.
+     - Thanh pill hỗ trợ con trỏ chuột dạng `cursor-row-resize` / `cursor-ns-resize`, đổi màu tương tác xúc giác khi di chuột hoặc nhấn giữ (`group-hover:bg-slate-400 group-active:bg-purple-400`).
+     - Hỗ trợ cả 2 phương thức điều khiển:
+       + *Kéo thả liên tục:* Kéo chuột lên/xuống để co giãn chiều cao tùy ý.
+       + *Nhấp chuột / Nhấp đúp (Click / Double-click Toggle):* Nhấp nhanh để chuyển đổi tức thì giữa độ cao mặc định (56%) và độ cao mở rộng (78%).
+  2. *Cơ chế Kéo thả Liên tục (Continuous Drag Lifecycle):*
+     - Bắt sự kiện `mousedown` / `touchstart` trên handle, ghi nhận tọa độ `startY` và độ cao ban đầu.
+     - Lắng nghe `mousemove` / `touchmove` trên `window`: Tính toán độ chênh lệch `deltaY = startY - currentY` và cập nhật độ cao tức thì theo thời gian thực (60 FPS, tạm thời tắt transition CSS trong lúc kéo để triệt tiêu độ trễ).
+     - Áp dụng bộ kẹp giới hạn an toàn (Clamping Bounds):
+       + Chiều cao tối thiểu: $180\text{px}$ (hoặc $20\%$ khung editor) để đảm bảo luôn nhìn thấy thanh header và ô nhập lệnh.
+       + Chiều cao tối đa: $92\%$ chiều cao khung editor để không bao giờ che lấp thanh công cụ trên cùng (`MỚI`, `THÊM ▾`, `LỜI GIẢI`, `XUẤT FILE`).
+     - Khi `mouseup` / `touchend`: Kết thúc thao tác kéo, khôi phục lại hiệu ứng chuyển động và lưu chiều cao tùy chỉnh vào `localStorage` (`quesy_composer_ai_height`).
+
+#### SRS-FEAT-04l: Thanh Phân Tách Kéo Thả Ngang 2 Cột Editor & Live Preview Chuẩn Apple HIG (#composer-split-resizer)
+- **Mô tả:** Trang bị thanh chia cột tương tác (`#composer-split-resizer` / `#composer-col-splitter`) nằm giữa Cột Soạn thảo LaTeX (Left Pane) và Cột Live Preview (Right Pane), tái thiết kế chuẩn Apple Human Interface Guidelines với khoảng cách đệm thẩm mỹ, không đè sát viền box soạn thảo (Ảnh 2).
+- **Cấu trúc & Tiêu chuẩn Kỹ thuật:**
+  1. *Khoảng Cách Đệm & Vùng Âm Bản (Negative Space & Gutter Layout):*
+     - Mở rộng rãnh phân cách công thái học với chiều rộng rãnh `w-3.5` (14px) hoặc `w-4` (16px), tích hợp khoảng đệm phân cách an toàn `mx-1` / `mx-1.5` giữa Cột Trái (`rounded-xl border border-[#272f42]`) và Cột Phải (`rounded-xl border border-black/[0.08]`).
+     - Trục của thanh kéo luôn cách đều viền 2 card từ 6px đến 8px, loại bỏ hoàn toàn hiện tượng thanh kéo và quầng highlight hover bị chèn ép, đè dính hoặc lấn vào đường viền bo góc của box soạn thảo.
+  2. *Thanh Cầm Viên Thuốc Apple HIG (Apple Capsule Grabber Handle):*
+     - Trục viên thuốc: Chiều rộng $4\text{px}$ (`w-1`), chiều cao $36\text{px}$ (`h-9`), bo tròn hoàn toàn (`rounded-full`).
+     - Trạng thái bình thường: Nền xám kim loại trung tính `bg-slate-300 dark:bg-[#34415e]` kết hợp viền mờ chống lóa, ẩn mình nhường chỗ cho nội dung chính (Deference principle).
+     - Trạng thái di chuột (Hover): Tự động mở rộng nhẹ chiều cao (`group-hover:scale-y-110 group-hover:h-10`), đổi sang màu xanh Apple System Blue (`#0071e3`), tỏa quầng sáng vi mô `group-hover:shadow-[0_0_8px_rgba(0,113,227,0.35)]` với đường cong chuyển động mượt mà `cubic-bezier(0.16, 1, 0.3, 1)`.
+     - Vùng hover mềm bao quanh: Thẻ chứa có hiệu ứng hover nhẹ `group-hover:bg-blue-500/[0.08]` bo góc `rounded-lg`, nằm gọn bên trong rãnh và không bao giờ chạm viền của 2 card lân cận.
+     - Trạng thái kéo giữ (Active / Dragging): Phản hồi xúc giác Emil Kowalski co nhẹ `scale-95`, màu xanh đậm đà `bg-[#0071e3]`, kích hoạt con trỏ `cursor: col-resize` và class `.composer-resizing-h` trên toàn trang.
+  3. *Quy trình Kéo thả Ngang (Horizontal Drag Lifecycle):*
+     - Bắt sự kiện `mousedown` / `touchstart` trên resizer: Ghi nhận tọa độ `startX` và bề rộng container.
+     - Lắng nghe `mousemove` / `touchmove` trên `window`: Tính toán bề rộng cột trái theo phần trăm `leftPercent = ((startWidth + (currentX - startX)) / containerWidth) * 100`.
+     - Bộ kẹp giới hạn (Clamping Range): Tỷ lệ cột trái được giới hạn nghiêm ngặt từ $25\%$ đến $75\%$ (bảo đảm mỗi cột luôn rộng tối thiểu $320\text{px}$, không bị vỡ giao diện trên mọi kích thước màn hình).
+     - Cơ chế chống gián đoạn (Pointer Shield): Tự động áp dụng `pointer-events: none` lên canvas/iframe xem trước PDF trong quá trình kéo chuột nhanh để loại bỏ hiện tượng giật con trỏ khi đi qua frame tài liệu.
+     - Nhấp đúp chuột (`dblclick`): Khôi phục tức thì về tỷ lệ vàng mặc định 60% Left : 40% Right.
+     - Tự động lưu cấu hình tỷ lệ vào `localStorage` (`quesy_composer_split_ratio`) và khôi phục chính xác khi giáo viên tải lại trang.
+
+#### SRS-FEAT-04m: Tự Động Co Giãn PDF Theo Chiều Rộng Cột & Khung Cuộn Ngang An Toàn (PDF Auto Fit-to-Width & Horizontal Scroll Resiliency)
+- **Mô tả:** Đảm bảo trang xem trước PDF luôn hiển thị toàn vẹn, tự động co giãn theo chiều rộng khung hiển thị (Preview Container) khi người dùng kéo thay đổi kích thước cột hoặc thay đổi kích thước cửa sổ trình duyệt, đồng thời hỗ trợ cuộn ngang linh hoạt loại bỏ hoàn toàn hiện tượng tràn viền và xén mất mép phải trang.
+- **Tiêu chuẩn Kỹ thuật & Hành vi:**
+  1. *Khung Cuộn Đa Chiều Linh Hoạt (`#composer-pdf-scroll-container`):*
+     - Thay thế triệt để thuộc tính `overflow-x-hidden` bằng `overflow-x-auto` (kết hợp `overflow-y-auto`).
+     - Bố cục vùng chứa trang `#composer-pdf-pages` với `min-w-full w-fit flex flex-col items-center space-y-3` và căn lề tự động an toàn cho các thẻ `.pdf-page-card`: Khi chiều rộng trang PDF nhỏ hơn bề rộng khung nhìn, trang được tự động căn giữa cân đối; khi chiều rộng trang PDF vượt quá bề rộng khung nhìn (do thu hẹp cột hoặc phóng to zoom), toàn bộ trang bắt đầu từ lề trái $x=0$ và thanh cuộn ngang xuất hiện trơn tru, bảo đảm không bao giờ mất thông tin hay xén nét ở lề phải.
+  2. *Cơ Chế Tự Động Co Giãn Chiều Rộng (Auto Fit-to-Width Mechanism):*
+     - Hệ thống duy trì cờ trạng thái `isAutoFit: true` theo mặc định khi tải tài liệu hoặc khi người dùng nhấp đặt lại tỷ lệ xem (nút `1:1` / `Fit Width`).
+     - Trang bị `ResizeObserver` (kèm lắng nghe sự kiện `resize` của cửa sổ) giám sát kích thước khung xem trước (`#composer-preview-canvas` / `#composer-pdf-scroll-container`).
+     - Khi bề rộng container thay đổi (do kéo thanh splitter `#composer-col-splitter`, mở rộng/thu gọn panel, hoặc đổi kích thước cửa sổ):
+       + Nếu `isAutoFit === true`: Hệ thống tự động tính toán lại tỷ lệ phóng thu tối ưu:
+         $$\text{fitZoom} = \max\left(0.3, \min\left(2.5, \frac{\text{availableWidth}}{\text{basePageWidth}}
+ight)
+ight)$$
+         (với $\text{availableWidth} = \text{clientWidth} - 48\text{px}$ để bảo toàn khoảng đệm padding thẩm mỹ hai bên).
+       + Cập nhật tức thì kích thước CSS hiển thị của thẻ trang và canvas (60 FPS trong lúc kéo), sau đó kích hoạt render lại vector sắc nét có chống rung (debounced 100ms).
+     - Khi người dùng chủ động zoom thủ công (Ctrl+wheel hoặc bấm nút `+` / `-`), cờ `isAutoFit` được chuyển sang `false` để tôn trọng tỷ lệ xem người dùng đã chọn; khi đó thanh cuộn ngang `overflow-x-auto` đảm bảo người dùng có thể cuộn xem mọi góc của trang mà không bị cắt cụt.
+
+#### SRS-FEAT-04n: Thuật Toán Phóng To / Thu Nhỏ Thông Minh Theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point & Center Anchor Engine)
+- **Mô tả:** Triệt tiêu hoàn toàn lỗi giật cục hoặc trang bị nhảy về góc trên cùng bên trái $(0, 0)$ khi phóng to / thu nhỏ. Hệ thống trang bị thuật toán điều hướng zoom theo điểm neo tương đối (Adaptive Anchor Zooming) thông minh dựa trên ngữ cảnh tương tác.
+- **Tiêu chuẩn Kỹ thuật & Thuật Toán:**
+  1. *Phát Hiện & Xác Định Điểm Neo (Anchor Point Detection):*
+     - **Chế độ 1 - Neo theo Vị trí Con trỏ Chuột (Cursor Anchor):** Khi thao tác zoom bằng cuộn chuột kết hợp phím bổ trợ (`Ctrl + Wheel` / `Cmd + Wheel`) và con trỏ chuột nằm bên trong vùng hiển thị PDF (`#composer-pdf-scroll-container`), điểm neo được gán chính xác bằng tọa độ con trỏ:
+       $$x_v = \text{event.clientX}, \quad y_v = \text{event.clientY}$$
+       Điểm nội dung tài liệu nằm ngay dưới con trỏ chuột được bảo toàn cố định tại đúng vị trí con trỏ sau khi phóng to / thu nhỏ.
+     - **Chế độ 2 - Neo theo Trọng tâm Màn hình (Viewport Center Anchor):** Khi thao tác zoom bằng nút bấm trên thanh công cụ nổi (`+`, `-`) hoặc phím tắt bàn phím (con trỏ chuột nằm ngoài tài liệu PDF):
+       $$x_v = \text{rect.left} + \frac{\text{rect.width}}{2}, \quad y_v = \text{rect.top} + \frac{\text{rect.height}}{2}$$
+       Điểm trọng tâm chính giữa khung nhìn của giáo viên được giữ nguyên ở trung tâm màn hình, bảo đảm không bị trôi dạt sang bất kỳ góc nào.
+  2. *Công Thức Bảo Toàn Tọa Độ Cuộn (Invariant Scroll Math):*
+     - Bước 1: Tính độ dời tương đối của điểm neo so với khung nhìn container:
+       $$dx = x_v - \text{rect.left}, \quad dy = y_v - \text{rect.top}$$
+     - Bước 2: Xác định tọa độ điểm neo trong không gian nội dung trước khi zoom:
+       $$X_{\text{content}} = \text{scrollLeft}_{\text{old}} + dx, \quad Y_{\text{content}} = \text{scrollTop}_{\text{old}} + dy$$
+     - Bước 3: Chuẩn hóa tọa độ theo tỷ lệ nội dung:
+       $$r_x = \frac{X_{\text{content}}}{\text{scrollWidth}_{\text{old}}}, \quad r_y = \frac{Y_{\text{content}}}{\text{scrollHeight}_{\text{old}}}$$
+     - Bước 4: Cập nhật tỷ lệ `zoomLevel` mới, gán kích thước mới cho các thẻ trang và canvas trong DOM.
+     - Bước 5: Cập nhật tức thời vị trí cuộn mới:
+       $$\text{scrollLeft}_{\text{new}} = \text{round}(r_x \times \text{scrollWidth}_{\text{new}} - dx)$$
+       $$\text{scrollTop}_{\text{new}} = \text{round}(r_y \times \text{scrollHeight}_{\text{new}} - dy)$$
+  3. *Bảo Toàn Trạng Thái Khi Dựng Hình Lại (High-DPI Re-rendering Persistence):*
+     - Cơ chế render lại trang canvas ở độ phân giải thực (`renderAllPages` với devicePixelRatio) chạy sau khoảng trễ debounce 100ms tự động lưu giữ và khôi phục giá trị `scrollTop` và `scrollLeft`, loại bỏ tuyệt đối hiện tượng chớp nháy hoặc nhảy góc $(0, 0)$.
+
+#### SRS-FEAT-04o: Kiến Trúc Duyệt & Áp Dụng Đa Khối Diff AI (Multi-Diff Sequential Review & Batch Apply Engine)
+- **Mô tả:** Cho phép AI Copilot phản hồi nhiều khối sửa đổi cùng một lúc trong một lượt trả lời (đổi font, sửa đáp án, chèn gói tikz, sửa lỗi cú pháp). Hệ thống hỗ trợ duyệt tuần tự từng sửa đổi (1/N, Trước/Sau, Keep/Undo) và cung cấp nút [Áp dụng tất cả] (Apply All) để hợp nhất toàn bộ các thay đổi vào mã nguồn chỉ với 1 thao tác (Ảnh 3).
+- **Mô hình Dữ liệu Đa Khối Diff (Multi-Diff Contract):**
+  - Mở rộng schema `ChatResponse`:
+    ```python
+    class ChatResponse(BaseModel):
+        reply: str
+        suggested_latex: Optional[str] = None
+        diff: Optional[DiffSuggestion] = None  # Khối diff đầu tiên (tương thích ngược)
+        diffs: Optional[List[DiffSuggestion]] = Field(default_factory=list, description="Danh sách toàn bộ các khối diff")
+    ```
+  - Thuật toán bóc tách đa khối `extract_all_diffs_from_text`: Quét toàn bộ các khối ````diff ... ````, các cặp `OLD: ... NEW: ...`, các khối `SEARCH / REPLACE`, các block replace và các câu lệnh thay thế nội dòng, loại bỏ trùng lặp và trả về danh sách `diffs: List[DiffSuggestion]`.
+- **Cỗ Máy Trạng Thái Duyệt Tuần Tự & Hàng Loạt (Sequential & Batch State Machine):**
+  - Trạng thái client: `pendingDiffs: []`, `currentDiffIndex: 0`, `pendingDiff: pendingDiffs[currentDiffIndex]`.
+  - Hiển thị song hành trên cả Top Banner (`#composer-pending-diff-banner`) và Inline Overlay (`#composer-inline-diff-overlay`):
+    1. *Huy hiệu Đếm Động (Dynamic Capsule Counter):* Thay thế huy hiệu tĩnh `1/1` bằng viên thuốc định vị `${currentDiffIndex + 1}/${pendingDiffs.length}` (ví dụ: `1/3`, `2/3`, `3/3`).
+    2. *Bộ Điều Hướng Tuần Tự (Sequential Stepper `<` / `>`):*
+       - Nút **`[< Trước]`** (`prevDiff()`): Di chuyển về diff trước đó, tự động cuộn màn hình và bôi đen vị trí dòng tương ứng trong editor. Tự động disable/mờ đi khi đang ở diff đầu tiên (`currentDiffIndex === 0`).
+       - Nút **`[Sau >]`** (`nextDiff()`): Di chuyển tới diff kế tiếp. Tự động disable/mờ đi khi đang ở diff cuối cùng (`currentDiffIndex === pendingDiffs.length - 1`).
+       - Cả hai nút tự động ẩn hoặc vô hiệu hóa khi tổng số diff $\le 1$.
+    3. *Duyệt Từng Khối Sửa Đổi (Individual Accept / Reject):*
+       - Nút **`[Keep / Đồng ý]`** (`applyCurrentDiff()`): Áp dụng diff hiện tại vào mã nguồn qua Động cơ Thay thế Mờ 6 Tầng (`applyDiffDirect`), loại bỏ diff khỏi `pendingDiffs`. Nếu hết diff, tự động đóng giao diện diff; nếu còn diff, tự động chuyển trọng tâm hiển thị sang diff kế tiếp và làm nổi bật dòng mới.
+       - Nút **`[Undo / Từ chối]`** (`rejectCurrentDiff()`): Hủy bỏ diff hiện tại, loại bỏ khỏi `pendingDiffs` và chuyển sang diff kế tiếp (nếu có).
+    4. *Áp Dụng Hàng Loạt (Batch Apply All):*
+       - Nút **`[Áp dụng tất cả] (Apply All)`** (`applyAllPendingDiffs()`): Hiển thị nổi bật với nền xanh Apple (`bg-blue-600 hover:bg-blue-500 text-white font-bold`) khi `pendingDiffs.length > 1`.
+       - Khi người dùng nhấn nút: Hệ thống tự động lặp qua toàn bộ danh sách `pendingDiffs` theo thứ tự xuất hiện, tuần tự áp dụng từng cặp `(old_text, new_text)` vào mã nguồn LaTeX qua thuật toán thay thế an toàn.
+       - Cập nhật giá trị vào textarea editor và `currentLatex`, kích hoạt `compile(true)` một lần duy nhất, đóng toàn bộ banner/overlay diff và hiển thị thông báo toast: *\"Đã áp dụng toàn bộ N sửa đổi vào mã nguồn!\"*.
+
+#### SRS-FEAT-04p: Động Cơ Thay Thế Câu Hỏi Thông Minh & Đồng Bộ Chat-Editor An Toàn (Question Replacement Engine & Safe Chat Sync)
+- **Mô tả:** Hỗ trợ người dùng ra lệnh bằng ngôn ngữ tự nhiên để thay thế câu hỏi trong đề thi (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*, *"Thay thế câu 2 bằng câu khác"*, *"Sửa câu 3"*).
+- **Hàm Bóc Tách Khối Câu Hỏi Thứ N (`find_question_block(current_latex, n)`):**
+  1. *Định dạng Chuẩn `ex_test.sty`:* Quét toàn bộ các khối `\begin{ex}(?:\[[^\]]*\])?[\s\S]*?\end{ex}` trong `current_latex`. Khối thứ $n$ (1-indexed) được xác định chính xác theo thứ tự xuất hiện từ trên xuống dưới trong mã nguồn.
+  2. *Định dạng Đánh Số Cổ Điển:* Nếu không tìm thấy cấu trúc `ex_test`, hệ thống đối sánh các nhãn đánh số `\textbf{Câu n.}`, `\textbf{Câu n:}`, hoặc `Câu n.` và bóc tách toàn bộ phần thân từ điểm bắt đầu nhãn này tới trước nhãn câu hỏi kế tiếp (`\textbf{Câu (n+1).}`, `\end{document}`, `\section*`) hoặc cuối văn bản.
+  3. Trả về đúng lát cắt chuỗi nguyên bản (raw substring) của câu hỏi thứ $n$ có mặt trong `current_latex` để làm `old_text`.
+- **Cơ Chế Gắn Kết Thông Minh (Smart Diff Binding):**
+  1. Nhận diện ý định người dùng: Khi prompt chứa cụm từ biểu thị ý định thay thế câu thứ $n$ (ví dụ: `r'(?:thay thế|thay|đổi|sửa|chuyển|replace)\s*(?:cho\s+)?(?:câu|câu\s+hỏi|câu\s+số|bài|question)\s*(\d+)'`).
+  2. Bóc tách câu hỏi mới: Lấy khối câu hỏi mới do AI sinh ra nằm trong ````latex ... ```` hoặc ````diff ... ````.
+  3. Khắc phục hạn chế của `SequenceMatcher`: Khi câu hỏi mới khác hoàn toàn câu hỏi cũ (ví dụ câu cũ là đồ thị hàm số, câu mới là bài toán đơn điệu hàm số), `SequenceMatcher` sẽ có độ tương đồng $< 0.52$ và không tìm thấy vị trí thay thế. Cơ chế Smart Diff Binding chủ động liên kết:
+     `old_text = find_question_block(current_latex, n)` và `new_text = clean_new_code`.
+  4. Trả về đối tượng `DiffSuggestion(action="replace", old_text=old_text, new_text=new_text, description=f"Thay thế câu {n} bằng câu hỏi mới")`.
+- **Cơ Chế Hiển Thị Chat Bubble An Toàn (Safe Chat Bubble Rendering):**
+  1. *Nguyên tắc bảo toàn khối mã:* Tuyệt đối không ẩn/xóa khối mã nguồn trong bubble chat và không hiển thị badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"* trừ khi diff THỰC SỰ tồn tại và hợp lệ (`diff && diff.old_text && currentLatex.includes(diff.old_text)`).
+  2. *Fallback khi không có diff hợp lệ:* Nếu diff rỗng hoặc `old_text` không khớp vị trí trong editor:
+     - Giữ nguyên khối code trong bubble chat.
+     - Trang bị đầy đủ các nút bấm hành động: `[📥 Chèn vào con trỏ]` (`insertB64Code`), `[📋 Sao chép]` (`copyB64Code`), và `[🔄 Áp dụng thay thế]` (`replaceB64Code`).
+     - Triệt tiêu hoàn toàn lỗi nuốt mất code trong chat bubble khi editor chưa nhận được diff.
+- **Hỗ Trợ Động Cơ Dự Phòng Cục Bộ (Local Offline Fallback Generator):**
+  - Khi không cấu hình AI Provider hoặc mạng gián đoạn, động cơ dự phòng nhận diện câu lệnh thay thế câu $n$ (ví dụ: "đơn điệu hàm số thay thế câu 1"), tự động sinh câu hỏi toán chuẩn `ex_test.sty` và bóc tách câu $n$ cũ để trả về `DiffSuggestion` hoàn chỉnh.
+
+#### SRS-FEAT-04q: Hộp Soạn Thảo Đề Thi Tinh Gọn Không Preamble & Động Cơ Nhúng Ngầm Canonical Preamble Injection (Preamble-Free Question Editor)
+- **Mô tả:** Tách biệt triệt để giữa phần Khai báo Gói Lệnh (Preamble) và Phần Thân Nội Dung Đề Thi (Exam Body). Giáo viên khi sử dụng phân hệ Soạn đề (`/composer`) chỉ cần tập trung viết nội dung đề thi và các câu hỏi chuẩn gói lệnh khảo thí quốc gia `ex_test.sty` (`\begin{ex}...\choice...\loigiai...\end{ex}`, `\choiceTF`, `\shortans`, `\immini`, TikZ, `tkz-tab`), hoàn toàn KHÔNG CẦN viết các dòng lệnh rườm rà như `\documentclass`, `\usepackage`, hay `\begin{document}...\end{document}`.
+- **Kiến trúc Nhúng Ngầm Preamble Chuẩn (Canonical Preamble Injection):**
+  1. *Định nghĩa Preamble Chuẩn (Canonical Preamble Spec):*
+     ```latex
+     \documentclass[11pt,a4paper]{article}
+     \usepackage{geometry}
+     \geometry{a4paper, total={175mm,257mm}, left=18mm, top=18mm, right=18mm, bottom=18mm}
+     \usepackage{fontspec}
+     \usepackage{amsmath,amssymb}
+     \usepackage{tikz,tkz-tab}
+     \usepackage{tcolorbox}
+     \tcbuselibrary{skins,breakable,xparse}
+     \usepackage[{mode}]{ex_test}
+     ```
+     Trong đó `{mode}` được gán động là `dethi` (chế độ in đề thi, ẩn lời giải) hoặc `loigiai` (chế độ in đáp án & hướng dẫn giải chi tiết).
+  2. *Bộ Chuẩn Hóa Tài Liệu Hai Chế Độ (Smart Dual-Mode Document Normalizer):*
+     - Khi nhận mã nguồn từ editor, hệ thống tự động kiểm tra sự tồn tại của thẻ `\documentclass`:
+       + **Nhánh 1 - Mã thuần câu hỏi (Preamble-Free Question Body - Mặc định):** Nếu không có `\documentclass`, hệ thống tự động tiêm Canonical Preamble, bọc phần thân trong `\begin{document}...\end{document}` trước khi chuyển tới Tectonic XeTeX hoặc Chromium Fallback.
+       + **Nhánh 2 - Tài liệu toàn vẹn (Full Document - Tương thích ngược):** Nếu người dùng dán toàn bộ tài liệu TeX cũ có sẵn `\documentclass`, hệ thống giữ nguyên cấu trúc, tự động hiện đại hóa `vietnam` $
+ightarrow$ `fontspec`, bổ sung các gói lệnh thiếu (`tcolorbox`, `xparse`, `tikz`, `tkz-tab`, `ex_test`) và đồng bộ option `[dethi]` / `[loigiai]` theo cờ chế độ được yêu cầu.
+  3. *Điều Khiển Chế Độ Đề Thi / Lời Giải Không Phụ Thuộc Mã Nguồn Editor:*
+     - API `POST /api/v1/composer/compile` bổ sung trường `mode: "loigiai" | "dethi"` (mặc định `"loigiai"`).
+     - Khi người dùng gạt công tắc `LỜI GIẢI` trên thanh công cụ xem trước, hệ thống truyền cờ `mode` tương ứng. Động cơ tự động thay thế `[dethi]` thành `[loigiai]` trong Canonical Preamble ngầm, hoàn toàn không cần chỉnh sửa hoặc chèn ép thêm text vào ô soạn thảo của giáo viên.
+     - Khóa đệm cache biên dịch được tạo từ `md5(latex_code + "::" + title + "::" + mode)` đảm bảo hai chế độ `[dethi]` và `[loigiai]` luôn có bản cache riêng biệt, tức thì và độc lập, không bị xung đột hiển thị.
+  4. *Xuất Bản File TeX Hoàn Chỉnh (Full TeX Source Packaging on Export):*
+     - Khi giáo viên nhấn menu `XUẤT FILE ▾` $
+ightarrow$ `Tải mã nguồn TeX (.tex)`, nếu nội dung hiện tại là dạng tinh gọn không preamble, hệ thống tự động bọc Canonical Preamble đầy đủ và `\begin{document}...\end{document}` vào tệp tải về để đảm bảo tệp `.tex` có thể biên dịch thành công 100% ngay lập tức trên các trình soạn thảo TeX bên ngoài (TeXShop, TeXstudio, Overleaf).
+  5. *Định Hướng Trợ Lý AI Copilot:*
+     - Prompt hệ thống của Quesy Copilot được chỉ dẫn rõ: môi trường làm việc đã tích hợp sẵn Canonical Preamble của `ex_test.sty` v3.3. Khi giáo viên yêu cầu tạo câu hỏi, AI chỉ sinh phần thân câu hỏi `\begin{ex}...\end{ex}` và tiêu đề cần thiết, tuyệt đối không xuất các đoạn preamble thừa thãi làm ô nhiễm khung soạn thảo.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.
@@ -323,6 +516,8 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 | **SRS-FEAT-04** | Unit Test logic điểm | Chấm điểm câu Đúng/Sai 4 ý: Đúng 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ. |
 | **SRS-FEAT-04e** | E2E Browser Test | Click chuột vào Compact Bar chân editor: con trỏ focus ô nhập text bình thường, không mở popup. Nhấn Enter hoặc nút mũi tên: mở bung full popup trợ lý và gửi prompt. |
 | **SRS-FEAT-04f** | Test tự động + UI Test | Phản hồi sửa đổi từ AI trích xuất thành đối tượng `DiffSuggestion`, định vị đúng dòng trên editor, hiển thị banner so sánh đỏ/xanh; nhấn [Đồng ý] thay thế chuẩn xác dòng code và kích hoạt recompile; nhấn [Từ chối] hủy bỏ an toàn không làm biến đổi mã nguồn. |
+| **SRS-FEAT-04p** | Test tự động + Blind Test | Bóc tách chính xác khối câu hỏi thứ N (`find_question_block`); prompt thay thế câu N liên kết đúng diff; nếu diff hợp lệ chuyển tới editor, nếu rỗng bảo tồn trọn vẹn code trong chat bubble kèm 3 nút hành động (không nuốt code). |
 | **SRS-FEAT-05** | Test tích hợp | Câu hỏi có cosine similarity $\ge 0.90$ phải kích hoạt chặn lưu và hiển thị modal cảnh báo trùng lặp. |
 | **SRS-FEAT-08** | Unit Test thuật toán | Chạy 1.000 lần sinh mã đề hoán vị: $0\%$ câu hỏi chùm bị tách rời; $0\%$ phương án có cờ `is_fixed` bị đảo khỏi vị trí cố định. |
 | **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng MathType 7.0 OLE Vector WMF nét căng tuyệt đối, click đúp mở MathType 7 sửa được trực tiếp; bảng số liệu dạng native table không bị lỗi đen khi xuất PDF; khổ A4 dọc chuẩn. |
+| **SRS-VERIF-CI** | Test CI Runner + Pre-Commit Gate | 100% test cases vượt qua trên môi trường CI runner (`pytest`, syntax check) trước khi commit; tuân thủ nghiêm ngặt nguyên tắc Strict CI Isolation (chỉ duy nhất Sub-Agent CI đọc/ghi CI, cấm các sub-agent khác truy cập đọc); vòng lặp sửa lỗi CI loop lặp lại cho đến khi pass mới commit. |

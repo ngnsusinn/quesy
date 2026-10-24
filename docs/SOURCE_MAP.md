@@ -2,7 +2,7 @@
 
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
-> **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (71/71 test cases PASSED)  
+> **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
 > **Cập nhật lần cuối:** Tháng 10/2026  
 
 ---
@@ -13,7 +13,7 @@ Quesy được xây dựng theo kiến trúc **Module-based Monolith** kết h�
 1. **Frontend Presentation & Micro-interaction Layer:** Single Page Application (SPA) điều hướng sạch (`/path`), tuân thủ Apple HIG và tương tác Emil Kowalski (phản hồi xúc giác 0.97, Dark Code Editor `#141824`, Live PDF Preview).
 2. **API Gateway & Routing Layer:** FastAPI (Python 3.13) bất đồng bộ, tự động validate Pydantic V2 schemas, bảo toàn route SPA tránh lỗi 404 khi F5.
 3. **Core Domain Services & Processing Pipelines:**
-   - *Soạn đề & Biên dịch Hybrid:* `composer_service.py` kết nối Remote Tectonic XeTeX Engine Docker (host `armbian:8090`), gói lệnh chuẩn quốc gia `ex_test.sty` (v3.3.6), AI Inline Diff Replacer.
+   - *Soạn đề & Biên dịch Hybrid:* `composer_service.py` kết nối Remote Tectonic XeTeX Engine Docker (host `armbian:8090`), gói lệnh chuẩn quốc gia `ex_test.sty` (v3.3.6), động cơ Canonical Preamble Injection (tự động nhúng ngầm fontspec, amsmath, tikz, tkz-tab, tcolorbox, xparse, ex_test v3.3, geometry A4), hỗ trợ ô soạn thảo tinh gọn Preamble-Free Question Editor, và AI Inline Diff Replacer.
    - *Số hóa 2-Pass AI Decoupled:* Tiền xử lý ảnh OpenCV/Pillow, phân đoạn layout, Pass 1 trích xuất văn bản/đáp án, Pass 2 dựng mã TikZ/Array song song.
    - *Xuất bản MathType OLE Word & CMU Serif PDF:* Dựng luồng nhị phân CFB MTEF v5 + ảnh vector WMF (APM header chuẩn) sửa 2 chiều trong Microsoft Word; chuyển đổi bảng biến thiên sang `<w:tbl>` native.
    - *Ma trận & Trộn đề An toàn:* Giải bài toán ma trận 2 chiều theo YCCĐ, hoán vị mã đề an toàn, tính điểm Đúng/Sai lũy tiến theo QĐ 764.
@@ -150,7 +150,7 @@ quesy/
 │   ├── test_api_contracts_and_negatives.py # Kiểm thử hợp đồng API & trường hợp biên âm tính (276 dòng)
 │   ├── test_api_endpoints.py          # Kiểm thử các API endpoints cốt lõi (256 dòng)
 │   ├── test_cloud_vision_adapter.py   # Kiểm thử adapter cloud vision (97 dòng)
-│   ├── test_composer.py               # Kiểm thử Soạn đề, Tectonic compile, AI Inline Diff (181 dòng)
+│   ├── test_composer.py               # Kiểm thử Soạn đề, Tectonic compile, AI Inline Diff, Chat API Contract (1550+ dòng)
 │   ├── test_deduplication.py          # Kiểm thử lọc trùng câu hỏi (84 dòng)
 │   ├── test_digitize_2pass.py         # Kiểm thử pipeline 2-Pass số hóa (273 dòng)
 │   ├── test_digitize_docx_export.py   # Kiểm thử xuất Word từ dữ liệu số hóa (91 dòng)
@@ -166,7 +166,7 @@ quesy/
 │   └── comprehensive_loop_test.py     # Script kiểm thử vòng lặp toàn diện (664 dòng)
 │
 └── .github/workflows/
-    └── ci.yml                         # Quy trình CI/CD GitHub Actions trên Ubuntu runner (64 dòng)
+    └── ci.yml                         # Quy trình CI/CD GitHub Actions trên Ubuntu runner (Strict CI Isolation: Độc quyền Sub-Agent 3, cấm các Sub-Agent khác đọc/ghi)
 ```
 
 ---
@@ -211,10 +211,11 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 | Phương thức | Đường dẫn API | Chức năng nghiệp vụ | Router Module |
 | :--- | :--- | :--- | :--- |
-| **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (Debounced) | `composer.py` |
+| **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (hỗ trợ Preamble-Free Question Editor, Canonical Preamble Injection, mode: dethi/loigiai) | `composer.py` |
 | **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, chẩn đoán log lỗi biên dịch LaTeX (compile_error_log), đề xuất Smart Inline Diff | `composer.py` |
 | **GET** | `/api/v1/composer/pdf/{doc_id}.pdf` | Stream trực tiếp tệp PDF xem trước | `composer.py` |
 | **GET** | `/api/v1/composer/templates` | Danh mục mẫu đề thi chuẩn quốc gia (`ex_test.sty` v3.3) | `composer.py` |
+| **POST/GET** | `/api/v1/composer/export` | Xuất file .tex độc lập hoàn chỉnh có canonical preamble chuẩn in ấn | `composer.py` |
 | **POST** | `/api/v1/composer/save-to-bank` | Trích xuất 1-Click câu hỏi `\begin{ex}` sang Ngân hàng | `composer.py` |
 | **POST** | `/api/v1/digitize/upload-document`| Tải lên tệp đề thi (PDF, DOCX, Ảnh) chạy pipeline số hóa | `digitize.py` |
 | **POST** | `/api/v1/digitize/upload-test`| Tải lên kiểm thử nhanh luồng 2-Pass Decoupled AI | `digitize.py` |
@@ -282,7 +283,11 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
        │       - Bảo đảm tỷ lệ thành công 100%, triệt tiêu lỗi "Không tìm thấy dòng cũ tương ứng"
        │       - Đóng diff overlay/banner, tự động gọi compile(true)
        │
-       └──> Khi sửa mã xong -> Debounce 800ms -> Gửi POST /api/v1/composer/compile
+       └──> Khi sửa mã xong -> Debounce 800ms -> Gửi POST /api/v1/composer/compile (latex_code, title, mode)
+                 │
+                 ├──> [Smart Dual-Mode Document Normalizer]
+                 │         ├── Nếu KHÔNG CÓ \documentclass: Tiêm Canonical Preamble (fontspec, tikz, tkz-tab, tcolorbox, ex_test[mode], A4)
+                 │         └── Nếu ĐÃ CÓ \documentclass: Bảo toàn cấu trúc, chuẩn hóa fontspec & đồng bộ option [mode]
                  │
                  ├──> [Tầng 1] Remote Tectonic Docker (http://armbian:8090/compile)
                  │         ├── Tự động nhúng ex_test.sty v3.3.6
@@ -337,7 +342,14 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 - **Mô hình Single Page Application (SPA):** Điều hướng thuần Client-side trên `frontend/static/app.js` thông qua đối tượng toàn cục `app`:
   - `app.navigate(route)`: Chuyển đổi trạng thái hiển thị giữa các view mà không tải lại trang (`history.pushState`).
-  - `app.composer`: Quản lý toàn bộ vòng đời soạn thảo đề thi, tỷ lệ ngang 6:4 (60% Code Editor, 40% Live Preview), Trợ lý soạn thảo dạng Bottom Sheet Popup đa trạng thái (Compact Floating Bar $\leftrightarrow$ Expanded History Panel), undo/redo stack, debounced compiler, AI copilot chat, inline diff review, toggle lời giải `[dethi]` $\leftrightarrow$ `[loigiai]`, và trình xem trước High-DPI Vector Canvas (PDF.js) đồng bộ 100% tỷ lệ thu phóng (Zoom Sync giữa nút bấm và Ctrl+Scroll).
+  - `app.composer`: Quản lý toàn bộ vòng đời soạn thảo đề thi:
+    + *Không gian làm việc co giãn linh hoạt & Split Resizer Chuẩn Apple HIG:* Thanh phân tách ngang `#composer-split-resizer` (class `composer-col-splitter`) được tái thiết kế chuẩn Apple HIG với khoảng cách đệm công thái học `w-3.5` / `w-4` và lề an toàn `mx-1` / `mx-1.5`, trục viên thuốc `w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]` cách đều viền card 6-8px, không đè sát viền box soạn thảo (Ảnh 2). Hỗ trợ kéo thả chuột/cảm ứng tùy biến tỷ lệ từ 25% đến 75% (nháy đúp về 60:40, lưu `quesy_composer_split_ratio`). Khung xem trước PDF tự động co giãn (`fitToWidth`) theo chiều rộng khả dụng trong thời gian thực khi kéo splitter, kết hợp vùng cuộn `overflow-x-auto` loại bỏ triệt để hiện tượng xén mép phải.
+    + *Thanh Nhập Lệnh Thu Gọn & Cơ Chế Xóa Sạch Lạc Quan (Optimistic Input Reset):* Thanh dạng viên thuốc neo tại chân editor (`#composer-ai-compact-bar`) với độ tương phản chuẩn WCAG 2.1 AA (chữ trắng `#f8fafc`, caret `#38bdf8`). Click chuột chỉ để gõ text bình thường, nhấn Enter hoặc bấm nút gửi mới bung popup trợ lý. Hệ thống thực hiện xóa sạch lập tức cả 2 ô nhập (`compactInput.value = ''` và `chatInput.value = ''`) tại $t = 0\text{ms}$ khi gửi lệnh, triệt tiêu hoàn toàn lỗi text cũ còn kẹt trong ô nhập (Ảnh 1).
+    + *Trợ lý Soạn thảo AI Hợp nhất (Unified Single Pill Handle):* Box trợ lý `#composer-ai-popup` trang bị duy nhất 1 thanh pill ngang `#composer-ai-resize-handle` tại trung tâm header (loại bỏ hoàn toàn thanh pill phụ bên trên mép popup), hỗ trợ kéo thả thay đổi độ cao mượt mà theo phương đứng (Vertical Drag Resize, dải an toàn 180px - 92%, lưu `quesy_composer_ai_height`) và nhấp đúp/nhấp nhanh toggle 56% / 78%.
+    + *Thuật toán Phóng to / Thu nhỏ Thông minh (Smart Zoom-to-Point Engine):* Thay thế zoom cứng (0, 0) bằng thuật toán neo thông minh: tự động neo chính xác theo vị trí con trỏ chuột (`Cursor Anchor`) khi cuộn `Ctrl+Wheel` trên tài liệu, hoặc neo theo trọng tâm khung nhìn (`Center Anchor`) khi nhấn nút `+` / `-` trên thanh công cụ nổi, bảo toàn tọa độ cuộn khi render lại vector canvas sắc nét (High-DPI PDF.js).
+    + *Quản lý Phiên Sạch sẽ & Ngăn kéo Lịch sử:* Mỗi phiên mới bắt đầu sạch sẽ với tin nhắn chào mặc định từ Quesy Copilot; các phiên cũ được lưu trữ vào kho `quesy_composer_chat_sessions` và mở xem lại khi người dùng bấm nút "Lịch sử".
+    + *Kiến Trúc Duyệt & Áp Dụng Đa Khối Diff (Multi-Diff 1/N, Apply All):* Loại bỏ hoàn toàn widget diff trùng lặp trong bubble chat của trợ lý; toàn bộ giao diện so sánh `- old_text` / `+ new_text` được hiển thị tập trung trên Editor (Inline Diff Overlay và Top Banner). Hỗ trợ bóc tách đa khối diff (`diffs: List[DiffSuggestion]`), hiển thị bộ đếm động `${currentDiffIndex + 1}/${pendingDiffs.length}`, điều hướng tuần tự (`[< Trước]` / `[Sau >]`), duyệt chấp nhận/từ chối từng khối, và nút **`[Áp dụng tất cả] (Apply All)`** để hợp nhất toàn bộ các thay đổi vào mã nguồn chỉ với 1 cú click (Ảnh 3).
+    + *Các tính năng cốt lõi khác:* Động cơ thay thế mờ 6 tầng (6-Tier Fuzzy Line Matcher), undo/redo stack, debounced compiler, AI copilot chat, toggle lời giải `[dethi]` <-> `[loigiai]`, và trình xem trước High-DPI Vector Canvas (PDF.js) đồng bộ 100% tỷ lệ thu phóng.
   - `app.bank`: Quản lý tìm kiếm câu hỏi, cây bộ lọc 6 tầng, preview công thức toán KaTeX.
   - `app.matrix`: Quản lý ma trận đề thi 2 chiều, phân bổ số lượng câu theo mức độ nhận thức.
   - `app.shuffler`: Quản lý thuật toán xáo trộn đề, tạo mã đề hoán vị và xuất bản tài liệu.
@@ -354,7 +366,7 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 | **Local Dev** | Web Server | FastAPI / Uvicorn lắng nghe cổng 8000 (auto-failover sang 8001 nếu cổng bận) |
 | **Server Deploy** | Tectonic Docker | Microservice `tectonic-compiler-api` trên host `armbian:8090` |
 | **Server Deploy** | Cache CTAN | Volume mount `/root/.cache/tectonic` lưu trữ vĩnh viễn 43MB packages |
-| **CI / CD** | GitHub Actions | Runner `ubuntu-latest`, Python 3.13, Node 20, 100% test suite đạt 71/71 |
+| **CI / CD** | GitHub Actions | Runner `ubuntu-latest`, Python 3.13, Node 20. Cổng kiểm soát Pre-Commit CI Gate bắt buộc (100% pass CI mới được commit), nguyên tắc Strict CI Isolation (độc quyền Sub-Agent 3, cấm các sub-agent khác đọc/ghi), và vòng lặp sửa lỗi CI Loop. |
 
 ---
 
@@ -372,13 +384,41 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 ---
 
-## 9. QUY TRÌNH KÍCH HOẠT 4 SUB-AGENT ĐỒNG THỜI CHO MỖI YÊU CẦU TÍNH NĂNG
+## 9. QUY TRÌNH PHỐI HỢP & HOẠT ĐỘNG CỦA 4 SUB-AGENT
 
-Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi hệ thống bắt buộc phải kích hoạt 4 Sub-Agent chạy đồng thời (song song qua `delegate_task`), tuyệt đối không chạy đơn luồng tuần tự:
-1. **Sub-Agent 1 - Analysis, Specs & Docs:** Phân tích kiến trúc, rà soát tác động, đồng bộ toàn bộ tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
-2. **Sub-Agent 2 - Software Engineering & Coding:** Hiện thực hóa tính năng, lập trình backend/frontend, tuân thủ Apple HIG và thiết kế hệ thống.
-3. **Sub-Agent 3 - Automated Test & CI/CD Verification:** Viết mới/cập nhật test cases `pytest`, rà soát CI/CD `.github/workflows/`, chạy toàn bộ test suite đảm bảo 100% test cases vượt qua (71/71 PASSED).
-4. **Sub-Agent 4 - E2E Browser Blind Test & UI/UX Audit:** Mở trình duyệt thật qua `browser_exec`, thao tác thủ công (`fill_input`, `click_at_xy`), chụp màn hình, kiểm tra console log/error, đối chiếu toàn diện 5 nhóm khuyết tật phần mềm.
+Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi hệ thống được điều phối qua 4 Sub-Agent với quy chuẩn phân định mô hình AI và trình tự phối hợp nghiêm ngặt:
+
+### 9.1 Quy định về Mô hình AI (Sub-Agent Model Mapping)
+- **Sub-Agent 1 (Analysis, Specs & Docs):** `gemini 3.8 flash high`, `thinking: ultra`, `temp: 0.2`.
+- **Sub-Agent 2 (Software Engineering & Coding):** `gemini 3 flash`, `thinking: medium`.
+- **Sub-Agent 3 (Automated Test & CI/CD Verification):** `gemini 3.5 flash lite`.
+- **Sub-Agent 4 (E2E Browser Blind Test & UI/UX Audit):** `gemini 3.8 flash high`, `thinking: ultra`, `temp: 0.2`.
+
+### 9.2 Quy định về Trình tự Hoạt động & Tương tác giữa các Sub-Agent
+1. **Pha 1 - Đọc hiểu, Phân tích & Đặc tả Kiến trúc (Sub-Agent 1):**
+   - Phân tích kiến trúc, rà soát tác động, đồng bộ toàn bộ tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
+   - Định vị chính xác các file, hàm, API bị ảnh hưởng và xây dựng bản đặc tả kỹ thuật chi tiết.
+   - **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`).
+2. **Pha 2 - Triển khai Mã nguồn & Trao đổi Làm rõ (Sub-Agent 2):**
+   - Hiện thực hóa tính năng, lập trình backend/frontend, tuân thủ Apple HIG và thiết kế hệ thống.
+   - **Quy tắc hỏi lại Sub-Agent 1:** Trong quá trình triển khai, **nếu Sub-Agent 2 cần làm rõ bất kỳ điều gì (về logic, data contract, phạm vi...), bắt buộc phải hỏi lại Sub-Agent 1** để được làm rõ và thống nhất giải pháp trước khi code tiếp.
+   - **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`). Chủ động cung cấp thông tin cập nhật mã nguồn/thư viện cho Sub-Agent 3.
+3. **Pha 3 - Cổng Kiểm thử Song song (Sub-Agent 3 & Sub-Agent 4):**
+   - **QUY TẮC BẮT BUỘC:** **Sub-Agent 3 và Sub-Agent 4 CHỈ ĐƯỢC PHÉP CHẠY SAU KHI Sub-Agent 2 ĐÃ CHẠY XONG HOÀN TOÀN.** Tuyệt đối không kích hoạt Sub-Agent 3 và 4 khi Sub-Agent 2 chưa hoàn thành mã nguồn.
+   - Sau khi Sub-Agent 2 hoàn thành, Sub-Agent 3 và Sub-Agent 4 được kích hoạt song song:
+     - **Sub-Agent 3 (Automated Test & Độc quyền CI/CD):**
+       + *Strict CI Isolation:* Là sub-agent DUY NHẤT được phép truy cập, đọc, viết, chỉnh sửa toàn bộ cấu hình CI/CD (`.github/workflows/ci.yml`). Tách biệt hoàn toàn với các sub-agent còn lại.
+       + *Tiếp nhận thông tin một chiều:* Có toàn quyền đọc và tiếp nhận thông tin từ các sub-agent khác để cập nhật CI đồng bộ.
+       + *Kiểm thử tự động & Quản lý Cổng Pre-Commit Gate:* Viết mới/cập nhật test cases `pytest`, chạy toàn bộ test suite, chỉ cho phép commit khi 100% test cases vượt qua trên CI.
+     - **Sub-Agent 4 (E2E Browser Blind Test & UI/UX Audit):**
+       + Mở trình duyệt thật qua `browser_exec`, thao tác thủ công (`fill_input`, `click_at_xy`), chụp màn hình, kiểm tra console log/error, đối chiếu toàn diện 5 nhóm khuyết tật phần mềm.
+       + *Quy tắc cô lập CI:* Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`).
+4. **Pha 4 - Quy trình Xử lý Lỗi & Vòng lặp Hiệu chỉnh (Defect Clarification & Refactoring Loop):**
+   - **QUY TẮC BẮT BUỘC:** **Nếu Sub-Agent 3 hoặc Sub-Agent 4 run fail, xảy ra lỗi hoặc tìm ra bất kỳ lỗi nào** (trong 5 nhóm khuyết tật phần mềm hoặc fail test CI):
+     1. Sub-Agent 3 và/hoặc Sub-Agent 4 **bắt buộc phải đưa toàn bộ thông tin lỗi (log, traceback, console error, screenshot) và trao đổi lại với Sub-Agent 1 để làm rõ lỗi ở đâu** (nghiệp vụ, kiến trúc, API contract, CSS hay logic).
+     2. Sau khi Sub-Agent 1 làm rõ nguyên nhân, **Sub-Agent 1 chỉ thị và bắt Sub-Agent 2 code lại (refactor / bug fix)**.
+     3. Sau khi Sub-Agent 2 code lại xong, hệ thống **tiến hành tiếp tục trình tự tiếp theo:** kích hoạt lại Sub-Agent 3 và Sub-Agent 4 để kiểm thử lại mã nguồn mới.
+     4. Lặp lại quy trình liên tục cho đến khi **hoàn thành 100% mọi yêu cầu mà không còn bất kỳ lỗi nào** mới được phép commit.
 
 - **Định nghĩa "Lỗi" bao trùm 5 nhóm:**
   1. Lỗi logic nghiệp vụ & backend (API exception 500/422, sai điểm QĐ 764, treo port/process).
@@ -386,11 +426,34 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
   3. Lỗi màu sắc & phong cách (sai mã màu chuẩn như nút BIÊN DỊCH `#0071e3`, lỗi biến đổi màu nền trắng khi focus dark mode).
   4. Lỗi tương tác & hành vi UX (thiếu phản hồi scale 0.97, thay thế nhầm code, kẹt popup).
   5. Lỗi console & tài nguyên (mọi `console.error` đỏ, 404 font/icon, xén nét toán học).
-- **Vòng lặp đóng & Hợp nhất:** Parent Agent nhận kết quả đồng thời từ 4 Sub-Agent, nếu phát hiện lỗi sẽ điều phối vòng lặp hiệu chỉnh tức thì: `Sub-Agent 2 sửa` → `Sub-Agent 3 test` → `Sub-Agent 4 blind test` cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
+- **Vòng lặp đóng & Cổng Pre-Commit CI (CI Loop & Review Loop):**
+  - Parent Agent nhận kết quả đồng thời từ 4 Sub-Agent, thẩm định chéo.
+  - **Bắt buộc Pass CI trước khi commit:** Nếu CI test không pass:
+    `CI thất bại` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 test lại CI` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC COMMIT**.
+  - Nếu Sub-Agent 3 hoặc Sub-Agent 4 phát hiện bất kỳ lỗi nào trong 5 nhóm trên:
+    `Phát hiện lỗi` → `Sub-Agent 2 sửa` → `Sub-Agent 3 test` → `Sub-Agent 4 blind test` cho đến khi hoàn thành 100% mọi yêu cầu mà không còn lỗi.
 - **Cơ chế Chống Tái Diễn Lỗi (Anti-Regression Shield cho Sub-Agent 4):**
   - Mọi phản ánh, đề xuất báo lỗi của người dùng về Frontend/Backend tự động được trích xuất thành tiêu chí kiểm thử đối chứng bắt buộc nạp vào prompt của Sub-Agent 4:
     1. *Tiêu chí 1 (Dark Mode Input Contrast):* Kiểm tra màu chữ `#composer-compact-input` và `#composer-chat-input` phải là màu trắng sáng `#f8fafc` hoặc `#ffffff` nổi bật trên nền tối `#1c1c1f`, không bị màu đen `#1d1d1f` chìm nghỉm, con trỏ caret màu xanh Apple `#38bdf8`.
     2. *Tiêu chí 2 (Compile Error Forwarding):* Cố ý tạo lỗi cú pháp LaTeX (ví dụ: `\badcommand`), biên dịch thất bại -> gửi prompt yêu cầu "sửa lỗi giúp tôi" -> AI Copilot tiếp nhận log lỗi `compile_error_log` và xuất diff sửa đúng dòng lỗi.
     3. *Tiêu chí 3 (Fuzzy Diff Replacement & Inline Overlay):* Bấm [Đồng ý áp dụng] / [Apply] thành công 100%, không xuất hiện toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại". Giao diện diff hiển thị trực quan trực tiếp tại vị trí dòng mã nguồn trên ô soạn thảo (dòng đỏ -, dòng xanh +, nút Keep/Đồng ý và Undo/Từ chối).
     4. *Tiêu chí 4 (Fast Dispatch & Smooth Chat):* Gửi prompt từ compact input hoặc chat input phản hồi tức thì không bị delay, chuyển động mở popup và cuộn tin nhắn mượt mà chuẩn 60 FPS, không có lỗi JavaScript màu đỏ trong console.
-  - Sub-Agent 4 bắt buộc phải thao tác trực tiếp trên trình duyệt thật (`browser_exec`), chụp ảnh màn hình và đối chứng thực tế để bảo đảm 4 lỗi trên không tái phát trước khi nghiệm thu.
+    5. *Tiêu chí 5 (Question Replacement & Smart Diff Binding):* Khi gửi prompt thay thế câu hỏi (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*), hệ thống tự động bóc tách câu 1 (`find_question_block`), gán diff chính xác lên editor, hiển thị banner và overlay mà không phụ thuộc vào `SequenceMatcher`.
+    6. *Tiêu chí 6 (Safe Chat Bubble Rendering & Zero Code Loss):* Nếu không có diff hoặc diff không khớp, khối code LaTeX không được ẩn mất khỏi chat bubble; hiển thị đầy đủ 3 nút hành động `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`, tuyệt đối không nuốt mất mã của người dùng.
+  - Sub-Agent 4 bắt buộc phải thao tác trực tiếp trên trình duyệt thật (`browser_exec`), chụp ảnh màn hình và đối chứng thực tế để bảo đảm các lỗi trên không tái phát trước khi nghiệm thu.
+
+---
+
+## 10. QUY TRÌNH QUẢN TRỊ PHIÊN BẢN & GIT WORKFLOW (STRICT PRE-COMMIT CI GATE, COMMIT & PUSH ONLY)
+
+- **Cổng Kiểm Soát Bắt Buộc Trước Khi Commit (Pre-Commit CI Gate):**
+  - **Bắt buộc:** Trước khi thực hiện `git commit`, mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (`pytest`, syntax check, môi trường tương đương CI). Tuyệt đối cấm commit khi CI test chưa pass 100%.
+  - **Vòng lặp sửa lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
+    `CI thất bại` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 chạy lại CI test` → `Lặp lại quy trình` cho đến khi **100% PASS CI mới được phép thực hiện commit**.
+- **Quy trình Commit & Push:**
+  1. Sau khi 100% test cases vượt qua trên CI, thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+  2. Thực hiện `git push` lên nhánh làm việc (remote branch).
+- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO/CẬP NHẬT PULL REQUEST:**
+  - Nghiêm cấm các sub-agent tự ý chạy lệnh `gh pr create` hoặc gọi GitHub REST API để mở Pull Request.
+  - Nghiêm cấm tự động cập nhật hoặc đẩy vào Pull Request có sẵn trừ khi Người dùng (User) yêu cầu bằng lời nói rõ ràng, cụ thể.
+- **Dọn dẹp tiến trình:** Bắt buộc diệt sạch các tiến trình nền (uvicorn cổng 8000, Node.js persistent worker, subprocess) sau khi kết thúc lượt phản hồi.

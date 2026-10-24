@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
+- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, độ tin cậy của thuật toán thay thế dòng mờ, độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.  
-- **Ngày phát hành:** 2026-10-23
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
+- **Ngày phát hành:** 2026-10-24
 
 ---
 
@@ -53,9 +53,19 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
   1. *Microservice Tectonic Docker:* Độc lập trên container Docker (được triển khai trên host ARM/Armbian tại cổng 8090), sử dụng engine Tectonic XeTeX tự động nạp packages CTAN theo nhu cầu, cache gói dữ liệu liên hoàn, tốc độ biên dịch $\le 10$s cho đề thi tiếng Việt đầy đủ bảng biến thiên `tkz-tab` và đồ thị TikZ.
   2. *Local Native Tectonic:* Tự động kích hoạt khi có binary `tectonic` trong PATH hệ thống.
   3. *Headless Chromium Fallback:* Cơ chế dự phòng nội tại với Chromium + MathJax 4.0 + TikZ Vector SVG + CMU Serif typography bảo đảm hệ thống luôn xuất bản được PDF chất lượng cao ngay cả khi ngắt kết nối mạng ngoài.
-- **NFR-PERF-12 (Tốc độ Phản hồi Gửi Prompt Trợ lý AI - Optimistic Dispatch):** Khi người dùng nhấn Enter hoặc bấm gửi, giao diện phản hồi optimistic cập nhật bong bóng chat trong vòng $\le 16$ ms (1 frame); timeout Backend kết nối nhà cung cấp AI ngoài khống chế $\le 15$s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu độ trễ gây đóng băng UI.
+- **NFR-PERF-12 (Tốc độ Phản hồi Gửi Prompt Trợ lý AI - Optimistic Dispatch & Instant Input Wipe):** Khi người dùng nhấn Enter hoặc bấm gửi, hệ thống đồng thời thực hiện xóa sạch lạc quan (Optimistic Input Wipe) cả 2 trường nhập liệu trong vòng $\le 0\text{ms}$ đồng bộ; giao diện phản hồi optimistic cập nhật bong bóng chat trong vòng $\le 16$ ms (1 frame); timeout Backend kết nối nhà cung cấp AI ngoài khống chế $\le 15$s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu hoàn toàn hiện tượng text chat cũ còn lưu kẹt trong ô nhập.
+- **NFR-PERF-13 (Hiệu Năng Bóc Tách Đa Khối Diff & Áp Dụng Hàng Loạt - Multi-Diff Engine Budget):**
+  1. *Thời gian bóc tách đa khối diff (`extract_all_diffs_from_text`):* Quét toàn bộ nội dung phản hồi, đối chiếu mã nguồn hiện tại và trả về danh sách `diffs` trong $\le 10$ ms.
+  2. *Thời gian chuyển đổi bước duyệt tuần tự (1/N Stepper):* $\le 16$ ms (1 frame 60 FPS) cho thao tác cuộn màn hình, cập nhật huy hiệu và bôi đen vùng chọn dòng mới.
+  3. *Thời gian thực thi [Áp dụng tất cả] (Bulk Apply All):* Áp dụng toàn bộ $N$ khối diff ($N \le 15$) vào mã nguồn trong $\le 50$ ms với cơ chế gom nhóm cập nhật DOM một lần duy nhất (Single-pass DOM update) và debounce biên dịch an toàn.
 - **NFR-UX-01 (Độ Tương phản Màu sắc Giao diện Dark Mode - WCAG 2.1 AA):** Tỷ lệ tương phản giữa chữ và nền ô chat (`#composer-compact-input` và `#composer-chat-input`) bắt buộc đạt $\ge 7:1$ (sử dụng văn bản trắng sáng `#f8fafc` trên nền tối `#1c1c1f` / `#141824`, con trỏ caret màu xanh Apple `#38bdf8`), loại bỏ hoàn toàn lỗi chữ đen chìm trên nền tối.
-- **NFR-REL-03 (Độ Tin cậy của Động cơ Thay thế Diff - Zero Drift Fuzzy Matcher):** Tỷ lệ áp dụng diff sửa đổi thành công qua thuật toán so khớp mờ 5 tầng đạt $\ge 99.5\%$, triệt tiêu lỗi false-negative "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại" do khoảng trắng, ngắt dòng hoặc thụt lề.
+- **NFR-UX-02 (Tốc độ & Độ Mượt mà Khi Kéo Thả Resizer & Splitter - 60 FPS Smooth Dragging):** Thao tác kéo thả thay đổi kích thước Splitter ngang (2 cột Editor/Preview qua `#composer-split-resizer`) và Vertical Resizer (Box Trợ lý Soạn thảo qua thanh pill hợp nhất `#composer-ai-resize-handle`) bắt buộc đạt tốc độ dựng hình 60 FPS ($\le 16.6$ ms/frame) trên trình duyệt, triệt tiêu hoàn toàn hiện tượng lag, giật khung hình (zero jank). Tự động ngắt transition CSS trong quá trình kéo và khôi phục mượt mà khi kết thúc thao tác; áp dụng Pointer Shield (`pointer-events: none`) trên canvas PDF để tránh gián đoạn con trỏ chuột.
+- **NFR-UX-04 (Công Thái Học Thanh Phân Tách Ngang Chuẩn Apple HIG - Spacing & Visual Isolation):** Thanh phân tách `#composer-split-resizer` bắt buộc có độ rộng rãnh công thái học $\ge 14\text{px}$ (`w-3.5` / `w-4`), tích hợp khoảng cách đệm an toàn `mx-1` / `mx-1.5` so với viền bo góc của Cột Soạn thảo và Cột Live Preview. Trục viên thuốc và quầng highlight hover phải giữ khoảng cách thở tối thiểu $6\text{px} - 8\text{px}$ so với viền card, tuyệt đối không được đè sát hay chồng lấn lên viền card bên cạnh.
+- **NFR-UX-03 (Trải Nghiệm Zoom & Bố Cục Xem Trước PDF - Zero Drift & No Right-Margin Clipping):**
+  1. *Độ ổn định điểm neo zoom (Zero Drift Invariant):* Thuật toán zoom-to-point đảm bảo độ trôi dạt điểm neo dưới con trỏ chuột (Cursor Anchor) hoặc trọng tâm màn hình (Center Anchor) không vượt quá $\pm 2\text{px}$ sau mỗi bước zoom, triệt tiêu $100\%$ hiện tượng giật màn hình hoặc nhảy về góc trên cùng bên trái $(0, 0)$.
+  2. *Toàn vẹn hiển thị không xén nét (No Right-Margin Clipping):* Vùng cuộn `#composer-pdf-scroll-container` (`overflow-x-auto`) đảm bảo $100\%$ nội dung tài liệu luôn tiếp cận được qua cuộn ngang ở mọi mức zoom $[40\%, 250\%]$; cơ chế Auto Fit-to-Width tự động thích ứng với chiều rộng cột preview trong thời gian thực khi kéo splitter, ngăn chặn hoàn toàn việc nội dung bị che khuất hoặc tràn lề ngoài ý muốn.
+- **NFR-REL-03 (Độ Tin cậy của Động cơ Thay thế Diff - Zero Drift Fuzzy Matcher):** Tỷ lệ áp dụng diff sửa đổi thành công qua thuật toán so khớp mờ 6 tầng đạt $\ge 99.5\%$, triệt tiêu lỗi false-negative "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại" do khoảng trắng, ngắt dòng hoặc thụt lề; hỗ trợ áp dụng đồng thời chuỗi nhiều khối diff mà không làm lệch vị trí các khối kế tiếp.
+- **NFR-REL-05 (Bảo Toàn Tùy Biến Giao Diện & Độc Lập Phiên Chat Trong Local Storage):** Cấu hình tỷ lệ chia cột (`quesy_composer_split_ratio`), độ cao tùy chỉnh box trợ lý (`quesy_composer_ai_height`), và danh sách phiên chat cũ (`quesy_composer_chat_sessions`) được lưu trữ độc lập và bảo toàn $100\%$ qua các lần tải lại trang (F5) mà không gây rò rỉ hay ghi đè lẫn nhau.
 
 ---
 
@@ -88,6 +98,16 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 - **NFR-REL-03 (Tần suất sao lưu - RPO):** Tự động sao lưu cơ sở dữ liệu (Full Backup) mỗi 24 giờ và sao lưu nhật ký WAL (Write-Ahead Logging) liên tục. Cam kết Mục tiêu Điểm Phục hồi (RPO) **$< 15$ phút**.
 - **NFR-REL-04 (Thời gian khôi phục - RTO):** Cam kết Mục tiêu Thời gian Phục hồi (RTO) **$< 2$ giờ** trong trường hợp hạ tầng máy chủ chính gặp sự cố vật lý nghiêm trọng.
 
+### 4.3. Bảo toàn Dữ liệu Giao diện & Chat Bubble (UI Data Integrity)
+- **NFR-REL-07 (Bảo toàn Khối mã Chat Bubble & Chống nuốt Code):**
+  - Tỷ lệ nuốt mất mã nguồn trong bubble chat khi AI sinh mã LaTeX phải bằng **$0\%$**.
+  - Hệ thống chỉ được phép ẩn khối mã và gắn badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"* khi và chỉ khi diff thực sự tồn tại, hợp lệ và đã được nạp thành công vào editor (`diffs.length > 0`).
+  - Trong mọi trường hợp khác (diff rỗng, không tìm thấy vị trí dòng cũ, hoặc mã độc lập), khối mã phải được bảo toàn nguyên vẹn 100% trong bubble chat kèm 3 nút thao tác: Chèn vào con trỏ, Sao chép, và Áp dụng thay thế.
+- **NFR-REL-08 (Độ Tin Cậy của Động Cơ Nhúng Ngầm Canonical Preamble & Dual-Mode Normalizer):**
+  - **Tỷ lệ nhận diện và chuẩn hóa chính xác:** Đạt **100%** trong việc phân biệt giữa mã nguồn thuần câu hỏi (Preamble-Free Question Body) và tài liệu hoàn chỉnh (Full Document).
+  - **Khử xung đột đệm biên dịch (Zero Cache Collision):** Bộ tạo khóa mã băm kết hợp `(latex_code, title, mode)` đảm bảo việc chuyển đổi qua lại giữa chế độ Đề thi (`[dethi]`) và Lời giải (`[loigiai]`) không bao giờ phát sinh tình trạng trả về bản PDF cũ bị lưu đệm sai lệch.
+  - **Tính tự chứa của tệp xuất bản (Self-Contained TeX Packaging):** 100% các file nguồn TeX khi tải về từ hệ thống đều tự động được bao bọc đầy đủ Canonical Preamble chuẩn khảo thí quốc gia và `\begin{document}...\end{document}`, đảm bảo biên dịch thành công ngay lần đầu tiên trên mọi môi trường TeX chuẩn bên ngoài mà không cần cấu hình thêm.
+
 ---
 
 ## 5. KHẢ NĂNG MỞ RỘNG & TẢI TRỌNG (SCALABILITY & CAPACITY)
@@ -118,3 +138,22 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 
 - **NFR-COM-01 (Tuân thủ Nghị định 13/2023/NĐ-CP):** Hệ thống bảo vệ dữ liệu cá nhân của giáo viên và học sinh (họ tên, email, kết quả điểm số), cung cấp tùy chọn xóa tài khoản và dữ liệu cá nhân (Right to be Forgotten).
 - **NFR-COM-02 (Bản quyền Nội dung Khảo thí & Chuẩn hóa TT 32):** Hệ thống hỗ trợ đánh dấu bản quyền số (Watermarking) tên trường học/tổ bộ môn mờ trên file Word và PDF khi xuất bản nhằm bảo vệ quyền tác giả của đề thi. Toàn bộ mã hóa câu hỏi bám sát chuẩn Yêu cầu cần đạt của Thông tư 32/2018/TT-BGDĐT.
+
+---
+
+## 8. QUẢN TRỊ PHÁT TRIỂN, CỔNG PRE-COMMIT CI GATE & QUY TẮC GIT WORKFLOW (DEVELOPMENT GOVERNANCE)
+
+- **NFR-DEV-01 (Quy chuẩn Git Commit & Push qua Cổng Pre-Commit CI):** Mọi thay đổi mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (100% test cases PASSED) trước khi thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`) và `git push` lên nhánh remote repository tương ứng.
+- **NFR-DEV-02 (Tuyệt đối Không Tự Động Tạo Pull Request):**
+  - Nghiêm cấm tuyệt đối các agent, tiến trình tự động hóa, hoặc script CI tự ý tạo Pull Request (`gh pr create`, REST API calls) hoặc tự động đẩy/cập nhật vào Pull Request.
+  - Hành động mở hoặc cập nhật Pull Request chỉ được phép thực hiện khi và chỉ khi có yêu cầu bằng lời nói rõ ràng, tường minh từ người dùng (explicit user prompt).
+- **NFR-DEV-03 (Dọn dẹp Tiến trình Nền):** Sau khi chạy thử nghiệm hoặc kiểm thử, toàn bộ các tiến trình nền (uvicorn cổng 8000, worker Node.js, subprocess) phải được dọn dẹp và tắt triệt để, không để tồn đọng tiến trình mồ côi.
+- **NFR-DEV-04 (Cổng Kiểm Soát Pre-Commit CI Gate & Vòng Lặp Sửa Lỗi CI Loop):**
+  - **Pre-commit Gate:** Trước khi commit, bắt buộc phải test qua được CI. Tuyệt đối cấm commit khi CI chưa pass.
+  - **CI Loop:** Nếu CI test không pass, kích hoạt ngay vòng lặp: phân tích lỗi → sửa mã nguồn / cập nhật test & CI → chạy lại test CI cho đến khi 100% test cases đạt (`PASS CI`) mới được phép commit.
+- **NFR-DEV-05 (Nguyên Tắc Cô Lập CI Tuyệt Đối & Phân Định Vai Trò - Strict CI Isolation):**
+  - Sub-Agent đảm nhận làm CI (Sub-Agent 3) tách biệt hoàn toàn với tất cả các sub-agents còn lại.
+  - **Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4...) tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
+  - Chỉ duy nhất sub-Agent đảm nhận làm CI mới thực hiện viết, chỉnh sửa cấu hình CI/CD.
+  - Sub-Agent viết CI có toàn quyền đọc và tiếp nhận các thông tin từ các sub-agents khác (specs, code diffs, dependencies, test cases, bug reports).
+- **NFR-DEV-06 (Đồng Bộ CI Liên Tục Theo Code Mới):** Mỗi khi code có cập nhật gì mới (thư viện mới trong `requirements.txt`/`package.json`, fonts, môi trường headless browser, biến môi trường `.env`, cờ thực thi...), CI workflow bắt buộc phải được cập nhật đồng bộ ngay lập tức để loại bỏ mọi khả năng gây ra lỗi trên môi trường runner.

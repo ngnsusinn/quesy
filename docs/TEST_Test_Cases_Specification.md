@@ -2,11 +2,11 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 2.5 (Tập trung kiểm thử chức năng & Độ tin cậy giải pháp)  
+- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 46 Tests (100% Passed)  
-- **Ngày lập:** 2026-10-18  
-- **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)  
+- **Tổng số kịch bản tự động hóa:** 146 Tests (100% Passed)  
+- **Ngày lập:** 2026-10-24  
+- **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
 ---
 
@@ -40,7 +40,8 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 | **TS-06** | Động cơ Trộn Đề Hoán vị An toàn | BR-04.2, FR-06.2, SRS-FEAT-08 | 5 | P0 (Critical) |
 | **TS-07** | Xuất bản File Word 2 Cột & In ấn | BR-05.1, FR-07, SRS-FEAT-09 | 4 | P0 (Must Have) |
 | **TS-08** | Bảo mật, RBAC & Khảo thí Thống kê | BR-05.2, BR-06, FR-08 | 3 | P1 / P2 |
-| **TS-09** | Soạn đề LaTeX AI & Live PDF (Tectonic) | FR-02.1, FR-02.2, NFR-COMP-02 | 4 | P0 (Must Have) |
+| **TS-09** | Soạn đề LaTeX AI & Live PDF (Tectonic) | FR-02.1, FR-02.2, NFR-COMP-02 | 15 | P0 (Must Have) |
+| **TS-10** | Quản trị CI/CD & Cổng Pre-Commit Gate | NFR-DEV-01..06, TC-DEV-01..02 | 2 | P0 (Critical) |
 
 ---
 
@@ -265,9 +266,158 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 - **Mô tả:** Khi AI đề xuất diff sửa đổi, kiểm tra giao diện Inline Diff Overlay hiển thị trực tiếp tại đúng vị trí dòng mã nguồn trên textarea (khối đỏ `-`, khối xanh `+`, nút `Keep / Đồng ý` và `Undo / Từ chối`). Khi nhấn `[Đồng ý]`, kích hoạt 5-Tier Fuzzy Replacement Engine.
 - **Kết quả kỳ vọng:** Mã nguồn được thay thế chuẩn xác 100%, không xuất hiện toast cảnh báo "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại", tự động kích hoạt `compile(true)`.
 
-#### TC-COMP-10: Hiệu Năng Gửi Prompt Không Độ Trễ & Box Chat Mượt Chuẩn Apple HIG
-- **Mô tả:** Kiểm tra hành động nhấn Enter hoặc click nút gửi prompt: phản hồi optimistic UI lập tức ($\le 16$ms), ẩn compact bar và mở bung popup chat với hiệu ứng hardware transition mượt mà, cuộn mượt đến đáy và hiển thị typing indicator không giật khung hình.
-- **Kết quả kỳ vọng:** Thao tác gửi tức thì không độ trễ, 0 lỗi JavaScript màu đỏ trong Console DevTools.
+#### TC-COMP-10: Hiệu Năng Gửi Prompt, Xóa Sạch Lạc Quan (Optimistic Input Reset) & Box Chat Chuẩn Apple HIG
+- **Mô tả:** Kiểm tra hành động nhấn Enter hoặc click nút gửi prompt từ cả thanh compact bar và popup chat:
+  1. *Cơ chế Xóa Sạch Lạc Quan:* Ngay tại thời điểm kích hoạt gửi ($t = 0\text{ms}$), kiểm tra giá trị của cả `#composer-compact-input` và `#composer-chat-input` lập tức được xóa trắng (`value = ''`), loại bỏ triệt để hiện tượng lưu kẹt text cũ (Ảnh 1).
+  2. Kiểm tra `submitFromCompact()` không truyền lại prompt đã gửi vào `prefillPrompt` của `openAIPopup()`, đảm bảo ô chat popup khi mở ra hoàn toàn sạch sẽ.
+  3. Phản hồi optimistic UI lập tức ($\le 16$ms), ẩn compact bar và mở bung popup chat với hiệu ứng hardware transition mượt mà, cuộn mượt đến đáy và hiển thị typing indicator không giật khung hình.
+- **Kết quả kỳ vọng:** Thao tác gửi tức thì không độ trễ, ô nhập rỗng ngay lập tức với con trỏ caret màu xanh Apple `#38bdf8` sẵn sàng nhận lệnh mới, 0 lỗi JavaScript màu đỏ trong Console DevTools.
+
+#### TC-COMP-11: Tính Toàn Vẹn Của API Chat & Bóc Tách Diff Độc Lập Hiển Thị Frontend
+- **Mô tả:** Kiểm tra API `/api/v1/composer/chat` bảo toàn tính toàn vẹn của cấu trúc `ChatResponse` (bao gồm `reply`, `diff`, `suggested_latex`). Cơ chế bóc tách diff (`extract_diff_from_text`) hoàn toàn phân tách giữa nội dung giải thích tự nhiên hiển thị trong luồng hội thoại chat và payload diff vận hành trên khung soạn thảo (`DiffSuggestion` với `old_text` và `new_text`).
+- **Kết quả kỳ vọng:** Phản hồi API luôn trả về HTTP 200, trường `reply` nguyên vẹn nội dung đàm thoại cho chat bubble, trường `diff` chứa lát cắt mã nguồn chính xác khớp ký tự trong editor (`old_text` tồn tại trong buffer hiện tại) và mã thay thế `new_text` sạch sẽ (không chứa tiền tố đánh dấu `- ` hay `+ `). Xử lý an toàn các ký tự toán đặc biệt LaTeX, câu hỏi trắc nghiệm `\choice` đơn dòng và đa dòng, đổi cỡ chữ, và các tài liệu lớn (>25k ký tự) mà không gây lỗi máy chủ.
+
+#### TC-COMP-12: Hiển Thị Đề Xuất Diff Độc Quyền Trên Khung Code Editor (Loại Bỏ Hoàn Toàn Diff Widget Trong Bubble Chat)
+- **Mô tả:** Khi AI Copilot phản hồi một đề xuất diff thay đổi mã nguồn (ví dụ: đổi font size, sửa câu hỏi trắc nghiệm, sửa lỗi cú pháp):
+  1. Kiểm tra bong bóng chat của Assistant (`#composer-chat-messages`): Chỉ hiển thị văn bản trả lời tự nhiên của AI; xác nhận **không xuất hiện phần tử widget diff** (`.diff-block-wrapper`, khối chứa nút "✔ Đồng ý áp dụng" và "✖ Từ chối" trong bong bóng chat).
+  2. Kiểm tra vùng Code Editor (`#composer-editor-pane`): Xác nhận hiển thị chính xác khối diff thông qua Inline Diff Overlay (`#composer-inline-diff-overlay`) và/hoặc Top Diff Banner (`#composer-pending-diff-banner`) kèm 2 nút thao tác trực tiếp `[Keep / Đồng ý]` và `[Undo / Từ chối]`.
+- **Kết quả kỳ vọng:** Khung chat sạch sẽ, không có widget diff trùng lặp gây rối mắt; toàn bộ thao tác duyệt diff được tập trung trực tiếp trên mã nguồn editor; khi bấm Keep/Undo trên editor thì diff biến mất và mã nguồn được cập nhật chính xác.
+
+#### TC-COMP-13: Quản Lý Khởi Tạo Phiên Chat Mới Sạch Sẽ & Tra Cứu Lịch Sử Phiên Cũ (Session Lifecycle & Clean Workspace)
+- **Mô tả:** 
+  1. Khi người dùng mở trang `/composer` hoặc nhấn nút "Bắt đầu hội thoại mới" (`newChat`): Kiểm tra khung chat active bắt đầu sạch sẽ với duy nhất 1 tin nhắn chào mặc định từ Quesy Copilot, không nạp lại tin nhắn từ phiên cũ.
+  2. Kiểm tra nếu phiên trước đó đã có tin nhắn trao đổi, toàn bộ phiên đó được lưu trữ tự động vào mảng phiên cũ `quesy_composer_chat_sessions` trong `localStorage`.
+  3. Khi nhấp nút **`[Lịch sử]`** (`#composer-ai-history-btn`), mở giao diện `#composer-ai-history-panel` hiển thị danh sách các phiên cũ kèm thời gian và tóm tắt prompt. Nhấp vào một phiên hoặc câu lệnh cũ sẽ điền nội dung vào ô nhập hoặc tải lại phiên cũ. Nhấp "✕ Đóng" quay lại phiên hiện tại.
+- **Kết quả kỳ vọng:** Mỗi phiên mới luôn sạch sẽ tinh giản; lịch sử các phiên trước không bị mất mà được lưu trữ khoa học trong ngăn kéo Lịch sử.
+
+#### TC-COMP-14: Kéo Thả Điều Chỉnh Độ Cao Linh Hoạt Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Unified Single Pill Handle)
+- **Mô tả:** Kiểm tra khả năng co giãn độ cao của Box Trợ lý Soạn thảo (`#composer-ai-popup`) theo phương thẳng đứng với thanh pill hợp nhất:
+  1. Kiểm tra DOM và giao diện: Xác nhận **chỉ tồn tại duy nhất 1 thanh ngang viên thuốc** (`#composer-ai-resize-handle`) ở trung tâm header của popup trợ lý. Không còn thanh pill phụ bên trên mép popup.
+  2. Thao tác nhấn giữ chuột (`mousedown`) trên thanh pill handle `#composer-ai-resize-handle` và kéo chuột lên/xuống (`mousemove`).
+  3. Đo đạc chiều cao `style.height` của `#composer-ai-popup`: Độ cao thay đổi mượt mà theo thời gian thực (60 FPS, không gián đoạn), bị giới hạn trong khoảng an toàn $180\text{px}$ đến $92\%$ chiều cao khung editor.
+  4. Kiểm tra nhấp chuột đơn (click) hoặc nhấp đúp (dblclick) vào pill handle khi không kéo: Chuyển đổi nhanh (toggle) độ cao giữa 56% và 78%.
+  5. Sau khi kéo thả, tải lại trang (F5): Kiểm tra độ cao tùy chỉnh được khôi phục từ `localStorage` (`quesy_composer_ai_height`).
+- **Kết quả kỳ vọng:** Giao diện tối giản chuẩn Apple HIG với duy nhất 1 thanh pill; co giãn độ cao trực quan mượt mà, không làm vỡ bố cục editor hay che khuất toolbar đỉnh.
+
+#### TC-COMP-15: Kéo Thả Thanh Phân Tách Ngang 2 Cột Editor & Live Preview Chuẩn Apple HIG (#composer-split-resizer)
+- **Mô tả:** Kiểm tra thanh phân tách ngang `#composer-split-resizer` (class `composer-col-splitter`) được tái thiết kế chuẩn Apple HIG với khoảng cách đệm thẩm mỹ, không đè sát viền box soạn thảo (Ảnh 2):
+  1. *Kiểm tra Bố Cục & Khoảng Cách Đệm:* Rãnh phân tách có độ rộng công thái học `w-3.5` / `w-4` (14-16px) với lề `mx-1` / `mx-1.5`. Trục viên thuốc cách đều viền Cột Soạn thảo và Cột Live Preview từ 6px đến 8px, không chạm đè lên viền card bên cạnh.
+  2. *Kiểm tra Kiểu Dáng Apple Capsule:* Vạch kéo có dạng viên thuốc `w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]`. Khi hover, đổi màu xanh Apple `#0071e3`, tỏa quầng sáng vi mô `shadow-[0_0_8px_rgba(0,113,227,0.35)]`, vạch mở rộng nhẹ `scale-y-110`. Vùng hover mềm bo góc `rounded-lg` nằm gọn trong rãnh đệm.
+  3. *Kiểm tra Kéo Thả:* Nhấn giữ chuột (`mousedown`) và kéo sang trái/phải (`mousemove`): Chiều rộng cột trái (`#composer-left-col`) thay đổi mượt mà 60 FPS, tỷ lệ co giãn được giới hạn nghiêm ngặt trong khoảng $25\%$ đến $75\%$. Tấm chắn con trỏ `pointer-events: none` được kích hoạt trên canvas PDF.
+  4. *Kiểm tra Nháy Đúp:* Nháy đúp chuột (`dblclick`) vào resizer lập tức đặt lại tỷ lệ vàng 60% Left : 40% Right và kích hoạt `fitToWidth(true)`.
+  5. *Lưu Trữ Bền Vững:* Khi thả chuột (`mouseup`), tỷ lệ mới được lưu vào `localStorage` (`quesy_composer_split_ratio`). Tải lại trang (F5), tỷ lệ chia cột được bảo toàn nguyên vẹn.
+- **Kết quả kỳ vọng:** Giao diện tinh tế chuẩn Apple HIG, khoảng cách đệm thông thoáng không dính viền, thao tác chia cột mượt mà 60 FPS, tỷ lệ phản hồi chính xác, 0 lỗi console.
+
+#### TC-COMP-16: Tự Động Co Giãn PDF Theo Chiều Rộng Cột & Khung Cuộn Ngang An Toàn (PDF Auto Fit-to-Width & Horizontal Scroll Resiliency)
+- **Mô tả:** Kiểm tra cơ chế tự động co giãn kích thước trang PDF khi chiều rộng cột thay đổi và tính năng cuộn ngang không xén lề phải:
+  1. Biên dịch tài liệu mẫu LaTeX sang PDF.
+  2. Kéo thanh splitter `#composer-col-splitter` sang phải để nới rộng cột Editor lên $75\%$ (thu hẹp cột Live Preview xuống $25\%$):
+     - Xác nhận tỷ lệ hiển thị trang PDF tự động co nhỏ lại tương ứng với bề rộng cột khả dụng (`fitZoom`), các dòng chữ và công thức toán học co giãn đều đặn theo thời gian thực mà không bị tràn viền hay xén mất mép phải.
+  3. Kiểm tra thuộc tính CSS của `#composer-pdf-scroll-container`:
+     - Xác nhận thuộc tính cuộn là `overflow-x: auto` (không phải `overflow-x-hidden`).
+  4. Thao tác phóng to tài liệu lên mức zoom cao ($150\% - 200\%$):
+     - Xác nhận xuất hiện thanh cuộn ngang trơn tru.
+     - Người dùng có thể cuộn ngang sang phải để xem trọn vẹn toàn bộ nội dung mép phải của tài liệu mà không bị cắt cụt.
+  5. Nhấp nút `1:1` (hoặc `resetZoom`):
+     - Hệ thống tự động căn khít chiều ngang tài liệu vừa vặn với kích thước cột preview hiện thời (`isAutoFit = true`).
+- **Kết quả kỳ vọng:** Tài liệu PDF luôn co giãn linh hoạt theo độ rộng khung nhìn; $100\%$ nội dung hiển thị trọn vẹn không bị xén mép phải.
+
+#### TC-COMP-17: Thuật Toán Phóng To / Thu Nhỏ Thông Minh Theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point & Center Anchor)
+- **Mô tả:** Kiểm tra thuật toán zoom-to-point thông minh, loại bỏ triệt để hiện tượng giật màn hình hoặc nhảy về góc trên cùng bên trái $(0, 0)$:
+  1. *Kiểm tra Zoom theo Con trỏ Chuột (Cursor Anchor):*
+     - Di chuyển con trỏ chuột đến một công thức toán cụ thể ở giữa trang PDF (ví dụ bảng biến thiên hoặc câu hỏi 2).
+     - Giữ phím `Ctrl` (hoặc `Cmd`) và lăn chuột phóng to (`wheel delta < 0`):
+     - Xác nhận điểm công thức toán đang nằm dưới con trỏ chuột được ghim cố định ngay dưới con trỏ, tài liệu phóng to xung quanh điểm này.
+     - Tuyệt đối không có hiện tượng trang bị giật văng về góc $(0, 0)$.
+  2. *Kiểm tra Zoom theo Trọng tâm Màn hình (Center Anchor):*
+     - Di chuyển con trỏ chuột ra khỏi tài liệu PDF (ví dụ nhấp vào nút `+` hoặc `-` trên thanh công cụ nổi góc trên bên phải):
+     - Nhấp nhiều lần vào nút `+` (phóng to) và `-` (thu nhỏ):
+     - Xác nhận tài liệu phóng to / thu nhỏ đồng tâm từ chính giữa khung nhìn của người dùng (Viewport Center). Khung nhìn không bị lệch sang góc trái hay trôi dạt.
+  3. *Kiểm tra Khôi phục Tọa độ Cuộn Khi Re-render:*
+     - Sau khi dừng thao tác zoom 100ms, hàm `renderAllPages` vẽ lại canvas ở độ phân giải retina thực:
+     - Xác nhận vị trí cuộn `scrollTop` và `scrollLeft` được bảo toàn ổn định, không xuất hiện hiện tượng chớp nháy hoặc nhảy giật vị trí cuộn.
+- **Kết quả kỳ vọng:** Trải nghiệm phóng to / thu nhỏ mượt mà chuẩn Apple HIG; bảo toàn điểm neo chính xác tuyệt đối; 0 lỗi Console.
+
+#### TC-COMP-18: Bóc Tách Đa Khối Diff (`extract_all_diffs_from_text`) & Hợp Đồng Schema API Đa Khối
+- **Mô tả:** Kiểm tra khả năng trích xuất toàn bộ các khối diff khi AI trả về nhiều đề xuất thay đổi trong một lượt (ví dụ: đổi font size sang 12pt VÀ đổi đáp án câu trắc nghiệm VÀ sửa lỗi cú pháp):
+  1. Gửi phản hồi chứa 2 hoặc nhiều khối ````diff ... ```` hoặc block replaces tới API và hàm `extract_all_diffs_from_text`.
+  2. Kiểm tra `ChatResponse` trả về trường `diffs: List[DiffSuggestion]` có số lượng $N \ge 2$, trường `diff` lưu diff đầu tiên (`diffs[0]`) để giữ tương thích ngược.
+  3. Kiểm tra tính toàn vẹn của từng đối tượng `DiffSuggestion` (`action`, `old_text`, `new_text`, `description`), xác nhận không bị xáo trộn nội dung giữa các khối.
+- **Kết quả kỳ vọng:** API và hàm trích xuất nhận diện trọn vẹn 100% các khối diff trong nội dung trả về, 0 khối diff bị bỏ sót.
+
+#### TC-COMP-19: Giao Diện Duyệt Tuần Tự Đa Diff (1/N Stepper, Keep/Undo) & Nút Áp Dụng Tất Cả (Apply All)
+- **Mô tả:** Kiểm tra cỗ máy trạng thái và giao diện duyệt đa diff trên cả Top Banner và Inline Overlay (Ảnh 3):
+  1. *Kiểm tra Bộ Đếm Động (Capsule Counter):* Huy hiệu định vị hiển thị chính xác `${currentDiffIndex + 1}/${pendingDiffs.length}` (ví dụ `1/3`, `2/3`, `3/3`), không còn hiển thị số `1/1` cứng.
+  2. *Kiểm tra Điều Hướng Tuần Tự (Prev/Next Stepper):*
+     - Click nút **`[Sau >]`**: Con trỏ `currentDiffIndex` tăng lên, editor tự động cuộn đến dòng của diff tiếp theo và bôi đen vị trí tương ứng. Nút `[Sau >]` bị disabled ở mục cuối.
+     - Click nút **`[< Trước]`**: Nhảy lùi về diff trước đó. Bị disabled ở mục đầu tiên.
+  3. *Kiểm tra Chấp nhận Từng Khối (`[Keep / Đồng ý]`):*
+     - Click `[Keep]`: Diff hiện tại được áp dụng vào mã nguồn, loại bỏ khỏi `pendingDiffs`. Editor tự động chuyển sang diff kế tiếp trong danh sách.
+  4. *Kiểm tra Từ chối Từng Khối (`[Undo / Từ chối]`):*
+     - Click `[Undo]`: Bỏ qua diff hiện tại, chuyển sang diff kế tiếp mà không sửa đổi mã nguồn tại vị trí đó.
+  5. *Kiểm tra [Áp Dụng Tất Cả] (`applyAllPendingDiffs` - Ảnh 3):*
+     - Nút `[Áp dụng tất cả]` hiển thị nổi bật với nền xanh Apple khi `pendingDiffs.length > 1`.
+     - Click `[Áp dụng tất cả]`: Hệ thống áp dụng tuần tự toàn bộ $N$ khối diff vào mã nguồn, cập nhật editor, kích hoạt `compile(true)` một lần duy nhất, đóng toàn bộ banner/overlay và hiển thị toast thông báo thành công.
+- **Kết quả kỳ vọng:** Trải nghiệm duyệt đa diff mượt mà chuẩn Cursor/VS Code, điều hướng 1/N trực quan, áp dụng hàng loạt chính xác 100%, 0 lỗi Console.
+
+#### TC-COMP-20: Bóc Tách Khối Câu Hỏi Thứ N trong LaTeX (`find_question_block`)
+- **Mô tả:** Kiểm tra độ chính xác của hàm trích xuất câu hỏi thứ $n$ trên các tài liệu LaTeX thực tế:
+  1. *Trường hợp chuẩn `ex_test.sty`:* Tài liệu gồm 5 khối `\begin{ex} ... \end{ex}`. Gọi `find_question_block(latex, 1)` trả về chính xác toàn bộ khối câu 1; gọi `find_question_block(latex, 3)` trả về chính xác khối câu 3.
+  2. *Trường hợp chuẩn đánh số cổ điển:* Tài liệu sử dụng `\textbf{Câu 1.}`, `\textbf{Câu 2.}`. Hàm bóc tách chuẩn xác phạm vi câu tương ứng.
+  3. *Trường hợp chỉ số vượt giới hạn:* Gọi câu thứ 10 trong tài liệu chỉ có 4 câu trả về `None` an toàn.
+- **Kết quả kỳ vọng:** Lát cắt chuỗi trả về khớp 100% từng ký tự với vị trí trong `current_latex`, không gây lỗi ngoại lệ.
+
+#### TC-COMP-21: Gắn Kết Diff Thông Minh Khi Thay Thế Câu Hỏi (Smart Diff Binding)
+- **Mô tả:** Kiểm tra cơ chế tự động liên kết khi prompt yêu cầu thay thế câu hỏi (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"* hoặc *"Thay câu 2 bằng câu khác"*):
+  1. Gửi prompt thay thế câu 1 cùng tài liệu LaTeX mẫu có chứa Câu 1.
+  2. Dù nội dung câu hỏi mới hoàn toàn khác biệt so với câu 1 cũ (khiến `SequenceMatcher` thông thường thất bại), hệ thống tự động gán `old_text = câu 1 cũ` và `new_text = câu mới`.
+  3. `ChatResponse` trả về `diff` hợp lệ với mô tả *"Thay thế câu 1 bằng câu hỏi mới"*.
+- **Kết quả kỳ vọng:** API trả về HTTP 200, trường `diff` và `diffs` chứa đúng lát cắt của câu 1 cũ, sẵn sàng hiển thị trên editor.
+
+#### TC-COMP-22: Hiển Thị Chat Bubble An Toàn & Bảo Toàn Khối Mã Nguồn (Safe Chat Bubble Rendering)
+- **Mô tả:** Kiểm tra logic render giao diện chat bubble (`formatAssistantContent`) trong cả 2 kịch bản có và không có diff:
+  1. *Kịch bản có diff hợp lệ:* Giao diện ẩn khối diff trong chat bubble, gắn badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"*, và kích hoạt banner/overlay trên editor.
+  2. *Kịch bản không có diff hợp lệ (hoặc diff rỗng):* Giao diện KHÔNG ẩn khối mã, KHÔNG hiển thị badge giả tạo; hiển thị trọn vẹn khối mã LaTeX kèm 3 nút bấm tương tác: `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`.
+- **Kết quả kỳ vọng:** 0% mã nguồn bị nuốt mất trong chat bubble; người dùng luôn có công cụ thao tác với mã được sinh ra.
+
+#### TC-COMP-23: Biên Dịch Đề Thi Tinh Gọn Không Preamble (Preamble-Free ex_test Body)
+- **Mô tả:** Gửi yêu cầu biên dịch `POST /api/v1/composer/compile` với nội dung `latex_code` chỉ chứa các câu hỏi `\begin{ex}...\end{ex}` chuẩn `ex_test.sty`, hoàn toàn không có `\documentclass` hay `\usepackage`.
+- **Kết quả kỳ vọng:** HTTP 200, phản hồi `success: true`, sinh tệp PDF hợp lệ với đầy đủ font CMU Serif, đồ thị TikZ và bảng biến thiên `tkz-tab` nhờ cơ chế Canonical Preamble Injection ngầm định.
+
+#### TC-COMP-24: Động Cơ Điều Khiển Chế Độ Đề Thi / Lời Giải ([dethi] vs [loigiai]) Qua API Mode Flag
+- **Mô tả:** Kiểm tra tham số `mode` trong `CompileRequest`:
+  1. Gửi cùng một đoạn mã câu hỏi với `mode = "loigiai"`: Xác nhận file PDF sinh ra hiển thị nội dung môi trường `\begin{loigiai}`.
+  2. Gửi với `mode = "dethi"`: Xác nhận file PDF sinh ra ẩn toàn bộ lời giải và không đánh dấu đáp án `\True`.
+  3. Kiểm tra khóa băm cache: `code_hash` của hai chế độ khác nhau hoàn toàn, không xảy ra xung đột hay trả về kết quả cache sai chế độ.
+- **Kết quả kỳ vọng:** Chuyển đổi chính xác 100% giữa 2 chế độ mà không cần sửa đổi mã nguồn của người dùng.
+
+#### TC-COMP-25: Tính Tương Thích Ngược Với Tài Liệu Toàn Phần Chứa \documentclass
+- **Mô tả:** Gửi mã nguồn LaTeX hoàn chỉnh (chứa `\documentclass[11pt,a4paper]{article}`, `\usepackage{fontspec}`, `\begin{document}...\end{document}`) tới endpoint `/api/v1/composer/compile`.
+- **Kết quả kỳ vọng:** Hệ thống phát hiện `\documentclass`, tự động kích hoạt nhánh Full Document Parser, bảo toàn các gói lệnh tùy chỉnh, tự động bổ sung gói thiếu nếu có dùng `ex_test`, biên dịch thành công 100% ra PDF.
+
+#### TC-COMP-26: Xuất Bản Mã Nguồn TeX Tự Động Đóng Gói Preamble Chuẩn (Full TeX Packaging)
+- **Mô tả:** Kiểm tra logic xuất bản mã nguồn `.tex` khi người dùng nhấn "Tải mã nguồn TeX": Nếu mã hiện thời trên editor không chứa `\documentclass`, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi xuất file.
+- **Kết quả kỳ vọng:** File `.tex` tải xuống độc lập, tự chứa đầy đủ preamble, có thể mở và biên dịch XeLaTeX thành công ngay trên TeXLive / Overleaf mà không bị thiếu gói lệnh.
+
+#### TC-COMP-27: Tích Hợp AI Provider Gemini (Google v1beta OpenAI Compatibility) & Cơ Chế Dự Phòng Fallback
+- **Mô tả:** Kiểm tra Composer Chat API `/api/v1/composer/chat` khi `provider` được cấu hình là `"gemini"`.
+  1. Xác nhận endpoint gọi chính xác tới `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`.
+  2. Xác nhận khả năng bóc tách khối diff (thay thế dòng/đổi tiêu đề/câu hỏi) từ phản hồi chuẩn Google Gemini.
+  3. Xác nhận xử lý an toàn, tự động kích hoạt Offline Rule-based Fallback khi `AI_API_KEY` rỗng (môi trường CI runner) hoặc khi mạng gặp sự cố.
+- **Kết quả kỳ vọng:** HTTP 200, phản hồi có cấu trúc hợp lệ (`reply`, `diff`, `diffs`), 100% test cases pass trên cả runner CI và máy dev cục bộ.
+
+#### TC-DEV-01: Quy Chuẩn Quản Trị Nhánh & Không Tự Động Tạo Pull Request (Git Workflow Guardrail)
+- **Mô tả:** Rà soát và xác thực hành vi của các agent và quy trình CI/CD:
+  1. Chỉ thực hiện `git commit` và `git push` lên nhánh remote đang làm việc.
+  2. Tuyệt đối không tự động kích hoạt `gh pr create` hoặc các API tương đương để tạo mới hay cập nhật Pull Request khi người dùng chưa ra lệnh trực tiếp bằng lời nói.
+- **Kết quả kỳ vọng:** Tuân thủ 100% quy định quản trị phiên bản; ngăn ngừa tình trạng spam Pull Request không mong muốn.
+
+#### TC-DEV-02: Cổng Kiểm Soát Pre-Commit CI Gate, Cô Lập CI Tuyệt Đối & Vòng Lặp Sửa Lỗi (CI Governance & Strict Isolation)
+- **Mô tả:** Kiểm tra quy trình thực thi CI/CD và phân định vai trò giữa các Sub-Agents:
+  1. *Cổng Pre-Commit CI Gate:* Bắt buộc chạy toàn bộ bài kiểm thử CI trên runner (`pytest`, syntax check) và đạt 100% test cases PASSED trước khi thực hiện `git commit`. Nghiêm cấm commit khi CI chưa pass.
+  2. *Vòng lặp sửa lỗi CI (CI Loop):* Nếu CI test thất bại, kích hoạt vòng lặp: sửa code/test/CI -> chạy lại CI cho đến khi 100% test cases đạt mới cho phép commit.
+  3. *Nguyên tắc Cô lập CI Tuyệt đối (Strict CI Isolation):* Sub-Agent phụ trách CI (Sub-Agent 3) độc quyền đọc, viết, chỉnh sửa cấu hình CI/CD (`.github/workflows/`); cấm mọi sub-agent khác (Sub-Agent 1, 2, 4...) truy cập và đọc CI; Sub-Agent CI tiếp nhận thông tin từ các sub-agents khác để cập nhật CI đồng bộ ngay khi code có thay đổi.
+- **Kết quả kỳ vọng:** 100% cam kết chất lượng mã nguồn trước khi commit vào kho lưu trữ; ngăn chặn lỗi môi trường runner và rò rỉ phân quyền giữa các sub-agents.
 
 ---
 

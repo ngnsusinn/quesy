@@ -14,8 +14,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field
+from fastapi.responses import FileResponse, JSONResponse, Response
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -24,6 +24,7 @@ from backend.services.composer_service import (
     STORAGE_COMPOSER_CACHE,
     TEMPLATES,
     compile_latex_to_pdf,
+    ensure_full_latex_document,
     extract_questions_from_latex,
 )
 from backend.services.ai_provider_service import default_ai_provider_service
@@ -40,6 +41,8 @@ router = APIRouter(prefix="/api/v1/composer", tags=["Composer"])
 class CompileRequest(BaseModel):
     latex_code: str = Field(..., description="Full LaTeX source code to compile")
     title: str = Field("Đề Thi Soạn Thảo", description="Document title")
+    mode: Optional[str] = Field("dethi", description="'dethi' (hide solution) or 'loigiai' (show solution)")
+    show_solution: Optional[bool] = Field(None, description="Flag for solution visibility")
 
 class CompileResponse(BaseModel):
     success: bool
@@ -69,9 +72,23 @@ class ChatResponse(BaseModel):
     reply: str
     suggested_latex: Optional[str] = None
     diff: Optional[DiffSuggestion] = None
+    diffs: List[DiffSuggestion] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def sync_diffs(self):
+        if self.diffs and not self.diff:
+            self.diff = self.diffs[0]
+        elif self.diff and not self.diffs:
+            self.diffs = [self.diff]
+        return self
 
 class SaveToBankRequest(BaseModel):
     latex_code: str = Field(..., description="LaTeX source containing exam questions to extract")
+
+class ExportRequest(BaseModel):
+    latex_code: str = Field(..., description="LaTeX source code to export")
+    mode: Optional[str] = Field("dethi", description="ex_test compilation mode: 'dethi' or 'loigiai'")
+    title: Optional[str] = Field("de_thi", description="Document title for naming the exported file")
 
 
 # ---------------------------------------------------------------------------
@@ -110,7 +127,10 @@ def compile_latex_endpoint(req: CompileRequest):
     if not clean_code:
         raise HTTPException(status_code=400, detail="Mã LaTeX không được để trống")
 
-    code_hash = hashlib.md5((clean_code + req.title).encode("utf-8")).hexdigest()
+    mode = req.mode or ("loigiai" if req.show_solution else "dethi")
+    full_latex = ensure_full_latex_document(clean_code, mode=mode, title=req.title)
+
+    code_hash = hashlib.md5((full_latex + req.title + mode).encode("utf-8")).hexdigest()
     out_pdf = STORAGE_COMPOSER_CACHE / f"{code_hash}.pdf"
 
     # If already compiled and cached on disk
@@ -124,7 +144,7 @@ def compile_latex_endpoint(req: CompileRequest):
             total_pages=count_pdf_pages(out_pdf),
         )
 
-    success, err_msg, elapsed_ms = compile_latex_to_pdf(clean_code, out_pdf, title=req.title)
+    success, err_msg, elapsed_ms = compile_latex_to_pdf(full_latex, out_pdf, title=req.title, mode=mode)
 
     if not success:
         return CompileResponse(
@@ -160,6 +180,47 @@ def get_compiled_pdf(doc_id: str):
             "Content-Disposition": f"inline; filename=exam_{doc_id[:8]}.pdf",
             "Cache-Control": "public, max-age=3600",
         },
+    )
+
+
+@router.post("/export", summary="Export full standalone LaTeX source (.tex)")
+def export_latex_endpoint(req: ExportRequest):
+    """Exports full standalone LaTeX source code (.tex) with canonical preamble and ex_test packages.
+    If the code is preamble-free, wraps it in the canonical preamble with the specified mode.
+    If the code already has a preamble, standardizes it.
+    """
+    clean_code = req.latex_code.strip()
+    full_latex = ensure_full_latex_document(clean_code, mode=req.mode or "dethi", title=req.title or "de_thi")
+    safe_title = re.sub(r'[^\w\-_\.]', '_', req.title or "de_thi").strip('_') or "de_thi"
+    filename = f"{safe_title}.tex"
+    return Response(
+        content=full_latex,
+        media_type="text/x-tex; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Filename": filename,
+        }
+    )
+
+
+@router.get("/export", summary="Export full standalone LaTeX source (.tex) via GET")
+def export_latex_endpoint_get(
+    latex_code: str = "",
+    mode: str = "dethi",
+    title: str = "de_thi",
+):
+    """Exports full standalone LaTeX source code (.tex) with canonical preamble via GET."""
+    clean_code = latex_code.strip()
+    full_latex = ensure_full_latex_document(clean_code, mode=mode or "dethi", title=title or "de_thi")
+    safe_title = re.sub(r'[^\w\-_\.]', '_', title or "de_thi").strip('_') or "de_thi"
+    filename = f"{safe_title}.tex"
+    return Response(
+        content=full_latex,
+        media_type="text/x-tex; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Filename": filename,
+        }
     )
 
 
@@ -288,6 +349,72 @@ def find_in_latex(needle: str, current_latex: str, fuzzy_threshold: float = 0.65
                 return best_slice
 
     return None
+
+
+def find_nth_question_in_latex(latex_code: Optional[str], n: int) -> Optional[str]:
+    """Extracts the nth question block (1-indexed) from a LaTeX document.
+    Accurately supports both ex_test.sty format (\\begin{ex}...\\end{ex})
+    and classic format (\\textbf{Câu n.}, Câu n:, etc.).
+    Returns the exact matching substring in latex_code, or None if not found.
+    """
+    if not latex_code or n < 1:
+        return None
+
+    # 1. ex_test.sty syntax (\\begin{ex} ... \\end{ex} or \\begin{bt} ... \\end{bt})
+    ex_matches = list(re.finditer(r'\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}', latex_code))
+    if ex_matches:
+        if 1 <= n <= len(ex_matches):
+            return ex_matches[n - 1].group(0)
+        return None
+
+    # 1b. Unclosed ex_test environments: \begin{ex} ... (ending at next \begin{ex} or \end{document} or EOF)
+    unclosed_matches = list(re.finditer(
+        r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?(?=(?:\\begin\{(?:ex|bt|vd)\}|\\end\{document\}|\Z))',
+        latex_code
+    ))
+    if unclosed_matches:
+        if 1 <= n <= len(unclosed_matches):
+            return unclosed_matches[n - 1].group(0).rstrip()
+        return None
+
+    # 2. Classic \textbf{Câu X.} or Câu X. syntax
+    classic_pattern = re.compile(
+        r'(?:\\(?:noindent|medskip|bigskip)\s*)?\\textbf\{\s*Câu\s*(\d+)[\.:]?\s*\}|(?<![\w\\{])Câu\s*(\d+)[\.:]',
+        re.IGNORECASE
+    )
+    matches = list(classic_pattern.finditer(latex_code))
+    if not matches:
+        return None
+
+    # Find the match matching question number n
+    target_idx = None
+    for idx, m in enumerate(matches):
+        q_num = int(m.group(1) or m.group(2))
+        if q_num == n:
+            target_idx = idx
+            break
+
+    # If exact question number n wasn't found, fallback to ordinal position (1 <= n <= len(matches))
+    if target_idx is None and 1 <= n <= len(matches):
+        target_idx = n - 1
+
+    if target_idx is None:
+        return None
+
+    start_pos = matches[target_idx].start()
+    if target_idx + 1 < len(matches):
+        end_pos = matches[target_idx + 1].start()
+    else:
+        # Stop before \\end{document} or \\section if present
+        tail = latex_code[start_pos:]
+        end_match = re.search(r'(\\end\{document\}|\\section\*?\{)', tail)
+        if end_match:
+            end_pos = start_pos + end_match.start()
+        else:
+            end_pos = len(latex_code)
+
+    extracted = latex_code[start_pos:end_pos].rstrip()
+    return extracted if extracted else None
 
 
 def _insert_in_preamble(current_latex: str, package_line: str) -> Optional[Tuple[str, str]]:
@@ -529,18 +656,143 @@ def find_best_matching_block(snippet: str, document: str) -> Optional[str]:
     return None
 
 
-def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_message: str = "") -> Optional[DiffSuggestion]:
-    """Helper to detect unified diff blocks, search/replace blocks, OLD/NEW blocks,
+def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], user_message: str = "") -> List[DiffSuggestion]:
+    """Helper to detect ALL unified diff blocks, search/replace blocks, OLD/NEW blocks,
     choice modifications, font size changes, or string replacement proposals from AI responses.
+    Returns a List[DiffSuggestion] in sequential document order or appearance order.
     """
     if not current_latex:
-        return None
+        return []
 
     combined_text = f"{user_message}\n{reply_text}"
     user_lower = (user_message or "").lower()
     combined_lower = combined_text.lower()
 
-    # 1. Targeted heuristic for font size changes (e.g. 11pt -> 12pt, font 12, cỡ chữ 11pt)
+    found_diffs: List[DiffSuggestion] = []
+
+    def _add_diff(action: str, old_text: str, new_text: str, desc: str):
+        if not old_text:
+            return
+        if old_text == new_text and new_text:
+            return
+        # check duplicate
+        for existing in found_diffs:
+            if existing.old_text == old_text and existing.new_text == new_text:
+                return
+        found_diffs.append(DiffSuggestion(
+            action=action,
+            old_text=old_text,
+            new_text=new_text,
+            description=desc
+        ))
+
+    # 1. Explicit ```diff ... ``` blocks (multiple blocks supported via finditer and multi-hunk parsing)
+    for m_diff in re.finditer(r'```diff\s*\n?([\s\S]*?)```', reply_text):
+        diff_content = m_diff.group(1)
+        hunks = []
+        current_hunk = {"old": [], "new": []}
+        in_change = False
+
+        for l in diff_content.splitlines():
+            if l.startswith('---') or l.startswith('+++') or l.startswith('@@'):
+                if current_hunk["old"] or current_hunk["new"]:
+                    hunks.append(current_hunk)
+                    current_hunk = {"old": [], "new": []}
+                in_change = False
+                continue
+
+            if re.match(r'^\s*-\s*', l):
+                current_hunk["old"].append(re.sub(r'^\s*-\s*', '', l))
+                in_change = True
+            elif re.match(r'^\s*\+\s*', l):
+                current_hunk["new"].append(re.sub(r'^\s*\+\s*', '', l))
+                in_change = True
+            else:
+                if in_change:
+                    if current_hunk["old"] or current_hunk["new"]:
+                        hunks.append(current_hunk)
+                        current_hunk = {"old": [], "new": []}
+                    in_change = False
+
+        if current_hunk["old"] or current_hunk["new"]:
+            hunks.append(current_hunk)
+
+        base_desc = _clean_diff_description(reply_text[:m_diff.start()]) or "Thay đổi theo gợi ý AI"
+
+        for idx, hunk in enumerate(hunks):
+            old_raw = '\n'.join(hunk["old"]).strip()
+            new_raw = '\n'.join(hunk["new"]).strip()
+            if not old_raw:
+                continue
+            if old_raw and not new_raw:
+                if r"\badcommand" in old_raw or "lỗi" in reply_text.lower():
+                    new_raw = f"% {old_raw} (đã vô hiệu hóa để sửa lỗi biên dịch)"
+            matched_old = find_in_latex(old_raw, current_latex)
+            if matched_old and (matched_old != new_raw or not new_raw):
+                hunk_desc = base_desc
+                if "documentclass" in matched_old and "pt" in new_raw:
+                    hunk_desc = "Đổi cỡ chữ toàn tài liệu"
+                elif "mã đề" in new_raw.lower() or "0105" in new_raw:
+                    hunk_desc = "Cập nhật Mã đề thi sang 0105"
+                elif len(hunks) > 1:
+                    hunk_desc = f"{base_desc} (Phần {idx + 1})"
+                _add_diff("replace", matched_old, new_raw, hunk_desc)
+
+    # 2. Explicit SEARCH / REPLACE blocks (Aider / standard AI coding format)
+    for m_sr in re.finditer(r'<{5,9}\s*SEARCH\s*\n([\s\S]*?)\n={5,9}\s*\n([\s\S]*?)\n>{5,9}\s*REPLACE', reply_text):
+        old_raw = m_sr.group(1).strip()
+        new_raw = m_sr.group(2).strip()
+        matched_old = find_in_latex(old_raw, current_latex)
+        if matched_old and matched_old != new_raw:
+            desc = _clean_diff_description(reply_text[:m_sr.start()]) or "Thay đổi theo gợi ý AI"
+            _add_diff("replace", matched_old, new_raw, desc)
+
+    # 3. Explicit OLD / NEW or CŨ / MỚI blocks
+    patterns_old_new = [
+        r'(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|\n[A-Z]|\n```|\Z)',
+        r'(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*[`"“\']?([^\n`"”\']+)[`"”\']?\s*\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*[`"“\']?([^\n`"”\']+)[`"”\']?',
+        r'(?:- Dòng cũ|- Đoạn cũ|Cũ):\s*[`"“]?([^\n`"”]+)[`"”]?\s*\n(?:- Dòng mới|- Đoạn mới|Mới):\s*[`"“]?([^\\n`"”]+)[`"”]?',
+    ]
+    for pat in patterns_old_new:
+        for m_replace in re.finditer(pat, reply_text, re.IGNORECASE):
+            old_raw = m_replace.group(1).strip()
+            new_raw = m_replace.group(2).strip()
+            matched_old = find_in_latex(old_raw, current_latex)
+            if matched_old and matched_old != new_raw:
+                desc = _clean_diff_description(reply_text[:m_replace.start()]) or "Thay đổi theo gợi ý AI"
+                _add_diff("replace", matched_old, new_raw, desc)
+
+    # 4. Block replace with code fences: Thay thế: ```latex ... ``` bằng: ```latex ... ```
+    for block_replace in re.finditer(
+        r'(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n([\s\S]*?)\n```\s*\n*(?:thành|bằng|sang|mới|sau):\s*\n*```(?:latex|tex)?\n([\s\S]*?)\n```',
+        reply_text,
+        re.IGNORECASE
+    ):
+        old_raw = block_replace.group(1).strip()
+        new_raw = block_replace.group(2).strip()
+        matched_old = find_in_latex(old_raw, current_latex)
+        if matched_old and matched_old != new_raw:
+            desc = _clean_diff_description(reply_text[:block_replace.start()]) or "Thay đổi theo gợi ý AI"
+            _add_diff("replace", matched_old, new_raw, desc)
+
+    # 5. Inline replacement proposals: Thay thế `old` bằng/thành/sang `new`
+    for m_phrase in re.finditer(
+        r'(?:thay thế|thay|đổi|sửa|chuyển|replace)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]\s+(?:bằng|thành|sang|với|by|with)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]',
+        reply_text,
+        re.IGNORECASE
+    ):
+        old_raw = m_phrase.group(1).strip()
+        new_raw = m_phrase.group(2).strip()
+        matched_old = find_in_latex(old_raw, current_latex)
+        if matched_old and matched_old != new_raw:
+            desc = _clean_diff_description(reply_text[:m_phrase.start()]) or f"Thay thế '{old_raw}' thành '{new_raw}'"
+            _add_diff("replace", matched_old, new_raw, desc)
+
+    # If explicit blocks found diffs, return them
+    if found_diffs:
+        return found_diffs
+
+    # 6. Targeted heuristic for font size changes (e.g. 11pt -> 12pt, font 12, cỡ chữ 11pt)
     if any(k in combined_lower for k in ("font", "cỡ chữ", "size")):
         pts = re.findall(r'\b(10|11|12|13|14)(?:pt)?\b', user_lower)
         if not pts:
@@ -558,14 +810,9 @@ def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_m
                     else:
                         new_line = line
                     if new_line != line:
-                        return DiffSuggestion(
-                            action="replace",
-                            old_text=line,
-                            new_text=new_line,
-                            description=f"Đổi cỡ chữ toàn tài liệu sang {target_pt}"
-                        )
+                        _add_diff("replace", line, new_line, f"Đổi cỡ chữ toàn tài liệu sang {target_pt}")
 
-    # 2. Targeted heuristic for choice modifications (đổi đáp án A sang B, sửa đáp án thành C, etc.)
+    # 7. Targeted heuristic for choice modifications (đổi đáp án A sang B, sửa đáp án thành C, etc.)
     m_choice_chg = re.search(
         r'(?:đổi|sửa|chuyển)\s+(?:đáp án|lựa chọn)(?:\s+đúng)?\s+(?:từ\s+[ABCD]\s+sang\s+|thành\s+|sang\s+)([ABCD])\b',
         combined_lower,
@@ -575,159 +822,117 @@ def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_m
         target_choice = m_choice_chg.group(1).upper()
         target_idx = {"A": 0, "B": 1, "C": 2, "D": 3}.get(target_choice)
         if target_idx is not None:
-            m_ch = re.search(r'\\choice\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}', current_latex)
+            m_ch = re.search(r'\\choice\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}', current_latex)
             if m_ch:
                 old_full = m_ch.group(0)
                 opts = [m_ch.group(1), m_ch.group(2), m_ch.group(3), m_ch.group(4)]
                 cleaned_opts = [re.sub(r'\\True\s*', '', opt).strip() for opt in opts]
                 cleaned_opts[target_idx] = "\\True " + cleaned_opts[target_idx]
-                new_full = f"\\choice{{{cleaned_opts[0]}}}{{{cleaned_opts[1]}}}{{{cleaned_opts[2]}}}{{{cleaned_opts[3]}}}"
+                sep = "\n" if "\n" in old_full else ""
+                new_full = f"\\choice{sep}{{{cleaned_opts[0]}}}{sep}{{{cleaned_opts[1]}}}{sep}{{{cleaned_opts[2]}}}{sep}{{{cleaned_opts[3]}}}"
                 if old_full != new_full:
-                    return DiffSuggestion(
-                        action="replace",
-                        old_text=old_full,
-                        new_text=new_full,
-                        description=f"Đổi đáp án đúng sang {target_choice}"
-                    )
+                    _add_diff("replace", old_full, new_full, f"Đổi đáp án đúng sang {target_choice}")
 
-    # 3. Explicit ```diff ... ``` blocks (single-line or multi-line)
-    m_diff = re.search(r'```diff\s*\n?([\s\S]*?)```', reply_text)
-    if m_diff:
-        diff_content = m_diff.group(1)
-        old_lines = []
-        new_lines = []
-        ctx_before = []
-        ctx_after = []
-        for l in diff_content.splitlines():
-            if l.startswith('---') or l.startswith('+++'):
-                continue
-            if re.match(r'^\s*-\s*', l):
-                old_lines.append(re.sub(r'^\s*-\s*', '', l))
-            elif re.match(r'^\s*\+\s*', l):
-                new_lines.append(re.sub(r'^\s*\+\s*', '', l))
-            else:
-                clean_ctx = l.strip()
-                if clean_ctx and not clean_ctx.startswith('@@'):
-                    if not new_lines and not old_lines:
-                        ctx_before.append(clean_ctx)
-                    else:
-                        ctx_after.append(clean_ctx)
+    if found_diffs:
+        return found_diffs
 
-        old_raw = '\n'.join(old_lines).strip()
-        new_raw = '\n'.join(new_lines).strip()
-
-        if not old_raw and new_raw:
-            # Pure insertion diff with context lines
-            if ctx_before:
-                matched_ctx = find_in_latex(ctx_before[-1], current_latex)
-                if matched_ctx:
-                    old_raw = matched_ctx
-                    new_raw = f"{matched_ctx}\n{new_raw}"
-            elif ctx_after:
-                matched_ctx = find_in_latex(ctx_after[0], current_latex)
-                if matched_ctx:
-                    old_raw = matched_ctx
-                    new_raw = f"{new_raw}\n{matched_ctx}"
-
-        if old_raw and not new_raw:
-            if r"\badcommand" in old_raw or "lỗi" in reply_text.lower():
-                new_raw = f"% {old_raw} (đã vô hiệu hóa để sửa lỗi biên dịch)"
-        matched_old = find_in_latex(old_raw, current_latex)
-        if matched_old and (matched_old != new_raw or not new_raw):
-            desc = _clean_diff_description(reply_text[:m_diff.start()]) or "Thay đổi theo gợi ý AI"
-            return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
-
-    # 4. Explicit SEARCH / REPLACE blocks (Aider / standard AI coding format)
-    m_sr = re.search(r'<{5,9}\s*SEARCH\s*\n([\s\S]*?)\n={5,9}\s*\n([\s\S]*?)\n>{5,9}\s*REPLACE', reply_text)
-    if m_sr:
-        old_raw = m_sr.group(1).strip()
-        new_raw = m_sr.group(2).strip()
-        matched_old = find_in_latex(old_raw, current_latex)
-        if matched_old and matched_old != new_raw:
-            desc = _clean_diff_description(reply_text[:m_sr.start()]) or "Thay đổi theo gợi ý AI"
-            return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
-
-    # 5. Explicit OLD / NEW or CŨ / MỚI blocks
-    patterns_old_new = [
-        r'(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|\n[A-Z]|\n```|\Z)',
-        r'(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*[`"“\']?([^\n`"”\']+)[`"”\']?\s*\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*[`"“\']?([^\n`"”\']+)[`"”\']?',
-        r'(?:- Dòng cũ|- Đoạn cũ|Cũ):\s*[`"“]?([^\n`"”]+)[`"”]?\s*\n(?:- Dòng mới|- Đoạn mới|Mới):\s*[`"“]?([^\\n`"”]+)[`"”]?',
-    ]
-    for pat in patterns_old_new:
-        m_replace = re.search(pat, reply_text, re.IGNORECASE)
-        if m_replace:
-            old_raw = m_replace.group(1).strip()
-            new_raw = m_replace.group(2).strip()
-            matched_old = find_in_latex(old_raw, current_latex)
-            if matched_old and matched_old != new_raw:
-                desc = _clean_diff_description(reply_text[:m_replace.start()]) or "Thay đổi theo gợi ý AI"
-                return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
-
-    # 6. Block replace with code fences: Thay thế: ```latex ... ``` bằng: ```latex ... ```
-    block_replace = re.search(
-        r'(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n([\s\S]*?)\n```\s*\n*(?:thành|bằng|sang|mới|sau):\s*\n*```(?:latex|tex)?\n([\s\S]*?)\n```',
-        reply_text,
-        re.IGNORECASE
+    # 8. Targeted heuristic for replacing question N by number
+    # Handles: "thay thế câu (\d+)", "thay câu (\d+)", "sửa câu (\d+)", "đổi câu (\d+)", "replace question (\d+)"
+    m_replace_q = re.search(
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        combined_lower
     )
-    if block_replace:
-        old_raw = block_replace.group(1).strip()
-        new_raw = block_replace.group(2).strip()
-        matched_old = find_in_latex(old_raw, current_latex)
-        if matched_old and matched_old != new_raw:
-            desc = _clean_diff_description(reply_text[:block_replace.start()]) or "Thay đổi theo gợi ý AI"
-            return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
+    if not m_replace_q:
+        m_replace_q = re.search(
+            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+            combined_lower
+        )
+    if m_replace_q:
+        target_q_num = int(m_replace_q.group(1))
+        old_q = find_nth_question_in_latex(current_latex, target_q_num)
+        if old_q:
+            new_q = None
+            m_code_q = None
+            # 8a. Extract new question from ```diff ... ``` block if present
+            m_diff_q = re.search(r'```diff\s*\n([\s\S]*?)```', reply_text)
+            if m_diff_q:
+                added_lines = [
+                    re.sub(r'^\s*\+\s?', '', l)
+                    for l in m_diff_q.group(1).splitlines()
+                    if re.match(r'^\s*\+', l) and not l.startswith('+++')
+                ]
+                if added_lines:
+                    new_q = '\n'.join(added_lines).strip()
 
-    # 7. Inline replacement proposal: Thay thế `old` bằng/thành/sang `new`
-    m_phrase = re.search(
-        r'(?:thay thế|thay|đổi|sửa|chuyển|replace)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]\s+(?:bằng|thành|sang|với|by|with)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]',
-        reply_text,
-        re.IGNORECASE
-    )
-    if m_phrase:
-        old_raw = m_phrase.group(1).strip()
-        new_raw = m_phrase.group(2).strip()
-        matched_old = find_in_latex(old_raw, current_latex)
-        if matched_old and matched_old != new_raw:
-            desc = _clean_diff_description(reply_text[:m_phrase.start()]) or f"Thay thế '{old_raw}' thành '{new_raw}'"
-            return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_raw, description=desc)
+            # 8b. Extract from ```latex ... ``` or ```tex ... ``` code block
+            if not new_q:
+                m_code_q = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
+                if m_code_q:
+                    candidate = m_code_q.group(1).strip()
+                    if not candidate.startswith(r"\documentclass"):
+                        new_q = candidate
 
-    # 8. Detect changes if AI returned code block (```latex or ```tex or ```)
+            # 8c. Extract raw LaTeX environment from text
+            if not new_q:
+                m_ex_q = re.search(r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{(?:ex|bt|vd)\}', reply_text)
+                if m_ex_q:
+                    new_q = m_ex_q.group(0).strip()
+            if not new_q:
+                m_classic_q = re.search(r'(?:\\textbf\{\s*Câu\s*\d+[\.:]?\s*\}|(?<![\w\\])Câu\s*\d+[\.:])[\s\S]*', reply_text)
+                if m_classic_q:
+                    new_q = m_classic_q.group(0).strip()
+
+            if new_q and new_q != old_q:
+                desc = _clean_diff_description(reply_text[:(m_code_q.start() if m_code_q else 0)]) or f"Thay thế Câu {target_q_num}"
+                if not desc.startswith(f"Thay thế Câu {target_q_num}"):
+                    desc = f"Thay thế Câu {target_q_num}"
+                _add_diff("replace", old_q, new_q, desc)
+                return found_diffs
+
+    # 9. Detect changes if AI returned single code block (```latex or ```tex or ```)
     m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
     if m_code:
         if any(k in user_lower for k in ("tạo", "thêm", "chèn", "sinh", "viết", "generate", "create", "insert")):
-            return None
+            return []
 
         code = m_code.group(1).strip()
         if "\\documentclass" not in code and len(code) >= 10:
             matched_old = find_best_matching_block(code, current_latex)
             if matched_old and matched_old != code:
                 desc = _clean_diff_description(reply_text[:m_code.start()]) or "Thay đổi theo gợi ý AI"
-                return DiffSuggestion(action="replace", old_text=matched_old, new_text=code, description=desc)
+                _add_diff("replace", matched_old, code, desc)
 
-        cur_lines = current_latex.strip().splitlines()
-        code_lines = code.splitlines()
-        clean_cur = [l for l in cur_lines if l.strip()]
-        clean_code = [l for l in code_lines if l.strip()]
+        if not found_diffs:
+            cur_lines = current_latex.strip().splitlines()
+            code_lines = code.splitlines()
+            clean_cur = [l for l in cur_lines if l.strip()]
+            clean_code = [l for l in code_lines if l.strip()]
 
-        sm = difflib.SequenceMatcher(None, clean_cur, clean_code)
-        replace_ops = [op for op in sm.get_opcodes() if op[0] == 'replace']
-        if len(replace_ops) == 1:
-            _, i1, i2, j1, j2 = replace_ops[0]
-            old_slice = '\n'.join(clean_cur[i1:i2])
-            new_slice = '\n'.join(clean_code[j1:j2])
-            matched_old = find_in_latex(old_slice, current_latex)
-            if matched_old and matched_old != new_slice:
-                desc = _clean_diff_description(reply_text[:m_code.start()]) or "Thay đổi theo gợi ý AI"
-                return DiffSuggestion(action="replace", old_text=matched_old, new_text=new_slice, description=desc)
-        elif len(code_lines) <= 4:
-            matches = difflib.get_close_matches(code, cur_lines, n=1, cutoff=0.45)
-            if matches and matches[0] != code:
-                matched_old = find_in_latex(matches[0], current_latex)
-                if matched_old:
+            sm = difflib.SequenceMatcher(None, clean_cur, clean_code)
+            replace_ops = [op for op in sm.get_opcodes() if op[0] == 'replace']
+            if len(replace_ops) == 1:
+                _, i1, i2, j1, j2 = replace_ops[0]
+                old_slice = '\n'.join(clean_cur[i1:i2])
+                new_slice = '\n'.join(clean_code[j1:j2])
+                matched_old = find_in_latex(old_slice, current_latex)
+                if matched_old and matched_old != new_slice:
                     desc = _clean_diff_description(reply_text[:m_code.start()]) or "Thay đổi theo gợi ý AI"
-                    return DiffSuggestion(action="replace", old_text=matched_old, new_text=code, description=desc)
+                    _add_diff("replace", matched_old, new_slice, desc)
+            elif len(code_lines) <= 4:
+                matches = difflib.get_close_matches(code, cur_lines, n=1, cutoff=0.45)
+                if matches and matches[0] != code:
+                    matched_old = find_in_latex(matches[0], current_latex)
+                    if matched_old:
+                        desc = _clean_diff_description(reply_text[:m_code.start()]) or "Thay đổi theo gợi ý AI"
+                        _add_diff("replace", matched_old, code, desc)
 
-    return None
+    return found_diffs
+
+
+def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_message: str = "") -> Optional[DiffSuggestion]:
+    """Helper to detect the first unified diff suggestion from AI responses (backward compatibility)."""
+    diffs = extract_all_diffs_from_text(reply_text, current_latex, user_message=user_message)
+    return diffs[0] if diffs else None
 
 
 @router.post("/chat", response_model=ChatResponse, summary="AI LaTeX Writing Copilot (assistant-ui clone)")
@@ -736,32 +941,62 @@ def composer_chat_endpoint(req: ChatRequest):
     system_prompt = (
         "Bạn là Trợ lý Soạn thảo Đề thi & LaTeX Chuyên nghiệp (Quesy AI Copilot), lấy cảm hứng từ open-prism.\n"
         "Nhiệm vụ của bạn là hỗ trợ giáo viên Toán tại Việt Nam soạn thảo đề thi chất lượng cao theo chuẩn Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT (Định dạng 2025).\n\n"
+        "KIẾN TRÚC SOẠN THẢO PREAMBLE-FREE (KHÔNG PREAMBLE):\n"
+        "- Khung soạn thảo (editor) CHỈ CHỨA trực tiếp phần tiêu đề đề thi (\\section*, \\begin{center}) và các khối câu hỏi theo chuẩn gói lệnh ex_test.sty (\\begin{ex}...\\end{ex}).\n"
+        "- Toàn bộ Preamble (\\documentclass, \\usepackage{fontspec}, \\usepackage{amsmath,amssymb,amsfonts}, \\usepackage{geometry}, \\usepackage{multicol}, \\usepackage{tikz,tkz-tab}, \\usepackage{tcolorbox}, \\usepackage[dethi]{ex_test}, \\begin{document}, \\end{document}) ĐÃ ĐƯỢC HỆ THỐNG TỰ ĐỘNG NHÚNG NGẦM ở backend khi biên dịch.\n"
+        "- TUYỆT ĐỐI KHÔNG sinh lại preamble, \\documentclass, \\usepackage, \\begin{document} hay \\end{document}. Khi sinh mới hoặc sửa câu hỏi, CHỈ TRẢ VỀ mã câu hỏi \\begin{ex}...\\end{ex} chuẩn ex_test.\n\n"
         "HỆ THỐNG ĐÃ TÍCH HỢP TOÀN DIỆN GÓI LỆNH ex_test.sty (v3.3):\n"
-        "- Khai báo: \\usepackage[dethi]{ex_test} (hoặc [color], [loigiai], [solcolor]) cùng \\usepackage{fontspec}.\n"
         "- Phần I (Trắc nghiệm 4 lựa chọn): Dùng \\begin{ex} ... \\choice{A}{\\True B}{C}{D} \\begin{loigiai}...\\end{loigiai} \\end{ex}.\n"
         "- Phần II (Đúng/Sai 4 khẳng định): Dùng \\begin{ex} ... \\choiceTF{\\True a)...}{b)...}{\\True c)...}{d)...} \\begin{loigiai}\\begin{itemchoice}\\itemch...\\end{itemchoice}\\end{loigiai} \\end{ex}.\n"
         "- Phần III (Trả lời ngắn): Dùng \\begin{ex} ... \\shortans{kết_quả} \\begin{loigiai}...\\end{loigiai} \\end{ex}.\n"
-        "- Chèn hình song song chữ: Dùng \\immini{Văn bản câu hỏi}{Mã hình TikZ} (hình bên phải) hoặc \\imminiL (hình bên trái).\n\n"
+        "- Chèn hình song song chữ: Dùng \\immini{Văn bản câu hỏi}{Mã hình TikZ} (hình bên phải) hoặc \\imminiL (hình bên trái). Tuyệt đối không lồng \\choice vào trong tham số của \\immini.\n\n"
         "QUY TẮC BẮT BUỘC:\n"
-        "1. Luôn sử dụng mã LaTeX chuẩn với font CMU Serif / Computer Modern (dùng \\usepackage{fontspec}).\n"
-        "2. Bảng biến thiên BẮT BUỘC dùng TikZ package tkz-tab (\\tkzTabInit, \\tkzTabLine, \\tkzTabVar). Không dùng \\begin{array} cho bảng biến thiên!\n"
-        "3. Đồ thị hàm số và hình học BẮT BUỘC dùng khối \\begin{tikzpicture} ... \\end{tikzpicture}.\n"
-        "4. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n\n"
+        "1. Bảng biến thiên BẮT BUỘC dùng TikZ package tkz-tab (\\tkzTabInit, \\tkzTabLine, \\tkzTabVar). Không dùng \\begin{array} cho bảng biến thiên!\n"
+        "2. Đồ thị hàm số và hình học BẮT BUỘC dùng khối \\begin{tikzpicture} ... \\end{tikzpicture}.\n"
+        "3. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n\n"
         "QUY TẮC PHẢN HỒI (BẮT BUỘC TUÂN THỦ):\n"
-        "1. KHI NGƯỜI DÙNG YÊU CẦU SỬA ĐỔI, ĐIỀU CHỈNH HOẶC THAY THẾ (như đổi font, sửa tiêu đề, đổi đáp án, sửa/fix lỗi biên dịch):\n"
-        "   - TUYỆT ĐỐI KHÔNG xuất lại toàn bộ tài liệu cũ dài dòng!\n"
+        "1. KHI NGƯỜI DÙNG YÊU CẦU SỬA ĐỔI, ĐIỀU CHỈNH HOẶC THAY THẾ:\n"
+        "   - TUYỆT ĐỐI KHÔNG xuất lại toàn bộ tài liệu cũ dài dòng! Không sinh lại preamble!\n"
         "   - BẮT BUỘC chỉ xuất khối ```diff chứa đúng dòng cũ cần thay và dòng mới:\n"
         "     ```diff\n"
         "     - <dòng mã cũ>\n"
         "     + <dòng mã mới>\n"
         "     ```\n"
         "   - Kèm lời giải thích ngắn gọn bằng tiếng Việt.\n"
-        "   - Nếu người dùng yêu cầu sửa lỗi biên dịch (ví dụ lệnh không xác định như \\badcommand{abc}), BẮT BUỘC xuất dòng đỏ (-) là dòng lỗi và dòng xanh (+) là lệnh đúng hoặc ghi chú comment lại dòng lỗi để loại bỏ lỗi hoàn toàn.\n"
-        "2. KHI NGƯỜI DÙNG YÊU CẦU TẠO MỚI CÂU HỎI HOẶC HÌNH VẼ:\n"
-        "   - Xuất mã LaTeX tự chứa trong khối ```latex ... ``` để chèn vào vị trí con trỏ.\n"
+        "2. KHI NGƯỜI DÙNG YÊU CẦU THAY THẾ HOẶC ĐỔI MỘT CÂU HỎI:\n"
+        "   - BẮT BUỘC trích xuất khối ```diff rõ ràng với old_text là câu cũ và new_text là câu mới:\n"
+        "     ```diff\n"
+        "     - <toàn bộ khối câu cũ trong tài liệu hiện tại>\n"
+        "     + <toàn bộ khối câu hỏi mới thay thế (\\begin{ex}...\\end{ex})>\n"
+        "     ```\n"
+        "   - Đồng thời có thể kèm khối ```latex ... ``` chứa riêng câu hỏi mới (chỉ \\begin{ex}...\\end{ex}) để giáo viên có thể chèn trực tiếp.\n"
+        "3. KHI NGƯỜI DÙNG YÊU CẦU TẠO MỚI CÂU HỎI HOẶC HÌNH VẼ:\n"
+        "   - Xuất mã câu hỏi chuẩn ```latex \\begin{ex}...\\end{ex} ``` để chèn vào vị trí con trỏ (tuyệt đối không kèm preamble).\n"
     )
 
     prompt = f"Yêu cầu của giáo viên: {req.message}\n\n"
+    m_replace_hint = re.search(
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        req.message,
+        re.IGNORECASE
+    )
+    if not m_replace_hint:
+        m_replace_hint = re.search(
+            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+            req.message,
+            re.IGNORECASE
+        )
+    if m_replace_hint and req.current_latex:
+        q_target = int(m_replace_hint.group(1))
+        old_snippet = find_nth_question_in_latex(req.current_latex, q_target)
+        if old_snippet:
+            prompt += (
+                f"--- HƯỚNG DẪN BẮT BUỘC KHI THAY THẾ CÂU {q_target} ---\n"
+                f"Khối câu {q_target} hiện tại trong tài liệu là:\n"
+                f"```latex\n{old_snippet}\n```\n"
+                f"Bạn hãy trích xuất khối ```diff với dòng (-) là câu cũ này và dòng (+) là câu mới thay thế, hoặc xuất khối ```latex chứa câu hỏi mới để hệ thống áp dụng thay thế lên trình soạn thảo.\n"
+                f"------------------------------------------------------\n\n"
+            )
     if req.compile_error and req.compile_error.strip():
         prompt += f"--- LOG LỖI BIÊN DỊCH GẦN NHẤT ---\n{req.compile_error.strip()}\n---------------------------------\n\n"
     if req.current_latex and req.current_latex.strip():
@@ -772,16 +1007,17 @@ def composer_chat_endpoint(req: ChatRequest):
 
     # Attempt to query configured AI provider
     try:
-        if default_ai_provider_service and default_ai_provider_service.api_key:
+        if default_ai_provider_service and (default_ai_provider_service.api_key or default_ai_provider_service.provider in ("openai", "openrouter", "custom", "gemini")):
             # We can use the configured provider
             provider = default_ai_provider_service.provider
             model = default_ai_provider_service.model
             base_url = default_ai_provider_service.base_url
+            api_key = default_ai_provider_service.api_key or "gemini-mock-key"
 
-            if provider in ("openai", "openrouter", "custom"):
-                endpoint = f"{(base_url or 'https://api.openai.com/v1').rstrip('/')}/chat/completions"
+            if provider in ("openai", "openrouter", "custom", "gemini"):
+                endpoint = f"{(base_url or ('https://generativelanguage.googleapis.com/v1beta/openai' if provider == 'gemini' else 'https://api.openai.com/v1')).rstrip('/')}/chat/completions"
                 headers = {
-                    "Authorization": f"Bearer {default_ai_provider_service.api_key}",
+                    "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
                 }
                 messages = [{"role": "system", "content": system_prompt}]
@@ -795,12 +1031,13 @@ def composer_chat_endpoint(req: ChatRequest):
                     if resp.status_code == 200:
                         data = resp.json()
                         reply_text = data["choices"][0]["message"]["content"]
-                        diff = extract_diff_from_text(reply_text, req.current_latex, user_message=req.message)
+                        diffs = extract_all_diffs_from_text(reply_text, req.current_latex, user_message=req.message)
+                        diff = diffs[0] if diffs else None
                         suggested_latex = None
                         m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
-                        if m_code and not diff:
+                        if m_code and not diffs:
                             suggested_latex = m_code.group(1).strip()
-                        return ChatResponse(reply=reply_text, diff=diff, suggested_latex=suggested_latex)
+                        return ChatResponse(reply=reply_text, diff=diff, diffs=diffs, suggested_latex=suggested_latex)
 
     except Exception as e:
         logger.warning(f"AI Provider call failed: {e}. Falling back to rule-based assistant.")
@@ -822,6 +1059,55 @@ def composer_chat_endpoint(req: ChatRequest):
         if diag_resp:
             return diag_resp
 
+    # 0b. Check if prompt requests multiple edits / multi-diff scenario (e.g. mã đề 0105, multi-diff, nhiều sửa đổi)
+    if any(k in user_msg_lower for k in ("multi-diff", "nhiều sửa đổi", "áp dụng tất cả", "apply all")) or (
+        "mã đề" in user_msg_lower and ("0105" in user_msg_lower or "105" in user_msg_lower)
+    ):
+        md_diffs = []
+        # Diff 1: Mã đề
+        for line in cur_latex.splitlines():
+            if "MÔN THI" in line or "mã đề" in line.lower() or "đề thi" in line.lower():
+                if "MÃ ĐỀ" in line:
+                    new_l = re.sub(r'MÃ ĐỀ:?\s*\d+', 'MÃ ĐỀ: 0105', line)
+                else:
+                    new_l = line.replace(r'\\', r' --- \textbf{MÃ ĐỀ: 0105}\\')
+                if new_l != line:
+                    md_diffs.append(DiffSuggestion(
+                        action="replace",
+                        old_text=line,
+                        new_text=new_l,
+                        description="Cập nhật Mã đề thi sang 0105"
+                    ))
+                    break
+        # Diff 2: Cỡ chữ hoặc documentclass
+        for line in cur_latex.splitlines():
+            if "documentclass" in line:
+                if "11pt" in line:
+                    new_l = line.replace("11pt", "12pt")
+                    md_diffs.append(DiffSuggestion(
+                        action="replace",
+                        old_text=line,
+                        new_text=new_l,
+                        description="Đổi cỡ chữ toàn tài liệu sang 12pt"
+                    ))
+                elif "12pt" in line:
+                    new_l = line.replace("12pt", "11pt")
+                    md_diffs.append(DiffSuggestion(
+                        action="replace",
+                        old_text=line,
+                        new_text=new_l,
+                        description="Đổi cỡ chữ toàn tài liệu từ 12pt sang 11pt"
+                    ))
+                break
+
+        if md_diffs:
+            blocks = "\n\n".join([f"Gợi ý {i+1}: {d.description}\n```diff\n- {d.old_text}\n+ {d.new_text}\n```" for i, d in enumerate(md_diffs)])
+            reply = (
+                f"Tôi đề xuất {len(md_diffs)} sửa đổi vào tài liệu:\n\n{blocks}\n\n"
+                "Bạn có thể duyệt từng thay đổi qua [<] / [>] hoặc nhấn **Áp dụng tất cả**."
+            )
+            return ChatResponse(reply=reply, diff=md_diffs[0], diffs=md_diffs)
+
     # 1. Check if user prompt requests font / font size changes
     font_diff = extract_diff_from_text("", cur_latex, user_message=req.message)
     if font_diff:
@@ -831,6 +1117,110 @@ def composer_chat_endpoint(req: ChatRequest):
             "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này."
         )
         return ChatResponse(reply=reply, diff=font_diff)
+
+    # 1b. Check if user prompt requests replacing question N offline
+    m_off_rep_q = re.search(
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        user_msg_lower
+    )
+    if not m_off_rep_q:
+        m_off_rep_q = re.search(
+            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+            user_msg_lower
+        )
+    if m_off_rep_q and cur_latex:
+        q_idx = int(m_off_rep_q.group(1))
+        old_q = find_nth_question_in_latex(cur_latex, q_idx)
+        if old_q:
+            if any(k in user_msg_lower for k in ("đơn điệu", "đồng biến", "nghịch biến")):
+                new_q = r"""\begin{ex}
+Cho hàm số $y = f(x)$ có bảng xét dấu đạo hàm như sau:
+\begin{center}
+\begin{tabular}{c|ccccccc}
+$x$ & $-\infty$ & & $-1$ & & $2$ & & $+\infty$ \\ \hline
+$f'(x)$ & & $+$ & $0$ & $-$ & $0$ & $+$ & 
+\end{tabular}
+\end{center}
+Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\choice
+{\True $(2; +\infty)$}
+{$(-1; 2)$}
+{$(-\infty; 2)$}
+{$(-1; +\infty)$}
+\begin{loigiai}
+Dựa vào bảng xét dấu đạo hàm, ta có $f'(x) > 0$ trên các khoảng $(-\infty; -1)$ và $(2; +\infty)$.
+Do đó hàm số đồng biến trên khoảng $(2; +\infty)$.
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "cực trị")):
+                new_q = r"""\begin{ex}[Đề Khảo sát 2026]
+Cho hàm số $y = f(x)$ xác định và liên tục trên $\mathbb{R}$ có bảng biến thiên:
+\begin{tikzpicture}
+  \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
+  {$x$/.6, $f'(x)$/.6, $f(x)$/2}
+  {$-\infty$,$-2$,$1$,$+\infty$}
+  \tkzTabLine{,+,0,-,0,+,}
+  \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
+\end{tikzpicture}
+Số điểm cực trị của hàm số đã cho là:
+\choice
+{\True $2$}
+{$1$}
+{$0$}
+{$3$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 điểm $x = -2$ và $x = 1$, do đó hàm số có $2$ điểm cực trị.
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("đúng sai", "đúng/sai", "phần ii")):
+                new_q = r"""\begin{ex}
+Cho hàm số $y = f(x) = x^3 - 3x^2 + 2$. Xét tính đúng/sai của các mệnh đề sau:
+\choiceTF
+{\True Hàm số đồng biến trên khoảng $(2; +\infty)$}
+{Hàm số nghịch biến trên khoảng $(0; 3)$}
+{\True Điểm cực đại của đồ thị hàm số là $(0; 2)$}
+{Giá trị cực tiểu của hàm số bằng $2$}
+\begin{loigiai}
+Ta có $y' = 3x^2 - 6x = 3x(x - 2)$. Suy ra các khẳng định được kiểm chứng như trên.
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("tích phân", "nguyên hàm")):
+                new_q = r"""\begin{ex}
+Tính tích phân $I = \int_0^1 (2x + 1) \, \mathrm{d}x$.
+\choice
+{\True $2$}
+{$1$}
+{$3$}
+{$0$}
+\begin{loigiai}
+Ta có $I = \left. (x^2 + x) 
+ight|_0^1 = (1 + 1) - 0 = 2$.
+\end{loigiai}
+\end{ex}"""
+            else:
+                new_q = r"""\begin{ex}
+Cho hàm số $y = \dfrac{2x - 1}{x + 1}$. Tiệm cận ngang của đồ thị hàm số là đường thẳng:
+\choice
+{\True $y = 2$}
+{$x = -1$}
+{$y = -1$}
+{$x = 2$}
+\begin{loigiai}
+Ta có $\lim_{x \to \pm\infty} \dfrac{2x - 1}{x + 1} = 2$, suy ra tiệm cận ngang là $y = 2$.
+\end{loigiai}
+\end{ex}"""
+            diff = DiffSuggestion(
+                action="replace",
+                old_text=old_q,
+                new_text=new_q,
+                description=f"Thay thế Câu {q_idx}"
+            )
+            reply = (
+                f"Tôi đề xuất thay thế **Câu {q_idx}** bằng câu hỏi mới chuẩn gói `ex_test.sty`:\n\n"
+                f"```diff\n- {old_q}\n+ {new_q}\n```\n\n"
+                f"Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay thế."
+            )
+            return ChatResponse(reply=reply, diff=diff, diffs=[diff], suggested_latex=new_q)
 
     # 2. Check if user prompt contains inline string replacement request
     if any(k in user_msg_lower for k in ("thay thế", "thay", "replace", "sửa", "đổi")) and not any(k in user_msg_lower for k in ("tạo", "thêm", "chèn", "sinh", "viết")):
@@ -920,7 +1310,8 @@ Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 đi�
         return ChatResponse(reply=reply, suggested_latex=latex_snippet)
 
     elif any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "cực trị")):
-        latex_snippet = r"""\textbf{Câu hỏi.} Cho hàm số $y = f(x)$ liên tục trên $\mathbb{R}$ có bảng biến thiên:
+        latex_snippet = r"""\begin{ex}
+Cho hàm số $y = f(x)$ xác định và liên tục trên $\mathbb{R}$ có bảng biến thiên:
 \begin{tikzpicture}
   \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
   {$x$/.6, $f'(x)$/.6, $f(x)$/2}
@@ -929,9 +1320,17 @@ Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 đi�
   \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
 \end{tikzpicture}
 Điểm cực đại của đồ thị hàm số đã cho là:
-\textbf{A.} $(-2; 4)$ \qquad \textbf{B.} $(1; -1)$ \qquad \textbf{C.} $(-2; -1)$ \qquad \textbf{D.} $(1; 4)$"""
+\choice
+{\True $(-2; 4)$}
+{$(1; -1)$}
+{$(-2; -1)$}
+{$(1; 4)$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, tại $x = -2$ đạo hàm đổi dấu từ dương sang âm và $f(-2) = 4$, do đó điểm cực đại là $(-2; 4)$.
+\end{loigiai}
+\end{ex}"""
         reply = (
-            "Dưới đây là mẫu câu hỏi bảng biến thiên sử dụng gói `tkz-tab` chuẩn mẫu vector của Bộ Giáo dục:\n\n"
+            "Dưới đây là mẫu câu hỏi bảng biến thiên chuẩn gói `ex_test.sty` và `tkz-tab`:\n\n"
             f"```latex\n{latex_snippet}\n```\n\n"
             "Bạn có thể nhấn **Chèn vào con trỏ** để đưa câu hỏi này trực tiếp vào đề thi!"
         )
@@ -941,49 +1340,75 @@ Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 đi�
         latex_snippet = r"""\section*{PHẦN II. Câu trắc nghiệm Đúng/Sai}
 \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 
-\textbf{Câu 1.} Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tính Đúng/Sai của các khẳng định sau:
-
-a) Đồ thị hàm số bậc ba luôn có tâm đối xứng là điểm uốn.
-
-b) Nếu hàm số có hai điểm cực trị thì tích các giá trị cực trị luôn âm.
-
-c) Hàm số luôn có đạo hàm cấp hai liên tục trên $\mathbb{R}$.
-
-d) Điểm cực trị của hàm số là nghiệm của phương trình $f'(x) = 0$."""
+\begin{ex}
+Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tính Đúng/Sai của các khẳng định sau:
+\choiceTF
+{\True Đồ thị hàm số bậc ba luôn có tâm đối xứng là điểm uốn.}
+{Nếu hàm số có hai điểm cực trị thì tích các giá trị cực trị luôn âm.}
+{\True Hàm số luôn có đạo hàm cấp hai liên tục trên $\mathbb{R}$.}
+{Điểm cực trị của hàm số là nghiệm của phương trình $f'(x) = 0$.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. Đồ thị hàm số bậc ba luôn nhận điểm uốn làm tâm đối xứng.
+\itemch Sai. Tích hai giá trị cực trị có thể mang dấu dương.
+\itemch Đúng. Hàm số đa thức bậc ba khả vi vô hạn trên $\mathbb{R}$.
+\itemch Sai. Nghiệm của phương trình $f'(x) = 0$ phải làm đổi dấu đạo hàm thì mới là điểm cực trị.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}"""
         reply = (
-            "Dưới đây là mẫu câu hỏi trắc nghiệm Đúng/Sai 4 khẳng định theo đúng Quyết định 764/QĐ-BGDĐT:\n\n"
+            "Dưới đây là mẫu câu hỏi trắc nghiệm Đúng/Sai 4 khẳng định theo chuẩn `ex_test.sty` (Quyết định 764/QĐ-BGDĐT):\n\n"
             f"```latex\n{latex_snippet}\n```"
         )
         return ChatResponse(reply=reply, suggested_latex=latex_snippet)
 
     elif any(k in user_msg_lower for k in ("đồ thị", "tikz", "bậc ba", "bậc 3")):
-        latex_snippet = r"""\textbf{Câu hỏi.} Cho hàm số $y = f(x)$ có đồ thị như hình vẽ bên:
-\begin{tikzpicture}[scale=0.7, >=stealth]
-  \clip (-3.8, -5.5) rectangle (4.2, 5.5);
-  \draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};
-  \draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};
-  \node[below left] at (0, 0) {$O$};
-  \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};
-  \draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};
-  \draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
-  \fill (-1, 4) circle (1.5pt);
-  \fill (2, -3) circle (1.5pt);
-\end{tikzpicture}
-Hàm số đã cho đồng biến trên khoảng nào dưới đây?
-\textbf{A.} $(-1; 2)$ \qquad \textbf{B.} $(-\infty; -1)$ \qquad \textbf{C.} $(0; 2)$ \qquad \textbf{D.} $(-2; 1)$"""
+        latex_snippet = r"""\begin{ex}
+\immini{
+  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình vẽ bên. Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+  \choice
+  {\True $(-\infty; -1)$}
+  {$(-1; 2)$}
+  {$(0; 2)$}
+  {$(-2; 1)$}
+}{
+  \begin{tikzpicture}[scale=0.6, >=stealth]
+    \clip (-3.8, -5.5) rectangle (4.2, 5.5);
+    \draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};
+    \draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};
+    \node[below left] at (0, 0) {$O$};
+    \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};
+    \draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};
+    \draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
+    \fill (-1, 4) circle (1.5pt);
+    \fill (2, -3) circle (1.5pt);
+  \end{tikzpicture}
+}
+\begin{loigiai}
+Dựa vào đồ thị, hàm số đi lên từ trái sang phải trên khoảng $(-\infty; -1)$ và $(2; +\infty)$, do đó đồng biến trên $(-\infty; -1)$.
+\end{loigiai}
+\end{ex}"""
         reply = (
-            "Dưới đây là mẫu câu hỏi đồ thị hàm bậc ba bằng mã TikZ chuẩn vector:\n\n"
+            "Dưới đây là mẫu câu hỏi đồ thị hàm bậc ba bằng mã TikZ chuẩn gói `ex_test.sty`:\n\n"
             f"```latex\n{latex_snippet}\n```"
         )
         return ChatResponse(reply=reply, suggested_latex=latex_snippet)
 
     else:
-        latex_snippet = r"""\textbf{Câu hỏi.} Cho hàm số $y = \dfrac{2x-1}{x+1}$. Tìm phương trình các đường tiệm cận của đồ thị hàm số.
-
-\textbf{A.} $x = -1, y = 2$ \qquad \textbf{B.} $x = 1, y = 2$ \qquad \textbf{C.} $x = -1, y = -1$ \qquad \textbf{D.} $x = 2, y = -1$"""
+        latex_snippet = r"""\begin{ex}
+Cho hàm số $y = \dfrac{2x-1}{x+1}$. Tìm phương trình các đường tiệm cận của đồ thị hàm số.
+\choice
+{\True $x = -1, y = 2$}
+{$x = 1, y = 2$}
+{$x = -1, y = -1$}
+{$x = 2, y = -1$}
+\begin{loigiai}
+Ta có $\lim_{x \to -1} y = \infty \Rightarrow x = -1$ là đường tiệm cận đứng, và $\lim_{x \to \pm\infty} y = 2 \Rightarrow y = 2$ là đường tiệm cận ngang.
+\end{loigiai}
+\end{ex}"""
         reply = (
             f"Tôi đã tiếp nhận yêu cầu: **\"{req.message}\"**.\n\n"
-            "Dưới đây là đoạn mã LaTeX được tạo tự động theo chuẩn đề thi của Bộ GD&ĐT:\n\n"
+            "Dưới đây là đoạn mã câu hỏi theo chuẩn gói lệnh `ex_test.sty`:\n\n"
             f"```latex\n{latex_snippet}\n```\n\n"
             "Bạn có thể bấm **Chèn vào con trỏ** để áp dụng ngay vào khung soạn thảo!"
         )
