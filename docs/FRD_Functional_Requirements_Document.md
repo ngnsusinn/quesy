@@ -2,8 +2,8 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn thảo AI copilot thông minh, và quy chuẩn quản trị phát triển Git.  
+- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, phân hệ Soạn đề tinh gọn không cần preamble (tự động nhúng ngầm ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn thảo AI copilot thông minh, và quy chuẩn quản trị phát triển Git.
 - **Ngày phát hành:** 2026-10-24  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
@@ -285,7 +285,7 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
       - Đóng sạch sẽ banner và overlay (`dismissPendingDiffs()`).
       - Hiển thị Toast thông báo: *\"Đã áp dụng thành công toàn bộ N sửa đổi!\"*.
 
-### 2.4.11. FR-02.13: Động Cơ Thay Thế Câu Hỏi Thông Minh & Đồng Bộ Chat-Editor An Toàn (Question Replacement Engine & Safe Chat Sync)
+### 2.4.12. FR-02.14: Động Cơ Thay Thế Câu Hỏi Thông Minh & Đồng Bộ Chat-Editor An Toàn (Question Replacement Engine & Safe Chat Sync)
 - **Mục tiêu:** Cho phép giáo viên ra lệnh thay thế câu hỏi trong đề thi qua ngôn ngữ tự nhiên (như *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*, *"Thay câu 2 bằng câu khác"*, *"Sửa câu 3"*), tự động định vị đúng vị trí câu hỏi cũ trong LaTeX, tạo diff chính xác lên editor và bảo toàn giao diện chat bubble không bị nuốt mất code.
 - **Quy trình xử lý chi tiết:**
   1. *Hàm bóc tách câu hỏi thứ N (`find_question_block(current_latex, n)`):*
@@ -308,6 +308,53 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   4. *Động cơ Dự phòng Cục bộ (Local Fallback Generator):*
      - Nhận diện câu lệnh thay thế câu $n$ khi không có AI Provider kết nối.
      - Tự động sinh câu hỏi Toán THPT chuẩn `ex_test.sty` (đơn điệu hàm số, bảng biến thiên, cực trị) kèm lời giải chi tiết và tạo khối `DiffSuggestion` khớp đúng câu $n$ trong tài liệu hiện tại.
+
+### 2.4.13. FR-02.15: Phân Hệ Soạn Thảo Đề Thi Tinh Gọn Không Preamble & Động Cơ Nhúng Ngầm Canonical Preamble Injection (Preamble-Free Question Editor)
+- **Mục tiêu:** Cung cấp trải nghiệm soạn thảo đề thi chuyên biệt, tối giản và thuận tiện nhất cho giáo viên. Người dùng chỉ cần soạn thảo nội dung đề thi và các câu hỏi chuẩn `ex_test.sty` (`\begin{ex}...\choice...\loigiai...\end{ex}`, `\choiceTF`, `\shortans`, `\immini`, TikZ, `tkz-tab`), hệ thống ngầm định tự động nhúng toàn bộ preamble chuẩn khảo thí quốc gia mà không yêu cầu người dùng phải gõ các lệnh `\documentclass`, `\usepackage`, hay `\begin{document}...\end{document}`.
+- **Quy tắc Kiến Trúc & Hành Vi:**
+  1. *Định nghĩa Gói Lệnh Tiêu Chuẩn (Canonical Preamble Definition):*
+     ```latex
+     \documentclass[11pt,a4paper]{article}
+     \usepackage{geometry}
+     \geometry{a4paper, total={175mm,257mm}, left=18mm, top=18mm, right=18mm, bottom=18mm}
+     \usepackage{fontspec}
+     \usepackage{amsmath,amssymb}
+     \usepackage{tikz,tkz-tab}
+     \usepackage{tcolorbox}
+     \tcbuselibrary{skins,breakable,xparse}
+     \usepackage[{mode}]{ex_test}
+     ```
+     Trong đó `{mode}` được giải quyết động dựa trên cờ yêu cầu biên dịch:
+     - `loigiai`: Hiển thị đầy đủ lời giải chi tiết và tô đậm/tô màu phương án đúng `\True`.
+     - `dethi`: Ẩn toàn bộ lời giải và không đánh dấu đáp án đúng, tối ưu in đề cho học sinh.
+  2. *Bộ Chuẩn Hóa Hai Chế Độ (Smart Dual-Mode Document Normalizer):*
+     - **Chế độ Thân Câu Hỏi Thuần (Preamble-Free Question Body - Mặc định):**
+       + Khi mã LaTeX nhận được không chứa chuỗi `\documentclass`:
+       + Hệ thống tự động ghép: `CANONICAL_PREAMBLE.format(mode=mode) + "\n\\begin{document}\n" + body + "\n\\end{document}\n"`.
+       + Tiến hành biên dịch thông qua Remote Tectonic API, Local Tectonic XeTeX, hoặc Headless Chromium Fallback.
+     - **Chế độ Tài Liệu Đầy Đủ (Full Document - Tương Thích Ngược):**
+       + Khi mã LaTeX nhận được đã chứa sẵn `\documentclass` (giáo viên dán toàn bộ file `.tex` hoàn chỉnh vào):
+       + Hệ thống phát hiện và giữ nguyên cấu trúc, tự động thay thế `\usepackage{vietnam}` bằng `\usepackage{fontspec}`.
+       + Đảm bảo các gói lệnh phụ thuộc của `ex_test` (`tcolorbox`, `xparse`, `tikz`, `tkz-tab`) được nạp trước `ex_test`.
+       + Điều chỉnh option trên `\usepackage[...]{ex_test}` thành `[dethi]` hoặc `[loigiai]` theo cờ `mode` yêu cầu.
+  3. *Hợp Đồng API Biên Dịch (`POST /api/v1/composer/compile`):*
+     - Schema mở rộng:
+       ```python
+       class CompileRequest(BaseModel):
+           latex_code: str = Field(..., description="Mã nguồn LaTeX (chỉ thân câu hỏi hoặc toàn bộ tài liệu)")
+           title: str = Field("Đề Thi Soạn Thảo", description="Tiêu đề tài liệu")
+           mode: Optional[str] = Field("loigiai", description="Chế độ xuất bản: 'loigiai' hoặc 'dethi'")
+       ```
+     - Cơ chế Khóa Cache: `code_hash = hashlib.md5(f"{clean_code}::{req.title}::{req.mode}".encode("utf-8")).hexdigest()`. Cho phép gạt chuyển đổi tức thì giữa đề thi và lời giải mà không bị đè cache.
+  4. *Tương Tác Giao Diện Người Dùng (Frontend UI/UX):*
+     - Vùng soạn thảo `#composer-editor-input`: Mặc định hiển thị mã đề thi mẫu sạch sẽ không preamble (bắt đầu bằng tiêu đề trường/kỳ thi và các khối `\begin{ex}`).
+     - Huy hiệu Preamble ngầm: Hiển thị tooltip/indicator thông báo rõ ràng "Preamble tiêu chuẩn đã được nạp tự động (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4)".
+     - Nút công tắc `LỜI GIẢI` (`#composer-solution-toggle`):
+       + Khi người dùng bật/tắt công tắc, hệ thống cập nhật trạng thái `this.showSolution` và xác định `mode = this.showSolution ? 'loigiai' : 'dethi'`.
+       + Truyền `mode` trực tiếp vào payload gọi API `/composer/compile`.
+       + Nếu người dùng sử dụng mã nguồn có sẵn `\usepackage[...]{ex_test}`, hệ thống vẫn đồng bộ cập nhật text trong editor; nếu là mã thuần không preamble, hệ thống giữ nguyên text của người dùng, không làm ô nhiễm mã nguồn.
+     - Tác vụ `Tải mã nguồn TeX (.tex)`:
+       + Khi người dùng chọn xuất file TeX, nếu mã nguồn đang ở dạng không preamble, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi tạo file tải xuống (`.tex`), đảm bảo giáo viên có thể mở và biên dịch độc lập ngay lập tức trên máy tính cá nhân.
 
 ---
 

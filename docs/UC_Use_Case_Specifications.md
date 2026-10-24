@@ -2,8 +2,8 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.  
+- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.
 - **Ngày phát hành:** 2026-10-24  
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
@@ -312,3 +312,20 @@
      - Hệ thống giữ nguyên vẹn khối mã nguồn LaTeX trong chat bubble.
      - Hiển thị 3 nút bấm tương tác: `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`.
      - Tuyệt đối không xóa nuốt mất mã của người dùng và không hiển thị badge gợi ý sai lệch.
+- **Luồng 6j - Soạn thảo Đề thi Tinh gọn Không Preamble & Tự Động Nhúng Ngầm Canonical Preamble (Preamble-Free Authoring & Mode Switch):**
+  1. Người dùng mở phân hệ Soạn đề (`/composer`):
+     - Textarea editor `#composer-editor-input` nạp sẵn nội dung đề thi tinh gọn chỉ gồm tiêu đề và các câu hỏi chuẩn `ex_test.sty` (`\begin{ex}...\end{ex}`), hoàn toàn không chứa khai báo `\documentclass`, `\usepackage`, hay `\begin{document}`.
+     - Giao diện hiển thị chỉ báo trạng thái: *"Preamble tiêu chuẩn đã được nạp tự động (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4)"*.
+  2. Người dùng nhập mới, chỉnh sửa các câu hỏi trắc nghiệm (`\choice`), Đúng/Sai (`\choiceTF`), Trả lời ngắn (`\shortans`), chèn đồ thị TikZ (`\begin{tikzpicture}`) hoặc hình ảnh cạnh chữ (`\immini`).
+  3. Khi gửi biên dịch (nhấn `BIÊN DỊCH` hoặc auto-compile sau 800ms):
+     - Trình duyệt gửi request `POST /api/v1/composer/compile` với payload `{ latex_code, title, mode }`.
+     - Máy chủ phát hiện mã không có `\documentclass`, tự động tiêm Canonical Preamble tích hợp đầy đủ các gói `fontspec`, `amsmath,amssymb`, `tikz,tkz-tab`, `tcolorbox`, `xparse` và `\usepackage[{mode}]{ex_test}` khổ giấy A4 chuẩn lề 18mm.
+     - PDF được biên dịch ra sắc nét và hiển thị trực tiếp trên Live Preview.
+  4. Người dùng gạt công tắc `LỜI GIẢI` (`#composer-solution-toggle`):
+     - Giao diện chuyển đổi trạng thái `this.showSolution` giữa `true` (Hiện lời giải) và `false` (Ẩn lời giải).
+     - Hệ thống gửi yêu cầu biên dịch với cờ `mode = 'loigiai'` hoặc `mode = 'dethi'`.
+     - Backend biên dịch tức thì với tùy chọn tương ứng của `ex_test`, không sửa đổi bất kỳ ký tự nào trong textarea editor của người dùng.
+  5. Khi người dùng dán toàn bộ tài liệu TeX cũ có sẵn `\documentclass`:
+     - Backend tự động nhận diện chế độ toàn vẹn, bảo toàn cấu trúc tài liệu của người dùng, nâng cấp các gói lệnh tương thích XeTeX và đồng bộ tùy chọn `[dethi]` / `[loigiai]`.
+  6. Khi người dùng chọn menu `XUẤT FILE ▾` -> `Tải mã nguồn TeX (.tex)`:
+     - Hệ thống tự động kiểm tra: nếu mã trong editor là dạng tinh gọn không preamble, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi lưu tệp tải về, đảm bảo giáo viên có thể biên dịch độc lập ngay trên TeXLive / Overleaf.

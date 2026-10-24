@@ -40,17 +40,7 @@ TEMPLATES: Dict[str, Dict[str, str]] = {
     "ex_test_standard_exam": {
         "title": "Đề thi Chuẩn Quốc Gia 2025 (Gói ex_test v3.3)",
         "description": "Đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn (\\choice), Đúng/Sai (\\choiceTF), Trả lời ngắn (\\shortans), chèn hình \\immini.",
-        "latex": r"""\documentclass[11pt,a4paper]{article}
-\usepackage{fontspec}
-\usepackage{amsmath,amssymb}
-\usepackage{tikz,tkz-tab}
-\usepackage{tcolorbox}
-\tcbuselibrary{skins,breakable,xparse}
-\usepackage[dethi]{ex_test}
-
-\begin{document}
-
-\begin{center}
+        "latex": r"""\begin{center}
   \textbf{\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\
   \textbf{\large MÔN THI: TOÁN HỌC}\\
   \textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}
@@ -134,44 +124,47 @@ Ta có $y' = 3x^2 - 6x = 3x(x - 2)$.
 Một vật thể chuyển động với vận tốc $v(t) = 3t^2 + 2t$ (m/s). Tính quãng đường vật đi được từ thời điểm $t = 0$ (s) đến $t = 2$ (s).
 \shortans{12}
 \begin{loigiai}
-$s = \int_{0}^{2} (3t^2 + 2t)\,\mathrm{d}t = \left. (t^3 + t^2) \right|_0^2 = 12\text{ (m)}$.
+$s = \int_{0}^{2} (3t^2 + 2t)\,\mathrm{d}t = \left. (t^3 + t^2) 
+ight|_0^2 = 12\text{ (m)}$.
 \end{loigiai}
 \end{ex}
-
-\end{document}
 """
     },
     "circular_32_full_exam": {
         "title": "Đề thi Chuẩn Thông tư 32 (Định dạng 2025)",
         "description": "Đề thi đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn, Đúng/Sai 4 ý (QĐ 764), và Trả lời ngắn.",
-        "latex": r"""\documentclass[12pt,a4paper]{article}
-\usepackage[utf8]{vietnam}
-\usepackage{amsmath,amssymb}
-\usepackage{tikz,tkz-tab}
-
-\begin{document}
-
-\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
+        "latex": r"""\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
 \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 
-\textbf{Câu 1.} Cho hàm số bậc ba $y = f(x)$ liên tục trên $\mathbb{R}$ có đồ thị như hình vẽ:
-\begin{tikzpicture}[scale=0.65, >=stealth]
-  \clip (-3.8, -5.5) rectangle (4.2, 5.5);
-  \draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};
-  \draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};
-  \node[below left] at (0, 0) {$O$};
-  \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};
-  \draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};
-  \draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
-  \fill (-1, 4) circle (1.5pt);
-  \fill (2, -3) circle (1.5pt);
-\end{tikzpicture}
+\begin{ex}
+\immini{
+  Cho hàm số bậc ba $y = f(x)$ liên tục trên $\mathbb{R}$ có đồ thị như hình vẽ.
+  Hàm số đã cho nghịch biến trên khoảng nào dưới đây?
+}{
+  \begin{tikzpicture}[scale=0.55, >=stealth]
+    \clip (-3.8, -5.5) rectangle (4.2, 5.5);
+    \draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};
+    \draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};
+    \node[below left] at (0, 0) {$O$};
+    \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};
+    \draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};
+    \draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
+    \fill (-1, 4) circle (1.5pt);
+    \fill (2, -3) circle (1.5pt);
+  \end{tikzpicture}
+}
+\choice
+{$(-\infty; -1)$}
+{\True $(-1; 2)$}
+{$(2; +\infty)$}
+{$(-\infty; 2)$}
+\begin{loigiai}
+Dựa vào đồ thị, hàm số nghịch biến trên khoảng $(-1; 2)$.
+\end{loigiai}
+\end{ex}
 
-Hàm số đã cho nghịch biến trên khoảng nào dưới đây?
-
-\textbf{A.} $(-\infty; -1)$ \qquad \textbf{B.} $(-1; 2)$ \qquad \textbf{C.} $(2; +\infty)$ \qquad \textbf{D.} $(-\infty; 2)$
-
-\textbf{Câu 2.} Cho hàm số $y = f(x)$ có bảng biến thiên như sau:
+\begin{ex}
+Cho hàm số $y = f(x)$ có bảng biến thiên như sau:
 \begin{tikzpicture}
   \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
   {$x$/.6, $f'(x)$/.6, $f(x)$/2}
@@ -179,45 +172,56 @@ Hàm số đã cho nghịch biến trên khoảng nào dưới đây?
   \tkzTabLine{,+,0,-,0,+,}
   \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
 \end{tikzpicture}
-
 Điểm cực đại của đồ thị hàm số là:
-
-\textbf{A.} $(1; -1)$ \qquad \textbf{B.} $(-2; 4)$ \qquad \textbf{C.} $(-2; -1)$ \qquad \textbf{D.} $(1; 4)$
+\choice
+{$(1; -1)$}
+{\True $(-2; 4)$}
+{$(-2; -1)$}
+{$(1; 4)$}
+\begin{loigiai}
+Điểm cực đại của đồ thị hàm số là $(-2; 4)$.
+\end{loigiai}
+\end{ex}
 
 \section*{PHẦN II. Câu trắc nghiệm Đúng/Sai}
 \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 
-\textbf{Câu 1.} Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tính Đúng/Sai của các khẳng định sau:
-
-a) Đồ thị hàm số bậc ba luôn có tâm đối xứng là điểm uốn.
-
-b) Nếu hàm số có hai điểm cực trị thì tích các giá trị cực trị luôn âm.
-
-c) Hàm số luôn có đạo hàm cấp hai liên tục trên $\mathbb{R}$.
-
-d) Điểm cực trị của hàm số là nghiệm của phương trình $f'(x) = 0$.
+\begin{ex}
+Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tính Đúng/Sai của các khẳng định sau:
+\choiceTF
+{\True Đồ thị hàm số bậc ba luôn có tâm đối xứng là điểm uốn.}
+{Nếu hàm số có hai điểm cực trị thì tích các giá trị cực trị luôn âm.}
+{\True Hàm số luôn có đạo hàm cấp hai liên tục trên $\mathbb{R}$.}
+{Điểm cực trị của hàm số là nghiệm của phương trình $f'(x) = 0$.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. Đồ thị hàm số bậc ba luôn nhận điểm uốn làm tâm đối xứng.
+\itemch Sai. Hai giá trị cực trị có thể cùng dương hoặc cùng âm.
+\itemch Đúng. Hàm đa thức bậc ba liên tục và có đạo hàm mọi cấp trên $\mathbb{R}$.
+\itemch Sai. Điểm cực trị là hoành độ điểm cực trị hoặc điểm $(x_0; y_0)$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}
 
 \section*{PHẦN III. Câu trắc nghiệm trả lời ngắn}
 \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
 
-\textbf{Câu 1.} Cho hàm số $f(x) = \ln(x^2 - 2x + 5)$. Giá trị nhỏ nhất của hàm số trên $\mathbb{R}$ bằng bao nhiêu?
-
-\end{document}
+\begin{ex}
+Cho hàm số $f(x) = \ln(x^2 - 2x + 5)$. Giá trị nhỏ nhất của hàm số trên $\mathbb{R}$ bằng bao nhiêu?
+\shortans{1.39}
+\begin{loigiai}
+Ta có $x^2 - 2x + 5 = (x - 1)^2 + 4 \ge 4 \Rightarrow \ln(x^2 - 2x + 5) \ge \ln 4 \approx 1{,}39$.
+\end{loigiai}
+\end{ex}
 """
     },
     "variation_table_calculus": {
         "title": "Chuyên đề Bảng Biến Thiên & Cực Trị (tkz-tab)",
         "description": "Các dạng bảng biến thiên hàm bậc 3, hàm bậc 4, và hàm phân thức có tiệm cận đứng.",
-        "latex": r"""\documentclass[12pt,a4paper]{article}
-\usepackage[utf8]{vietnam}
-\usepackage{amsmath,amssymb}
-\usepackage{tikz,tkz-tab}
+        "latex": r"""\section*{BÀI TẬP KHẢO SÁT HÀM SỐ QUA BẢNG BIẾN THIÊN}
 
-\begin{document}
-
-\section*{BÀI TẬP KHẢO SÁT HÀM SỐ QUA BẢNG BIẾN THIÊN}
-
-\textbf{Câu 1.} Cho hàm số $y = f(x)$ xác định và liên tục trên $\mathbb{R}$ có bảng biến thiên:
+\begin{ex}
+Cho hàm số $y = f(x)$ xác định và liên tục trên $\mathbb{R}$ có bảng biến thiên:
 \begin{tikzpicture}
   \tkzTabInit[nocadre,lgt=1.2,espcl=2.2,deltacl=0.6]
   {$x$/.6, $y'$/.6, $y$/2}
@@ -225,12 +229,19 @@ d) Điểm cực trị của hàm số là nghiệm của phương trình $f'(x)
   \tkzTabLine{,-,$0$,+,$0$,-,$0$,+,}
   \tkzTabVar{+/ $+\infty$, -/$-5$, +/$2$, -/$-5$, +/$+\infty$}
 \end{tikzpicture}
-
 Tìm số điểm cực trị của hàm số đã cho.
+\choice
+{$1$}
+{$2$}
+{\True $3$}
+{$4$}
+\begin{loigiai}
+Đạo hàm $y'$ đổi dấu 3 lần tại $x = -1, 0, 1$, do đó hàm số có 3 điểm cực trị.
+\end{loigiai}
+\end{ex}
 
-\textbf{A.} $1$ \qquad \textbf{B.} $2$ \qquad \textbf{C.} $3$ \qquad \textbf{D.} $4$
-
-\textbf{Câu 2.} Cho hàm số phân thức $y = \dfrac{ax+b}{cx+d}$ có bảng biến thiên:
+\begin{ex}
+Cho hàm số phân thức $y = \dfrac{ax+b}{cx+d}$ có bảng biến thiên:
 \begin{tikzpicture}
   \tikzset{double style/.append style = {double distance=2.5pt}}
   \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.4]
@@ -239,28 +250,26 @@ Tìm số điểm cực trị của hàm số đã cho.
   \tkzTabLine{,+,d,+,}
   \tkzTabVar{-/$2$, +D-/$+\infty$/$-\infty$, +/$2$}
 \end{tikzpicture}
-
 Phương trình đường tiệm cận đứng và tiệm cận ngang của đồ thị hàm số lần lượt là:
-
-\textbf{A.} $x = 1, y = 2$ \qquad \textbf{B.} $x = 2, y = 1$ \qquad \textbf{C.} $x = -1, y = 2$ \qquad \textbf{D.} $x = 1, y = -2$
-
-\end{document}
+\choice
+{\True $x = 1, y = 2$}
+{$x = 2, y = 1$}
+{$x = -1, y = 2$}
+{$x = 1, y = -2$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, tiệm cận đứng là $x = 1$ và tiệm cận ngang là $y = 2$.
+\end{loigiai}
+\end{ex}
 """
     },
     "geometry_3d": {
         "title": "Chuyên đề Hình Học Không Gian (TikZ 3D)",
         "description": "Mẫu bài tập hình học không gian với khối đa diện, hình chóp, và hệ trục Oxyz.",
-        "latex": r"""\documentclass[12pt,a4paper]{article}
-\usepackage[utf8]{vietnam}
-\usepackage{amsmath,amssymb}
-\usepackage{tikz}
+        "latex": r"""\section*{BÀI TẬP HÌNH HỌC KHÔNG GIAN CỔ ĐIỂN & OXYZ}
 
-\begin{document}
-
-\section*{BÀI TẬP HÌNH HỌC KHÔNG GIAN CỔ ĐIỂN & OXYZ}
-
-\textbf{Câu 1.} Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình vuông cạnh $a$, cạnh bên $SA$ vuông góc với mặt phẳng đáy $(ABCD)$ và $SA = a\sqrt{2}$.
-
+\begin{ex}
+Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình vuông cạnh $a$, cạnh bên $SA$ vuông góc với mặt phẳng đáy $(ABCD)$ và $SA = a\sqrt{2}$.
+\begin{center}
 \begin{tikzpicture}[scale=0.85]
   \coordinate (A) at (0, 0);
   \coordinate (B) at (-1.6, -1.2);
@@ -277,46 +286,219 @@ Phương trình đường tiệm cận đứng và tiệm cận ngang của đ�
   \node[right] at (D) {$D$};
   \node[above left] at (A) {$A$};
 \end{tikzpicture}
-
+\end{center}
 Tính thể tích của khối chóp $S.ABCD$.
-
-\textbf{A.} $V = \dfrac{a^3\sqrt{2}}{3}$ \qquad \textbf{B.} $V = a^3\sqrt{2}$ \qquad \textbf{C.} $V = \dfrac{a^3\sqrt{2}}{6}$ \qquad \textbf{D.} $V = \dfrac{a^3}{3}$
-
-\end{document}
+\choice
+{\True $V = \dfrac{a^3\sqrt{2}}{3}$}
+{$V = a^3\sqrt{2}$}
+{$V = \dfrac{a^3\sqrt{2}}{6}$}
+{$V = \dfrac{a^3}{3}$}
+\begin{loigiai}
+Diện tích đáy $S_{ABCD} = a^2$. Chiều cao $h = SA = a\sqrt{2}$.\\
+Thể tích $V = \dfrac{1}{3} S_{ABCD} \cdot SA = \dfrac{a^3\sqrt{2}}{3}$.
+\end{loigiai}
+\end{ex}
 """
     },
     "blank_document": {
         "title": "Tài Liệu Mới (Văn Bản Trống)",
         "description": "Mẫu tài liệu khởi tạo sạch sẽ với header cơ bản.",
-        "latex": r"""\documentclass[12pt,a4paper]{article}
-\usepackage[utf8]{vietnam}
-\usepackage{amsmath,amssymb}
-\usepackage{tikz,tkz-tab}
+        "latex": r"""\section*{TIÊU ĐỀ BÀI KIỂM TRA}
 
-\begin{document}
-
-\section*{TIÊU ĐỀ BÀI KIỂM TRA}
-\textit{Họ và tên: .................................................... Lớp: ................}
-
-\textbf{Câu 1.} Soạn thảo nội dung câu hỏi đầu tiên tại đây...
-
-\end{document}
+\begin{ex}
+Soạn thảo nội dung câu hỏi đầu tiên tại đây...
+\choice
+{\True Phương án A}
+{Phương án B}
+{Phương án C}
+{Phương án D}
+\begin{loigiai}
+Lời giải chi tiết cho câu hỏi.
+\end{loigiai}
+\end{ex}
 """
     }
 }
+TEMPLATES["calculus_12_exam"] = TEMPLATES["variation_table_calculus"]
+TEMPLATES["geometry_12_exam"] = TEMPLATES["geometry_3d"]
+TEMPLATES["blank_exam"] = TEMPLATES["blank_document"]
+
+
+def fix_immini_choice_nesting(latex_text: str) -> str:
+    """If \\choice{...}{...}{...}{...} is accidentally placed inside \\immini{...}{...},
+    extract it and place \\choice outside after \\immini to prevent TeX box errors."""
+    if r"\immini" not in latex_text or r"\choice" not in latex_text:
+        return latex_text
+
+    pattern = re.compile(r"\\immini(?:L)?\s*\{")
+    pos = 0
+    while True:
+        m = pattern.search(latex_text, pos)
+        if not m:
+            break
+
+        start_arg1 = m.end()
+        depth = 1
+        i = start_arg1
+        while i < len(latex_text) and depth > 0:
+            if latex_text[i] == '{': depth += 1
+            elif latex_text[i] == '}': depth -= 1
+            i += 1
+
+        if depth != 0:
+            pos = start_arg1
+            continue
+
+        arg1 = latex_text[start_arg1:i-1]
+
+        if r"\choice" not in arg1:
+            pos = i
+            continue
+
+        while i < len(latex_text) and latex_text[i].isspace():
+            i += 1
+        if i >= len(latex_text) or latex_text[i] != '{':
+            pos = i
+            continue
+
+        start_arg2 = i + 1
+        depth = 1
+        j = start_arg2
+        while j < len(latex_text) and depth > 0:
+            if latex_text[j] == '{': depth += 1
+            elif latex_text[j] == '}': depth -= 1
+            j += 1
+
+        if depth != 0:
+            pos = start_arg2
+            continue
+
+        arg2 = latex_text[start_arg2:j-1]
+
+        choice_idx = arg1.find(r"\choice")
+        choice_block = arg1[choice_idx:].strip()
+        clean_arg1 = arg1[:choice_idx].strip()
+
+        replacement = f"\\immini{{\n  {clean_arg1}\n}}{{\n  {arg2}\n}}\n{choice_block}"
+        latex_text = latex_text[:m.start()] + replacement + latex_text[j:]
+        pos = m.start() + len(replacement)
+
+    return latex_text
+
+
+def ensure_full_latex_document(
+    latex_source: str = "",
+    mode: str = "dethi",
+    title: str = "Tài Liệu Soạn Thảo",
+    latex_code: Optional[str] = None
+) -> str:
+    r"""Wraps preamble-free LaTeX question code with standard exam preamble
+    including fontspec, amsmath, amssymb, amsfonts, geometry a4 1.5cm margin,
+    multicol, tikz, tkz-tab, tcolorbox, and ex_test with [dethi] or [loigiai] mode.
+    Preserves existing full documents with documentclass (backward compatibility),
+    while normalizing packages (vietnam -> fontspec, ensures tcolorbox for ex_test)
+    and synchronizing ex_test mode option ([dethi] vs [loigiai]) if requested.
+    """
+    raw = (latex_source or latex_code or "").strip()
+    if not raw:
+        return raw
+
+    # Normalize mode
+    norm_mode = "loigiai" if str(mode).strip().lower() in ("loigiai", "solcolor", "color", "solution", "true", "1") else "dethi"
+
+    # Backward compatibility: If already has \documentclass, do not double-wrap
+    if r"\documentclass" in raw:
+        # In XeTeX/Tectonic, replace legacy 8-bit vietnam package with modern fontspec
+        raw = re.sub(r'\\usepackage(\[[^\]]*\])?\{vietnam\}', r'\\usepackage{fontspec}', raw)
+
+        # Ensure tcolorbox with skins,breakable,xparse if ex_test or immini is present
+        if "ex_test" in raw or "immini" in raw:
+            if "tcolorbox" not in raw:
+                if "ex_test" in raw:
+                    raw = re.sub(
+                        r'(\\usepackage(\[[^\]]*\])?\{ex_test\})',
+                        r'\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\1',
+                        raw,
+                        count=1
+                    )
+                else:
+                    raw = re.sub(
+                        r'(\\begin\{document\})',
+                        r'\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\1',
+                        raw,
+                        count=1
+                    )
+            elif "xparse" not in raw:
+                if r"\tcbuselibrary" in raw:
+                    raw = re.sub(
+                        r'(\\tcbuselibrary\{[^}]*\})',
+                        r'\1\n\\tcbuselibrary{xparse}',
+                        raw,
+                        count=1
+                    )
+                else:
+                    raw = re.sub(
+                        r'(\\usepackage\{tcolorbox\})',
+                        r'\1\n\\tcbuselibrary{skins,breakable,xparse}',
+                        raw,
+                        count=1
+                    )
+
+        # If ex_test is included, ensure the mode option matches requested mode
+        if "ex_test" in raw:
+            raw = re.sub(r'\\usepackage\[[^\]]*\]\{ex_test\}', lambda m: f"\\usepackage[{norm_mode}]{{ex_test}}", raw)
+            raw = re.sub(r'\\usepackage\{ex_test\}', lambda m: f"\\usepackage[{norm_mode}]{{ex_test}}", raw)
+
+        raw = fix_immini_choice_nesting(raw)
+        return raw
+
+    # Strip any accidental outer \begin{document} / \end{document} if no \documentclass
+    body = raw
+    doc_match = re.search(r'\\begin\{document\}([\s\S]*?)\\end\{document\}', body)
+    if doc_match:
+        body = doc_match.group(1).strip()
+    body = re.sub(r'\\documentclass(\[[^\]]*\])?\{[^}]*\}', '', body)
+    body = re.sub(r'\\usepackage(\[[^\]]*\])?\{[^}]*\}', '', body)
+    body = re.sub(r'\\tcbuselibrary\{[^}]*\}', '', body)
+    body = re.sub(r'\\begin\{document\}', '', body).strip()
+    body = re.sub(r'\\end\{document\}', '', body).strip()
+
+    body = fix_immini_choice_nesting(body)
+
+    preamble = f"""\\documentclass[12pt,a4paper]{{article}}
+\\usepackage{{fontspec}}
+\\usepackage{{amsmath,amssymb,amsfonts}}
+\\usepackage[left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm]{{geometry}}
+\\usepackage{{multicol}}
+\\usepackage{{tikz,tkz-tab}}
+\\usepackage{{tcolorbox}}
+\\tcbuselibrary{{skins,breakable,xparse}}
+\\usepackage[{norm_mode}]{{ex_test}}
+
+\\begin{{document}}
+{body}
+\\end{{document}}"""
+
+    return preamble
 
 
 # ---------------------------------------------------------------------------
 # 2. LaTeX to HTML Compilation Parser
 # ---------------------------------------------------------------------------
 
-def compile_latex_source_to_html(latex_source: str, default_title: str = "Đề Thi Soạn Thảo LaTeX") -> str:
+def compile_latex_source_to_html(
+    latex_source: str,
+    default_title: str = "Đề Thi Soạn Thảo LaTeX",
+    mode: str = "dethi"
+) -> str:
     """Converts general LaTeX or exam code into publication-grade HTML with CMU Serif,
     MathJax vector equations, and TikZ/tkz-tab vector SVGs for Chromium PDF compilation.
     """
-    raw = latex_source.strip()
+    raw = (latex_source or "").strip()
     if not raw:
-        raw = TEMPLATES["blank_document"]["latex"]
+        raw = TEMPLATES["blank_exam"]["latex"]
+
+    raw = ensure_full_latex_document(raw, mode=mode, title=default_title)
 
     # 1. Extract title if present: \title{...}
     title_match = re.search(r'\\title\{([^}]+)\}', raw)
@@ -331,8 +513,23 @@ def compile_latex_source_to_html(latex_source: str, default_title: str = "Đề 
     body = re.sub(r'\\usepackage\[?[^\]]*\]?\{[^}]*\}', '', body)
     body = re.sub(r'\\pagestyle\{[^}]*\}', '', body)
     body = re.sub(r'\\thispagestyle\{[^}]*\}', '', body)
+    body = re.sub(r'\\tcbuselibrary\{[^}]*\}', '', body)
     body = re.sub(r'\\begin\{document\}', '', body)
     body = re.sub(r'\\end\{document\}', '', body)
+
+    # 3b. Mode-specific solution handling
+    norm_mode = "loigiai" if str(mode).strip().lower() in ("loigiai", "solcolor", "color", "solution", "true", "1") else "dethi"
+    if norm_mode == "dethi":
+        body = re.sub(r'\\begin\{loigiai\}[\s\S]*?\\end\{loigiai\}', '', body)
+        body = re.sub(r'\\loigiai\{[\s\S]*?\}', '', body)
+    else:
+        def _render_lg(m):
+            lg_inner = m.group(1).strip()
+            lg_inner = re.sub(r'\\begin\{itemchoice\}', '<div style="margin-top:4px;">', lg_inner)
+            lg_inner = re.sub(r'\\end\{itemchoice\}', '</div>', lg_inner)
+            lg_inner = re.sub(r'\\itemch\s*', '<div style="margin-bottom:2px;">• ', lg_inner)
+            return f'<div class="loigiai-block" style="background:#f8fafc; border-left:3px solid #0071e3; padding:8px 12px; margin:8px 0; border-radius:4px; font-size:10pt;"><strong>Lời giải:</strong><div style="margin-top:4px;">{lg_inner}</div></div>'
+        body = re.sub(r'\\begin\{loigiai\}([\s\S]*?)\\end\{loigiai\}', _render_lg, body)
 
     # 4. Extract and render all TikZ blocks to vector SVGs
     tikz_blocks = []
@@ -537,7 +734,8 @@ def find_tectonic_executable() -> Optional[Path]:
 def compile_with_tectonic(
     latex_source: str,
     output_pdf: Path,
-    title: str = "Tài Liệu Soạn Thảo"
+    title: str = "Tài Liệu Soạn Thảo",
+    mode: str = "dethi"
 ) -> Tuple[bool, str, int]:
     """Compiles LaTeX source code directly to PDF using Tectonic XeTeX engine."""
     start_time = time.perf_counter()
@@ -549,19 +747,7 @@ def compile_with_tectonic(
     output_pdf = Path(output_pdf).resolve()
     output_pdf.parent.mkdir(parents=True, exist_ok=True)
 
-    raw = latex_source.strip()
-    # In XeTeX/Tectonic, replace legacy 8-bit vietnam package with modern fontspec
-    raw = re.sub(r'\\usepackage(\[[^\]]*\])?\{vietnam\}', r'\\usepackage{fontspec}', raw)
-
-    # Ensure document wrapper exists
-    if "\\documentclass" not in raw:
-        raw = f"""\\documentclass[12pt,a4paper]{{article}}
-\\usepackage{{fontspec}}
-\\usepackage{{amsmath,amssymb}}
-\\usepackage{{tikz,tkz-tab}}
-\\begin{{document}}
-{raw}
-\\end{{document}}"""
+    raw = ensure_full_latex_document(latex_source, mode=mode, title=title)
 
     with tempfile.TemporaryDirectory(prefix="tectonic_build_") as tmp_dir:
         tmp_dir_path = Path(tmp_dir)
@@ -626,7 +812,8 @@ def compile_with_tectonic(
 def compile_latex_to_pdf_chromium(
     latex_source: str,
     output_pdf: Path,
-    title: str = "Tài Liệu Soạn Thảo"
+    title: str = "Tài Liệu Soạn Thảo",
+    mode: str = "dethi"
 ) -> Tuple[bool, str, int]:
     """Compiles LaTeX source code to vector-crisp PDF via Headless Chromium.
     Returns (success, error_message, elapsed_ms).
@@ -637,7 +824,7 @@ def compile_latex_to_pdf_chromium(
     temp_html = output_pdf.with_suffix(".temp.html")
 
     try:
-        html = compile_latex_source_to_html(latex_source, default_title=title)
+        html = compile_latex_source_to_html(latex_source, default_title=title, mode=mode)
         temp_html.write_text(html, encoding="utf-8")
 
         browser_bin = find_browser_executable()
@@ -683,72 +870,12 @@ def compile_latex_to_pdf_chromium(
         return False, str(e), 0
 
 
-def fix_immini_choice_nesting(latex_text: str) -> str:
-    """If \\choice{...}{...}{...}{...} is accidentally placed inside \\immini{...}{...},
-    extract it and place \\choice outside after \\immini to prevent TeX box errors."""
-    if r"\immini" not in latex_text or r"\choice" not in latex_text:
-        return latex_text
-
-    pattern = re.compile(r"\\immini(?:L)?\s*\{")
-    pos = 0
-    while True:
-        m = pattern.search(latex_text, pos)
-        if not m:
-            break
-
-        start_arg1 = m.end()
-        depth = 1
-        i = start_arg1
-        while i < len(latex_text) and depth > 0:
-            if latex_text[i] == '{': depth += 1
-            elif latex_text[i] == '}': depth -= 1
-            i += 1
-
-        if depth != 0:
-            pos = start_arg1
-            continue
-
-        arg1 = latex_text[start_arg1:i-1]
-
-        if r"\choice" not in arg1:
-            pos = i
-            continue
-
-        while i < len(latex_text) and latex_text[i] in ' \t\r\n':
-            i += 1
-        if i >= len(latex_text) or latex_text[i] != '{':
-            pos = i
-            continue
-
-        start_arg2 = i + 1
-        depth = 1
-        j = start_arg2
-        while j < len(latex_text) and depth > 0:
-            if latex_text[j] == '{': depth += 1
-            elif latex_text[j] == '}': depth -= 1
-            j += 1
-
-        if depth != 0:
-            pos = start_arg2
-            continue
-
-        arg2 = latex_text[start_arg2:j-1]
-
-        choice_idx = arg1.find(r"\choice")
-        choice_block = arg1[choice_idx:].strip()
-        clean_arg1 = arg1[:choice_idx].strip()
-
-        replacement = f"\\immini{{\n  {clean_arg1}\n}}{{\n  {arg2}\n}}\n{choice_block}"
-        latex_text = latex_text[:m.start()] + replacement + latex_text[j:]
-        pos = m.start() + len(replacement)
-
-    return latex_text
-
 
 def compile_with_remote_tectonic_api(
     latex_source: str,
     output_pdf: Path,
-    title: str = "Tài Liệu Soạn Thảo"
+    title: str = "Tài Liệu Soạn Thảo",
+    mode: str = "dethi"
 ) -> Tuple[bool, str, int]:
     """Compiles LaTeX using remote Tectonic Docker microservice (e.g. on armbian)."""
     start_time = time.perf_counter()
@@ -768,24 +895,7 @@ def compile_with_remote_tectonic_api(
         return False, "Không có dịch vụ Tectonic API từ xa.", 0
 
     try:
-        # Modernize vietnam package to fontspec for XeTeX Tectonic
-        sanitized_latex = re.sub(r'\\usepackage(\[[^\]]*\])?\{vietnam\}', r'\\usepackage{fontspec}', latex_source)
-        if "ex_test" in sanitized_latex or "immini" in sanitized_latex:
-            if "tcolorbox" not in sanitized_latex:
-                sanitized_latex = re.sub(
-                    r'(\\usepackage(\[[^\]]*\])?\{ex_test\})',
-                    r'\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\1',
-                    sanitized_latex
-                )
-            elif "xparse" not in sanitized_latex:
-                sanitized_latex = re.sub(
-                    r'(\\tcbuselibrary\{[^}]*\})',
-                    r'\1\n\\tcbuselibrary{xparse}',
-                    sanitized_latex
-                )
-
-        sanitized_latex = fix_immini_choice_nesting(sanitized_latex)
-
+        sanitized_latex = ensure_full_latex_document(latex_source, mode=mode, title=title)
         payload = json.dumps({
             "latex_code": sanitized_latex,
             "timeout_s": 60
@@ -822,15 +932,18 @@ def compile_with_remote_tectonic_api(
 def compile_latex_to_pdf(
     latex_source: str,
     output_pdf: Path,
-    title: str = "Tài Liệu Soạn Thảo"
+    title: str = "Tài Liệu Soạn Thảo",
+    mode: str = "dethi"
 ) -> Tuple[bool, str, int]:
     """Unified LaTeX Compiler:
     1. Checks if Remote Tectonic Docker API is available -> Compiles with remote Tectonic.
     2. Checks if local Tectonic XeTeX engine is available -> Compiles with native Tectonic.
     3. Falls back to Headless Chromium + MathJax + TikZ + CMU Serif vector pipeline.
     """
+    full_latex = ensure_full_latex_document(latex_source, mode=mode, title=title)
+
     # 1. Try Remote Tectonic API
-    ok, err, ms = compile_with_remote_tectonic_api(latex_source, output_pdf, title=title)
+    ok, err, ms = compile_with_remote_tectonic_api(full_latex, output_pdf, title=title, mode=mode)
     if ok:
         return ok, err, ms
     if "Lỗi Tectonic API:" in err:
@@ -839,13 +952,13 @@ def compile_latex_to_pdf(
 
     # 2. Try Local Tectonic
     if find_tectonic_executable():
-        ok, err, ms = compile_with_tectonic(latex_source, output_pdf, title=title)
+        ok, err, ms = compile_with_tectonic(full_latex, output_pdf, title=title, mode=mode)
         if ok:
             return ok, err, ms
         logger.warning(f"Local Tectonic compilation failed ({err}). Falling back to Headless Chromium engine.")
 
     # 3. Fallback to Chromium engine
-    return compile_latex_to_pdf_chromium(latex_source, output_pdf, title=title)
+    return compile_latex_to_pdf_chromium(full_latex, output_pdf, title=title, mode=mode)
 
 
 # ---------------------------------------------------------------------------

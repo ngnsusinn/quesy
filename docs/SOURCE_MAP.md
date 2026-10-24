@@ -13,7 +13,7 @@ Quesy được xây dựng theo kiến trúc **Module-based Monolith** kết h�
 1. **Frontend Presentation & Micro-interaction Layer:** Single Page Application (SPA) điều hướng sạch (`/path`), tuân thủ Apple HIG và tương tác Emil Kowalski (phản hồi xúc giác 0.97, Dark Code Editor `#141824`, Live PDF Preview).
 2. **API Gateway & Routing Layer:** FastAPI (Python 3.13) bất đồng bộ, tự động validate Pydantic V2 schemas, bảo toàn route SPA tránh lỗi 404 khi F5.
 3. **Core Domain Services & Processing Pipelines:**
-   - *Soạn đề & Biên dịch Hybrid:* `composer_service.py` kết nối Remote Tectonic XeTeX Engine Docker (host `armbian:8090`), gói lệnh chuẩn quốc gia `ex_test.sty` (v3.3.6), AI Inline Diff Replacer.
+   - *Soạn đề & Biên dịch Hybrid:* `composer_service.py` kết nối Remote Tectonic XeTeX Engine Docker (host `armbian:8090`), gói lệnh chuẩn quốc gia `ex_test.sty` (v3.3.6), động cơ Canonical Preamble Injection (tự động nhúng ngầm fontspec, amsmath, tikz, tkz-tab, tcolorbox, xparse, ex_test v3.3, geometry A4), hỗ trợ ô soạn thảo tinh gọn Preamble-Free Question Editor, và AI Inline Diff Replacer.
    - *Số hóa 2-Pass AI Decoupled:* Tiền xử lý ảnh OpenCV/Pillow, phân đoạn layout, Pass 1 trích xuất văn bản/đáp án, Pass 2 dựng mã TikZ/Array song song.
    - *Xuất bản MathType OLE Word & CMU Serif PDF:* Dựng luồng nhị phân CFB MTEF v5 + ảnh vector WMF (APM header chuẩn) sửa 2 chiều trong Microsoft Word; chuyển đổi bảng biến thiên sang `<w:tbl>` native.
    - *Ma trận & Trộn đề An toàn:* Giải bài toán ma trận 2 chiều theo YCCĐ, hoán vị mã đề an toàn, tính điểm Đúng/Sai lũy tiến theo QĐ 764.
@@ -211,7 +211,7 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 | Phương thức | Đường dẫn API | Chức năng nghiệp vụ | Router Module |
 | :--- | :--- | :--- | :--- |
-| **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (Debounced) | `composer.py` |
+| **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (hỗ trợ Preamble-Free Question Editor, Canonical Preamble Injection, mode: dethi/loigiai) | `composer.py` |
 | **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, chẩn đoán log lỗi biên dịch LaTeX (compile_error_log), đề xuất Smart Inline Diff | `composer.py` |
 | **GET** | `/api/v1/composer/pdf/{doc_id}.pdf` | Stream trực tiếp tệp PDF xem trước | `composer.py` |
 | **GET** | `/api/v1/composer/templates` | Danh mục mẫu đề thi chuẩn quốc gia (`ex_test.sty` v3.3) | `composer.py` |
@@ -282,7 +282,11 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
        │       - Bảo đảm tỷ lệ thành công 100%, triệt tiêu lỗi "Không tìm thấy dòng cũ tương ứng"
        │       - Đóng diff overlay/banner, tự động gọi compile(true)
        │
-       └──> Khi sửa mã xong -> Debounce 800ms -> Gửi POST /api/v1/composer/compile
+       └──> Khi sửa mã xong -> Debounce 800ms -> Gửi POST /api/v1/composer/compile (latex_code, title, mode)
+                 │
+                 ├──> [Smart Dual-Mode Document Normalizer]
+                 │         ├── Nếu KHÔNG CÓ \documentclass: Tiêm Canonical Preamble (fontspec, tikz, tkz-tab, tcolorbox, ex_test[mode], A4)
+                 │         └── Nếu ĐÃ CÓ \documentclass: Bảo toàn cấu trúc, chuẩn hóa fontspec & đồng bộ option [mode]
                  │
                  ├──> [Tầng 1] Remote Tectonic Docker (http://armbian:8090/compile)
                  │         ├── Tự động nhúng ex_test.sty v3.3.6

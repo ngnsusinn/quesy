@@ -3917,7 +3917,7 @@
       } else if (this.templates['circular_32_full_exam']) {
         this.currentLatex = this.templates['circular_32_full_exam'].latex;
       } else {
-        this.currentLatex = `\\documentclass[11pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\\section*{ĐỀ THI KHẢO SÁT TOÁN 12}\n\n\\begin{ex}\nCho hàm số bậc ba $y = f(x)$...\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n\n\\end{document}\n`;
+        this.currentLatex = `\\begin{center}\n  \\textbf{\\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\\\\\n  \\textbf{\\large MÔN THI: TOÁN HỌC}\\\\\\n  \\textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}\n\\end{center}\n\\vspace{0.4cm}\n\n\\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}\n\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}\n\n\\begin{ex}\n\\immini{\n  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.\n  Hàm số đã cho đồng biến trên khoảng nào dưới đây?\n}{\n  \\begin{tikzpicture}[scale=0.55, >=stealth]\n    \\draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};\n    \\draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};\n    \\node[below left] at (0, 0) {$O$};\n    \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};\n    \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};\n    \\draw[thick, smooth, domain=-2.3:3.1] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n    \\fill (-1, 3) circle (1.5pt);\n    \\fill (2, -2) circle (1.5pt);\n  \\end{tikzpicture}\n}\n\\choice\n{\\True $(-\\infty; -1)$}\n{$(-1; 2)$}\n{$(0; 2)$}\n{$(-\\infty; 2)$}\n\\begin{loigiai}\nDựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty; -1)$ và $(2; +\\infty)$.\n\\end{loigiai}\n\\end{ex}\n`;
       }
 
       if (editor) {
@@ -4026,7 +4026,13 @@
 
     downloadTex() {
       if (!this.currentLatex) return;
-      const blob = new Blob([this.currentLatex], { type: 'text/x-tex;charset=utf-8' });
+      let exportLatex = this.currentLatex;
+      // If code is preamble-free, wrap with canonical preamble for standalone compile in external TeX editors
+      if (!exportLatex.includes('\\documentclass')) {
+        const solOpt = this.showSolution ? 'loigiai' : 'dethi';
+        exportLatex = `\\documentclass[11pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[${solOpt}]{ex_test}\n\n\\begin{document}\n${exportLatex}\n\\end{document}\n`;
+      }
+      const blob = new Blob([exportLatex], { type: 'text/x-tex;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -4035,21 +4041,23 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast('Đang tải tệp mã nguồn .tex...', 'info');
+      showToast('Đang tải tệp mã nguồn .tex hoàn chỉnh...', 'info');
       const menu = document.getElementById('composer-dropdown-export');
       if (menu) menu.classList.add('hidden');
     },
 
     newDocument() {
       if (confirm('Bạn có chắc chắn muốn tạo mới tài liệu?')) {
-        const cleanLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage[dethi]{ex_test}\n\n\\begin{document}\n\n\\begin{ex}\n\n\\choice\n{}\n{}\n{}\n{}\n\\loigiai{\n\n}\n\\end{ex}\n\n\\end{document}\n`;
+        const cleanLatex = (this.templates && this.templates['ex_test_standard_exam'])
+          ? this.templates['ex_test_standard_exam'].latex
+          : `\\begin{center}\n  \\textbf{\\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\\\\\n  \\textbf{\\large MÔN THI: TOÁN HỌC}\\\\\\n  \\textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}\n\\end{center}\n\\vspace{0.4cm}\n\n\\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}\n\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}\n\n\\begin{ex}\n\\immini{\n  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.\n  Hàm số đã cho đồng biến trên khoảng nào dưới đây?\n}{\n  \\begin{tikzpicture}[scale=0.55, >=stealth]\n    \\draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};\n    \\draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};\n    \\node[below left] at (0, 0) {$O$};\n    \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};\n    \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};\n    \\draw[thick, smooth, domain=-2.3:3.1] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n    \\fill (-1, 3) circle (1.5pt);\n    \\fill (2, -2) circle (1.5pt);\n  \\end{tikzpicture}\n}\n\\choice\n{\\True $(-\\infty; -1)$}\n{$(-1; 2)$}\n{$(0; 2)$}\n{$(-\\infty; 2)$}\n\\begin{loigiai}\nDựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty; -1)$ và $(2; +\\infty)$.\n\\end{loigiai}\n\\end{ex}\n`;
         const editor = document.getElementById('composer-editor-input');
         if (editor) {
           editor.value = cleanLatex;
           this.currentLatex = cleanLatex;
           this.handleEditorInput();
           this.compile(true);
-          showToast('Đã tạo mới tài liệu với mẫu ex_test!', 'success');
+          showToast('Đã tạo mới tài liệu với mẫu ex_test tinh gọn!', 'success');
         }
       }
     },
@@ -4065,23 +4073,28 @@
         }
       }
 
-      // Update LaTeX package option in editor if present
+      // Backward compatibility: If currentLatex has full preamble with ex_test, update option in editor
       let val = this.currentLatex;
-      if (this.showSolution) {
-        val = val.replace(/\\usepackage\[dethi\]\{ex_test\}/, '\\usepackage[loigiai]{ex_test}');
-        showToast('Đã bật chế độ LỜI GIẢI chi tiết.', 'info');
-      } else {
-        val = val.replace(/\\usepackage\[(?:loigiai|solcolor|color)\]\{ex_test\}/, '\\usepackage[dethi]{ex_test}');
-        showToast('Đã chuyển sang chế độ IN ĐỀ THI (ẩn lời giải).', 'info');
+      if (val.includes('\\usepackage[dethi]{ex_test}') || val.includes('\\usepackage[loigiai]{ex_test}')) {
+        if (this.showSolution) {
+          val = val.replace(/\\usepackage\[dethi\]\{ex_test\}/, '\\usepackage[loigiai]{ex_test}');
+        } else {
+          val = val.replace(/\\usepackage\[(?:loigiai|solcolor|color)\]\{ex_test\}/, '\\usepackage[dethi]{ex_test}');
+        }
+        const editor = document.getElementById('composer-editor-input');
+        if (editor) {
+          editor.value = val;
+          this.currentLatex = val;
+          this.handleEditorInput();
+        }
       }
 
-      const editor = document.getElementById('composer-editor-input');
-      if (editor) {
-        editor.value = val;
-        this.currentLatex = val;
-        this.handleEditorInput();
-        this.compile(true);
+      if (this.showSolution) {
+        showToast('Đã bật chế độ LỜI GIẢI chi tiết.', 'info');
+      } else {
+        showToast('Đã chuyển sang chế độ IN ĐỀ THI (ẩn lời giải).', 'info');
       }
+      this.compile(true);
     },
 
     switchPreviewTab(tab) {
@@ -6269,7 +6282,9 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             latex_code: this.currentLatex,
-            title: this.activeTitle
+            title: this.activeTitle,
+            mode: this.showSolution ? 'loigiai' : 'dethi',
+            show_solution: !!this.showSolution
           })
         });
 

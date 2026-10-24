@@ -24,6 +24,12 @@ Các tùy chọn chính của `\usepackage[<tùy_chọn>]{ex_test}`:
 - **`[solcolor]`**: **Chế độ lời giải có màu**. Vừa hiển thị lời giải chi tiết, vừa tô màu đỏ đáp án đúng `\True`.
 - **`[book]`**: **Chế độ viết sách/chuyên đề**. Tự động tách phần đề bài và phần lời giải chi tiết ra các file riêng biệt để in ở cuối sách.
 
+### 1.2. Cơ chế Soạn Thảo Tinh Gọn Không Preamble trên Quesy (/composer)
+- **Đặc quyền trên Quesy Composer:** Toàn bộ Preamble chuẩn (`\documentclass`, `fontspec`, `amsmath,amssymb`, `tikz,tkz-tab`, `tcolorbox`, `xparse`, `ex_test.sty` v3.3, khổ A4 lề 18mm) đã được động cơ Quesy tự động nhúng ngầm (Canonical Preamble Injection).
+- **Chỉ cần viết nội dung câu hỏi:** Giáo viên chỉ cần viết các câu hỏi `\begin{ex}...\end{ex}` và tiêu đề, không cần gõ `\documentclass` hay `\begin{document}...\end{document}`.
+- **Tự động chuyển chế độ Đề thi / Lời giải:** Sử dụng công tắc `LỜI GIẢI` trên giao diện, hệ thống tự động truyền cờ `[loigiai]` hoặc `[dethi]` vào engine biên dịch mà không cần chỉnh sửa mã nguồn.
+- **Tương thích ngược:** Nếu dán cả văn bản hoàn chỉnh có sẵn `\documentclass`, hệ thống vẫn nhận diện và biên dịch bình thường.
+
 ---
 
 ## 2. CẤU TRÚC SOẠN THẢO CÁC DẠNG CÂU HỎI THEO ĐỊNH DẠNG 2025

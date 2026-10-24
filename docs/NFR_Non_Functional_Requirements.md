@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.  
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
 - **Ngày phát hành:** 2026-10-24
 
 ---
@@ -103,6 +103,10 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
   - Tỷ lệ nuốt mất mã nguồn trong bubble chat khi AI sinh mã LaTeX phải bằng **$0\%$**.
   - Hệ thống chỉ được phép ẩn khối mã và gắn badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"* khi và chỉ khi diff thực sự tồn tại, hợp lệ và đã được nạp thành công vào editor (`diffs.length > 0`).
   - Trong mọi trường hợp khác (diff rỗng, không tìm thấy vị trí dòng cũ, hoặc mã độc lập), khối mã phải được bảo toàn nguyên vẹn 100% trong bubble chat kèm 3 nút thao tác: Chèn vào con trỏ, Sao chép, và Áp dụng thay thế.
+- **NFR-REL-08 (Độ Tin Cậy của Động Cơ Nhúng Ngầm Canonical Preamble & Dual-Mode Normalizer):**
+  - **Tỷ lệ nhận diện và chuẩn hóa chính xác:** Đạt **100%** trong việc phân biệt giữa mã nguồn thuần câu hỏi (Preamble-Free Question Body) và tài liệu hoàn chỉnh (Full Document).
+  - **Khử xung đột đệm biên dịch (Zero Cache Collision):** Bộ tạo khóa mã băm kết hợp `(latex_code, title, mode)` đảm bảo việc chuyển đổi qua lại giữa chế độ Đề thi (`[dethi]`) và Lời giải (`[loigiai]`) không bao giờ phát sinh tình trạng trả về bản PDF cũ bị lưu đệm sai lệch.
+  - **Tính tự chứa của tệp xuất bản (Self-Contained TeX Packaging):** 100% các file nguồn TeX khi tải về từ hệ thống đều tự động được bao bọc đầy đủ Canonical Preamble chuẩn khảo thí quốc gia và `\begin{document}...\end{document}`, đảm bảo biên dịch thành công ngay lần đầu tiên trên mọi môi trường TeX chuẩn bên ngoài mà không cần cấu hình thêm.
 
 ---
 

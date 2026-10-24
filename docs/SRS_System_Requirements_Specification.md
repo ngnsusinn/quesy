@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, phân hệ Trợ lý Soạn thảo AI Copilot thông minh, và quy chuẩn quản trị phát triển Git.  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, phân hệ Soạn đề tinh gọn không cần khai báo preamble (Canonical Preamble Injection tự động nhúng fontspec, tikz, tkz-tab, tcolorbox, ex_test v3.3), bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, phân hệ Trợ lý Soạn thảo AI Copilot thông minh, và quy chuẩn quản trị phát triển Git.
 - **Ngày phát hành:** 2026-10-24  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
@@ -371,6 +371,37 @@ ight)$$
      - Triệt tiêu hoàn toàn lỗi nuốt mất code trong chat bubble khi editor chưa nhận được diff.
 - **Hỗ Trợ Động Cơ Dự Phòng Cục Bộ (Local Offline Fallback Generator):**
   - Khi không cấu hình AI Provider hoặc mạng gián đoạn, động cơ dự phòng nhận diện câu lệnh thay thế câu $n$ (ví dụ: "đơn điệu hàm số thay thế câu 1"), tự động sinh câu hỏi toán chuẩn `ex_test.sty` và bóc tách câu $n$ cũ để trả về `DiffSuggestion` hoàn chỉnh.
+
+#### SRS-FEAT-04q: Hộp Soạn Thảo Đề Thi Tinh Gọn Không Preamble & Động Cơ Nhúng Ngầm Canonical Preamble Injection (Preamble-Free Question Editor)
+- **Mô tả:** Tách biệt triệt để giữa phần Khai báo Gói Lệnh (Preamble) và Phần Thân Nội Dung Đề Thi (Exam Body). Giáo viên khi sử dụng phân hệ Soạn đề (`/composer`) chỉ cần tập trung viết nội dung đề thi và các câu hỏi chuẩn gói lệnh khảo thí quốc gia `ex_test.sty` (`\begin{ex}...\choice...\loigiai...\end{ex}`, `\choiceTF`, `\shortans`, `\immini`, TikZ, `tkz-tab`), hoàn toàn KHÔNG CẦN viết các dòng lệnh rườm rà như `\documentclass`, `\usepackage`, hay `\begin{document}...\end{document}`.
+- **Kiến trúc Nhúng Ngầm Preamble Chuẩn (Canonical Preamble Injection):**
+  1. *Định nghĩa Preamble Chuẩn (Canonical Preamble Spec):*
+     ```latex
+     \documentclass[11pt,a4paper]{article}
+     \usepackage{geometry}
+     \geometry{a4paper, total={175mm,257mm}, left=18mm, top=18mm, right=18mm, bottom=18mm}
+     \usepackage{fontspec}
+     \usepackage{amsmath,amssymb}
+     \usepackage{tikz,tkz-tab}
+     \usepackage{tcolorbox}
+     \tcbuselibrary{skins,breakable,xparse}
+     \usepackage[{mode}]{ex_test}
+     ```
+     Trong đó `{mode}` được gán động là `dethi` (chế độ in đề thi, ẩn lời giải) hoặc `loigiai` (chế độ in đáp án & hướng dẫn giải chi tiết).
+  2. *Bộ Chuẩn Hóa Tài Liệu Hai Chế Độ (Smart Dual-Mode Document Normalizer):*
+     - Khi nhận mã nguồn từ editor, hệ thống tự động kiểm tra sự tồn tại của thẻ `\documentclass`:
+       + **Nhánh 1 - Mã thuần câu hỏi (Preamble-Free Question Body - Mặc định):** Nếu không có `\documentclass`, hệ thống tự động tiêm Canonical Preamble, bọc phần thân trong `\begin{document}...\end{document}` trước khi chuyển tới Tectonic XeTeX hoặc Chromium Fallback.
+       + **Nhánh 2 - Tài liệu toàn vẹn (Full Document - Tương thích ngược):** Nếu người dùng dán toàn bộ tài liệu TeX cũ có sẵn `\documentclass`, hệ thống giữ nguyên cấu trúc, tự động hiện đại hóa `vietnam` $
+ightarrow$ `fontspec`, bổ sung các gói lệnh thiếu (`tcolorbox`, `xparse`, `tikz`, `tkz-tab`, `ex_test`) và đồng bộ option `[dethi]` / `[loigiai]` theo cờ chế độ được yêu cầu.
+  3. *Điều Khiển Chế Độ Đề Thi / Lời Giải Không Phụ Thuộc Mã Nguồn Editor:*
+     - API `POST /api/v1/composer/compile` bổ sung trường `mode: "loigiai" | "dethi"` (mặc định `"loigiai"`).
+     - Khi người dùng gạt công tắc `LỜI GIẢI` trên thanh công cụ xem trước, hệ thống truyền cờ `mode` tương ứng. Động cơ tự động thay thế `[dethi]` thành `[loigiai]` trong Canonical Preamble ngầm, hoàn toàn không cần chỉnh sửa hoặc chèn ép thêm text vào ô soạn thảo của giáo viên.
+     - Khóa đệm cache biên dịch được tạo từ `md5(latex_code + "::" + title + "::" + mode)` đảm bảo hai chế độ `[dethi]` và `[loigiai]` luôn có bản cache riêng biệt, tức thì và độc lập, không bị xung đột hiển thị.
+  4. *Xuất Bản File TeX Hoàn Chỉnh (Full TeX Source Packaging on Export):*
+     - Khi giáo viên nhấn menu `XUẤT FILE ▾` $
+ightarrow$ `Tải mã nguồn TeX (.tex)`, nếu nội dung hiện tại là dạng tinh gọn không preamble, hệ thống tự động bọc Canonical Preamble đầy đủ và `\begin{document}...\end{document}` vào tệp tải về để đảm bảo tệp `.tex` có thể biên dịch thành công 100% ngay lập tức trên các trình soạn thảo TeX bên ngoài (TeXShop, TeXstudio, Overleaf).
+  5. *Định Hướng Trợ Lý AI Copilot:*
+     - Prompt hệ thống của Quesy Copilot được chỉ dẫn rõ: môi trường làm việc đã tích hợp sẵn Canonical Preamble của `ex_test.sty` v3.3. Khi giáo viên yêu cầu tạo câu hỏi, AI chỉ sinh phần thân câu hỏi `\begin{ex}...\end{ex}` và tiêu đề cần thiết, tuyệt đối không xuất các đoạn preamble thừa thãi làm ô nhiễm khung soạn thảo.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.

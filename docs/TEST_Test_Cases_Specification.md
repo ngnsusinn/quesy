@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 129 Tests (100% Passed)  
+- **Tổng số kịch bản tự động hóa:** 140+ Tests (100% Passed)  
 - **Ngày lập:** 2026-10-24  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
@@ -378,6 +378,25 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
   1. *Kịch bản có diff hợp lệ:* Giao diện ẩn khối diff trong chat bubble, gắn badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"*, và kích hoạt banner/overlay trên editor.
   2. *Kịch bản không có diff hợp lệ (hoặc diff rỗng):* Giao diện KHÔNG ẩn khối mã, KHÔNG hiển thị badge giả tạo; hiển thị trọn vẹn khối mã LaTeX kèm 3 nút bấm tương tác: `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`.
 - **Kết quả kỳ vọng:** 0% mã nguồn bị nuốt mất trong chat bubble; người dùng luôn có công cụ thao tác với mã được sinh ra.
+
+#### TC-COMP-23: Biên Dịch Đề Thi Tinh Gọn Không Preamble (Preamble-Free ex_test Body)
+- **Mô tả:** Gửi yêu cầu biên dịch `POST /api/v1/composer/compile` với nội dung `latex_code` chỉ chứa các câu hỏi `\begin{ex}...\end{ex}` chuẩn `ex_test.sty`, hoàn toàn không có `\documentclass` hay `\usepackage`.
+- **Kết quả kỳ vọng:** HTTP 200, phản hồi `success: true`, sinh tệp PDF hợp lệ với đầy đủ font CMU Serif, đồ thị TikZ và bảng biến thiên `tkz-tab` nhờ cơ chế Canonical Preamble Injection ngầm định.
+
+#### TC-COMP-24: Động Cơ Điều Khiển Chế Độ Đề Thi / Lời Giải ([dethi] vs [loigiai]) Qua API Mode Flag
+- **Mô tả:** Kiểm tra tham số `mode` trong `CompileRequest`:
+  1. Gửi cùng một đoạn mã câu hỏi với `mode = "loigiai"`: Xác nhận file PDF sinh ra hiển thị nội dung môi trường `\begin{loigiai}`.
+  2. Gửi với `mode = "dethi"`: Xác nhận file PDF sinh ra ẩn toàn bộ lời giải và không đánh dấu đáp án `\True`.
+  3. Kiểm tra khóa băm cache: `code_hash` của hai chế độ khác nhau hoàn toàn, không xảy ra xung đột hay trả về kết quả cache sai chế độ.
+- **Kết quả kỳ vọng:** Chuyển đổi chính xác 100% giữa 2 chế độ mà không cần sửa đổi mã nguồn của người dùng.
+
+#### TC-COMP-25: Tính Tương Thích Ngược Với Tài Liệu Toàn Phần Chứa \documentclass
+- **Mô tả:** Gửi mã nguồn LaTeX hoàn chỉnh (chứa `\documentclass[11pt,a4paper]{article}`, `\usepackage{fontspec}`, `\begin{document}...\end{document}`) tới endpoint `/api/v1/composer/compile`.
+- **Kết quả kỳ vọng:** Hệ thống phát hiện `\documentclass`, tự động kích hoạt nhánh Full Document Parser, bảo toàn các gói lệnh tùy chỉnh, tự động bổ sung gói thiếu nếu có dùng `ex_test`, biên dịch thành công 100% ra PDF.
+
+#### TC-COMP-26: Xuất Bản Mã Nguồn TeX Tự Động Đóng Gói Preamble Chuẩn (Full TeX Packaging)
+- **Mô tả:** Kiểm tra logic xuất bản mã nguồn `.tex` khi người dùng nhấn \"Tải mã nguồn TeX\": Nếu mã hiện thời trên editor không chứa `\documentclass`, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi xuất file.
+- **Kết quả kỳ vọng:** File `.tex` tải xuống độc lập, tự chứa đầy đủ preamble, có thể mở và biên dịch XeLaTeX thành công ngay trên TeXLive / Overleaf mà không bị thiếu gói lệnh.
 
 #### TC-DEV-01: Quy Chuẩn Quản Trị Nhánh & Không Tự Động Tạo Pull Request (Git Workflow Guardrail)
 - **Mô tả:** Rà soát và xác thực hành vi của các agent và quy trình CI/CD:

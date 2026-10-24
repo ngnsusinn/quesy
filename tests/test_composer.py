@@ -2477,6 +2477,183 @@ Câu 2 mới: Tính tích phân $I = \int_0^1 3x^2 dx$.
             assert "Thay thế Câu 2" in data["diff"]["description"]
 
 
+# ---------------------------------------------------------------------------
+# Preamble-Free Question Editor Tests
+# ---------------------------------------------------------------------------
+
+def test_ensure_full_latex_document_wraps_pure_question():
+    """Verify ensure_full_latex_document wraps pure question code with full exam preamble."""
+    from backend.services.composer_service import ensure_full_latex_document
+
+    pure_question = r"""\begin{ex}
+Cho hàm số $y = f(x)$ xác định trên $\mathbb{R}$.
+\choice
+{\True $A$}
+{$B$}
+{$C$}
+{$D$}
+\begin{loigiai}
+Lời giải chi tiết cho câu hỏi.
+\end{loigiai}
+\end{ex}"""
+
+    wrapped = ensure_full_latex_document(pure_question)
+    assert r"\documentclass" in wrapped
+    assert "fontspec" in wrapped
+    assert "amsmath" in wrapped
+    assert "tikz" in wrapped
+    assert "tkz-tab" in wrapped
+    assert r"\usepackage[dethi]{ex_test}" in wrapped
+    assert r"\begin{document}" in wrapped
+    assert r"\end{document}" in wrapped
+    assert r"Cho hàm số $y = f(x)$" in wrapped
+
+
+def test_ensure_full_latex_document_loigiai_mode():
+    """Verify ensure_full_latex_document respects loigiai mode to reveal solutions."""
+    from backend.services.composer_service import ensure_full_latex_document
+
+    pure_question = r"""\begin{ex}
+Tính giới hạn $\lim_{x \to 0} \frac{\sin x}{x}$.
+\shortans{1}
+\begin{loigiai}
+Áp dụng công thức cơ bản: $\lim_{x \to 0} \frac{\sin x}{x} = 1$.
+\end{loigiai}
+\end{ex}"""
+
+    wrapped = ensure_full_latex_document(pure_question, mode="loigiai")
+    assert r"\documentclass" in wrapped
+    assert "fontspec" in wrapped
+    assert "amsmath" in wrapped
+    assert "tikz" in wrapped
+    assert "tkz-tab" in wrapped
+    assert r"\usepackage[loigiai]{ex_test}" in wrapped
+    assert r"\usepackage[dethi]{ex_test}" not in wrapped
+    assert r"\begin{document}" in wrapped
+    assert r"\end{document}" in wrapped
+    assert r"\shortans{1}" in wrapped
+
+
+def test_ensure_full_latex_document_backward_compatibility():
+    r"""Verify documents that already have \documentclass are not double-wrapped."""
+    from backend.services.composer_service import ensure_full_latex_document
+
+    existing_doc = r"""\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz,tkz-tab}
+\usepackage[dethi]{ex_test}
+
+\begin{document}
+\section*{ĐỀ THI GỐC}
+\begin{ex}
+Câu hỏi có sẵn documentclass.
+\choice{\True $1$}{$2$}{$3$}{$4$}
+\end{ex}
+\end{document}"""
+
+    processed = ensure_full_latex_document(existing_doc)
+    assert processed.count(r"\documentclass") == 1
+    assert processed.count(r"\begin{document}") == 1
+    assert processed.count(r"\end{document}") == 1
+    assert r"\section*{ĐỀ THI GỐC}" in processed
+
+    # Mode switch on existing doc with [dethi]
+    processed_lg = ensure_full_latex_document(existing_doc, mode="loigiai")
+    assert processed_lg.count(r"\documentclass") == 1
+    assert r"\usepackage[loigiai]{ex_test}" in processed_lg
+    assert r"\usepackage[dethi]{ex_test}" not in processed_lg
+
+
+def test_compile_pure_question_latex_to_pdf():
+    """Verify compiling pure question LaTeX (no documentclass) to live PDF."""
+    pure_latex = r"""\begin{ex}
+Cho tứ diện $ABCD$. Gọi $M$ là trung điểm cạnh $AB$. Khẳng định nào sau đây đúng?
+\choice
+{\True $\vec{MA} + \vec{MB} = \vec{0}$}
+{$\vec{MA} - \vec{MB} = \vec{0}$}
+{$\vec{MA} = \vec{MB}$}
+{$\vec{AB} = 2\vec{MA}$}
+\begin{loigiai}
+Vì $M$ là trung điểm của $AB$ nên $\vec{MA} + \vec{MB} = \vec{0}$.
+\end{loigiai}
+\end{ex}"""
+
+    res = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": pure_latex, "title": "Đề Thuần Preamble-Free"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["pdf_url"].startswith("/api/v1/composer/pdf/")
+    assert data["total_pages"] >= 1
+
+    pdf_res = client.get(data["pdf_url"])
+    assert pdf_res.status_code == 200
+    assert pdf_res.headers["content-type"] == "application/pdf"
+    assert len(pdf_res.content) > 1000
+    assert pdf_res.content[:4] == b"%PDF"
+
+
+def test_compile_backward_compatibility_full_document():
+    """Verify documents with existing documentclass continue to compile smoothly."""
+    full_latex = r"""\documentclass[12pt,a4paper]{article}
+\usepackage{fontspec}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz,tkz-tab}
+\usepackage[dethi]{ex_test}
+
+\begin{document}
+\section*{KIỂM TRA CHẤT LƯỢNG}
+\begin{ex}
+Hàm số $y = x^4 - 2x^2$ có bao nhiêu điểm cực trị?
+\choice
+{\True $3$}
+{$1$}
+{$2$}
+{$0$}
+\begin{loigiai}
+$y' = 4x^3 - 4x = 4x(x^2 - 1) = 0 \Leftrightarrow x \in \{0; \pm 1\}$. Vậy có 3 điểm cực trị.
+\end{loigiai}
+\end{ex}
+\end{document}"""
+
+    res = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": full_latex, "title": "Đề Đã Có Documentclass"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["pdf_url"].startswith("/api/v1/composer/pdf/")
+
+    pdf_res = client.get(data["pdf_url"])
+    assert pdf_res.status_code == 200
+    assert pdf_res.content[:4] == b"%PDF"
+
+
+def test_templates_preamble_free_clean_extest():
+    """Verify templates returned by /templates are preamble-free clean ex_test question code."""
+    res = client.get("/api/v1/composer/templates")
+    assert res.status_code == 200
+    data = res.json()
+    assert "templates" in data
+    assert len(data["templates"]) >= 4
+
+    for tpl in data["templates"]:
+        latex = tpl["latex"]
+        # Must be preamble-free (no documentclass or begin{document})
+        assert r"\documentclass" not in latex, f"Template {tpl['id']} still contains \\documentclass"
+        assert r"\begin{document}" not in latex, f"Template {tpl['id']} still contains \\begin{{document}}"
+        assert r"\end{document}" not in latex, f"Template {tpl['id']} still contains \\end{{document}}"
+        assert r"\usepackage" not in latex, f"Template {tpl['id']} still contains \\usepackage"
+
+        # Must contain clean ex_test question markup
+        assert r"\begin{ex}" in latex, f"Template {tpl['id']} should contain clean \\begin{{ex}} markup"
+
+
+
 
 
 

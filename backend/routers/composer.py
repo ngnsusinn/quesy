@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import httpx
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
 
@@ -24,6 +24,7 @@ from backend.services.composer_service import (
     STORAGE_COMPOSER_CACHE,
     TEMPLATES,
     compile_latex_to_pdf,
+    ensure_full_latex_document,
     extract_questions_from_latex,
 )
 from backend.services.ai_provider_service import default_ai_provider_service
@@ -40,6 +41,8 @@ router = APIRouter(prefix="/api/v1/composer", tags=["Composer"])
 class CompileRequest(BaseModel):
     latex_code: str = Field(..., description="Full LaTeX source code to compile")
     title: str = Field("Đề Thi Soạn Thảo", description="Document title")
+    mode: Optional[str] = Field("dethi", description="'dethi' (hide solution) or 'loigiai' (show solution)")
+    show_solution: Optional[bool] = Field(None, description="Flag for solution visibility")
 
 class CompileResponse(BaseModel):
     success: bool
@@ -82,6 +85,11 @@ class ChatResponse(BaseModel):
 class SaveToBankRequest(BaseModel):
     latex_code: str = Field(..., description="LaTeX source containing exam questions to extract")
 
+class ExportRequest(BaseModel):
+    latex_code: str = Field(..., description="LaTeX source code to export")
+    mode: Optional[str] = Field("dethi", description="ex_test compilation mode: 'dethi' or 'loigiai'")
+    title: Optional[str] = Field("de_thi", description="Document title for naming the exported file")
+
 
 # ---------------------------------------------------------------------------
 # Endpoints
@@ -119,7 +127,10 @@ def compile_latex_endpoint(req: CompileRequest):
     if not clean_code:
         raise HTTPException(status_code=400, detail="Mã LaTeX không được để trống")
 
-    code_hash = hashlib.md5((clean_code + req.title).encode("utf-8")).hexdigest()
+    mode = req.mode or ("loigiai" if req.show_solution else "dethi")
+    full_latex = ensure_full_latex_document(clean_code, mode=mode, title=req.title)
+
+    code_hash = hashlib.md5((full_latex + req.title + mode).encode("utf-8")).hexdigest()
     out_pdf = STORAGE_COMPOSER_CACHE / f"{code_hash}.pdf"
 
     # If already compiled and cached on disk
@@ -133,7 +144,7 @@ def compile_latex_endpoint(req: CompileRequest):
             total_pages=count_pdf_pages(out_pdf),
         )
 
-    success, err_msg, elapsed_ms = compile_latex_to_pdf(clean_code, out_pdf, title=req.title)
+    success, err_msg, elapsed_ms = compile_latex_to_pdf(full_latex, out_pdf, title=req.title, mode=mode)
 
     if not success:
         return CompileResponse(
@@ -169,6 +180,47 @@ def get_compiled_pdf(doc_id: str):
             "Content-Disposition": f"inline; filename=exam_{doc_id[:8]}.pdf",
             "Cache-Control": "public, max-age=3600",
         },
+    )
+
+
+@router.post("/export", summary="Export full standalone LaTeX source (.tex)")
+def export_latex_endpoint(req: ExportRequest):
+    """Exports full standalone LaTeX source code (.tex) with canonical preamble and ex_test packages.
+    If the code is preamble-free, wraps it in the canonical preamble with the specified mode.
+    If the code already has a preamble, standardizes it.
+    """
+    clean_code = req.latex_code.strip()
+    full_latex = ensure_full_latex_document(clean_code, mode=req.mode or "dethi", title=req.title or "de_thi")
+    safe_title = re.sub(r'[^\w\-_\.]', '_', req.title or "de_thi").strip('_') or "de_thi"
+    filename = f"{safe_title}.tex"
+    return Response(
+        content=full_latex,
+        media_type="text/x-tex; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Filename": filename,
+        }
+    )
+
+
+@router.get("/export", summary="Export full standalone LaTeX source (.tex) via GET")
+def export_latex_endpoint_get(
+    latex_code: str = "",
+    mode: str = "dethi",
+    title: str = "de_thi",
+):
+    """Exports full standalone LaTeX source code (.tex) with canonical preamble via GET."""
+    clean_code = latex_code.strip()
+    full_latex = ensure_full_latex_document(clean_code, mode=mode or "dethi", title=title or "de_thi")
+    safe_title = re.sub(r'[^\w\-_\.]', '_', title or "de_thi").strip('_') or "de_thi"
+    filename = f"{safe_title}.tex"
+    return Response(
+        content=full_latex,
+        media_type="text/x-tex; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Filename": filename,
+        }
     )
 
 
@@ -889,36 +941,37 @@ def composer_chat_endpoint(req: ChatRequest):
     system_prompt = (
         "Bạn là Trợ lý Soạn thảo Đề thi & LaTeX Chuyên nghiệp (Quesy AI Copilot), lấy cảm hứng từ open-prism.\n"
         "Nhiệm vụ của bạn là hỗ trợ giáo viên Toán tại Việt Nam soạn thảo đề thi chất lượng cao theo chuẩn Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT (Định dạng 2025).\n\n"
+        "KIẾN TRÚC SOẠN THẢO PREAMBLE-FREE (KHÔNG PREAMBLE):\n"
+        "- Khung soạn thảo (editor) CHỈ CHỨA trực tiếp phần tiêu đề đề thi (\\section*, \\begin{center}) và các khối câu hỏi theo chuẩn gói lệnh ex_test.sty (\\begin{ex}...\\end{ex}).\n"
+        "- Toàn bộ Preamble (\\documentclass, \\usepackage{fontspec}, \\usepackage{amsmath,amssymb,amsfonts}, \\usepackage{geometry}, \\usepackage{multicol}, \\usepackage{tikz,tkz-tab}, \\usepackage{tcolorbox}, \\usepackage[dethi]{ex_test}, \\begin{document}, \\end{document}) ĐÃ ĐƯỢC HỆ THỐNG TỰ ĐỘNG NHÚNG NGẦM ở backend khi biên dịch.\n"
+        "- TUYỆT ĐỐI KHÔNG sinh lại preamble, \\documentclass, \\usepackage, \\begin{document} hay \\end{document}. Khi sinh mới hoặc sửa câu hỏi, CHỈ TRẢ VỀ mã câu hỏi \\begin{ex}...\\end{ex} chuẩn ex_test.\n\n"
         "HỆ THỐNG ĐÃ TÍCH HỢP TOÀN DIỆN GÓI LỆNH ex_test.sty (v3.3):\n"
-        "- Khai báo: \\usepackage[dethi]{ex_test} (hoặc [color], [loigiai], [solcolor]) cùng \\usepackage{fontspec}.\n"
         "- Phần I (Trắc nghiệm 4 lựa chọn): Dùng \\begin{ex} ... \\choice{A}{\\True B}{C}{D} \\begin{loigiai}...\\end{loigiai} \\end{ex}.\n"
         "- Phần II (Đúng/Sai 4 khẳng định): Dùng \\begin{ex} ... \\choiceTF{\\True a)...}{b)...}{\\True c)...}{d)...} \\begin{loigiai}\\begin{itemchoice}\\itemch...\\end{itemchoice}\\end{loigiai} \\end{ex}.\n"
         "- Phần III (Trả lời ngắn): Dùng \\begin{ex} ... \\shortans{kết_quả} \\begin{loigiai}...\\end{loigiai} \\end{ex}.\n"
-        "- Chèn hình song song chữ: Dùng \\immini{Văn bản câu hỏi}{Mã hình TikZ} (hình bên phải) hoặc \\imminiL (hình bên trái).\n\n"
+        "- Chèn hình song song chữ: Dùng \\immini{Văn bản câu hỏi}{Mã hình TikZ} (hình bên phải) hoặc \\imminiL (hình bên trái). Tuyệt đối không lồng \\choice vào trong tham số của \\immini.\n\n"
         "QUY TẮC BẮT BUỘC:\n"
-        "1. Luôn sử dụng mã LaTeX chuẩn với font CMU Serif / Computer Modern (dùng \\usepackage{fontspec}).\n"
-        "2. Bảng biến thiên BẮT BUỘC dùng TikZ package tkz-tab (\\tkzTabInit, \\tkzTabLine, \\tkzTabVar). Không dùng \\begin{array} cho bảng biến thiên!\n"
-        "3. Đồ thị hàm số và hình học BẮT BUỘC dùng khối \\begin{tikzpicture} ... \\end{tikzpicture}.\n"
-        "4. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n\n"
+        "1. Bảng biến thiên BẮT BUỘC dùng TikZ package tkz-tab (\\tkzTabInit, \\tkzTabLine, \\tkzTabVar). Không dùng \\begin{array} cho bảng biến thiên!\n"
+        "2. Đồ thị hàm số và hình học BẮT BUỘC dùng khối \\begin{tikzpicture} ... \\end{tikzpicture}.\n"
+        "3. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n\n"
         "QUY TẮC PHẢN HỒI (BẮT BUỘC TUÂN THỦ):\n"
-        "1. KHI NGƯỜI DÙNG YÊU CẦU SỬA ĐỔI, ĐIỀU CHỈNH HOẶC THAY THẾ (như đổi font, sửa tiêu đề, đổi đáp án, sửa/fix lỗi biên dịch):\n"
-        "   - TUYỆT ĐỐI KHÔNG xuất lại toàn bộ tài liệu cũ dài dòng!\n"
+        "1. KHI NGƯỜI DÙNG YÊU CẦU SỬA ĐỔI, ĐIỀU CHỈNH HOẶC THAY THẾ:\n"
+        "   - TUYỆT ĐỐI KHÔNG xuất lại toàn bộ tài liệu cũ dài dòng! Không sinh lại preamble!\n"
         "   - BẮT BUỘC chỉ xuất khối ```diff chứa đúng dòng cũ cần thay và dòng mới:\n"
         "     ```diff\n"
         "     - <dòng mã cũ>\n"
         "     + <dòng mã mới>\n"
         "     ```\n"
         "   - Kèm lời giải thích ngắn gọn bằng tiếng Việt.\n"
-        "   - Nếu người dùng yêu cầu sửa lỗi biên dịch (ví dụ lệnh không xác định như \\badcommand{abc}), BẮT BUỘC xuất dòng đỏ (-) là dòng lỗi và dòng xanh (+) là lệnh đúng hoặc ghi chú comment lại dòng lỗi để loại bỏ lỗi hoàn toàn.\n"
-        "2. KHI NGƯỜI DÙNG YÊU CẦU THAY THẾ HOẶC ĐỔI MỘT CÂU HỎI (như thay thế câu 1, thay câu 2, đổi câu 3, sửa câu 1):\n"
+        "2. KHI NGƯỜI DÙNG YÊU CẦU THAY THẾ HOẶC ĐỔI MỘT CÂU HỎI:\n"
         "   - BẮT BUỘC trích xuất khối ```diff rõ ràng với old_text là câu cũ và new_text là câu mới:\n"
         "     ```diff\n"
         "     - <toàn bộ khối câu cũ trong tài liệu hiện tại>\n"
-        "     + <toàn bộ khối câu hỏi mới thay thế>\n"
+        "     + <toàn bộ khối câu hỏi mới thay thế (\\begin{ex}...\\end{ex})>\n"
         "     ```\n"
-        "   - Đồng thời có thể kèm khối ```latex ... ``` chứa riêng câu hỏi mới để giáo viên có thể chèn trực tiếp.\n"
+        "   - Đồng thời có thể kèm khối ```latex ... ``` chứa riêng câu hỏi mới (chỉ \\begin{ex}...\\end{ex}) để giáo viên có thể chèn trực tiếp.\n"
         "3. KHI NGƯỜI DÙNG YÊU CẦU TẠO MỚI CÂU HỎI HOẶC HÌNH VẼ:\n"
-        "   - Xuất mã LaTeX tự chứa trong khối ```latex ... ``` để chèn vào vị trí con trỏ.\n"
+        "   - Xuất mã câu hỏi chuẩn ```latex \\begin{ex}...\\end{ex} ``` để chèn vào vị trí con trỏ (tuyệt đối không kèm preamble).\n"
     )
 
     prompt = f"Yêu cầu của giáo viên: {req.message}\n\n"
