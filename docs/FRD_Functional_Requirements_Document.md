@@ -110,15 +110,23 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   - **Lưu vào Ngân hàng:** Trích xuất các câu hỏi từ mã LaTeX sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table) chỉ với 1 click, hỗ trợ đồng thời cả cú pháp `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`).
   - **Tải tệp PDF & .TEX:** Xuất bản tệp PDF vector-crisp 100% font CMU Serif và tệp nguồn LaTeX `.tex`.
 
-### 2.4.1. FR-02.3: Thanh Nhập Prompt AI Thu Gọn, Cơ Chế Xóa Sạch Lạc Quan (Optimistic Input Reset) & Quy Chuẩn Màu Tương Phản Dark Mode
+### 2.4.1. FR-02.3: Thanh Nhập Prompt AI Thu Gọn, Con Trỏ Soạn Thảo Toàn Chiều (Full-Height Caret), Hiệu Ứng Nổi Bật Khi Focus (:focus-within Glow) & Cơ Chế Xóa Sạch Lạc Quan
 - **Vị trí & Kiểu dáng:**
   - Thanh dạng viên thuốc (floating pill bar) neo tại chân khung soạn thảo LaTeX (`bottom-7`, căn giữa theo chiều ngang `left-1/2 -translate-x-1/2`, chiều rộng `w-[92%] max-w-xl`).
   - Giao diện Apple Glassmorphism: Nền bán trong suốt `#1c1c1f/95`, hiệu ứng mờ hậu cảnh `backdrop-blur-md`, viền tinh tế `border-white/15`, đổ bóng sâu `shadow-2xl`.
 - **Quy tắc Tương tác & Kích hoạt 2 Trạng Thái:**
-  1. *Trạng thái Nhập liệu Cục bộ (In-place Text Input):*
+  1. *Trạng thái Nhập liệu Cục bộ (In-place Text Input) & Hiển thị Full Con Trỏ (Full-Height Caret):*
      - Khi người dùng nhấp chuột vào thanh hoặc trường nhập `#composer-compact-input`, con trỏ chuột duy trì dạng `cursor-text` và trường nhập nhận focus bình thường.
      - **Quy tắc bất biến:** Việc nhấp chuột vào thanh hoặc trường nhập **tuyệt đối không tự động mở full popup trợ lý**. Giáo viên có thể thoải mái click để nhập, chỉnh sửa, dán (paste) nội dung yêu cầu mà không bị che khuất không gian làm việc.
-  2. *Trạng thái Kích hoạt Mở rộng & Gửi Lệnh (Expansion & Dispatch Trigger):*
+     - **Hiển thị Full Con Trỏ Soạn Thảo (Anti-Caret-Clipping):** Khắc phục triệt để lỗi con trỏ soạn thảo (caret) bị ăn mất hoặc cụt ngủn khi click vào ô input. Định nghĩa chiều cao và giãn dòng tường minh (`font-size: 13px; line-height: 20px; height: 24px; padding: 1px 0; box-sizing: border-box; caret-color: #c084fc;`), bảo đảm caret hiển thị trọn vẹn 100% chiều cao con trỏ nhấp nháy, không bị clipping do container `overflow` hay co kéo `line-height`.
+  2. *Hiệu Ứng Nổi Bật Box Chat Khi Được Select (:focus-within Apple Neon Glow):*
+     - Khi bất kỳ thành phần nào trong `#composer-ai-compact-bar` nhận focus (đặc biệt là `#composer-compact-input:focus`), toàn bộ khung thanh bar được kích hoạt trạng thái nổi bật tức thì qua pseudo-class `:focus-within`:
+       + **Viền phát sáng (Border Highlight):** Chuyển từ viền mờ `border-white/15` sang viền tím neon đậm đà `border-color: rgba(168, 85, 247, 0.75)` (Apple Purple).
+       + **Vòng sáng tỏa (Focus Ring & Glow):** Áp dụng `box-shadow: 0 0 0 3.5px rgba(168, 85, 247, 0.28), 0 16px 40px -6px rgba(0, 0, 0, 0.9)`.
+       + **Nền kính sâu hơn:** `background-color: rgba(28, 28, 32, 0.98)` tách biệt rõ rệt khỏi editor.
+       + **Phản hồi xúc giác vi mô (Micro-interaction):** Nhấc nhẹ `transform: translate(-50%, -1px) scale(1.005)`.
+       + **Icon Sparkles:** Sáng rực rỡ với `filter: drop-shadow(0 0 6px rgba(192, 132, 252, 0.65))` và nút gửi chuyển sang tím neon đồng bộ.
+  3. *Trạng thái Kích hoạt Mở rộng & Gửi Lệnh (Expansion & Dispatch Trigger):*
      - Chỉ khi người dùng thực hiện một trong hai hành động sau thì hệ thống mới kích hoạt mở bung full giao diện Popup Trợ lý Soạn thảo (`composer-ai-popup`):
        - Nhấn phím **`Enter`** (bắt sự kiện `keydown` -> `handleCompactInputKey`).
        - Nhấp chuột vào **Nút Gửi Mũi Tên Tròn** (nút màu trắng nền tròn với icon `arrow-up` -> `submitFromCompact`).
@@ -127,20 +135,20 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
        - Thanh Compact Bar tạm thời ẩn (`hidden`) để nhường chỗ cho giao diện chat chuyên sâu.
        - Dữ liệu text trong Compact Input được tự động chuyển tiếp vào ô chat chính và xóa trắng ô thu gọn.
        - Nếu có nội dung text, hệ thống tự động kích hoạt tiến trình gửi yêu cầu `sendPrompt(text)` đến Backend, chèn tin nhắn người dùng vào lịch sử và hiển thị bong bóng loading `Trợ lý đang xử lý yêu cầu...`.
-  3. *Cơ Chế Xóa Sạch Lạc Quan (Optimistic Dual-Input Reset & Event Decoupling):*
+  4. *Cơ Chế Xóa Sạch Lạc Quan (Optimistic Dual-Input Reset & Event Decoupling):*
      - **Khắc phục lỗi:** Triệt tiêu hoàn toàn hiện tượng text chat cũ còn lưu kẹt trong ô nhập chat của trợ lý sau khi đã gửi đi (Ảnh 1).
      - **Thực thi đồng bộ tại $t = 0\text{ms}$:** Ngay khi sự kiện gửi được kích hoạt (`submitChat`, `submitFromCompact`, hoặc `sendPrompt`), hệ thống lập tức gán `chatInput.value = ''` và `compactInput.value = ''` đồng thời, không đợi phản hồi mạng hoặc kết thúc hiệu ứng mở popup.
      - **Tách bạch ngữ nghĩa `openAIPopup`:** `submitFromCompact()` chỉ gọi `this.openAIPopup('')` với chuỗi rỗng; tuyệt đối không truyền lại prompt vào `prefillPrompt` (loại bỏ lỗi gán ngược nội dung đã gửi vào `chatInput.value`). `prefillPrompt` chỉ được sử dụng khi giáo viên chủ động bấm chọn mẫu lệnh nhanh (`applyQuickPrompt`) để biên tập trước khi gửi.
-     - Con trỏ nhập liệu duy trì sẵn sàng ở đầu ô nhập trống với caret xanh Apple `#38bdf8`, sẵn sàng cho lượt chat tiếp theo.
-  4. *Menu Mẫu Câu Lệnh Nhanh (Quick Actions):*
-     - Nút dấu cộng `+` bên cạnh nút gửi cho phép mở menu popover danh mục prompt tiêu chuẩn (Đổi cỡ chữ 12pt, Sinh trắc nghiệm 4 lựa chọn, Sinh Đúng/Sai QĐ 764, Vẽ bảng biến thiên `tkz-tab`, Sửa cú pháp LaTeX).
+     - Con trỏ nhập liệu duy trì sẵn sàng ở đầu ô nhập trống với caret tím neon `#c084fc` hoặc xanh Apple `#38bdf8`, sẵn sàng cho lượt chat tiếp theo.
+  5. *Menu Mẫu Câu Lệnh Nhanh (Quick Actions):*
+     - Nút dấu cộng `+` bên cạnh nút gửi cho phép mở menu popover danh mục prompt tiêu chuẩn (Tạo Header chuẩn Quốc gia 2 cột & mã đề, Tạo khung 3 Phần đề thi chuẩn Bộ GD&ĐT 2025, Đổi cỡ chữ 12pt, Sinh trắc nghiệm 4 lựa chọn, Sinh Đúng/Sai QĐ 764, Vẽ bảng biến thiên `tkz-tab`, Sửa cú pháp LaTeX).
      - Khi chọn một mẫu, hệ thống tự động mở popup và điền sẵn prompt vào ô chat.
-- **Quy chuẩn Màu Tương Phản Dark Mode (Sửa lỗi chữ đen trên nền tối):**
+- **Quy chuẩn Màu Tương Phản Dark Mode (Sửa lỗi chữ đen trên nền tối):*
   - Khắc phục triệt để lỗi chữ màu đen `#1d1d1f` bị chìm trên nền tối `#1c1c1f` / `#141824`.
   - Thiết lập design tokens bắt buộc với độ ưu tiên cao (`!important`) cho cả 2 trường nhập liệu `#composer-compact-input` và `#composer-chat-input`:
     - *Text Color:* `#f8fafc` (Slate-50) hoặc `#ffffff` xuyên suốt mọi trạng thái (default, hover, focus, active).
     - *Placeholder Color:* `rgba(226, 232, 240, 0.5)` (Slate-200 / 50%) phân biệt rõ ràng nhưng dịu mắt trên nền tối.
-    - *Caret Color (Con trỏ nhập liệu):* `#38bdf8` (Sky-400 / Apple Blue) định vị sắc nét vị trí con trỏ.
+    - *Caret Color (Con trỏ nhập liệu):* `#c084fc` (Purple-400) hoặc `#38bdf8` (Sky-400 / Apple Blue) định vị sắc nét vị trí con trỏ với chiều cao chuẩn 100%.
     - *Selection Color:* `::selection { background-color: rgba(59, 130, 246, 0.4); color: #ffffff; }`.
     - *Background & Borders:* Nền trong suốt `background-color: transparent !important`, loại bỏ toàn bộ viền trong, bóng hộp mặc định (`border: none !important; outline: none !important; box-shadow: none !important`).
 
@@ -364,6 +372,64 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
        + Nếu người dùng sử dụng mã nguồn có sẵn `\usepackage[...]{ex_test}`, hệ thống vẫn đồng bộ cập nhật text trong editor; nếu là mã thuần không preamble, hệ thống giữ nguyên text của người dùng, không làm ô nhiễm mã nguồn.
      - Tác vụ `Tải mã nguồn TeX (.tex)`:
        + Khi người dùng chọn xuất file TeX, nếu mã nguồn đang ở dạng không preamble, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi tạo file tải xuống (`.tex`), đảm bảo giáo viên có thể mở và biên dịch độc lập ngay lập tức trên máy tính cá nhân.
+
+### 2.4.14. FR-02.16: Cấu Trúc Header 2 Cột & Phân Vùng Section Khảo Thí Chuẩn Quốc Gia 2025
+- **Mục tiêu Nghiệp vụ:** Cung cấp bộ khung cấu trúc đề thi chính thức chuẩn hóa theo mẫu của Bộ Giáo dục & Đào tạo (Kỳ thi Tốt nghiệp THPT 2025). Cho phép giáo viên tạo lập ngay lập tức qua menu thanh công cụ `THÊM ▾`, gọi mẫu qua Quick Action Menu trên Compact Bar, hoặc giao tiếp ngôn ngữ tự nhiên với AI Copilot.
+- **Quy cách Chi tiết Cấu trúc Đề thi Chuẩn Quốc Gia 2025:**
+  1. *Header 2 Cột Đối Xứng Minipage:*
+     - Cột Trái (độ rộng `0.42\textwidth`):
+       ```latex
+       \noindent
+       \begin{minipage}[t]{0.42\textwidth}
+       \begin{center}
+       \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+       \textbf{ĐỀ CHÍNH THỨC}\\
+       
+ule{2.8cm}{0.6pt}
+       \end{center}
+       \end{minipage}%
+       ```
+     - Cột Phải (độ rộng `0.54\textwidth`):
+       ```latex
+       \hfill
+       \begin{minipage}[t]{0.54\textwidth}
+       \begin{center}
+       \textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG NĂM 2025}\\
+       \textbf{Môn: TOÁN HỌC}\\
+       \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+       \end{center}
+       \end{minipage}
+       ```
+  2. *Hàng Thông Tin Thí Sinh & Khung Mã Đề:*
+     - Phân định rõ ràng Họ tên, SBD với chấm lửng tự co giãn `\dotfill` và khung bao mã đề nổi bật:
+       ```latex
+       \vspace{0.3cm}
+       \noindent
+       \textbf{Họ, tên thí sinh:} \dotfill\ \textbf{Số báo danh:} \dotfill\ \framebox{\textbf{Mã đề: 0102}}
+       \vspace{0.4cm}
+       ```
+  3. *3 Phân Vùng Section Khảo Thí Chuẩn Bộ GD&ĐT 2025:*
+     - **PHẦN I (Trắc nghiệm nhiều lựa chọn):**
+       `\section*{PHẦN I. Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}`
+     - **PHẦN II (Trắc nghiệm Đúng/Sai 4 khẳng định):**
+       `\section*{PHẦN II. Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}`
+     - **PHẦN III (Trắc nghiệm trả lời ngắn):**
+       `\section*{PHẦN III. Thí sinh trả lời từ câu 1 đến câu 6. Mỗi câu hỏi thí sinh chỉ điền kết quả vào ô trả lời.}`
+  4. *Tích Hợp Giao Diện Menu THÊM ▾ & Quick Actions:*
+     - Giao diện dropdown `THÊM ▾` trên thanh công cụ chia làm 2 phân vùng:
+       + Nhóm *CẤU TRÚC ĐỀ THI QUỐC GIA 2025*: Header 2 Cột & Mã đề, Phần I, Phần II, Phần III, Trọn bộ Đề thi Quốc Gia.
+       + Nhóm *MẪU LỆNH EX_TEST*: Trắc nghiệm, Đúng/Sai, Trả lời ngắn, Tự luận, Hình TikZ, Hình cạnh chữ, Lời giải.
+     - Quick Action Menu (`#composer-compact-quick-menu`) trang bị 2 shortcut:
+       * *Tạo Header đề thi chuẩn Quốc gia 2 cột & mã đề*
+       * *Tạo khung 3 Phần đề thi chuẩn Bộ GD&ĐT 2025*
+  5. *Động Cơ Render HTML/PDF Hỗ Trợ Đầy Đủ Các Lệnh:*
+     - Xử lý mượt mà trên cả Tectonic XeTeX engine lẫn Chromium HTML fallback:
+       + Biên dịch `minipage` thành cấu trúc inline-block / flexbox cân đối.
+       + Biên dịch `
+ule{...}{...}` thành đường kẻ divider ngang căn giữa.
+       + Biên dịch `\dotfill` thành đường kẻ chấm co giãn linh hoạt.
+       + Biên dịch `\framebox` / `\fbox` thành thẻ viền chữ nhật bao quanh mã đề.
+       + Bảo toàn chữ thường không ép uppercase trên `.latex-section`.
 
 ---
 

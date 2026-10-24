@@ -219,8 +219,8 @@ def test_negative_generate_exam_with_nonexistent_matrix_returns_404(client):
 
 
 def test_negative_generate_exam_with_excessive_inventory_requirement_returns_400(client, sample_taxonomy):
-    """Requesting 500 questions when bank only has 35 must return 400 with detailed inventory deficit."""
-    # Arrange: create a matrix asking for 500 questions
+    """Requesting excessive questions exceeding bank inventory must return 400 with detailed inventory deficit."""
+    # Arrange: create a matrix asking for 50000 questions (exceeds total bank capacity)
     matrix_payload = {
         "title": "Ma trận yêu cầu vượt ngưỡng",
         "subject_id": sample_taxonomy["subject_id"],
@@ -233,7 +233,7 @@ def test_negative_generate_exam_with_excessive_inventory_requirement_returns_400
                 "learning_outcome_id": sample_taxonomy["yccd_id"],
                 "cognitive_level": "RECOGNITION",
                 "item_format": "SINGLE_CHOICE",
-                "quantity": 500,
+                "quantity": 50000,
                 "points_per_item": 0.2,
                 "order_index": 1
             }

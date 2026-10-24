@@ -3874,6 +3874,106 @@
     templates: {},
 
     EX_TEST_TEMPLATES: {
+      'header_quocgia': `\\noindent
+\\begin{minipage}[t]{0.48\\textwidth}
+  \\textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\\\
+  \\textbf{TRƯỜNG THPT ...}\\\\
+  \\textbf{ĐỀ CHÍNH THỨC}
+\\end{minipage}
+\\hfill
+\\begin{minipage}[t]{0.48\\textwidth}
+  \\centering
+  \\textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\\\
+  \\textbf{MÔN: TOÁN}\\\\
+  \\textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+\\end{minipage}
+\\vspace{0.2cm}
+\\noindent\\rule{\\textwidth}{0.5pt}
+\\vspace{-0.1cm}
+\\noindent
+Họ và tên thí sinh: \\dotfill\\ Số báo danh: \\dotfill\\ \\hfill \\framebox{\\textbf{Mã đề: 0102}}
+\\vspace{0.1cm}
+\\noindent\\rule{\\textwidth}{0.5pt}
+\\vspace{0.3cm}
+`,
+      'section_phan1': `\\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
+`,
+      'section_phan2': `\\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}
+\\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+
+`,
+      'section_phan3': `\\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
+\\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+
+`,
+      'dethi_quocgia_full': `\\noindent
+\\begin{minipage}[t]{0.48\\textwidth}
+  \\textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\\\
+  \\textbf{TRƯỜNG THPT ...}\\\\
+  \\textbf{ĐỀ CHÍNH THỨC}
+\\end{minipage}
+\\hfill
+\\begin{minipage}[t]{0.48\\textwidth}
+  \\centering
+  \\textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\\\
+  \\textbf{MÔN: TOÁN}\\\\
+  \\textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+\\end{minipage}
+\\vspace{0.2cm}
+\\noindent\\rule{\\textwidth}{0.5pt}
+\\vspace{-0.1cm}
+\\noindent
+Họ và tên thí sinh: \\dotfill\\ Số báo danh: \\dotfill\\ \\hfill \\framebox{\\textbf{Mã đề: 0102}}
+\\vspace{0.1cm}
+\\noindent\\rule{\\textwidth}{0.5pt}
+\\vspace{0.3cm}
+
+\\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
+\\begin{ex}
+Cho hàm số $y = f(x)$ có đạo hàm $f'(x) = x(x-1)^2$. Số điểm cực trị của hàm số là:
+\\choice
+{0}
+{\\True 2}
+{1}
+{3}
+\\begin{loigiai}
+$f'(x) = 0 \\Leftrightarrow x = 0$ hoặc $x = 1$. Số điểm cực trị là 1.\\end{loigiai}
+\\end{ex}
+
+\\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}
+\\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+
+\\begin{ex}
+Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
+\\choiceTF
+{\\True Hàm số đạt cực đại tại $x = -1$.}
+{Giá trị cực tiểu bằng $1$.}
+{\\True Tiệm cận ngang không có.}
+{Đồ thị nhận điểm $I(0;1)$ làm tâm đối xứng.}
+\\begin{loigiai}
+\\begin{itemchoice}
+\\itemch Đúng. $y' = 3x^2 - 3 = 0 \\Rightarrow x = \\pm 1$. $y(-1) = 3$.
+\\itemch Sai. $y(1) = -1$.
+\\itemch Đúng. Hàm đa thức không có tiệm cận ngang.
+\\itemch Đúng. $y''(0) = 0$ và $y(0) = 1$.
+\\end{itemchoice}
+\\end{loigiai}
+\\end{ex}
+
+\\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
+\\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+
+\\begin{ex}
+Tìm giá trị lớn nhất của hàm số $y = -x^2 + 4x - 3$ trên đoạn $[0; 3]$.
+\\shortans{1}
+\\begin{loigiai}
+$y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.\\end{loigiai}
+\\end{ex}
+`,
       'tracnghiem': `\\begin{ex}\n\n\\choice\n{}\n{}\n{}\n{}\n\\loigiai{\n\n}\n\\end{ex}\n`,
       'dungsai': `\\begin{ex}\n\n\\choiceTFt\n{}\n{}\n{}\n{}\n\\loigiai{\n\\begin{itemchoice}\n\\itemch\n\\itemch\n\\itemch\n\\itemch\n\\end{itemchoice}\n}\n\\end{ex}\n`,
       'traloingan': `\\begin{ex}\n\n\\par\n\\shortans[oly]{}\n\\loigiai{\n\n}\n\\end{ex}\n`,

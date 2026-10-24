@@ -302,13 +302,15 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
      - Cột trái: Editor mã nguồn Dark mode (`#141824`), toolbar `MỚI`, `THÊM ▾` (7 mẫu lệnh `ex_test`), đánh số dòng, hoàn tác/làm lại, dọn dẹp, sao chép.
      - Thanh phân cách ngang (`#composer-split-resizer`): Nằm giữa 2 cột với khoảng cách đệm công thái học `w-3.5` / `w-4` và lề an toàn `mx-1` / `mx-1.5`, không đè sát viền box soạn thảo (Ảnh 2). Trục viên thuốc `w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]` mang phong cách Apple HIG, quầng sáng xanh Apple `#0071e3` khi hover, hỗ trợ kéo thả chuột/cảm ứng tùy biến tỷ lệ 25% - 75% (nháy đúp về 60:40, lưu `localStorage`).
      - Cột phải: Xem trước trực tiếp tệp PDF biên dịch từ XeTeX Engine (Live Preview), tab Lịch sử biên dịch, công tắc LỜI GIẢI (`[dethi]` <-> `[loigiai]`), menu xuất PDF/TeX/Ngân hàng và thanh nút bấm nổi bật màu xanh **`BIÊN DỊCH`**.
-  2. **Thanh Nhập Prompt AI Thu Gọn, Cơ Chế Xóa Sạch Lạc Quan (Optimistic Input Reset) & Tương Phản Dark Mode:**
+  2. **Thanh Nhập Prompt AI Thu Gọn, Con Trỏ Toàn Chiều (Full-Height Caret), Hiệu Ứng Nổi Bật Focus (:focus-within Glow) & Tương Phản Dark Mode:**
      - Thanh dạng viên thuốc (floating pill bar) neo tại chân editor (`#composer-ai-compact-bar`), thiết kế bán trong suốt Apple Glassmorphism.
-     - *Độ tương phản Dark Mode (WCAG 2.1 AA):* Chữ trong ô input `#composer-compact-input` và ô chat chính `#composer-chat-input` hiển thị màu trắng sáng `#f8fafc`, caret màu xanh Apple `#38bdf8`, loại bỏ hoàn toàn lỗi chữ đen chìm trên nền tối.
+     - *Hiển thị Full Con Trỏ (Full-Height Caret):* Chiều cao font và dòng tường minh (`font-size: 13px; line-height: 20px; height: 24px; padding: 1px 0; box-sizing: border-box; caret-color: #c084fc;`), triệt tiêu hoàn toàn hiện tượng con trỏ soạn thảo bị ăn mất, cụt ngủn hoặc bị clipping.
+     - *Hiệu ứng nổi bật khi select (:focus-within):* Khi click/focus vào input, thanh bar tự động kích hoạt viền tím phát sáng `border-color: rgba(168, 85, 247, 0.75)`, quầng sáng tỏa Apple Glow `0 0 0 3.5px rgba(168, 85, 247, 0.28)`, icon sparkles rực sáng và nút gửi chuyển tím neon.
+     - *Độ tương phản Dark Mode (WCAG 2.1 AA):* Chữ trong ô input `#composer-compact-input` và ô chat chính `#composer-chat-input` hiển thị màu trắng sáng `#f8fafc`, caret màu tím sáng `#c084fc` hoặc xanh Apple `#38bdf8`, loại bỏ hoàn toàn lỗi chữ đen chìm trên nền tối.
      - *Hành vi click:* Nhấp chuột vào thanh chỉ để focus con trỏ văn bản (`cursor-text`) và nhập liệu bình thường; **tuyệt đối không tự động mở full popup trợ lý** để tránh gián đoạn không gian soạn thảo.
      - *Kích hoạt mở rộng & Optimistic Fast Dispatch:* Chỉ khi người dùng nhấn phím **`Enter`** hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**, hệ thống mới mở bung giao diện Popup Trợ lý Soạn thảo (`#composer-ai-popup`) với hiệu ứng phần cứng mượt mà trong $\le 16$ms, chuyển tiếp chuỗi prompt và kích hoạt luồng trả lời của AI Copilot.
      - *Cơ chế Xóa Sạch Lạc Quan (Optimistic Dual-Input Reset):* Xóa sạch ngay lập tức cả 2 ô nhập (`compactInput.value = ''` và `chatInput.value = ''`) tại $t = 0\text{ms}$ khi gửi lệnh, triệt tiêu hoàn toàn lỗi text cũ còn kẹt trong ô nhập (Ảnh 1).
-     - *Menu mẫu lệnh nhanh:* Nút dấu cộng `+` cung cấp sẵn các mẫu prompt chuẩn (đổi cỡ chữ 12pt, tạo câu hỏi Phần I/II/III, vẽ bảng biến thiên `tkz-tab`, sửa lỗi cú pháp LaTeX).
+     - *Menu mẫu lệnh nhanh:* Nút dấu cộng `+` cung cấp sẵn các mẫu prompt chuẩn (tạo Header chuẩn Quốc gia 2 cột & mã đề, tạo khung 3 Phần đề thi chuẩn Bộ GD&ĐT 2025, đổi cỡ chữ 12pt, tạo câu hỏi Phần I/II/III, vẽ bảng biến thiên `tkz-tab`, sửa lỗi cú pháp LaTeX).
   3. **Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding):**
      - Khi biên dịch LaTeX qua Tectonic/XeTeX phát sinh lỗi (`success = false`), hệ thống tự động lưu giữ thông báo lỗi vào `lastCompileError`.
      - Prompt tiếp theo của người dùng tự động đính kèm `compile_error_log` để AI Copilot phân tích cú pháp TeX và tự động đề xuất khối `diff` sửa lỗi trực tiếp dòng mã nguồn bị sai.
@@ -335,6 +337,11 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
      - Neo chính xác theo vị trí con trỏ chuột (`Cursor Anchor`) khi cuộn chuột `Ctrl+Wheel` trên tài liệu, giữ điểm nội dung dưới đầu chuột đứng yên bất biến.
      - Neo theo trọng tâm chính giữa màn hình (`Center Anchor`) khi bấm nút `+` / `-` trên thanh công cụ nổi hoặc phím tắt.
      - Triệt tiêu $100\%$ hiện tượng tài liệu bị giật văng về góc trên cùng bên trái $(0, 0)$ và bảo toàn vị trí cuộn khi vẽ lại vector canvas ở độ phân giải thực.
+  9. **Cấu Trúc Header 2 Cột & Phân Vùng 3 Section Khảo Thí Chuẩn Quốc Gia 2025:**
+     - Tích hợp trọn bộ mẫu cấu trúc đề thi Quốc gia theo chuẩn Bộ Giáo dục & Đào tạo: Header 2 cột cân đối bằng `minipage` (Sở/Bộ GD&ĐT + Đề chính thức vs Kỳ thi THPT 2025 + Môn Toán + Thời gian 90 phút), hàng thông tin thí sinh với `\dotfill` kèm khung mã đề `\framebox{\textbf{Mã đề: 0102}}`.
+     - Phân vùng 3 Section khảo thí chuẩn mực: Phần I (12 câu trắc nghiệm 4 lựa chọn), Phần II (4 câu Đúng/Sai 4 khẳng định theo Quyết định 764), và Phần III (6 câu trắc nghiệm điền kết quả ngắn).
+     - Cho phép chèn nhanh từ nhóm menu `THÊM ▾` trên thanh công cụ, gọi qua Quick Actions trên Compact Bar hoặc ra lệnh trực tiếp bằng giọng nói/văn bản cho AI Copilot.
+     - Engine biên dịch hỗ trợ toàn diện `minipage`, `\rule`, `\dotfill`, `\framebox` và bảo toàn định dạng chữ thường của tiêu đề Section trên cả Tectonic XeTeX và Chromium Vector Engine.
 
 ---
 
