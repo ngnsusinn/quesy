@@ -258,13 +258,18 @@ python -m pytest -v --durations=10
 - `test_digitize_docx_export.py`: Tests print-quality PDF export and genuine MathType 7.0 Word generation.
 - `test_performance_budgets.py`: Enforces execution latency budgets (< 200 ms for matrix solving and shuffle generation).
 
-### CI/CD Workflow (`.github/workflows/ci.yml`)
+### CI/CD Workflow & Remote Branching Governance (`.github/workflows/ci.yml`)
 
-Every pull request and commit to `main` executes a multi-runtime GitHub Actions workflow on `ubuntu-latest`:
+Every pull request and commit to remote branches executes a multi-runtime GitHub Actions workflow on `ubuntu-latest`:
 1. Sets up Python 3.13 and Node.js 20.
 2. Installs system graphics dependencies and headless Chromium with `--no-sandbox` flags.
 3. Installs `npm` math packages and `pip` requirements.
-4. Executes the full 64-case test suite with mock AI adapters.
+4. Executes the full test suite with mock AI adapters (`pytest`).
+
+> [!IMPORTANT]
+> **Quy tắc Git Workflow & Quản trị Nhánh (Standing Operational Rule):**
+> Toàn bộ quá trình phát triển tuân thủ nghiêm ngặt nguyên tắc **chỉ thực hiện `git commit` và `git push`** lên remote repository/feature branch.
+> **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt).
 
 ---
 
@@ -277,6 +282,12 @@ Every pull request and commit to `main` executes a multi-runtime GitHub Actions 
 - **Xuất bản PDF chuẩn $\LaTeX$ thuần túy:** Toàn bộ đề thi in ấn sử dụng font chữ **Computer Modern Unicode (CMU Serif)**, 100% phân số hiển thị dạng **`\dfrac`** to rõ (11pt chuẩn đề thi), công thức toán vector sắc nét tuyệt đối, ôm sát chân dòng chữ.
 - **Biên dịch Đồ thị & Hình học TikZ Vector:** 100% hình vẽ hình học và đồ thị hàm số được biên dịch trực tiếp từ mã nguồn $\LaTeX$ sang Vector SVG nguyên bản (`dvisvgm`), tuyệt đối **không biến thành ảnh raster PNG** (0% ảnh mờ vỡ hạt khi in ấn hay phóng to).
 - **Xuất bản Word MathType 7.0 OLE Vector WMF:** Xuất file `.docx` nhúng OLE Equation Native binary, giáo viên nhấp đúp chuột trong Microsoft Word sẽ mở thẳng MathType 7 để chỉnh sửa 2 chiều bình thường.
-- **Trợ lý Soạn thảo AI Copilot, Tối ưu Ô nhập Lạc quan & Duyệt Đa Diff (Multi-Diff 1/N, Apply All):** Thanh nhập Prompt dạng viên thuốc thu gọn (Compact Pill Bar) ở chân editor: chữ màu trắng sáng `#f8fafc` và con trỏ `#38bdf8` tương phản hoàn hảo trên Dark mode; click chuột chỉ để gõ text bình thường, chỉ bung mở popup trợ lý khi nhấn Enter hoặc bấm nút gửi. Cơ chế xóa sạch lạc quan (Optimistic Dual-Input Reset) triệt tiêu hoàn toàn lỗi text cũ còn kẹt trong ô nhập sau khi gửi. Khởi tạo phiên mới luôn sạch sẽ với lời chào mặc định và lưu trữ lịch sử phiên cũ qua ngăn kéo "Lịch sử". Tự động chuyển tiếp nhật ký lỗi biên dịch XeTeX/Tectonic (`compile_error_log`) để AI phân tích cú pháp và gợi ý sửa lỗi. Đề xuất sửa đổi hiển thị trực quan và độc quyền trực tiếp trên ô soạn thảo (Inline Editor Diff Overlay: dòng đỏ `-`, dòng xanh `+`, **loại bỏ hoàn toàn widget diff trong bubble chat**) kết hợp Động cơ Thay thế Dòng mờ 6 Tầng. Hỗ trợ đầy đủ đa khối diff với bộ đếm động 1/N, nút điều hướng tuần tự (`[< Trước]` / `[Sau >]`), duyệt chấp nhận/từ chối từng khối, và nút **`[Áp dụng tất cả] (Apply All)`** để hợp nhất toàn bộ các thay đổi vào mã nguồn chỉ với 1 cú click. Tái thiết kế thanh Split Resizer ngang `#composer-split-resizer` giữa 2 cột Editor / Preview chuẩn Apple HIG với khoảng cách đệm công thái học thông thoáng, trục viên thuốc thanh lịch, quầng sáng xanh Apple `#0071e3`, không bị đè sát viền box soạn thảo.
+- **Trợ lý Soạn thảo AI Copilot, Động cơ Thay thế Câu hỏi Thông minh & Duyệt Đa Diff (Question Replacement Engine & Safe Sync):**
+  - Hỗ trợ câu lệnh ngôn ngữ tự nhiên thay thế câu hỏi chuyên sâu (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*, *"Thay câu 2 bằng câu khác"*, *"Sửa câu 3"*).
+  - Thuật toán bóc tách khối câu hỏi thứ N (`find_question_block(current_latex, n)`) nhận diện chính xác phạm vi câu hỏi theo chuẩn `ex_test.sty` (`\begin{ex}`) hoặc đánh số cổ điển (`\textbf{Câu N.}`).
+  - Cơ chế gắn kết thông minh (Smart Diff Binding) tự động gán `old_text = câu_N_cũ` và `new_text = câu_mới`, giải quyết dứt điểm hạn chế của `SequenceMatcher` khi chủ đề câu hỏi mới khác hoàn toàn câu cũ.
+  - Cơ chế hiển thị chat an toàn (Safe Chat Bubble Rendering): Chỉ ẩn code và gắn badge *"Đã chuyển gợi ý sửa đổi tới editor"* khi diff thực sự hợp lệ và tồn tại trên editor; nếu không có diff, giữ nguyên khối code trong chat với đầy đủ các nút `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`, triệt tiêu hoàn toàn lỗi nuốt mất code.
+  - Thanh nhập Prompt dạng viên thuốc thu gọn (Compact Pill Bar) ở chân editor: chữ màu trắng sáng `#f8fafc` và con trỏ `#38bdf8` tương phản hoàn hảo trên Dark mode. Cơ chế xóa sạch lạc quan (Optimistic Dual-Input Reset) triệt tiêu hoàn toàn lỗi text cũ còn kẹt trong ô nhập sau khi gửi.
+  - Duyệt đa khối diff với bộ đếm động 1/N, nút điều hướng tuần tự (`[< Trước]` / `[Sau >]`), duyệt chấp nhận/từ chối từng khối, và nút **`[Áp dụng tất cả] (Apply All)`** để hợp nhất toàn bộ các thay đổi vào mã nguồn chỉ với 1 cú click. Tái thiết kế thanh Split Resizer ngang `#composer-split-resizer` giữa 2 cột Editor / Preview chuẩn Apple HIG.
 - **Trộn đề thông minh & an toàn:** Khóa cố định các đáp án phụ thuộc (*"Cả A và B đều đúng"*) tại vị trí D, giữ nguyên bài đọc chung và sinh ma trận hoán vị đáp án tự động.
 - **Giao diện Apple HIG:** Trải nghiệm đối chiếu song song mượt mà, phản hồi xúc giác tinh tế, chạy mượt trên cả Web và thiết bị di động (PWA Offline).

@@ -2,14 +2,18 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 2.9 (Cải tiến Giao diện Soạn đề LaTeX: Splitter Kéo Thả Ngang 2 Cột, Kéo Thả Độ Cao Trợ Lý Soạn Thảo, Hiển Thị Diff Độc Quyền Trên Code Editor & Quản Lý Phiên Chat Sạch Sẽ Với History Drawer)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn và trợ lý soạn đề AI Copilot trực tiếp.  
+- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.  
 - **Ngày phát hành:** 2026-10-24  
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
 ---
 
 ## 1. SƠ ĐỒ TỔNG THỂ USE CASE (SYSTEM USE CASE DIAGRAM)
+
+### 1.1. Quy tắc Quản trị Git Workflow & Không Tự Động Tạo Pull Request (Mandatory Git Rule)
+- **Bắt buộc:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
+- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
 
 ```
                        ┌────────────────────────────────────────────────────────┐
@@ -297,3 +301,14 @@
   1. *Trường hợp A (Con trỏ nằm trên PDF):* Người dùng giữ `Ctrl` và lăn chuột (`wheel`): Hệ thống lấy chính xác tọa độ con trỏ chuột $(x_v, y_v)$ làm điểm neo, phóng to / thu nhỏ mà điểm nội dung ngay dưới con trỏ chuột được ghim bất biến, không bị trôi lệch.
   2. *Trường hợp B (Con trỏ nằm ngoài PDF hoặc bấm nút thanh công cụ):* Người dùng nhấp vào nút `+` hoặc `-` trên floating toolbar: Hệ thống lấy tâm điểm màn hình làm điểm neo, tài liệu phóng to / thu nhỏ đồng tâm từ chính giữa khung nhìn của giáo viên.
   3. Triệt tiêu hoàn toàn hiện tượng giật cục hoặc bị nhảy về góc trên cùng bên trái $(0, 0)$. Khôi phục ổn định tọa độ cuộn khi vẽ lại canvas ở độ phân giải thực.
+- **Luồng 6i - Thay thế Câu hỏi Chuyên sâu qua Ngôn ngữ Tự nhiên & Bảo toàn Khối mã Chat Bubble (Question Replacement & Safe Sync):**
+  1. Người dùng nhập câu lệnh yêu cầu thay thế câu hỏi cụ thể trong đề thi (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"* hoặc *"Thay câu 2 bằng câu khác"*).
+  2. Phía backend tiếp nhận yêu cầu, hàm `find_question_block(current_latex, n)` bóc tách chính xác khối mã LaTeX của câu hỏi thứ $n$ trong tài liệu hiện tại (chuẩn `ex_test.sty` hoặc nhãn `\textbf{Câu n.}`).
+  3. Cơ chế Smart Diff Binding liên kết trực tiếp `old_text = câu_hỏi_cũ` và `new_text = câu_hỏi_mới` do AI hoặc local fallback sinh ra, bỏ qua hoàn toàn việc so sánh tương đồng chuỗi `SequenceMatcher` (vốn thất bại khi câu mới khác đề tài câu cũ).
+  4. Phản hồi API trả về `diff` và `diffs` hợp lệ:
+     - Trên editor: Kích hoạt Inline Diff Overlay và Top Banner tại đúng vị trí câu thứ $n$, bôi đen vùng mã cũ để giáo viên duyệt.
+     - Trong chat bubble: Ẩn khối mã diff, hiển thị badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"*.
+  5. *Luồng ngoại lệ (Nếu diff rỗng hoặc câu hỏi N không tìm thấy trong editor):*
+     - Hệ thống giữ nguyên vẹn khối mã nguồn LaTeX trong chat bubble.
+     - Hiển thị 3 nút bấm tương tác: `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`.
+     - Tuyệt đối không xóa nuốt mất mã của người dùng và không hiển thị badge gợi ý sai lệch.

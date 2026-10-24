@@ -7,7 +7,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from backend.main import app
-from backend.routers.composer import DiffSuggestion, extract_diff_from_text, find_in_latex
+from backend.routers.composer import (
+    DiffSuggestion,
+    extract_all_diffs_from_text,
+    extract_diff_from_text,
+    find_in_latex,
+    find_nth_question_in_latex,
+)
 
 client = TestClient(app)
 
@@ -1365,28 +1371,29 @@ def test_composer_chat_api_no_diff_for_creative_prompts():
 
 def test_composer_chat_api_choice_option_switch_single_and_multiline():
     """Verify choice option switch produces exact choice replacement diff for both inline and multiline ex_test."""
-    # 1. Inline choice
-    inline_latex = r"""\begin{ex}
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        # 1. Inline choice
+        inline_latex = r"""\begin{ex}
 Tính tích phân $I = \int_0^1 2x dx$.
 \choice{$0$}{\True $1$}{$2$}{$3$}
 \end{ex}
 """
-    res1 = client.post(
-        "/api/v1/composer/chat",
-        json={
-            "message": "đổi đáp án đúng sang C",
-            "current_latex": inline_latex,
-            "history": []
-        }
-    )
-    assert res1.status_code == 200
-    data1 = res1.json()
-    assert data1["diff"] is not None
-    assert data1["diff"]["old_text"] == r"\choice{$0$}{\True $1$}{$2$}{$3$}"
-    assert data1["diff"]["new_text"] == r"\choice{$0$}{$1$}{\True $2$}{$3$}"
+        res1 = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "đổi đáp án đúng sang C",
+                "current_latex": inline_latex,
+                "history": []
+            }
+        )
+        assert res1.status_code == 200
+        data1 = res1.json()
+        assert data1["diff"] is not None
+        assert data1["diff"]["old_text"] == r"\choice{$0$}{\True $1$}{$2$}{$3$}"
+        assert data1["diff"]["new_text"] == r"\choice{$0$}{$1$}{\True $2$}{$3$}"
 
-    # 2. Multiline choice
-    multiline_latex = r"""\begin{ex}
+        # 2. Multiline choice
+        multiline_latex = r"""\begin{ex}
 Tính tích phân $I = \int_0^1 2x dx$.
 \choice
 {$0$}
@@ -1395,20 +1402,21 @@ Tính tích phân $I = \int_0^1 2x dx$.
 {$3$}
 \end{ex}
 """
-    res2 = client.post(
-        "/api/v1/composer/chat",
-        json={
-            "message": "đổi đáp án đúng sang D",
-            "current_latex": multiline_latex,
-            "history": []
-        }
-    )
-    assert res2.status_code == 200
-    data2 = res2.json()
-    assert data2["diff"] is not None
-    assert data2["diff"]["old_text"] in multiline_latex
-    assert r"\True $3$" in data2["diff"]["new_text"]
-    assert r"\True $1$" not in data2["diff"]["new_text"]
+        res2 = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "đổi đáp án đúng sang D",
+                "current_latex": multiline_latex,
+                "history": []
+            }
+        )
+        assert res2.status_code == 200
+        data2 = res2.json()
+        assert data2["diff"] is not None
+        assert data2["diff"]["old_text"] in multiline_latex
+        all_new = " ".join([d["new_text"] for d in data2.get("diffs", [data2["diff"]])])
+        assert r"\True $3$" in all_new
+        assert r"\True $1$" not in all_new
 
 
 def test_composer_chat_api_multi_turn_history_preservation():
@@ -1926,6 +1934,549 @@ def test_composer_ui_multi_diff_banner_and_apply_all_elements():
     assert "nextDiff()" in app_js
     assert "applyAllPendingDiffs()" in app_js
     assert "applyCurrentDiff()" in app_js
+
+
+def test_find_nth_question_in_latex_extest_and_classic():
+    """Verify find_nth_question_in_latex accurately extracts question 1, 2, n
+    from both ex_test.sty documents and classic 'Câu n.' documents.
+    """
+    # 1. ex_test.sty format with header, section, and multiple ex blocks
+    extest_doc = r"""\documentclass[11pt,a4paper]{article}
+\usepackage[dethi]{ex_test}
+\begin{document}
+\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
+\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
+\begin{ex}
+Cho hàm số $y = f(x)$ có bảng biến thiên. Hàm số đồng biến trên khoảng nào?
+\choice{$(-\infty; -1)$}{\True $(-1; 2)$}{$(0; 2)$}{$(-\infty; 2)$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, hàm số đồng biến trên $(-1; 2)$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}[2D1-1.2-1]
+Cho hàm số $y = x^3 - 3x^2 + 2$. Điểm cực đại của đồ thị hàm số là:
+\choice{$(1; -1)$}{\True $(0; 2)$}{$(2; -2)$}{$(0; 0)$}
+\end{ex}
+
+\begin{ex}
+Giá trị lớn nhất của hàm số $f(x) = x^4 - 2x^2 + 3$ trên đoạn $[0; 2]$ bằng:
+\choice{$3$}{\True $11$}{$2$}{$19$}
+\end{ex}
+\end{document}
+"""
+    # Extract Câu 1: must be exact first \begin{ex}...\end{ex}
+    q1 = find_nth_question_in_latex(extest_doc, 1)
+    assert q1 is not None
+    assert q1.startswith(r"\begin{ex}")
+    assert q1.endswith(r"\end{ex}")
+    assert "Cho hàm số $y = f(x)$ có bảng biến thiên." in q1
+    assert "Dựa vào bảng biến thiên, hàm số đồng biến trên $(-1; 2)$." in q1
+    # Must NOT include section header or preamble or other questions
+    assert r"\section*" not in q1
+    assert "Thí sinh trả lời từ câu 1 đến câu 12" not in q1
+    assert "Cho hàm số $y = x^3 - 3x^2 + 2$" not in q1
+
+    # Extract Câu 2: must be \begin{ex}[2D1-1.2-1]...\end{ex}
+    q2 = find_nth_question_in_latex(extest_doc, 2)
+    assert q2 is not None
+    assert q2.startswith(r"\begin{ex}[2D1-1.2-1]")
+    assert q2.endswith(r"\end{ex}")
+    assert "Cho hàm số $y = x^3 - 3x^2 + 2$" in q2
+    assert "Cho hàm số $y = f(x)$" not in q2
+
+    # Extract Câu 3:
+    q3 = find_nth_question_in_latex(extest_doc, 3)
+    assert q3 is not None
+    assert "Giá trị lớn nhất của hàm số" in q3
+
+    # Out of bounds & edge cases
+    assert find_nth_question_in_latex(extest_doc, 4) is None
+    assert find_nth_question_in_latex(extest_doc, 0) is None
+    assert find_nth_question_in_latex(extest_doc, -1) is None
+    assert find_nth_question_in_latex("", 1) is None
+    assert find_nth_question_in_latex(None, 1) is None
+
+    # 2. Classic format with \textbf{Câu n.}
+    classic_doc = r"""\documentclass{article}
+\begin{document}
+\section*{ĐỀ THI ĐẠI SỐ}
+
+\textbf{Câu 1.} Cho hàm số $y=f(x)$ liên tục trên $\mathbb{R}$.
+\textbf{A.} $1$ \qquad \textbf{B.} $2$ \qquad \textbf{C.} $3$ \qquad \textbf{D.} $4$
+
+\textbf{Câu 2.} Khối đa diện đều loại $\{3; 3\}$ có bao nhiêu đỉnh?
+\textbf{A.} $4$ \qquad \textbf{B.} $6$ \qquad \textbf{C.} $8$ \qquad \textbf{D.} $12$
+
+\textbf{Câu 3.} Cho hình lăng trụ tam giác $ABC.A'B'C'$.
+\textbf{A.} $V$ \qquad \textbf{B.} $2V$ \qquad \textbf{C.} $3V$ \qquad \textbf{D.} $4V$
+\end{document}
+"""
+    cq1 = find_nth_question_in_latex(classic_doc, 1)
+    assert cq1 is not None
+    assert cq1.startswith(r"\textbf{Câu 1.}")
+    assert r"liên tục trên $\mathbb{R}$" in cq1
+    assert r"\textbf{Câu 2.}" not in cq1
+    assert r"\section*" not in cq1
+
+    cq2 = find_nth_question_in_latex(classic_doc, 2)
+    assert cq2 is not None
+    assert cq2.startswith(r"\textbf{Câu 2.}")
+    assert "Khối đa diện đều loại" in cq2
+    assert r"\textbf{Câu 3.}" not in cq2
+
+    cq3 = find_nth_question_in_latex(classic_doc, 3)
+    assert cq3 is not None
+    assert cq3.startswith(r"\textbf{Câu 3.}")
+    assert "Cho hình lăng trụ tam giác" in cq3
+    assert r"\end{document}" not in cq3
+
+    assert find_nth_question_in_latex(classic_doc, 4) is None
+
+    # 3. Classic format with Câu 1: and \noindent\textbf{Câu 2:}
+    colon_doc = r"""\documentclass{article}
+\begin{document}
+Câu 1: Hàm số nào đồng biến trên $\mathbb{R}$?
+A. $y=x^3+x$  B. $y=x^2$  C. $y=x^4$  D. $y=-x$
+
+\noindent\textbf{Câu 2:} Đồ thị hàm số có bao nhiêu tiệm cận?
+A. $1$  B. $2$  C. $3$  D. $0$
+\end{document}
+"""
+    col1 = find_nth_question_in_latex(colon_doc, 1)
+    assert col1 is not None
+    assert "Hàm số nào đồng biến" in col1
+    assert "tiệm cận" not in col1
+
+    col2 = find_nth_question_in_latex(colon_doc, 2)
+    assert col2 is not None
+    assert "tiệm cận" in col2
+
+
+def test_extract_all_diffs_replace_nth_question_prompt():
+    """Verify prompt 'Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi'
+    produces exact DiffSuggestion replacing Question 1 without touching Question 2.
+    """
+    latex_code = r"""\documentclass[11pt,a4paper]{article}
+\usepackage[dethi]{ex_test}
+\begin{document}
+
+\begin{ex}
+Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên. Hàm số đồng biến trên khoảng nào?
+\choice
+{\True $(-\infty; -1)$}
+{$(-1; 2)$}
+{$(0; 2)$}
+{$(-\infty; 2)$}
+\begin{loigiai}
+Dựa vào đồ thị hàm số đồng biến trên $(-\infty; -1)$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Khối lăng trụ đứng có diện tích đáy $B = 6$ và chiều cao $h = 3$. Thể tích khối lăng trụ bằng:
+\choice
+{$6$}
+{\True $18$}
+{$9$}
+{$2$}
+\end{ex}
+
+\end{document}
+"""
+    prompt = "Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"
+    ai_reply = r"""Dưới đây là câu hỏi đơn điệu hàm số mới mức độ nhận biết để thay thế cho câu 1:
+```latex
+\begin{ex}
+Cho hàm số $y = x^3 - 3x^2 + 1$. Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\choice
+{\True $(2; +\infty)$}
+{$(0; 2)$}
+{$(-\infty; 2)$}
+{$(0; +\infty)$}
+\begin{loigiai}
+Ta có $y' = 3x^2 - 6x = 3x(x - 2) > 0 \Leftrightarrow x < 0$ hoặc $x > 2$.
+Do đó hàm số đồng biến trên khoảng $(2; +\infty)$.
+\end{loigiai}
+\end{ex}
+```
+Bạn có thể áp dụng ngay thay đổi này vào đề thi!"""
+
+    diffs = extract_all_diffs_from_text(ai_reply, latex_code, user_message=prompt)
+    assert len(diffs) == 1
+    diff = diffs[0]
+    assert diff.action == "replace"
+    # old_text must match Question 1 exactly
+    expected_old_q1 = find_nth_question_in_latex(latex_code, 1)
+    assert diff.old_text == expected_old_q1
+    assert "Cho hàm số bậc ba" in diff.old_text
+    # Question 2 must NOT be in old_text
+    assert "Khối lăng trụ đứng" not in diff.old_text
+    assert "Cho hàm số $y = x^3 - 3x^2 + 1$" in diff.new_text
+    assert "câu 1" in diff.description.lower()
+
+    # Simulate applying the diff to latex_code
+    applied = latex_code.replace(diff.old_text, diff.new_text)
+    # Question 1 is replaced
+    assert "Cho hàm số bậc ba" not in applied
+    assert "Cho hàm số $y = x^3 - 3x^2 + 1$" in applied
+    # Question 2 is perfectly preserved
+    assert "Khối lăng trụ đứng có diện tích đáy $B = 6$" in applied
+    assert r"\end{document}" in applied
+
+    # 2. Test replacing Question 2
+    prompt_q2 = "Thay thế câu 2 bằng một câu tính thể tích chóp"
+    ai_reply_q2 = r"""Dưới đây là câu hỏi thay thế câu 2:
+```latex
+\begin{ex}
+Cho khối chóp $S.ABC$ có đáy $ABC$ là tam giác vuông tại $B$, $AB=a$, $BC=2a$. Cạnh bên $SA \perp (ABC)$ và $SA=3a$. Thể tích của khối chóp bằng:
+\choice
+{$6a^3$}
+{$2a^3$}
+{\True $a^3$}
+{$3a^3$}
+\end{ex}
+```"""
+    diffs_q2 = extract_all_diffs_from_text(ai_reply_q2, latex_code, user_message=prompt_q2)
+    assert len(diffs_q2) == 1
+    assert diffs_q2[0].old_text == find_nth_question_in_latex(latex_code, 2)
+    assert "Khối lăng trụ đứng" in diffs_q2[0].old_text
+    assert "Cho hàm số bậc ba" not in diffs_q2[0].old_text
+    assert "Cho khối chóp $S.ABC$" in diffs_q2[0].new_text
+
+    # 3. Test API endpoint /api/v1/composer/chat with mocked AI provider
+    mock_resp = {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": ai_reply
+                }
+            }
+        ]
+    }
+    with patch("backend.services.ai_provider_service.default_ai_provider_service.api_key", "sk-test-key"):
+        with patch("backend.routers.composer.httpx.Client") as mock_client_cls:
+            mock_inst = MagicMock()
+            mock_http_resp = MagicMock()
+            mock_http_resp.status_code = 200
+            mock_http_resp.json.return_value = mock_resp
+            mock_inst.post.return_value = mock_http_resp
+            mock_client_cls.return_value.__enter__.return_value = mock_inst
+
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": prompt,
+                    "current_latex": latex_code,
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert data["diff"] is not None
+            assert data["diff"]["old_text"] == expected_old_q1
+            assert "Cho hàm số $y = x^3 - 3x^2 + 1$" in data["diff"]["new_text"]
+            assert len(data["diffs"]) == 1
+
+
+def test_composer_chat_no_diff_safety_no_swallowed_code_and_no_false_positive():
+    """Verify that when AI response has no diff instructions or is purely conversational,
+    backend returns diff=None, diffs=[], and frontend never swallows code or displays false positives.
+    """
+    latex_code = r"""\documentclass[11pt,a4paper]{article}
+\begin{document}
+\textbf{Câu 1.} Cho hàm số $y = f(x)$.
+\textbf{A.} $1$ \textbf{B.} $2$ \textbf{C.} $3$ \textbf{D.} $4$
+\end{document}
+"""
+    # 1. Informative explanation response (no code block, no diff)
+    info_prompt = "Giải thích tính đơn điệu của hàm số bậc ba khi $a > 0$"
+    info_reply = (
+        "Khi hệ số $a > 0$, nếu $\\Delta' \\le 0$ thì đạo hàm $y' \\ge 0$ với mọi $x$, "
+        "khi đó hàm số đồng biến trên toàn bộ $\\mathbb{R}$."
+    )
+    diffs_info = extract_all_diffs_from_text(info_reply, latex_code, user_message=info_prompt)
+    assert diffs_info == []
+
+    # 2. API chat endpoint with informative query returns diff=None, diffs=[]
+    mock_info_resp = {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": info_reply
+                }
+            }
+        ]
+    }
+    with patch("backend.services.ai_provider_service.default_ai_provider_service.api_key", "sk-test-key"):
+        with patch("backend.routers.composer.httpx.Client") as mock_client_cls:
+            mock_inst = MagicMock()
+            mock_http_resp = MagicMock()
+            mock_http_resp.status_code = 200
+            mock_http_resp.json.return_value = mock_info_resp
+            mock_inst.post.return_value = mock_http_resp
+            mock_client_cls.return_value.__enter__.return_value = mock_inst
+
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": info_prompt,
+                    "current_latex": latex_code,
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert data["diff"] is None
+            assert data["diffs"] == []
+            assert info_reply in data["reply"]
+
+    # 3. Creative generation prompt without replacement target must return diffs=[]
+    gen_prompt = "Tạo 1 câu hỏi mới về hình học phẳng"
+    gen_reply = (
+        "Dưới đây là một câu hỏi mới để bạn tham khảo:\n"
+        "```latex\n"
+        "\\begin{ex}\n"
+        "Cho tam giác $ABC$ đều cạnh $a$. Tính diện tích tam giác.\n"
+        "\\end{ex}\n"
+        "```"
+    )
+    diffs_gen = extract_all_diffs_from_text(gen_reply, latex_code, user_message=gen_prompt)
+    assert diffs_gen == []
+
+    # 4. Parity check with frontend logic in app.js
+    root = Path(__file__).parent.parent
+    app_js = (root / "frontend" / "static" / "app.js").read_text(encoding="utf-8")
+    # Verify findNthQuestionInLatex is exposed on composer
+    assert "findNthQuestionInLatex(latexCode, n)" in app_js
+    # Verify frontend only calls showPendingDiffs when diffs.length > 0
+    assert "if (diffs.length) {" in app_js
+    assert "this.showPendingDiffs(diffs);" in app_js
+    # Verify renderPendingDiff rejects if pendingDiffs is empty
+    assert "!this.pendingDiffs || !this.pendingDiffs.length" in app_js
+
+
+# ---------------------------------------------------------------------------
+# 11. Tests for Question Replacement Bug Fix & Editor Display Sync
+# ---------------------------------------------------------------------------
+
+def test_find_nth_question_in_latex_comprehensive():
+    """Verify find_nth_question_in_latex handles closed ex, unclosed ex, and classic question blocks."""
+    from backend.routers.composer import find_nth_question_in_latex
+
+    # 1. Closed ex_test environments
+    doc_closed = r"""\documentclass{article}
+\usepackage[dethi]{ex_test}
+\begin{document}
+\begin{ex}[Đề mẫu 1]
+Câu hỏi 1: Tìm nguyên hàm của $f(x)=2x$.
+\choice{$x^2+C$}{\True $x^2$}{$2+C$}{$x+C$}
+\begin{loigiai}
+$\int 2x dx = x^2 + C$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Câu hỏi 2: Tính giới hạn.
+\choice{\True $0$}{$1$}{$2$}{$\infty$}
+\end{ex}
+\end{document}"""
+
+    q1 = find_nth_question_in_latex(doc_closed, 1)
+    assert q1 is not None
+    assert "Câu hỏi 1" in q1
+    assert q1.startswith(r"\begin{ex}[Đề mẫu 1]")
+    assert q1.endswith(r"\end{ex}")
+
+    q2 = find_nth_question_in_latex(doc_closed, 2)
+    assert q2 is not None
+    assert "Câu hỏi 2" in q2
+    assert q2.startswith(r"\begin{ex}")
+    assert q2.endswith(r"\end{ex}")
+
+    assert find_nth_question_in_latex(doc_closed, 3) is None
+    assert find_nth_question_in_latex(doc_closed, 0) is None
+    assert find_nth_question_in_latex(doc_closed, -1) is None
+
+    # 2. Classic format: \textbf{Câu N.} and Câu N:
+    doc_classic = r"""\begin{document}
+\textbf{Câu 1.} Cho hàm số $y=f(x)$.
+\textbf{A.} 1 \textbf{B.} 2 \textbf{C.} 3 \textbf{D.} 4
+
+\textbf{Câu 2.} Cho hình chóp $S.ABC$.
+a) SA vuông góc...
+b) Thể tích...
+\end{document}"""
+
+    cq1 = find_nth_question_in_latex(doc_classic, 1)
+    assert cq1 is not None
+    assert r"\textbf{Câu 1.}" in cq1
+    assert "Cho hàm số" in cq1
+    assert "Câu 2" not in cq1
+
+    cq2 = find_nth_question_in_latex(doc_classic, 2)
+    assert cq2 is not None
+    assert r"\textbf{Câu 2.}" in cq2
+    assert "hình chóp" in cq2
+
+
+def test_extract_all_diffs_question_replacement_patterns():
+    """Verify question replacement triggers correctly on various user phrasing and AI block formats."""
+    from backend.routers.composer import extract_all_diffs_from_text
+
+    doc = r"""\documentclass{article}
+\usepackage[dethi]{ex_test}
+\begin{document}
+\begin{ex}
+Câu 1 cũ: Tính đạo hàm của $y = \sin x$.
+\choice{\True $\cos x$}{$-\cos x$}{$\sin x$}{$-\sin x$}
+\end{ex}
+
+\begin{ex}
+Câu 2 cũ: Tính tích phân $\int_0^1 x dx$.
+\choice{\True $\dfrac{1}{2}$}{$1$}{$2$}{$0$}
+\end{ex}
+\end{document}"""
+
+    # Scenario A: "thay thế câu 1" with ```latex ... ``` response
+    reply_latex = r"""Dưới đây là câu hỏi mới thay thế:
+```latex
+\begin{ex}
+Câu 1 mới: Tính đạo hàm của $y = e^x$.
+\choice{\True $e^x$}{$-e^x$}{$e^{-x}$}{$1$}
+\end{ex}
+```"""
+    diffs1 = extract_all_diffs_from_text(reply_latex, doc, user_message="thay thế câu 1 bằng câu đạo hàm hàm mũ")
+    assert len(diffs1) == 1
+    assert diffs1[0].action == "replace"
+    assert "Câu 1 cũ" in diffs1[0].old_text
+    assert "Câu 1 mới" in diffs1[0].new_text
+    assert "Thay thế Câu 1" in diffs1[0].description
+
+    # Scenario B: "thay câu 2" with ```diff ... ``` response
+    reply_diff = r"""Dưới đây là phần thay đổi:
+```diff
+- \begin{ex}
+- Câu 2 cũ: Tính tích phân $\int_0^1 x dx$.
+- \choice{\True $\dfrac{1}{2}$}{$1$}{$2$}{$0$}
+- \end{ex}
++ \begin{ex}
++ Câu 2 mới: Tính tích phân $\int_0^1 2x dx$.
++ \choice{\True $1$}{$2$}{$0$}{$-1$}
++ \end{ex}
+```"""
+    diffs2 = extract_all_diffs_from_text(reply_diff, doc, user_message="thay câu 2 bằng câu tích phân khác")
+    assert len(diffs2) == 1
+    assert diffs2[0].action == "replace"
+    assert "Câu 2 cũ" in diffs2[0].old_text
+    assert "Câu 2 mới" in diffs2[0].new_text
+
+    # Scenario C: "replace question 1"
+    diffs3 = extract_all_diffs_from_text(reply_latex, doc, user_message="replace question 1 with an exponential function")
+    assert len(diffs3) == 1
+    assert "Câu 1 cũ" in diffs3[0].old_text
+
+
+def test_composer_chat_api_replace_question_offline():
+    """Verify Chat API generates replace diff targeting the nth question in offline fallback mode."""
+    latex_code = r"""\documentclass[12pt]{article}
+\usepackage[dethi]{ex_test}
+\begin{document}
+\begin{ex}
+Câu hỏi 1 gốc trong đề thi.
+\choice{\True A}{B}{C}{D}
+\end{ex}
+
+\begin{ex}
+Câu hỏi 2 gốc trong đề thi.
+\choice{A}{\True B}{C}{D}
+\end{ex}
+\end{document}"""
+
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "thay thế câu 1 bằng câu hỏi cực trị bảng biến thiên",
+                "current_latex": latex_code,
+                "history": []
+            }
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["diff"] is not None
+        assert data["diff"]["action"] == "replace"
+        assert "Câu hỏi 1 gốc trong đề thi" in data["diff"]["old_text"]
+        assert "Câu hỏi 2 gốc trong đề thi" not in data["diff"]["old_text"]
+        assert "Thay thế Câu 1" in data["diff"]["description"]
+        assert "diffs" in data and len(data["diffs"]) >= 1
+
+
+def test_composer_chat_api_replace_question_mocked_ai():
+    """Verify Chat API extracts correct replacement diff when AI returns code fence for replacing question 2."""
+    latex_code = r"""\documentclass[12pt]{article}
+\usepackage[dethi]{ex_test}
+\begin{document}
+\begin{ex}
+Câu 1: $1+1=2$.
+\choice{\True $2$}{$1$}{$3$}{$4$}
+\end{ex}
+
+\begin{ex}
+Câu 2: $2+2=4$.
+\choice{\True $4$}{$2$}{$5$}{$6$}
+\end{ex}
+\end{document}"""
+
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o-mini"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    new_q2 = r"""\begin{ex}
+Câu 2 mới: Tính tích phân $I = \int_0^1 3x^2 dx$.
+\choice{\True $1$}{$2$}{$3$}{$0$}
+\end{ex}"""
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": f"Dưới đây là câu hỏi mới thay thế cho Câu 2:\n\n```latex\n{new_q2}\n```"
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": "thay thế câu 2 bằng câu tính tích phân",
+                    "current_latex": latex_code,
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert data["diff"] is not None
+            assert data["diff"]["action"] == "replace"
+            assert "Câu 2: $2+2=4$." in data["diff"]["old_text"]
+            assert "Câu 2 mới: Tính tích phân" in data["diff"]["new_text"]
+            assert "Thay thế Câu 2" in data["diff"]["description"]
+
+
 
 
 

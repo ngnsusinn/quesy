@@ -299,6 +299,72 @@ def find_in_latex(needle: str, current_latex: str, fuzzy_threshold: float = 0.65
     return None
 
 
+def find_nth_question_in_latex(latex_code: Optional[str], n: int) -> Optional[str]:
+    """Extracts the nth question block (1-indexed) from a LaTeX document.
+    Accurately supports both ex_test.sty format (\\begin{ex}...\\end{ex})
+    and classic format (\\textbf{Câu n.}, Câu n:, etc.).
+    Returns the exact matching substring in latex_code, or None if not found.
+    """
+    if not latex_code or n < 1:
+        return None
+
+    # 1. ex_test.sty syntax (\\begin{ex} ... \\end{ex} or \\begin{bt} ... \\end{bt})
+    ex_matches = list(re.finditer(r'\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}', latex_code))
+    if ex_matches:
+        if 1 <= n <= len(ex_matches):
+            return ex_matches[n - 1].group(0)
+        return None
+
+    # 1b. Unclosed ex_test environments: \begin{ex} ... (ending at next \begin{ex} or \end{document} or EOF)
+    unclosed_matches = list(re.finditer(
+        r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?(?=(?:\\begin\{(?:ex|bt|vd)\}|\\end\{document\}|\Z))',
+        latex_code
+    ))
+    if unclosed_matches:
+        if 1 <= n <= len(unclosed_matches):
+            return unclosed_matches[n - 1].group(0).rstrip()
+        return None
+
+    # 2. Classic \textbf{Câu X.} or Câu X. syntax
+    classic_pattern = re.compile(
+        r'(?:\\(?:noindent|medskip|bigskip)\s*)?\\textbf\{\s*Câu\s*(\d+)[\.:]?\s*\}|(?<![\w\\{])Câu\s*(\d+)[\.:]',
+        re.IGNORECASE
+    )
+    matches = list(classic_pattern.finditer(latex_code))
+    if not matches:
+        return None
+
+    # Find the match matching question number n
+    target_idx = None
+    for idx, m in enumerate(matches):
+        q_num = int(m.group(1) or m.group(2))
+        if q_num == n:
+            target_idx = idx
+            break
+
+    # If exact question number n wasn't found, fallback to ordinal position (1 <= n <= len(matches))
+    if target_idx is None and 1 <= n <= len(matches):
+        target_idx = n - 1
+
+    if target_idx is None:
+        return None
+
+    start_pos = matches[target_idx].start()
+    if target_idx + 1 < len(matches):
+        end_pos = matches[target_idx + 1].start()
+    else:
+        # Stop before \\end{document} or \\section if present
+        tail = latex_code[start_pos:]
+        end_match = re.search(r'(\\end\{document\}|\\section\*?\{)', tail)
+        if end_match:
+            end_pos = start_pos + end_match.start()
+        else:
+            end_pos = len(latex_code)
+
+    extracted = latex_code[start_pos:end_pos].rstrip()
+    return extracted if extracted else None
+
+
 def _insert_in_preamble(current_latex: str, package_line: str) -> Optional[Tuple[str, str]]:
     """Helper to find the best insertion point in preamble for a missing package or macro.
     Returns (old_text, new_text) or None.
@@ -718,7 +784,60 @@ def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], u
     if found_diffs:
         return found_diffs
 
-    # 8. Detect changes if AI returned single code block (```latex or ```tex or ```)
+    # 8. Targeted heuristic for replacing question N by number
+    # Handles: "thay thế câu (\d+)", "thay câu (\d+)", "sửa câu (\d+)", "đổi câu (\d+)", "replace question (\d+)"
+    m_replace_q = re.search(
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        combined_lower
+    )
+    if not m_replace_q:
+        m_replace_q = re.search(
+            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+            combined_lower
+        )
+    if m_replace_q:
+        target_q_num = int(m_replace_q.group(1))
+        old_q = find_nth_question_in_latex(current_latex, target_q_num)
+        if old_q:
+            new_q = None
+            m_code_q = None
+            # 8a. Extract new question from ```diff ... ``` block if present
+            m_diff_q = re.search(r'```diff\s*\n([\s\S]*?)```', reply_text)
+            if m_diff_q:
+                added_lines = [
+                    re.sub(r'^\s*\+\s?', '', l)
+                    for l in m_diff_q.group(1).splitlines()
+                    if re.match(r'^\s*\+', l) and not l.startswith('+++')
+                ]
+                if added_lines:
+                    new_q = '\n'.join(added_lines).strip()
+
+            # 8b. Extract from ```latex ... ``` or ```tex ... ``` code block
+            if not new_q:
+                m_code_q = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
+                if m_code_q:
+                    candidate = m_code_q.group(1).strip()
+                    if not candidate.startswith(r"\documentclass"):
+                        new_q = candidate
+
+            # 8c. Extract raw LaTeX environment from text
+            if not new_q:
+                m_ex_q = re.search(r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{(?:ex|bt|vd)\}', reply_text)
+                if m_ex_q:
+                    new_q = m_ex_q.group(0).strip()
+            if not new_q:
+                m_classic_q = re.search(r'(?:\\textbf\{\s*Câu\s*\d+[\.:]?\s*\}|(?<![\w\\])Câu\s*\d+[\.:])[\s\S]*', reply_text)
+                if m_classic_q:
+                    new_q = m_classic_q.group(0).strip()
+
+            if new_q and new_q != old_q:
+                desc = _clean_diff_description(reply_text[:(m_code_q.start() if m_code_q else 0)]) or f"Thay thế Câu {target_q_num}"
+                if not desc.startswith(f"Thay thế Câu {target_q_num}"):
+                    desc = f"Thay thế Câu {target_q_num}"
+                _add_diff("replace", old_q, new_q, desc)
+                return found_diffs
+
+    # 9. Detect changes if AI returned single code block (```latex or ```tex or ```)
     m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
     if m_code:
         if any(k in user_lower for k in ("tạo", "thêm", "chèn", "sinh", "viết", "generate", "create", "insert")):
@@ -791,11 +910,40 @@ def composer_chat_endpoint(req: ChatRequest):
         "     ```\n"
         "   - Kèm lời giải thích ngắn gọn bằng tiếng Việt.\n"
         "   - Nếu người dùng yêu cầu sửa lỗi biên dịch (ví dụ lệnh không xác định như \\badcommand{abc}), BẮT BUỘC xuất dòng đỏ (-) là dòng lỗi và dòng xanh (+) là lệnh đúng hoặc ghi chú comment lại dòng lỗi để loại bỏ lỗi hoàn toàn.\n"
-        "2. KHI NGƯỜI DÙNG YÊU CẦU TẠO MỚI CÂU HỎI HOẶC HÌNH VẼ:\n"
+        "2. KHI NGƯỜI DÙNG YÊU CẦU THAY THẾ HOẶC ĐỔI MỘT CÂU HỎI (như thay thế câu 1, thay câu 2, đổi câu 3, sửa câu 1):\n"
+        "   - BẮT BUỘC trích xuất khối ```diff rõ ràng với old_text là câu cũ và new_text là câu mới:\n"
+        "     ```diff\n"
+        "     - <toàn bộ khối câu cũ trong tài liệu hiện tại>\n"
+        "     + <toàn bộ khối câu hỏi mới thay thế>\n"
+        "     ```\n"
+        "   - Đồng thời có thể kèm khối ```latex ... ``` chứa riêng câu hỏi mới để giáo viên có thể chèn trực tiếp.\n"
+        "3. KHI NGƯỜI DÙNG YÊU CẦU TẠO MỚI CÂU HỎI HOẶC HÌNH VẼ:\n"
         "   - Xuất mã LaTeX tự chứa trong khối ```latex ... ``` để chèn vào vị trí con trỏ.\n"
     )
 
     prompt = f"Yêu cầu của giáo viên: {req.message}\n\n"
+    m_replace_hint = re.search(
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        req.message,
+        re.IGNORECASE
+    )
+    if not m_replace_hint:
+        m_replace_hint = re.search(
+            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+            req.message,
+            re.IGNORECASE
+        )
+    if m_replace_hint and req.current_latex:
+        q_target = int(m_replace_hint.group(1))
+        old_snippet = find_nth_question_in_latex(req.current_latex, q_target)
+        if old_snippet:
+            prompt += (
+                f"--- HƯỚNG DẪN BẮT BUỘC KHI THAY THẾ CÂU {q_target} ---\n"
+                f"Khối câu {q_target} hiện tại trong tài liệu là:\n"
+                f"```latex\n{old_snippet}\n```\n"
+                f"Bạn hãy trích xuất khối ```diff với dòng (-) là câu cũ này và dòng (+) là câu mới thay thế, hoặc xuất khối ```latex chứa câu hỏi mới để hệ thống áp dụng thay thế lên trình soạn thảo.\n"
+                f"------------------------------------------------------\n\n"
+            )
     if req.compile_error and req.compile_error.strip():
         prompt += f"--- LOG LỖI BIÊN DỊCH GẦN NHẤT ---\n{req.compile_error.strip()}\n---------------------------------\n\n"
     if req.current_latex and req.current_latex.strip():
@@ -915,6 +1063,110 @@ def composer_chat_endpoint(req: ChatRequest):
             "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này."
         )
         return ChatResponse(reply=reply, diff=font_diff)
+
+    # 1b. Check if user prompt requests replacing question N offline
+    m_off_rep_q = re.search(
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        user_msg_lower
+    )
+    if not m_off_rep_q:
+        m_off_rep_q = re.search(
+            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+            user_msg_lower
+        )
+    if m_off_rep_q and cur_latex:
+        q_idx = int(m_off_rep_q.group(1))
+        old_q = find_nth_question_in_latex(cur_latex, q_idx)
+        if old_q:
+            if any(k in user_msg_lower for k in ("đơn điệu", "đồng biến", "nghịch biến")):
+                new_q = r"""\begin{ex}
+Cho hàm số $y = f(x)$ có bảng xét dấu đạo hàm như sau:
+\begin{center}
+\begin{tabular}{c|ccccccc}
+$x$ & $-\infty$ & & $-1$ & & $2$ & & $+\infty$ \\ \hline
+$f'(x)$ & & $+$ & $0$ & $-$ & $0$ & $+$ & 
+\end{tabular}
+\end{center}
+Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\choice
+{\True $(2; +\infty)$}
+{$(-1; 2)$}
+{$(-\infty; 2)$}
+{$(-1; +\infty)$}
+\begin{loigiai}
+Dựa vào bảng xét dấu đạo hàm, ta có $f'(x) > 0$ trên các khoảng $(-\infty; -1)$ và $(2; +\infty)$.
+Do đó hàm số đồng biến trên khoảng $(2; +\infty)$.
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "cực trị")):
+                new_q = r"""\begin{ex}[Đề Khảo sát 2026]
+Cho hàm số $y = f(x)$ xác định và liên tục trên $\mathbb{R}$ có bảng biến thiên:
+\begin{tikzpicture}
+  \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
+  {$x$/.6, $f'(x)$/.6, $f(x)$/2}
+  {$-\infty$,$-2$,$1$,$+\infty$}
+  \tkzTabLine{,+,0,-,0,+,}
+  \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
+\end{tikzpicture}
+Số điểm cực trị của hàm số đã cho là:
+\choice
+{\True $2$}
+{$1$}
+{$0$}
+{$3$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 điểm $x = -2$ và $x = 1$, do đó hàm số có $2$ điểm cực trị.
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("đúng sai", "đúng/sai", "phần ii")):
+                new_q = r"""\begin{ex}
+Cho hàm số $y = f(x) = x^3 - 3x^2 + 2$. Xét tính đúng/sai của các mệnh đề sau:
+\choiceTF
+{\True Hàm số đồng biến trên khoảng $(2; +\infty)$}
+{Hàm số nghịch biến trên khoảng $(0; 3)$}
+{\True Điểm cực đại của đồ thị hàm số là $(0; 2)$}
+{Giá trị cực tiểu của hàm số bằng $2$}
+\begin{loigiai}
+Ta có $y' = 3x^2 - 6x = 3x(x - 2)$. Suy ra các khẳng định được kiểm chứng như trên.
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("tích phân", "nguyên hàm")):
+                new_q = r"""\begin{ex}
+Tính tích phân $I = \int_0^1 (2x + 1) \, \mathrm{d}x$.
+\choice
+{\True $2$}
+{$1$}
+{$3$}
+{$0$}
+\begin{loigiai}
+Ta có $I = \left. (x^2 + x) 
+ight|_0^1 = (1 + 1) - 0 = 2$.
+\end{loigiai}
+\end{ex}"""
+            else:
+                new_q = r"""\begin{ex}
+Cho hàm số $y = \dfrac{2x - 1}{x + 1}$. Tiệm cận ngang của đồ thị hàm số là đường thẳng:
+\choice
+{\True $y = 2$}
+{$x = -1$}
+{$y = -1$}
+{$x = 2$}
+\begin{loigiai}
+Ta có $\lim_{x \to \pm\infty} \dfrac{2x - 1}{x + 1} = 2$, suy ra tiệm cận ngang là $y = 2$.
+\end{loigiai}
+\end{ex}"""
+            diff = DiffSuggestion(
+                action="replace",
+                old_text=old_q,
+                new_text=new_q,
+                description=f"Thay thế Câu {q_idx}"
+            )
+            reply = (
+                f"Tôi đề xuất thay thế **Câu {q_idx}** bằng câu hỏi mới chuẩn gói `ex_test.sty`:\n\n"
+                f"```diff\n- {old_q}\n+ {new_q}\n```\n\n"
+                f"Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay thế."
+            )
+            return ChatResponse(reply=reply, diff=diff, diffs=[diff], suggested_latex=new_q)
 
     # 2. Check if user prompt contains inline string replacement request
     if any(k in user_msg_lower for k in ("thay thế", "thay", "replace", "sửa", "đổi")) and not any(k in user_msg_lower for k in ("tạo", "thêm", "chèn", "sinh", "viết")):

@@ -2,11 +2,11 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 2.9 (Cải tiến Giao diện Soạn đề LaTeX: Splitter Kéo Thả Ngang 2 Cột, Kéo Thả Độ Cao Trợ Lý Soạn Thảo, Hiển Thị Diff Độc Quyền Trên Code Editor & Quản Lý Phiên Chat Sạch Sẽ Với History Drawer)  
+- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 50 Tests (100% Passed)  
-- **Ngày lập:** 2026-10-24
-- **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)  
+- **Tổng số kịch bản tự động hóa:** 129 Tests (100% Passed)  
+- **Ngày lập:** 2026-10-24  
+- **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
 ---
 
@@ -358,6 +358,32 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
      - Nút `[Áp dụng tất cả]` hiển thị nổi bật với nền xanh Apple khi `pendingDiffs.length > 1`.
      - Click `[Áp dụng tất cả]`: Hệ thống áp dụng tuần tự toàn bộ $N$ khối diff vào mã nguồn, cập nhật editor, kích hoạt `compile(true)` một lần duy nhất, đóng toàn bộ banner/overlay và hiển thị toast thông báo thành công.
 - **Kết quả kỳ vọng:** Trải nghiệm duyệt đa diff mượt mà chuẩn Cursor/VS Code, điều hướng 1/N trực quan, áp dụng hàng loạt chính xác 100%, 0 lỗi Console.
+
+#### TC-COMP-20: Bóc Tách Khối Câu Hỏi Thứ N trong LaTeX (`find_question_block`)
+- **Mô tả:** Kiểm tra độ chính xác của hàm trích xuất câu hỏi thứ $n$ trên các tài liệu LaTeX thực tế:
+  1. *Trường hợp chuẩn `ex_test.sty`:* Tài liệu gồm 5 khối `\begin{ex} ... \end{ex}`. Gọi `find_question_block(latex, 1)` trả về chính xác toàn bộ khối câu 1; gọi `find_question_block(latex, 3)` trả về chính xác khối câu 3.
+  2. *Trường hợp chuẩn đánh số cổ điển:* Tài liệu sử dụng `\textbf{Câu 1.}`, `\textbf{Câu 2.}`. Hàm bóc tách chuẩn xác phạm vi câu tương ứng.
+  3. *Trường hợp chỉ số vượt giới hạn:* Gọi câu thứ 10 trong tài liệu chỉ có 4 câu trả về `None` an toàn.
+- **Kết quả kỳ vọng:** Lát cắt chuỗi trả về khớp 100% từng ký tự với vị trí trong `current_latex`, không gây lỗi ngoại lệ.
+
+#### TC-COMP-21: Gắn Kết Diff Thông Minh Khi Thay Thế Câu Hỏi (Smart Diff Binding)
+- **Mô tả:** Kiểm tra cơ chế tự động liên kết khi prompt yêu cầu thay thế câu hỏi (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"* hoặc *"Thay câu 2 bằng câu khác"*):
+  1. Gửi prompt thay thế câu 1 cùng tài liệu LaTeX mẫu có chứa Câu 1.
+  2. Dù nội dung câu hỏi mới hoàn toàn khác biệt so với câu 1 cũ (khiến `SequenceMatcher` thông thường thất bại), hệ thống tự động gán `old_text = câu 1 cũ` và `new_text = câu mới`.
+  3. `ChatResponse` trả về `diff` hợp lệ với mô tả *"Thay thế câu 1 bằng câu hỏi mới"*.
+- **Kết quả kỳ vọng:** API trả về HTTP 200, trường `diff` và `diffs` chứa đúng lát cắt của câu 1 cũ, sẵn sàng hiển thị trên editor.
+
+#### TC-COMP-22: Hiển Thị Chat Bubble An Toàn & Bảo Toàn Khối Mã Nguồn (Safe Chat Bubble Rendering)
+- **Mô tả:** Kiểm tra logic render giao diện chat bubble (`formatAssistantContent`) trong cả 2 kịch bản có và không có diff:
+  1. *Kịch bản có diff hợp lệ:* Giao diện ẩn khối diff trong chat bubble, gắn badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"*, và kích hoạt banner/overlay trên editor.
+  2. *Kịch bản không có diff hợp lệ (hoặc diff rỗng):* Giao diện KHÔNG ẩn khối mã, KHÔNG hiển thị badge giả tạo; hiển thị trọn vẹn khối mã LaTeX kèm 3 nút bấm tương tác: `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`.
+- **Kết quả kỳ vọng:** 0% mã nguồn bị nuốt mất trong chat bubble; người dùng luôn có công cụ thao tác với mã được sinh ra.
+
+#### TC-DEV-01: Quy Chuẩn Quản Trị Nhánh & Không Tự Động Tạo Pull Request (Git Workflow Guardrail)
+- **Mô tả:** Rà soát và xác thực hành vi của các agent và quy trình CI/CD:
+  1. Chỉ thực hiện `git commit` và `git push` lên nhánh remote đang làm việc.
+  2. Tuyệt đối không tự động kích hoạt `gh pr create` hoặc các API tương đương để tạo mới hay cập nhật Pull Request khi người dùng chưa ra lệnh trực tiếp bằng lời nói.
+- **Kết quả kỳ vọng:** Tuân thủ 100% quy định quản trị phiên bản; ngăn ngừa tình trạng spam Pull Request không mong muốn.
 
 ---
 

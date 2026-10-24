@@ -2,8 +2,8 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 2.9 (Cải tiến Giao diện Soạn đề LaTeX: Splitter Kéo Thả Ngang 2 Cột, Kéo Thả Tùy Biến Độ Cao Box Trợ Lý, Hiển Thị Diff Độc Quyền Trên Code Editor & Quản Lý Phiên Chat Sạch Sẽ Với History Drawer)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn và trợ lý soạn thảo AI copilot thông minh.  
+- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn thảo AI copilot thông minh, và quy chuẩn quản trị phát triển Git.  
 - **Ngày phát hành:** 2026-10-24  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
@@ -14,7 +14,11 @@
 ### 1.1. Mục đích
 Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý dữ liệu, giao diện người dùng, điều kiện biên, các API endpoints và quy tắc nghiệp vụ cho từng phân hệ trong hệ thống Quesy, giải quyết trực tiếp các khó khăn trong quy trình biên soạn và tổ chức kiểm tra đánh giá.
 
-### 1.2. Danh mục Phân hệ Chức năng
+### 1.2. Quy tắc Quản trị Git Workflow & Không Tự Động Tạo Pull Request (Mandatory Git Rule)
+- **Bắt buộc:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
+- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
+
+### 1.3. Danh mục Phân hệ Chức năng
 - **MOD-01:** Phân hệ Tiếp nhận & Số hóa Đề thi bằng AI (AI Ingestion & Parsing)
 - **MOD-02:** Phân hệ Studio Hậu kiểm Đối chiếu Song song (HITL Review Studio)
 - **MOD-03:** Phân hệ Bộ Dựng Đồ Thị Vector SVG & Chuẩn Hóa Toán Học (TikZ & LaTeX Sanitizer)
@@ -280,6 +284,30 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
       - Kích hoạt biên dịch lại PDF (`compile(true)`).
       - Đóng sạch sẽ banner và overlay (`dismissPendingDiffs()`).
       - Hiển thị Toast thông báo: *\"Đã áp dụng thành công toàn bộ N sửa đổi!\"*.
+
+### 2.4.11. FR-02.13: Động Cơ Thay Thế Câu Hỏi Thông Minh & Đồng Bộ Chat-Editor An Toàn (Question Replacement Engine & Safe Chat Sync)
+- **Mục tiêu:** Cho phép giáo viên ra lệnh thay thế câu hỏi trong đề thi qua ngôn ngữ tự nhiên (như *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*, *"Thay câu 2 bằng câu khác"*, *"Sửa câu 3"*), tự động định vị đúng vị trí câu hỏi cũ trong LaTeX, tạo diff chính xác lên editor và bảo toàn giao diện chat bubble không bị nuốt mất code.
+- **Quy trình xử lý chi tiết:**
+  1. *Hàm bóc tách câu hỏi thứ N (`find_question_block(current_latex, n)`):*
+     - Hỗ trợ chuẩn `ex_test.sty`: Trích xuất danh sách các khối `\begin{ex}(?:\[[^\]]*\])?[\s\S]*?\end{ex}` và lấy phần tử thứ `n - 1`.
+     - Hỗ trợ chuẩn đánh số `\textbf{Câu N.}` hoặc `Câu N:`: Cắt lát từ vị trí bắt đầu nhãn câu $n$ đến trước nhãn câu tiếp theo hoặc thẻ kết thúc tài liệu.
+     - Trả về chính xác chuỗi LaTeX nguyên bản của câu $n$ đang tồn tại trong editor để làm `old_text`.
+  2. *Cơ chế gắn kết thông minh (Smart Diff Binding):*
+     - Nhận diện các mẫu câu lệnh thay thế câu hỏi: `r'(?:thay thế|thay|đổi|sửa|chuyển|replace)\s*(?:cho\s+)?(?:câu|câu\s+hỏi|câu\s+số|bài|question)\s*(\d+)'`.
+     - Lấy câu hỏi mới từ khối ````latex ... ```` hoặc ````diff ... ```` do AI hoặc động cơ fallback sinh ra.
+     - Tự động gán `old_text = find_question_block(current_latex, n)` và `new_text = clean_new_code`.
+     - Giải quyết triệt để vấn đề `SequenceMatcher` không tìm thấy old slice do câu hỏi mới khác biệt hoàn toàn về ngữ nghĩa/chủ đề toán học.
+  3. *Cơ chế hiển thị Chat Bubble an toàn (Safe Chat Bubble Rendering):*
+     - Cờ `hasDiff` chỉ kích hoạt khi `diff && diff.old_text && currentLatex.includes(diff.old_text.trim())`.
+     - Nếu diff hợp lệ: Ẩn khối diff trong chat bubble, hiển thị badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"*, chuyển diff tới editor banner/overlay.
+     - Nếu KHÔNG có diff hợp lệ (hoặc diff rỗng): Giữ nguyên khối code trong chat bubble, hiển thị đầy đủ 3 nút thao tác:
+       + `[📥 Chèn vào con trỏ]` (`insertB64Code`)
+       + `[📋 Sao chép]` (`copyB64Code`)
+       + `[🔄 Áp dụng thay thế]` (`replaceB64Code`)
+     - Tuyệt đối không xóa code và không gắn badge chuyển diff giả tạo nếu editor chưa nhận được diff.
+  4. *Động cơ Dự phòng Cục bộ (Local Fallback Generator):*
+     - Nhận diện câu lệnh thay thế câu $n$ khi không có AI Provider kết nối.
+     - Tự động sinh câu hỏi Toán THPT chuẩn `ex_test.sty` (đơn điệu hàm số, bảng biến thiên, cực trị) kèm lời giải chi tiết và tạo khối `DiffSuggestion` khớp đúng câu $n$ trong tài liệu hiện tại.
 
 ---
 

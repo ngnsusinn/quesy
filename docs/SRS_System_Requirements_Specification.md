@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 2.9 (Cải tiến Giao diện Soạn đề LaTeX: Phân tách Splitter Kéo Thả Ngang 2 Cột, Kéo Thả Tùy Biến Độ Cao Box Trợ Lý Soạn Thảo, Hiển Thị Diff Độc Quyền Trên Code Editor & Khởi Tạo Phiên Chat Sạch Sẽ Với Lưu Trữ Lịch Sử Phiên Cũ)  
+- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, và phân hệ Trợ lý Soạn thảo AI Copilot thông minh.  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, phân hệ Trợ lý Soạn thảo AI Copilot thông minh, và quy chuẩn quản trị phát triển Git.  
 - **Ngày phát hành:** 2026-10-24  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
@@ -23,6 +23,10 @@ Tài liệu này đặc tả chi tiết toàn bộ các yêu cầu kỹ thuật,
 
 ### 1.3. Khách thể Sử dụng (Audience)
 - **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
+
+### 1.4. Quy tắc Quản trị Git Workflow & Không Tự Động Tạo Pull Request (Mandatory Git Rule)
+- **Bắt buộc:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
+- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
 - **Kỹ sư AI & Backend:** Xây dựng OCR pipeline, dịch vụ biên dịch TikZ SVG, MathJax Persistent Engine và thuật toán hoán vị an toàn.
 - **Kỹ sư Frontend:** Phát triển giao diện Studio Hậu kiểm (HITL) cuộn đồng bộ, hiển thị đồ thị SVG và render KaTeX thời gian thực.
 - **Kỹ sư QA/QC:** Xây dựng ma trận kiểm thử tự động và tiêu chuẩn nghiệm thu (55/55 automated tests).
@@ -347,6 +351,27 @@ ight)$$
        - Khi người dùng nhấn nút: Hệ thống tự động lặp qua toàn bộ danh sách `pendingDiffs` theo thứ tự xuất hiện, tuần tự áp dụng từng cặp `(old_text, new_text)` vào mã nguồn LaTeX qua thuật toán thay thế an toàn.
        - Cập nhật giá trị vào textarea editor và `currentLatex`, kích hoạt `compile(true)` một lần duy nhất, đóng toàn bộ banner/overlay diff và hiển thị thông báo toast: *\"Đã áp dụng toàn bộ N sửa đổi vào mã nguồn!\"*.
 
+#### SRS-FEAT-04p: Động Cơ Thay Thế Câu Hỏi Thông Minh & Đồng Bộ Chat-Editor An Toàn (Question Replacement Engine & Safe Chat Sync)
+- **Mô tả:** Hỗ trợ người dùng ra lệnh bằng ngôn ngữ tự nhiên để thay thế câu hỏi trong đề thi (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*, *"Thay thế câu 2 bằng câu khác"*, *"Sửa câu 3"*).
+- **Hàm Bóc Tách Khối Câu Hỏi Thứ N (`find_question_block(current_latex, n)`):**
+  1. *Định dạng Chuẩn `ex_test.sty`:* Quét toàn bộ các khối `\begin{ex}(?:\[[^\]]*\])?[\s\S]*?\end{ex}` trong `current_latex`. Khối thứ $n$ (1-indexed) được xác định chính xác theo thứ tự xuất hiện từ trên xuống dưới trong mã nguồn.
+  2. *Định dạng Đánh Số Cổ Điển:* Nếu không tìm thấy cấu trúc `ex_test`, hệ thống đối sánh các nhãn đánh số `\textbf{Câu n.}`, `\textbf{Câu n:}`, hoặc `Câu n.` và bóc tách toàn bộ phần thân từ điểm bắt đầu nhãn này tới trước nhãn câu hỏi kế tiếp (`\textbf{Câu (n+1).}`, `\end{document}`, `\section*`) hoặc cuối văn bản.
+  3. Trả về đúng lát cắt chuỗi nguyên bản (raw substring) của câu hỏi thứ $n$ có mặt trong `current_latex` để làm `old_text`.
+- **Cơ Chế Gắn Kết Thông Minh (Smart Diff Binding):**
+  1. Nhận diện ý định người dùng: Khi prompt chứa cụm từ biểu thị ý định thay thế câu thứ $n$ (ví dụ: `r'(?:thay thế|thay|đổi|sửa|chuyển|replace)\s*(?:cho\s+)?(?:câu|câu\s+hỏi|câu\s+số|bài|question)\s*(\d+)'`).
+  2. Bóc tách câu hỏi mới: Lấy khối câu hỏi mới do AI sinh ra nằm trong ````latex ... ```` hoặc ````diff ... ````.
+  3. Khắc phục hạn chế của `SequenceMatcher`: Khi câu hỏi mới khác hoàn toàn câu hỏi cũ (ví dụ câu cũ là đồ thị hàm số, câu mới là bài toán đơn điệu hàm số), `SequenceMatcher` sẽ có độ tương đồng $< 0.52$ và không tìm thấy vị trí thay thế. Cơ chế Smart Diff Binding chủ động liên kết:
+     `old_text = find_question_block(current_latex, n)` và `new_text = clean_new_code`.
+  4. Trả về đối tượng `DiffSuggestion(action="replace", old_text=old_text, new_text=new_text, description=f"Thay thế câu {n} bằng câu hỏi mới")`.
+- **Cơ Chế Hiển Thị Chat Bubble An Toàn (Safe Chat Bubble Rendering):**
+  1. *Nguyên tắc bảo toàn khối mã:* Tuyệt đối không ẩn/xóa khối mã nguồn trong bubble chat và không hiển thị badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"* trừ khi diff THỰC SỰ tồn tại và hợp lệ (`diff && diff.old_text && currentLatex.includes(diff.old_text)`).
+  2. *Fallback khi không có diff hợp lệ:* Nếu diff rỗng hoặc `old_text` không khớp vị trí trong editor:
+     - Giữ nguyên khối code trong bubble chat.
+     - Trang bị đầy đủ các nút bấm hành động: `[📥 Chèn vào con trỏ]` (`insertB64Code`), `[📋 Sao chép]` (`copyB64Code`), và `[🔄 Áp dụng thay thế]` (`replaceB64Code`).
+     - Triệt tiêu hoàn toàn lỗi nuốt mất code trong chat bubble khi editor chưa nhận được diff.
+- **Hỗ Trợ Động Cơ Dự Phòng Cục Bộ (Local Offline Fallback Generator):**
+  - Khi không cấu hình AI Provider hoặc mạng gián đoạn, động cơ dự phòng nhận diện câu lệnh thay thế câu $n$ (ví dụ: "đơn điệu hàm số thay thế câu 1"), tự động sinh câu hỏi toán chuẩn `ex_test.sty` và bóc tách câu $n$ cũ để trả về `DiffSuggestion` hoàn chỉnh.
+
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.
 - **Xử lý:** Tính toán vector embedding (`text-embedding-3-small` hoặc `bge-m3`), so sánh Cosine Distance trong `pgvector`.
@@ -448,6 +473,7 @@ ight)$$
 | **SRS-FEAT-04** | Unit Test logic điểm | Chấm điểm câu Đúng/Sai 4 ý: Đúng 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ. |
 | **SRS-FEAT-04e** | E2E Browser Test | Click chuột vào Compact Bar chân editor: con trỏ focus ô nhập text bình thường, không mở popup. Nhấn Enter hoặc nút mũi tên: mở bung full popup trợ lý và gửi prompt. |
 | **SRS-FEAT-04f** | Test tự động + UI Test | Phản hồi sửa đổi từ AI trích xuất thành đối tượng `DiffSuggestion`, định vị đúng dòng trên editor, hiển thị banner so sánh đỏ/xanh; nhấn [Đồng ý] thay thế chuẩn xác dòng code và kích hoạt recompile; nhấn [Từ chối] hủy bỏ an toàn không làm biến đổi mã nguồn. |
+| **SRS-FEAT-04p** | Test tự động + Blind Test | Bóc tách chính xác khối câu hỏi thứ N (`find_question_block`); prompt thay thế câu N liên kết đúng diff; nếu diff hợp lệ chuyển tới editor, nếu rỗng bảo tồn trọn vẹn code trong chat bubble kèm 3 nút hành động (không nuốt code). |
 | **SRS-FEAT-05** | Test tích hợp | Câu hỏi có cosine similarity $\ge 0.90$ phải kích hoạt chặn lưu và hiển thị modal cảnh báo trùng lặp. |
 | **SRS-FEAT-08** | Unit Test thuật toán | Chạy 1.000 lần sinh mã đề hoán vị: $0\%$ câu hỏi chùm bị tách rời; $0\%$ phương án có cờ `is_fixed` bị đảo khỏi vị trí cố định. |
 | **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng MathType 7.0 OLE Vector WMF nét căng tuyệt đối, click đúp mở MathType 7 sửa được trực tiếp; bảng số liệu dạng native table không bị lỗi đen khi xuất PDF; khổ A4 dọc chuẩn. |

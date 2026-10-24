@@ -17,7 +17,8 @@
 | 2.0 | 2026-10-15 | BA Team | Tích hợp cấu trúc đa dạng câu hỏi và cây phân loại năng lực | PM |
 | 2.5 | 2026-10-18 | BA Team & Tech Lead | Tái cơ cấu toàn diện tài liệu theo định hướng Giải pháp & Giá trị thực tế: Tích hợp bộ dựng đồ thị vector SVG TikZ/PGFPlots tự động có Auto-clipping, 4 quy tắc toán học KaTeX, động cơ Safe Shuffling (Option Anchor), chấm điểm bậc thang và xuất bản Word OMML native. | Ban Giám đốc & PM |
 | 2.6 | 2026-10-21 | BA Team & Tech Lead | Tích hợp chuẩn xuất bản MathType 7.0 OLE Vector WMF (double-click editable), dịch vụ MathJax Persistent Worker Engine (~14ms/công thức), và chuyển đổi bảng thống kê `\begin{array}` thành Word Table `<w:tbl>` chống lỗi đen PDF. | Ban Giám đốc & PM |
-| **2.7** | 2026-10-21 | BA Team & Tech Lead | **Chuẩn hóa nhị phân DSMT7 Native Preamble, bản ghi TeX Input Language**, bổ sung embellishment vectơ (`\vec`, `\overrightarrow`), đạt $100\%$ Vector WMF tuyệt đối (loại bỏ toàn bộ raster DIB), giải quyết triệt để lỗi OLE activation trong Microsoft Word. | Ban Giám đốc & PM |
+| 2.7 | 2026-10-21 | BA Team & Tech Lead | Chuẩn hóa nhị phân DSMT7 Native Preamble, bản ghi TeX Input Language, bổ sung embellishment vectơ (`\vec`, `\overrightarrow`), đạt $100\%$ Vector WMF tuyệt đối, giải quyết triệt để lỗi OLE activation trong Microsoft Word. | Ban Giám đốc & PM |
+| **3.0** | 2026-10-24 | BA Team & Tech Lead | **Tích hợp Động cơ Thay thế Câu hỏi Thông minh (Question Replacement Engine), Cơ chế bảo toàn khối mã Chat Bubble (Safe Chat Sync), và Quy chuẩn Quản trị Git Workflow (Chỉ commit và push, tuyệt đối không tự động tạo PR).** | Ban Giám đốc & PM |
 
 ---
 
@@ -152,6 +153,8 @@ ight\}` (bảo vệ căn `\sqrt[...]` và text mode).
 | **RULE-04** | Chuẩn hóa theo Dạng bài & Năng lực | Câu hỏi được phân loại theo Dạng bài toán cụ thể và cấp độ tư duy, hoàn toàn độc lập với các bộ sách giáo khoa thương mại. |
 | **RULE-05** | Ngưỡng Cảnh báo Trùng lặp AI Vector | Nếu độ tương đồng cosine >= 0.90 giữa câu hỏi mới và câu hỏi hiện có trong DB, hệ thống bắt buộc kích hoạt modal cảnh báo màu đỏ và chặn lưu tự động. |
 | **RULE-06** | Cơ cấu Ma trận Đề thi Đánh giá Định kỳ | Tỷ lệ điểm các câu hỏi trong đề kiểm tra phải nằm trong biên độ cấu hình ma trận quy định (dung sai $\pm 5\%$). |
+| **RULE-07** | Bảo toàn Khối mã Chat Bubble & Động cơ Thay thế Câu hỏi | Khi người dùng ra lệnh thay thế câu thứ N, hệ thống tự động bóc tách câu cũ làm `old_text` và gán câu mới làm `new_text`. Khối code trong chat bubble tuyệt đối không bị nuốt mất nếu không có diff hợp lệ gửi sang editor. |
+| **RULE-08** | Quy chuẩn Git Workflow - Không Tự Động Tạo PR | Chỉ thực hiện `git commit` và `git push` lên repository; tuyệt đối không tự động tạo hoặc cập nhật Pull Request trừ khi có yêu cầu bằng lời nói rõ ràng từ người dùng. |
 
 ---
 
@@ -165,3 +168,4 @@ ight\}` (bảo vệ căn `\sqrt[...]` và text mode).
 | **BR-04** | Ma trận Đề thi 2 Chiều & Rút Đề | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối cấu trúc |
 | **BR-05** | Trộn Đề & Hoán vị An toàn | Safe Shuffling Engine | P0 | Chống lỗi logic đáp án neo, bảo toàn bài đọc |
 | **BR-06** | Xuất bản Word OMML & Bảng điểm | Export Service & Grade Manager | P0 | Xuất bản in ấn 1-click, chấm điểm bậc thang tự động |
+| **BR-07** | Trợ lý Soạn thảo AI & Thay thế Câu hỏi Thông minh | Composer Copilot & Question Replacement Engine | P0 | Hỗ trợ giáo viên chỉnh sửa/thay thế câu hỏi 1-click, bảo toàn code và trải nghiệm mượt mà |

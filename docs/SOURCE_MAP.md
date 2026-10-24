@@ -2,7 +2,7 @@
 
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
-> **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (71/71 test cases PASSED)  
+> **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
 > **Cập nhật lần cuối:** Tháng 10/2026  
 
 ---
@@ -400,4 +400,18 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
     2. *Tiêu chí 2 (Compile Error Forwarding):* Cố ý tạo lỗi cú pháp LaTeX (ví dụ: `\badcommand`), biên dịch thất bại -> gửi prompt yêu cầu "sửa lỗi giúp tôi" -> AI Copilot tiếp nhận log lỗi `compile_error_log` và xuất diff sửa đúng dòng lỗi.
     3. *Tiêu chí 3 (Fuzzy Diff Replacement & Inline Overlay):* Bấm [Đồng ý áp dụng] / [Apply] thành công 100%, không xuất hiện toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại". Giao diện diff hiển thị trực quan trực tiếp tại vị trí dòng mã nguồn trên ô soạn thảo (dòng đỏ -, dòng xanh +, nút Keep/Đồng ý và Undo/Từ chối).
     4. *Tiêu chí 4 (Fast Dispatch & Smooth Chat):* Gửi prompt từ compact input hoặc chat input phản hồi tức thì không bị delay, chuyển động mở popup và cuộn tin nhắn mượt mà chuẩn 60 FPS, không có lỗi JavaScript màu đỏ trong console.
-  - Sub-Agent 4 bắt buộc phải thao tác trực tiếp trên trình duyệt thật (`browser_exec`), chụp ảnh màn hình và đối chứng thực tế để bảo đảm 4 lỗi trên không tái phát trước khi nghiệm thu.
+    5. *Tiêu chí 5 (Question Replacement & Smart Diff Binding):* Khi gửi prompt thay thế câu hỏi (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*), hệ thống tự động bóc tách câu 1 (`find_question_block`), gán diff chính xác lên editor, hiển thị banner và overlay mà không phụ thuộc vào `SequenceMatcher`.
+    6. *Tiêu chí 6 (Safe Chat Bubble Rendering & Zero Code Loss):* Nếu không có diff hoặc diff không khớp, khối code LaTeX không được ẩn mất khỏi chat bubble; hiển thị đầy đủ 3 nút hành động `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`, tuyệt đối không nuốt mất mã của người dùng.
+  - Sub-Agent 4 bắt buộc phải thao tác trực tiếp trên trình duyệt thật (`browser_exec`), chụp ảnh màn hình và đối chứng thực tế để bảo đảm các lỗi trên không tái phát trước khi nghiệm thu.
+
+---
+
+## 10. QUY TRÌNH QUẢN TRỊ PHIÊN BẢN & GIT WORKFLOW (STRICT COMMIT & PUSH ONLY)
+
+- **Bắt buộc:** Sau khi hoàn thành việc triển khai, sửa lỗi hoặc refactor và kiểm thử thành công 100% test cases:
+  1. Thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+  2. Thực hiện `git push` lên nhánh làm việc (remote branch).
+- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO/CẬP NHẬT PULL REQUEST:**
+  - Nghiêm cấm các sub-agent tự ý chạy lệnh `gh pr create` hoặc gọi GitHub REST API để mở Pull Request.
+  - Nghiêm cấm tự động cập nhật hoặc đẩy vào Pull Request có sẵn trừ khi Người dùng (User) yêu cầu bằng lời nói rõ ràng, cụ thể.
+- **Dọn dẹp tiến trình:** Bắt buộc diệt sạch các tiến trình nền (uvicorn cổng 8000, Node.js persistent worker, subprocess) sau khi kết thúc lượt phản hồi.

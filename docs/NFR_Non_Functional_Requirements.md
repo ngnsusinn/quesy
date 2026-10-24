@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 2.9 (Cải tiến Giao diện Soạn đề LaTeX: Splitter Kéo Thả Ngang 2 Cột, Kéo Thả Độ Cao Trợ Lý Soạn Thảo, Hiển Thị Diff Độc Quyền Trên Code Editor & Quản Lý Phiên Chat Sạch Sẽ Với History Drawer)  
+- **Phiên bản:** 3.0 (Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine, Đồng bộ Chat-Editor An toàn & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.  
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.  
 - **Ngày phát hành:** 2026-10-24
 
 ---
@@ -98,6 +98,12 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 - **NFR-REL-03 (Tần suất sao lưu - RPO):** Tự động sao lưu cơ sở dữ liệu (Full Backup) mỗi 24 giờ và sao lưu nhật ký WAL (Write-Ahead Logging) liên tục. Cam kết Mục tiêu Điểm Phục hồi (RPO) **$< 15$ phút**.
 - **NFR-REL-04 (Thời gian khôi phục - RTO):** Cam kết Mục tiêu Thời gian Phục hồi (RTO) **$< 2$ giờ** trong trường hợp hạ tầng máy chủ chính gặp sự cố vật lý nghiêm trọng.
 
+### 4.3. Bảo toàn Dữ liệu Giao diện & Chat Bubble (UI Data Integrity)
+- **NFR-REL-07 (Bảo toàn Khối mã Chat Bubble & Chống nuốt Code):**
+  - Tỷ lệ nuốt mất mã nguồn trong bubble chat khi AI sinh mã LaTeX phải bằng **$0\%$**.
+  - Hệ thống chỉ được phép ẩn khối mã và gắn badge *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"* khi và chỉ khi diff thực sự tồn tại, hợp lệ và đã được nạp thành công vào editor (`diffs.length > 0`).
+  - Trong mọi trường hợp khác (diff rỗng, không tìm thấy vị trí dòng cũ, hoặc mã độc lập), khối mã phải được bảo toàn nguyên vẹn 100% trong bubble chat kèm 3 nút thao tác: Chèn vào con trỏ, Sao chép, và Áp dụng thay thế.
+
 ---
 
 ## 5. KHẢ NĂNG MỞ RỘNG & TẢI TRỌNG (SCALABILITY & CAPACITY)
@@ -128,3 +134,13 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 
 - **NFR-COM-01 (Tuân thủ Nghị định 13/2023/NĐ-CP):** Hệ thống bảo vệ dữ liệu cá nhân của giáo viên và học sinh (họ tên, email, kết quả điểm số), cung cấp tùy chọn xóa tài khoản và dữ liệu cá nhân (Right to be Forgotten).
 - **NFR-COM-02 (Bản quyền Nội dung Khảo thí & Chuẩn hóa TT 32):** Hệ thống hỗ trợ đánh dấu bản quyền số (Watermarking) tên trường học/tổ bộ môn mờ trên file Word và PDF khi xuất bản nhằm bảo vệ quyền tác giả của đề thi. Toàn bộ mã hóa câu hỏi bám sát chuẩn Yêu cầu cần đạt của Thông tư 32/2018/TT-BGDĐT.
+
+---
+
+## 8. QUẢN TRỊ PHÁT TRIỂN & QUY TẮC GIT WORKFLOW (DEVELOPMENT GOVERNANCE)
+
+- **NFR-DEV-01 (Quy chuẩn Git Commit & Push):** Mọi thay đổi mã nguồn phải được kiểm thử tự động đạt 100% test cases (`pytest`) trước khi thực hiện `git commit` tuân thủ chuẩn Conventional Commits và `git push` lên nhánh remote repository tương ứng.
+- **NFR-DEV-02 (Tuyệt đối Không Tự Động Tạo Pull Request):**
+  - Nghiêm cấm tuyệt đối các agent, tiến trình tự động hóa, hoặc script CI tự ý tạo Pull Request (`gh pr create`, REST API calls) hoặc tự động đẩy/cập nhật vào Pull Request.
+  - Hành động mở hoặc cập nhật Pull Request chỉ được phép thực hiện khi và chỉ khi có yêu cầu bằng lời nói rõ ràng, tường minh từ người dùng (explicit user prompt).
+- **NFR-DEV-03 (Dọn dẹp Tiến trình Nền):** Sau khi chạy thử nghiệm hoặc kiểm thử, toàn bộ các tiến trình nền (uvicorn cổng 8000, worker Node.js, subprocess) phải được dọn dẹp và tắt triệt để, không để tồn đọng tiến trình mồ côi.

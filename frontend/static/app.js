@@ -5075,6 +5075,21 @@
           editor.scrollTop = Math.max(0, (lineNo - 3) * lineHeight);
           this.syncEditorScroll();
         }
+      } else if (editor) {
+        // Fallback: try finding first line of old_text in editor
+        const firstOldLine = (diff.old_text || '').split('\n').map(l => l.trim()).find(l => l.length > 0);
+        if (firstOldLine) {
+          const lines = val.split('\n');
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes(firstOldLine) || (lines[i].trim() && firstOldLine.includes(lines[i].trim()))) {
+              lineNo = i + 1;
+              const lineHeight = 20;
+              editor.scrollTop = Math.max(0, (lineNo - 3) * lineHeight);
+              this.syncEditorScroll();
+              break;
+            }
+          }
+        }
       }
 
       this._inlineDiffLineNo = lineNo;
@@ -5082,12 +5097,12 @@
       const displayDesc = diff.description || `Thay đổi tại dòng ${lineNo}`;
       const displayNew = (diff.new_text !== undefined && diff.new_text !== null && diff.new_text !== '') ? diff.new_text : '(Xóa bỏ đoạn mã này)';
 
-      // 1. Update top banner
+      // 1. Update top banner - ALWAYS display banner on editor
       if (lineNoEl) lineNoEl.innerText = lineNo;
-      if (banner && descEl && oldEl && newEl) {
-        descEl.innerText = displayDesc;
-        oldEl.innerText = diff.old_text;
-        newEl.innerText = displayNew;
+      if (banner) {
+        if (descEl) descEl.innerText = displayDesc;
+        if (oldEl) oldEl.innerText = diff.old_text;
+        if (newEl) newEl.innerText = displayNew;
         banner.classList.remove('hidden');
       }
 
@@ -5343,6 +5358,57 @@
       showToast('Đã áp dụng thay đổi vào mã nguồn!', 'success');
     },
 
+    findNthQuestionInLatex(latexCode, n) {
+      if (!latexCode || n < 1) return null;
+      // 1. ex_test.sty syntax (\begin{ex} ... \end{ex})
+      const exRegex = /\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}/g;
+      const exMatches = [];
+      let m;
+      while ((m = exRegex.exec(latexCode)) !== null) {
+        exMatches.push(m[0]);
+      }
+      if (exMatches.length > 0) {
+        return (n >= 1 && n <= exMatches.length) ? exMatches[n - 1] : null;
+      }
+      // 1b. Unclosed ex_test environments: \begin{ex} ... (ending at next \begin{ex} or \end{document} or EOF)
+      const unclosedRegex = /\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?(?=(?:\\begin\{(?:ex|bt|vd)\}|\\end\{document\}|$))/g;
+      const unclosedMatches = [];
+      while ((m = unclosedRegex.exec(latexCode)) !== null) {
+        unclosedMatches.push(m[0].trim());
+      }
+      if (unclosedMatches.length > 0) {
+        return (n >= 1 && n <= unclosedMatches.length) ? unclosedMatches[n - 1] : null;
+      }
+      // 2. Classic \textbf{Câu X.} or Câu X. syntax
+      const classicRegex = /(?:\\(?:noindent|medskip|bigskip)\s*)?\\textbf\{\s*Câu\s*(\d+)[\.:]?\s*\}|(?<![\w\\{])Câu\s*(\d+)[\.:]/gi;
+      const classicMatches = [];
+      while ((m = classicRegex.exec(latexCode)) !== null) {
+        classicMatches.push({
+          index: m.index,
+          num: parseInt(m[1] || m[2], 10)
+        });
+      }
+      if (!classicMatches.length) return null;
+      let targetIdx = classicMatches.findIndex(item => item.num === n);
+      if (targetIdx === -1 && n >= 1 && n <= classicMatches.length) {
+        targetIdx = n - 1;
+      }
+      if (targetIdx === -1) return null;
+      const startPos = classicMatches[targetIdx].index;
+      let endPos = latexCode.length;
+      if (targetIdx + 1 < classicMatches.length) {
+        endPos = classicMatches[targetIdx + 1].index;
+      } else {
+        const tail = latexCode.substring(startPos);
+        const endDoc = tail.match(/(\\end\{document\}|\\section\*?\{)/);
+        if (endDoc) {
+          endPos = startPos + endDoc.index;
+        }
+      }
+      const extracted = latexCode.substring(startPos, endPos).trimEnd();
+      return extracted || null;
+    },
+
     extractDiffFromText(replyText, currentLatex, userMessage = '') {
       if (!currentLatex || !replyText) return null;
       const combinedText = `${userMessage}\n${replyText}`;
@@ -5525,6 +5591,40 @@
         }
       }
 
+      // Question N replacement heuristic: "thay thế câu (\d+)", "thay câu (\d+)", "sửa câu (\d+)", "đổi câu (\d+)", "replace question (\d+)"
+      const replaceQMatch = combinedLower.match(/(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)/i) ||
+                            combinedLower.match(/(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)/i);
+      if (replaceQMatch) {
+        const targetQ = parseInt(replaceQMatch[1], 10);
+        const oldQ = this.findNthQuestionInLatex ? this.findNthQuestionInLatex(currentLatex, targetQ) : null;
+        if (oldQ) {
+          let newQ = null;
+          // Check diff block for + lines first
+          const diffM = replyText.match(/```diff\s*\n([\s\S]*?)```/i);
+          if (diffM) {
+            const added = diffM[1].split('\n').filter(l => /^\s*\+/.test(l) && !l.startsWith('+++')).map(l => l.replace(/^\s*\+\s?/, ''));
+            if (added.length > 0) newQ = added.join('\n').trim();
+          }
+          if (!newQ) {
+            const codeM = replyText.match(/```(?:latex|tex)?\s*\n([\s\S]*?)```/i);
+            if (codeM && !codeM[1].trim().startsWith('\\documentclass')) {
+              newQ = codeM[1].trim();
+            } else {
+              const exM = replyText.match(/\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{(?:ex|bt|vd)\}/i);
+              if (exM) newQ = exM[0].trim();
+            }
+          }
+          if (newQ && newQ !== oldQ) {
+            return {
+              action: 'replace',
+              old_text: oldQ,
+              new_text: newQ,
+              description: `Thay thế Câu ${targetQ}`
+            };
+          }
+        }
+      }
+
       // 7. Code block comparison: AI returns revised LaTeX block (```latex ... ```)
       const codeMatch = replyText.match(/```(?:latex|tex)?\s*\n([\s\S]*?)```/);
       if (codeMatch) {
@@ -5668,30 +5768,60 @@
       if (!text) return '';
       let html = text;
 
-      // Smart fallback diff extraction if diff not provided
-      if (!diff && this.extractDiffFromText) {
-        diff = this.extractDiffFromText(text, this.currentLatex);
+      // Smart fallback diff extraction if diff not provided or missing valid old_text
+      if ((!diff || !diff.old_text || !diff.old_text.trim()) && this.extractDiffFromText) {
+        const fallbackDiff = this.extractDiffFromText(text, this.currentLatex);
+        if (fallbackDiff && fallbackDiff.old_text && fallbackDiff.old_text.trim()) {
+          diff = fallbackDiff;
+        }
       }
 
+      // CHỈ coi là có diff khi diff && diff.old_text && diff.old_text.trim().length > 0
       const hasDiff = Boolean(
-        (diff && diff.old_text) ||
-        /```diff/i.test(html) ||
-        /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+[\s\S]*?\n+(?:NEW|MỚI|MÃ MỚI|SAU):/i.test(html) ||
-        /(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n[\s\S]*?\n```\s*\n*(?:thành|bằng|sang|mới|sau):/i.test(html)
+        diff && diff.old_text && typeof diff.old_text === 'string' && diff.old_text.trim().length > 0
       );
 
-      // 1. Remove ```diff ... ``` blocks from chat bubble
-      html = html.replace(/```diff\s*[\s\S]*?```/gi, '');
+      if (hasDiff) {
+        // 1. Remove ```diff ... ``` blocks from chat bubble when diff is valid and shown on editor
+        html = html.replace(/```diff\s*[\s\S]*?```/gi, '');
 
-      // 2. Remove OLD / NEW or CŨ / MỚI replacement blocks from chat bubble
-      const oldNewRegex = /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|$)/gi;
-      html = html.replace(oldNewRegex, '');
+        // 2. Remove OLD / NEW or CŨ / MỚI replacement blocks from chat bubble
+        const oldNewRegex = /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|$)/gi;
+        html = html.replace(oldNewRegex, '');
 
-      // 3. Remove block replacement code fences from chat bubble if it was just replacing code
-      const blockRepRegex = /(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n[\s\S]*?\n```\s*\n*(?:thành|bằng|sang|mới|sau):\s*\n*```(?:latex|tex)?\n[\s\S]*?\n```/gi;
-      html = html.replace(blockRepRegex, '');
+        // 3. Remove block replacement code fences from chat bubble if it was just replacing code
+        const blockRepRegex = /(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n[\s\S]*?\n```\s*\n*(?:thành|bằng|sang|mới|sau):/gi;
+        html = html.replace(blockRepRegex, '');
+      } else {
+        // KHÔNG ẩn khối code ```diff: render khối code diff kèm nút Chèn vào con trỏ và Áp dụng thay thế
+        html = html.replace(/```diff\s*([\s\S]*?)```/gi, (match, diffContent) => {
+          const rawCode = diffContent.trim();
+          const plusLines = rawCode.split('\n').filter(l => /^\s*\+/.test(l) && !l.startsWith('+++')).map(l => l.replace(/^\s*\+\s?/, ''));
+          const insertPayload = (plusLines.length > 0 ? plusLines.join('\n') : rawCode).trim();
+          const b64Code = btoa(unescape(encodeURIComponent(insertPayload)));
+          return `
+            <div class="code-block-wrapper my-2 rounded-xl overflow-hidden border border-slate-700/80 shadow-xs">
+              <div class="code-block-actions flex items-center justify-between bg-slate-800 text-slate-300 px-3 py-1.5 text-[10px]">
+                <span class="font-mono text-purple-400 font-semibold">Diff Code</span>
+                <div class="flex items-center space-x-1.5">
+                  <button type="button" onclick="app.composer.insertB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-all active:scale-95 flex items-center space-x-1" title="Chèn vào vị trí con trỏ trong mã nguồn">
+                    <span>📥 Chèn vào con trỏ</span>
+                  </button>
+                  <button type="button" onclick="app.composer.replaceB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-white font-semibold transition-all active:scale-95 flex items-center space-x-1" title="Áp dụng thay thế">
+                    <span>⚡ Áp dụng thay thế</span>
+                  </button>
+                  <button type="button" onclick="app.composer.copyB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Sao chép">
+                    <span>📋 Sao chép</span>
+                  </button>
+                </div>
+              </div>
+              <pre class="bg-slate-900 text-amber-300 p-2.5 font-mono text-[11px] overflow-x-auto leading-relaxed max-h-56 select-text whitespace-pre"><code>${escapeHtml(rawCode)}</code></pre>
+            </div>
+          `;
+        });
+      }
 
-      // 4. Standard LaTeX Snippets (```latex ... ```) - keep for code reference with insert/copy buttons
+      // 4. Standard LaTeX Snippets (```latex ... ```) - keep for code reference with insert/replace/copy buttons
       html = html.replace(/```(?:latex|tex)?\s*([\s\S]*?)```/g, (match, code) => {
         const rawCode = code.trim();
         const b64Code = btoa(unescape(encodeURIComponent(rawCode)));
@@ -5702,6 +5832,9 @@
               <div class="flex items-center space-x-1.5">
                 <button type="button" onclick="app.composer.insertB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-semibold transition-all active:scale-95 flex items-center space-x-1" title="Chèn vào vị trí con trỏ trong mã nguồn">
                   <span>📥 Chèn vào con trỏ</span>
+                </button>
+                <button type="button" onclick="app.composer.replaceB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-500 text-white font-semibold transition-all active:scale-95 flex items-center space-x-1" title="Áp dụng thay thế">
+                  <span>⚡ Áp dụng thay thế</span>
                 </button>
                 <button type="button" onclick="app.composer.copyB64Code('${b64Code}')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition-all active:scale-95 flex items-center space-x-1" title="Sao chép">
                   <span>📋 Sao chép</span>
@@ -5718,7 +5851,7 @@
       html = html.replace(/`([^`]+)`/g, '<code class="bg-[#2d2d31] text-purple-300 border border-white/10 px-1.5 py-0.5 rounded font-mono text-[11px] font-semibold">$1</code>');
       html = html.replace(/\n\n/g, '<br><br>');
 
-      // 5. If a diff was detected, add brief unobtrusive notification note
+      // 5. If a diff was detected, add brief unobtrusive notification note ONLY when hasDiff is true
       if (hasDiff) {
         html += `
           <div class="my-2 px-2.5 py-1.5 rounded-lg bg-blue-950/40 border border-blue-500/25 text-blue-300 text-[11px] flex items-center space-x-1.5 select-none">
@@ -5747,23 +5880,49 @@
         const editor = document.getElementById('composer-editor-input');
         if (!editor) return;
 
-        // Safety guard: prevent replacing entire exam if code is just a small snippet
-        if (!code.includes('\\documentclass') && this.currentLatex && this.currentLatex.length > 80) {
-          showToast('Đoạn mã này là đoạn trích ngắn, không thể thay thế toàn bộ tài liệu!', 'warning');
+        // If code is a full document, replace all
+        if (code.includes('\\documentclass')) {
+          if (this.currentLatex && this.currentLatex.length > 50) {
+            if (!confirm('Bạn có chắc chắn muốn thay thế toàn bộ tài liệu hiện tại bằng mã mới?')) {
+              return;
+            }
+          }
+          editor.value = code;
+          this.currentLatex = code;
+          this.handleEditorInput();
+          this.compile(true);
+          showToast('Đã thay thế toàn bộ tài liệu bằng mã mới!', 'success');
           return;
         }
 
-        if (this.currentLatex && this.currentLatex.length > 50) {
-          if (!confirm('Bạn có chắc chắn muốn thay thế toàn bộ tài liệu hiện tại bằng mã mới?')) {
-            return;
-          }
+        // If code is a question or snippet, find matching question or block in currentLatex
+        let candidateDiff = null;
+        if (this.extractDiffFromText) {
+          candidateDiff = this.extractDiffFromText('```latex\n' + code + '\n```', this.currentLatex, 'thay thế');
+        }
+        if (candidateDiff && candidateDiff.old_text) {
+          this.showPendingDiffs([candidateDiff]);
+          showToast('Đã tạo gợi ý thay thế trên ô soạn thảo! Nhấn "Keep / Đồng ý" để áp dụng.', 'info');
+          return;
         }
 
-        editor.value = code;
-        this.currentLatex = code;
-        this.handleEditorInput();
-        this.compile(true);
-        showToast('Đã thay thế toàn bộ tài liệu bằng mã mới!', 'success');
+        // Fallback: If user has text selected in editor, replace selection
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        if (start !== undefined && end !== undefined && start !== end) {
+          const val = editor.value;
+          const newVal = val.substring(0, start) + code + val.substring(end);
+          editor.value = newVal;
+          this.currentLatex = newVal;
+          this.handleEditorInput();
+          this.compile(true);
+          showToast('Đã thay thế đoạn văn bản được chọn!', 'success');
+          return;
+        }
+
+        // Otherwise insert snippet at cursor
+        this.insertSnippet(code);
+        showToast('Đã chèn đoạn mã vào vị trí con trỏ!', 'success');
       } catch (e) {
         console.error('Error replacing code:', e);
       }
@@ -5871,6 +6030,9 @@
             const single = this.extractDiffFromText(data.reply, this.currentLatex, promptText);
             if (single) diffs = [single];
           }
+          // Filter out diffs with invalid or empty old_text
+          diffs = diffs.filter(d => d && d.old_text && typeof d.old_text === 'string' && d.old_text.trim().length > 0);
+
           let diff = diffs.length ? diffs[0] : null;
           this.chatHistory.push({ role: 'assistant', content: data.reply, diff: diff || null, diffs: diffs });
           this.archiveCurrentSession();
