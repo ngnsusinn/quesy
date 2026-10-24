@@ -1309,7 +1309,8 @@ Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 đi�
         return ChatResponse(reply=reply, suggested_latex=latex_snippet)
 
     elif any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "cực trị")):
-        latex_snippet = r"""\textbf{Câu hỏi.} Cho hàm số $y = f(x)$ liên tục trên $\mathbb{R}$ có bảng biến thiên:
+        latex_snippet = r"""\begin{ex}
+Cho hàm số $y = f(x)$ xác định và liên tục trên $\mathbb{R}$ có bảng biến thiên:
 \begin{tikzpicture}
   \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
   {$x$/.6, $f'(x)$/.6, $f(x)$/2}
@@ -1318,9 +1319,17 @@ Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 đi�
   \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
 \end{tikzpicture}
 Điểm cực đại của đồ thị hàm số đã cho là:
-\textbf{A.} $(-2; 4)$ \qquad \textbf{B.} $(1; -1)$ \qquad \textbf{C.} $(-2; -1)$ \qquad \textbf{D.} $(1; 4)$"""
+\choice
+{\True $(-2; 4)$}
+{$(1; -1)$}
+{$(-2; -1)$}
+{$(1; 4)$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, tại $x = -2$ đạo hàm đổi dấu từ dương sang âm và $f(-2) = 4$, do đó điểm cực đại là $(-2; 4)$.
+\end{loigiai}
+\end{ex}"""
         reply = (
-            "Dưới đây là mẫu câu hỏi bảng biến thiên sử dụng gói `tkz-tab` chuẩn mẫu vector của Bộ Giáo dục:\n\n"
+            "Dưới đây là mẫu câu hỏi bảng biến thiên chuẩn gói `ex_test.sty` và `tkz-tab`:\n\n"
             f"```latex\n{latex_snippet}\n```\n\n"
             "Bạn có thể nhấn **Chèn vào con trỏ** để đưa câu hỏi này trực tiếp vào đề thi!"
         )
@@ -1330,49 +1339,75 @@ Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 đi�
         latex_snippet = r"""\section*{PHẦN II. Câu trắc nghiệm Đúng/Sai}
 \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 
-\textbf{Câu 1.} Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tính Đúng/Sai của các khẳng định sau:
-
-a) Đồ thị hàm số bậc ba luôn có tâm đối xứng là điểm uốn.
-
-b) Nếu hàm số có hai điểm cực trị thì tích các giá trị cực trị luôn âm.
-
-c) Hàm số luôn có đạo hàm cấp hai liên tục trên $\mathbb{R}$.
-
-d) Điểm cực trị của hàm số là nghiệm của phương trình $f'(x) = 0$."""
+\begin{ex}
+Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tính Đúng/Sai của các khẳng định sau:
+\choiceTF
+{\True Đồ thị hàm số bậc ba luôn có tâm đối xứng là điểm uốn.}
+{Nếu hàm số có hai điểm cực trị thì tích các giá trị cực trị luôn âm.}
+{\True Hàm số luôn có đạo hàm cấp hai liên tục trên $\mathbb{R}$.}
+{Điểm cực trị của hàm số là nghiệm của phương trình $f'(x) = 0$.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. Đồ thị hàm số bậc ba luôn nhận điểm uốn làm tâm đối xứng.
+\itemch Sai. Tích hai giá trị cực trị có thể mang dấu dương.
+\itemch Đúng. Hàm số đa thức bậc ba khả vi vô hạn trên $\mathbb{R}$.
+\itemch Sai. Nghiệm của phương trình $f'(x) = 0$ phải làm đổi dấu đạo hàm thì mới là điểm cực trị.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}"""
         reply = (
-            "Dưới đây là mẫu câu hỏi trắc nghiệm Đúng/Sai 4 khẳng định theo đúng Quyết định 764/QĐ-BGDĐT:\n\n"
+            "Dưới đây là mẫu câu hỏi trắc nghiệm Đúng/Sai 4 khẳng định theo chuẩn `ex_test.sty` (Quyết định 764/QĐ-BGDĐT):\n\n"
             f"```latex\n{latex_snippet}\n```"
         )
         return ChatResponse(reply=reply, suggested_latex=latex_snippet)
 
     elif any(k in user_msg_lower for k in ("đồ thị", "tikz", "bậc ba", "bậc 3")):
-        latex_snippet = r"""\textbf{Câu hỏi.} Cho hàm số $y = f(x)$ có đồ thị như hình vẽ bên:
-\begin{tikzpicture}[scale=0.7, >=stealth]
-  \clip (-3.8, -5.5) rectangle (4.2, 5.5);
-  \draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};
-  \draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};
-  \node[below left] at (0, 0) {$O$};
-  \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};
-  \draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};
-  \draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
-  \fill (-1, 4) circle (1.5pt);
-  \fill (2, -3) circle (1.5pt);
-\end{tikzpicture}
-Hàm số đã cho đồng biến trên khoảng nào dưới đây?
-\textbf{A.} $(-1; 2)$ \qquad \textbf{B.} $(-\infty; -1)$ \qquad \textbf{C.} $(0; 2)$ \qquad \textbf{D.} $(-2; 1)$"""
+        latex_snippet = r"""\begin{ex}
+\immini{
+  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình vẽ bên. Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+  \choice
+  {\True $(-\infty; -1)$}
+  {$(-1; 2)$}
+  {$(0; 2)$}
+  {$(-2; 1)$}
+}{
+  \begin{tikzpicture}[scale=0.6, >=stealth]
+    \clip (-3.8, -5.5) rectangle (4.2, 5.5);
+    \draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};
+    \draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};
+    \node[below left] at (0, 0) {$O$};
+    \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};
+    \draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};
+    \draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
+    \fill (-1, 4) circle (1.5pt);
+    \fill (2, -3) circle (1.5pt);
+  \end{tikzpicture}
+}
+\begin{loigiai}
+Dựa vào đồ thị, hàm số đi lên từ trái sang phải trên khoảng $(-\infty; -1)$ và $(2; +\infty)$, do đó đồng biến trên $(-\infty; -1)$.
+\end{loigiai}
+\end{ex}"""
         reply = (
-            "Dưới đây là mẫu câu hỏi đồ thị hàm bậc ba bằng mã TikZ chuẩn vector:\n\n"
+            "Dưới đây là mẫu câu hỏi đồ thị hàm bậc ba bằng mã TikZ chuẩn gói `ex_test.sty`:\n\n"
             f"```latex\n{latex_snippet}\n```"
         )
         return ChatResponse(reply=reply, suggested_latex=latex_snippet)
 
     else:
-        latex_snippet = r"""\textbf{Câu hỏi.} Cho hàm số $y = \dfrac{2x-1}{x+1}$. Tìm phương trình các đường tiệm cận của đồ thị hàm số.
-
-\textbf{A.} $x = -1, y = 2$ \qquad \textbf{B.} $x = 1, y = 2$ \qquad \textbf{C.} $x = -1, y = -1$ \qquad \textbf{D.} $x = 2, y = -1$"""
+        latex_snippet = r"""\begin{ex}
+Cho hàm số $y = \dfrac{2x-1}{x+1}$. Tìm phương trình các đường tiệm cận của đồ thị hàm số.
+\choice
+{\True $x = -1, y = 2$}
+{$x = 1, y = 2$}
+{$x = -1, y = -1$}
+{$x = 2, y = -1$}
+\begin{loigiai}
+Ta có $\lim_{x \to -1} y = \infty \Rightarrow x = -1$ là đường tiệm cận đứng, và $\lim_{x \to \pm\infty} y = 2 \Rightarrow y = 2$ là đường tiệm cận ngang.
+\end{loigiai}
+\end{ex}"""
         reply = (
             f"Tôi đã tiếp nhận yêu cầu: **\"{req.message}\"**.\n\n"
-            "Dưới đây là đoạn mã LaTeX được tạo tự động theo chuẩn đề thi của Bộ GD&ĐT:\n\n"
+            "Dưới đây là đoạn mã câu hỏi theo chuẩn gói lệnh `ex_test.sty`:\n\n"
             f"```latex\n{latex_snippet}\n```\n\n"
             "Bạn có thể bấm **Chèn vào con trỏ** để áp dụng ngay vào khung soạn thảo!"
         )

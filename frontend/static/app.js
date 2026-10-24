@@ -3833,6 +3833,24 @@
     }
   }
 
+  // Helper: Strip outer preamble (\documentclass, \usepackage, \begin{document}, etc.) to ensure Preamble-Free editor
+  function extractPreambleFreeBody(latex) {
+    if (!latex || typeof latex !== 'string') return '';
+    if (!latex.includes('\\documentclass')) {
+      return latex;
+    }
+    const docMatch = latex.match(/\\begin\{document\}([\s\S]*?)\\end\{document\}/);
+    let body = docMatch ? docMatch[1].trim() : latex;
+    body = body.replace(/\\documentclass(\[[^\]]*\])?\{[^}]*\}/g, '');
+    body = body.replace(/\\usepackage(\[[^\]]*\])?\{[^}]*\}/g, '');
+    body = body.replace(/\\tcbuselibrary\{[^}]*\}/g, '');
+    body = body.replace(/\\pagestyle\{[^}]*\}/g, '');
+    body = body.replace(/\\thispagestyle\{[^}]*\}/g, '');
+    body = body.replace(/\\begin\{document\}/g, '');
+    body = body.replace(/\\end\{document\}/g, '');
+    return body.trim();
+  }
+
   // ============================================================================
   // ============================================================================
   // 13. TAB 2: SOẠN ĐỀ (AI LATEX COMPOSER & LIVE PDF PREVIEW - NOCTORIUM CLONE)
@@ -3911,11 +3929,11 @@
       const savedContent = localStorage.getItem('quesy_composer_content');
       const editor = document.getElementById('composer-editor-input');
       if (savedContent && savedContent.trim()) {
-        this.currentLatex = savedContent;
+        this.currentLatex = extractPreambleFreeBody(savedContent);
       } else if (this.templates['ex_test_standard_exam']) {
-        this.currentLatex = this.templates['ex_test_standard_exam'].latex;
+        this.currentLatex = extractPreambleFreeBody(this.templates['ex_test_standard_exam'].latex);
       } else if (this.templates['circular_32_full_exam']) {
-        this.currentLatex = this.templates['circular_32_full_exam'].latex;
+        this.currentLatex = extractPreambleFreeBody(this.templates['circular_32_full_exam'].latex);
       } else {
         this.currentLatex = `\\begin{center}\n  \\textbf{\\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\\\\\n  \\textbf{\\large MÔN THI: TOÁN HỌC}\\\\\\n  \\textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}\n\\end{center}\n\\vspace{0.4cm}\n\n\\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}\n\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}\n\n\\begin{ex}\n\\immini{\n  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.\n  Hàm số đã cho đồng biến trên khoảng nào dưới đây?\n}{\n  \\begin{tikzpicture}[scale=0.55, >=stealth]\n    \\draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};\n    \\draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};\n    \\node[below left] at (0, 0) {$O$};\n    \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};\n    \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};\n    \\draw[thick, smooth, domain=-2.3:3.1] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n    \\fill (-1, 3) circle (1.5pt);\n    \\fill (2, -2) circle (1.5pt);\n  \\end{tikzpicture}\n}\n\\choice\n{\\True $(-\\infty; -1)$}\n{$(-1; 2)$}\n{$(0; 2)$}\n{$(-\\infty; 2)$}\n\\begin{loigiai}\nDựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty; -1)$ và $(2; +\\infty)$.\n\\end{loigiai}\n\\end{ex}\n`;
       }
@@ -4024,33 +4042,64 @@
       if (menu) menu.classList.add('hidden');
     },
 
-    downloadTex() {
+    async downloadTex() {
       if (!this.currentLatex) return;
+      const menu = document.getElementById('composer-dropdown-export');
+      if (menu) menu.classList.add('hidden');
+      try {
+        const res = await fetch(`${API_BASE_URL}/composer/export`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            latex_code: this.currentLatex,
+            mode: this.showSolution ? 'loigiai' : 'dethi',
+            title: this.activeTitle
+          })
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${this.activeTitle.replace(/\s+/g, '_')}.tex`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast('Đã tải tệp mã nguồn .tex hoàn chỉnh!', 'success');
+          return;
+        }
+      } catch (err) {
+        console.warn('Fallback to local export:', err);
+      }
       let exportLatex = this.currentLatex;
       // If code is preamble-free, wrap with canonical preamble for standalone compile in external TeX editors
       if (!exportLatex.includes('\\documentclass')) {
         const solOpt = this.showSolution ? 'loigiai' : 'dethi';
-        exportLatex = `\\documentclass[11pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[${solOpt}]{ex_test}\n\n\\begin{document}\n${exportLatex}\n\\end{document}\n`;
+        exportLatex = `\\documentclass[12pt,a4paper]{article}\n\\usepackage{fontspec}\n\\usepackage{amsmath,amssymb,amsfonts}\n\\usepackage[left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm]{geometry}\n\\usepackage{multicol}\n\\usepackage{tikz,tkz-tab}\n\\usepackage{tcolorbox}\n\\tcbuselibrary{skins,breakable,xparse}\n\\usepackage[${solOpt}]{ex_test}\n\n\\begin{document}\n${exportLatex}\n\\end{document}\n`;
       }
       const blob = new Blob([exportLatex], { type: 'text/x-tex;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${this.activeTitle.replace(/\\s+/g, '_')}.tex`;
+      a.download = `${this.activeTitle.replace(/\s+/g, '_')}.tex`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       showToast('Đang tải tệp mã nguồn .tex hoàn chỉnh...', 'info');
-      const menu = document.getElementById('composer-dropdown-export');
-      if (menu) menu.classList.add('hidden');
     },
 
     newDocument() {
       if (confirm('Bạn có chắc chắn muốn tạo mới tài liệu?')) {
-        const cleanLatex = (this.templates && this.templates['ex_test_standard_exam'])
-          ? this.templates['ex_test_standard_exam'].latex
-          : `\\begin{center}\n  \\textbf{\\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\\\\\n  \\textbf{\\large MÔN THI: TOÁN HỌC}\\\\\\n  \\textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}\n\\end{center}\n\\vspace{0.4cm}\n\n\\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}\n\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}\n\n\\begin{ex}\n\\immini{\n  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.\n  Hàm số đã cho đồng biến trên khoảng nào dưới đây?\n}{\n  \\begin{tikzpicture}[scale=0.55, >=stealth]\n    \\draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};\n    \\draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};\n    \\node[below left] at (0, 0) {$O$};\n    \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};\n    \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};\n    \\draw[thick, smooth, domain=-2.3:3.1] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n    \\fill (-1, 3) circle (1.5pt);\n    \\fill (2, -2) circle (1.5pt);\n  \\end{tikzpicture}\n}\n\\choice\n{\\True $(-\\infty; -1)$}\n{$(-1; 2)$}\n{$(0; 2)$}\n{$(-\\infty; 2)$}\n\\begin{loigiai}\nDựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty; -1)$ và $(2; +\\infty)$.\n\\end{loigiai}\n\\end{ex}\n`;
+        let cleanLatex = '';
+        if (this.templates && this.templates['blank_exam']) {
+          cleanLatex = extractPreambleFreeBody(this.templates['blank_exam'].latex);
+        } else if (this.templates && this.templates['ex_test_standard_exam']) {
+          cleanLatex = extractPreambleFreeBody(this.templates['ex_test_standard_exam'].latex);
+        } else {
+          cleanLatex = `\\begin{center}\n  \\textbf{\\large BÀI KIỂM TRA ĐỊNH KỲ MÔN TOÁN}\\\\\n  \\textit{Họ và tên: .................................................... Lớp: ................}\n\\end{center}\n\\vspace{0.4cm}\n\n\\begin{ex}\nNội dung câu hỏi thứ nhất soạn thảo theo chuẩn ex_test tại đây...\n\\choice\n{\\True Phương án A đúng}\n{Phương án B}\n{Phương án C}\n{Phương án D}\n\\begin{loigiai}\nLời giải chi tiết câu 1.\n\\end{loigiai}\n\\end{ex}\n`;
+        }
         const editor = document.getElementById('composer-editor-input');
         if (editor) {
           editor.value = cleanLatex;
@@ -6239,11 +6288,12 @@
         }
       }
 
+      const cleanTmplLatex = extractPreambleFreeBody(tmpl.latex);
       const editor = document.getElementById('composer-editor-input');
       const titleInput = document.getElementById('composer-doc-title');
       if (editor) {
-        editor.value = tmpl.latex;
-        this.currentLatex = tmpl.latex;
+        editor.value = cleanTmplLatex;
+        this.currentLatex = cleanTmplLatex;
         this.handleEditorInput();
       }
       if (titleInput && tmpl.title) {

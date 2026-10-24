@@ -2653,6 +2653,71 @@ def test_templates_preamble_free_clean_extest():
         assert r"\begin{ex}" in latex, f"Template {tpl['id']} should contain clean \\begin{{ex}} markup"
 
 
+def test_composer_export_endpoint_post_pure_latex():
+    """Verify POST /api/v1/composer/export wraps pure LaTeX into a full standalone .tex file."""
+    pure_latex = r"""\begin{ex}
+Nghiệm của phương trình $2^x = 8$ là:
+\choice
+{\True $x = 3$}
+{$x = 4$}
+{$x = 2$}
+{$x = 1$}
+\begin{loigiai}
+Ta có $2^x = 8 = 2^3 \Leftrightarrow x = 3$.
+\end{loigiai}
+\end{ex}"""
+
+    res = client.post(
+        "/api/v1/composer/export",
+        json={"latex_code": pure_latex, "mode": "dethi", "title": "De Thi Thu"}
+    )
+    assert res.status_code == 200
+    assert "text/x-tex" in res.headers["content-type"]
+    text = res.text
+    assert r"\documentclass[12pt,a4paper]{article}" in text
+    assert r"\usepackage{fontspec}" in text
+    assert r"\usepackage{amsmath,amssymb,amsfonts}" in text
+    assert r"\usepackage{multicol}" in text
+    assert r"\usepackage{tikz,tkz-tab}" in text
+    assert r"\usepackage{tcolorbox}" in text
+    assert r"\usepackage[dethi]{ex_test}" in text
+    assert r"\begin{document}" in text
+    assert r"\end{document}" in text
+    assert "2^x = 8" in text
+
+
+def test_composer_export_endpoint_loigiai_mode():
+    """Verify exporting with mode='loigiai' embeds [loigiai] package option."""
+    pure_latex = r"""\begin{ex}
+Tính đạo hàm của $y = x^2$.
+\shortans{2x}
+\begin{loigiai}
+$(x^2)' = 2x$.
+\end{loigiai}
+\end{ex}"""
+
+    res = client.post(
+        "/api/v1/composer/export",
+        json={"latex_code": pure_latex, "mode": "loigiai", "title": "Loi Giai Chi Tiet"}
+    )
+    assert res.status_code == 200
+    text = res.text
+    assert r"\usepackage[loigiai]{ex_test}" in text
+    assert r"\usepackage[dethi]{ex_test}" not in text
+
+
+def test_composer_export_endpoint_get():
+    """Verify GET /api/v1/composer/export also supports exporting standalone .tex."""
+    res = client.get(
+        "/api/v1/composer/export",
+        params={"latex_code": r"\begin{ex}Cau hoi\end{ex}", "mode": "dethi", "title": "TestGet"}
+    )
+    assert res.status_code == 200
+    assert r"\documentclass" in res.text
+    assert r"\usepackage[dethi]{ex_test}" in res.text
+
+
+
 
 
 
