@@ -1239,3 +1239,352 @@ def test_composer_chat_api_diff_with_whitespace_discrepancy():
             assert data["diff"] is not None
             # The matched old_text MUST match the editor buffer exact slice
             assert data["diff"]["old_text"] == r"    \textbf{Câu 1.}    Cho hàm số     $y = f(x)$"
+
+
+# ---------------------------------------------------------------------------
+# 7. Comprehensive Tests: Chat API Integrity & Frontend Display Decoupling
+# ---------------------------------------------------------------------------
+
+def test_composer_chat_api_contract_integrity_full_schema():
+    """Verify Chat API response strictly adheres to ChatResponse schema: reply, diff, suggested_latex."""
+    latex_code = r"""\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath}
+\begin{document}
+\title{ĐỀ KIỂM TRA TOÁN 12}
+\end{document}
+"""
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "đổi cỡ chữ thành 12pt",
+            "current_latex": latex_code,
+            "history": []
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "reply" in data and isinstance(data["reply"], str) and len(data["reply"]) > 0
+    assert "diff" in data and data["diff"] is not None
+    assert "suggested_latex" in data
+    # Validate DiffSuggestion contract
+    diff = data["diff"]
+    assert "action" in diff and diff["action"] == "replace"
+    assert "old_text" in diff and diff["old_text"] in latex_code
+    assert "new_text" in diff and "12pt" in diff["new_text"]
+    assert "description" in diff and isinstance(diff["description"], str)
+
+
+def test_composer_chat_api_frontend_decoupling_chat_reply_and_diff_coexist():
+    """Verify reply holds conversational context while diff holds isolated operational replacement."""
+    current_latex = r"""\documentclass[12pt,a4paper]{article}
+\begin{document}
+\title{KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2025}
+\begin{ex}
+Câu hỏi toán mẫu.
+\choice{\True $1$}{$2$}{$3$}{$4$}
+\end{ex}
+\end{document}
+"""
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-api-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o-mini"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    assistant_explanation = (
+        "Chào thầy cô, tôi đề xuất sửa lại tiêu đề cho năm 2026 và giữ nguyên các câu hỏi.\n\n"
+        "```diff\n"
+        "- \\title{KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2025}\n"
+        "+ \\title{KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\n"
+        "```\n\n"
+        "Thầy cô có thể nhấn nút Đồng ý trên thanh gợi ý để áp dụng."
+    )
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": assistant_explanation}}]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": "cập nhật tiêu đề sang năm 2026",
+                    "current_latex": current_latex,
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            # 1. Reply text is preserved for chat thread display
+            assert "Chào thầy cô, tôi đề xuất sửa lại tiêu đề" in data["reply"]
+            assert "```diff" in data["reply"]
+            # 2. Diff payload is cleanly isolated for editor pending diff banner
+            assert data["diff"] is not None
+            assert data["diff"]["action"] == "replace"
+            assert data["diff"]["old_text"] == r"\title{KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2025}"
+            assert data["diff"]["new_text"] == r"\title{KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}"
+            # Ensure old_text does not contain diff marker "-"
+            assert not data["diff"]["old_text"].startswith("-")
+            # Ensure new_text does not contain diff marker "+"
+            assert not data["diff"]["new_text"].startswith("+")
+            # Verify clean application without affecting the rest of the document
+            new_latex = current_latex.replace(data["diff"]["old_text"], data["diff"]["new_text"], 1)
+            assert r"\title{KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}" in new_latex
+            assert r"\choice{\True $1$}{$2$}{$3$}{$4$}" in new_latex
+
+
+def test_composer_chat_api_no_diff_for_creative_prompts():
+    """Verify creation prompts do not produce false-positive replace diffs in the editor."""
+    current_latex = r"""\documentclass[12pt,a4paper]{article}
+\begin{document}
+\textbf{Câu 1.} Cho hàm số $y=f(x)$.
+\end{document}
+"""
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "Tạo 1 câu hỏi trắc nghiệm mới về hình học không gian Oxyz",
+            "current_latex": current_latex,
+            "history": []
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "reply" in data
+    # Creative prompt MUST NOT generate a replacement diff that would prompt the editor banner
+    assert data.get("diff") is None
+    # Reply contains content or suggested latex snippet
+    assert len(data["reply"]) > 0
+
+
+def test_composer_chat_api_choice_option_switch_single_and_multiline():
+    """Verify choice option switch produces exact choice replacement diff for both inline and multiline ex_test."""
+    # 1. Inline choice
+    inline_latex = r"""\begin{ex}
+Tính tích phân $I = \int_0^1 2x dx$.
+\choice{$0$}{\True $1$}{$2$}{$3$}
+\end{ex}
+"""
+    res1 = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "đổi đáp án đúng sang C",
+            "current_latex": inline_latex,
+            "history": []
+        }
+    )
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert data1["diff"] is not None
+    assert data1["diff"]["old_text"] == r"\choice{$0$}{\True $1$}{$2$}{$3$}"
+    assert data1["diff"]["new_text"] == r"\choice{$0$}{$1$}{\True $2$}{$3$}"
+
+    # 2. Multiline choice
+    multiline_latex = r"""\begin{ex}
+Tính tích phân $I = \int_0^1 2x dx$.
+\choice
+{$0$}
+{\True $1$}
+{$2$}
+{$3$}
+\end{ex}
+"""
+    res2 = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "đổi đáp án đúng sang D",
+            "current_latex": multiline_latex,
+            "history": []
+        }
+    )
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["diff"] is not None
+    assert data2["diff"]["old_text"] in multiline_latex
+    assert r"\True $3$" in data2["diff"]["new_text"]
+    assert r"\True $1$" not in data2["diff"]["new_text"]
+
+
+def test_composer_chat_api_multi_turn_history_preservation():
+    """Verify multi-turn chat history does not corrupt diff extraction or state."""
+    current_latex = r"""\documentclass[11pt]{article}
+\begin{document}
+\title{Đề Khảo Sát Toán}
+\end{document}
+"""
+    history = [
+        {"role": "user", "content": "Tài liệu này dùng font gì?"},
+        {"role": "assistant", "content": "Tài liệu đang dùng cỡ chữ 11pt tiêu chuẩn."},
+        {"role": "user", "content": "Hãy đổi cỡ chữ sang 12pt"}
+    ]
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "Hãy đổi cỡ chữ sang 12pt",
+            "current_latex": current_latex,
+            "history": history
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["diff"] is not None
+    assert "11pt" in data["diff"]["old_text"]
+    assert "12pt" in data["diff"]["new_text"]
+    assert "reply" in data and len(data["reply"]) > 0
+
+
+def test_composer_chat_api_special_latex_characters_diff_safety():
+    """Verify diff extraction handles complex LaTeX equations, formulas with $, &, %, _, ^ safely."""
+    current_latex = r"""\begin{document}
+\begin{align*}
+f(x) &= \sqrt{x^2 + 1} + \dfrac{\alpha}{\beta} \\
+g(x) &= 10\% \times \int_0^1 x^2 \, dx
+\end{align*}
+\end{document}
+"""
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-api-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o-mini"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    assistant_reply = (
+        "Thay đổi công thức $f(x)$ sang căn bậc 3:\n\n"
+        "```diff\n"
+        "- f(x) &= \\sqrt{x^2 + 1} + \\dfrac{\\alpha}{\\beta} \\\\\n"
+        "+ f(x) &= \\sqrt[3]{x^2 + 1} + \\dfrac{\\alpha}{\\beta} \\\\\n"
+        "```\n"
+    )
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": assistant_reply}}]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": "sửa f(x) thành căn bậc 3",
+                    "current_latex": current_latex,
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert data["diff"] is not None
+            assert r"\sqrt{x^2 + 1}" in data["diff"]["old_text"]
+            assert r"\sqrt[3]{x^2 + 1}" in data["diff"]["new_text"]
+            # Apply to latex
+            applied = current_latex.replace(data["diff"]["old_text"], data["diff"]["new_text"])
+            assert r"\sqrt[3]{x^2 + 1}" in applied
+
+
+def test_composer_chat_api_large_latex_buffer_truncation_safety():
+    """Verify large document (>25k characters) does not crash the chat API or diff extraction."""
+    # Construct 30k char document
+    repeated_content = "\\textbf{Câu hỏi:} Cho hình lập phương $ABCD.A'B'C'D'$.\\par\n" * 600
+    large_latex = (
+        "\\documentclass[11pt,a4paper]{article}\n"
+        "\\title{ĐỀ THI TỔNG HỢP LỚN}\n"
+        "\\begin{document}\n"
+        + repeated_content +
+        "\\title{ĐỀ THI TỔNG HỢP LỚN}\n"
+        "\\end{document}\n"
+    )
+    assert len(large_latex) > 25000
+
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "đổi font sang 12pt",
+            "current_latex": large_latex,
+            "history": []
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "reply" in data
+    assert data["diff"] is not None
+    assert "11pt" in data["diff"]["old_text"]
+    assert "12pt" in data["diff"]["new_text"]
+
+
+def test_composer_chat_api_empty_and_edge_inputs_resilience():
+    """Verify chat API gracefully handles empty, none, or malformed latex buffers."""
+    # Empty latex
+    res1 = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "xin chào",
+            "current_latex": "",
+            "history": []
+        }
+    )
+    assert res1.status_code == 200
+    assert "reply" in res1.json()
+
+    # None compile_error and empty history
+    res2 = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "hướng dẫn soạn đề",
+            "current_latex": "\\begin{document}\\end{document}",
+            "compile_error": None,
+            "history": []
+        }
+    )
+    assert res2.status_code == 200
+    assert "reply" in res2.json()
+
+
+def test_composer_frontend_resizers_and_session_elements():
+    """Verify frontend/index.html, style.css, and app.js implement all 4 requirements."""
+    from pathlib import Path
+    root = Path(__file__).parent.parent
+    index_html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
+    app_js = (root / "frontend" / "static" / "app.js").read_text(encoding="utf-8")
+    style_css = (root / "frontend" / "static" / "style.css").read_text(encoding="utf-8")
+
+    # Req 1: Bubble chat diff widget eliminated, diff relegated to editor
+    assert "Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn" in app_js
+    assert "diff-block-wrapper" not in app_js.split("formatAssistantContent(text, diff)")[1].split("insertB64Code")[0]
+    assert "```diff" in app_js
+
+    # Req 2: Multi-session storage, fresh greeting on new session, history inspection
+    assert "quesy_composer_sessions" in app_js
+    assert "archiveCurrentSession" in app_js
+    assert "loadSession" in app_js
+    assert "clearAllSessions" in app_js
+    assert "toggleHistoryView" in app_js
+    assert 'id="composer-ai-history-panel"' in index_html
+    assert 'id="composer-ai-history-list"' in index_html
+
+    # Req 3: Vertical drag resize for AI Assistant popup (clamp 20% to 90%, 60fps)
+    assert 'id="composer-ai-resize-handle"' in index_html
+    assert "composer-v-resizer" in index_html
+    assert "initAIPopupResizer" in app_js
+    assert ".composer-v-resizer" in style_css
+    assert ".composer-resizing-v" in style_css
+    assert "transition: none !important" in style_css
+
+    # Req 4: Horizontal split resizer between left editor and right preview (clamp 25% to 75%, 60:40 reset)
+    assert 'id="composer-split-container"' in index_html
+    assert 'id="composer-left-col"' in index_html
+    assert 'id="composer-right-col"' in index_html
+    assert 'id="composer-split-resizer"' in index_html
+    assert "initSplitResizer" in app_js
+    assert "#composer-split-resizer" in style_css
+    assert ".composer-resizing-h" in style_css
+    assert "renderPDF" in app_js

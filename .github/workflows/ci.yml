@@ -55,6 +55,10 @@ jobs:
           node --version
           which chromium-browser || which chromium || which google-chrome || echo "No browser in standard PATH"
 
+      - name: Verify Frontend JavaScript Syntax
+        run: |
+          node -c frontend/static/app.js
+
       - name: Run Pytest Suite
         env:
           PYTHONPATH: .

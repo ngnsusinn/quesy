@@ -179,6 +179,40 @@ select:focus, input[type="text"]:not(#composer-compact-input):focus, input[type=
   border-radius: 4px;
 }
 
+/* Resizers for Composer (Vertical AI Popup & Horizontal Split) */
+.composer-v-resizer {
+  cursor: ns-resize !important;
+  cursor: row-resize !important;
+  touch-action: none;
+}
+
+.composer-resizing-v {
+  cursor: ns-resize !important;
+  cursor: row-resize !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.composer-resizing-v #composer-ai-popup {
+  transition: none !important;
+}
+
+#composer-split-resizer {
+  cursor: col-resize !important;
+  touch-action: none;
+}
+
+.composer-resizing-h {
+  cursor: col-resize !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.composer-resizing-h iframe,
+.composer-resizing-h canvas {
+  pointer-events: none !important;
+}
+
 /* Centered Vector PDF Pages */
 .pdf-page-card {
   margin-left: auto !important;

@@ -2,11 +2,11 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Độ tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
+- **Phiên bản:** 2.9 (Cải tiến Giao diện Soạn đề LaTeX: Phân tách Splitter Kéo Thả Ngang 2 Cột, Kéo Thả Tùy Biến Độ Cao Box Trợ Lý Soạn Thảo, Hiển Thị Diff Độc Quyền Trên Code Editor & Khởi Tạo Phiên Chat Sạch Sẽ Với Lưu Trữ Lịch Sử Phiên Cũ)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
 - **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, và phân hệ Trợ lý Soạn thảo AI Copilot thông minh.  
-- **Ngày phát hành:** 2026-10-23
-- **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)  
+- **Ngày phát hành:** 2026-10-24  
+- **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
 ---
 
@@ -154,17 +154,19 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 - **Tạm thời ẩn xuất Word:** Trên giao diện tab số hóa AI (HITL Studio), tạm thời ẩn các nút xuất file Word (.docx) để tập trung hoàn thiện và vận hành luồng xuất bản PDF chất lượng cao.
 
 #### SRS-FEAT-04d: Phân hệ Soạn đề LaTeX Trực tiếp Tích hợp AI & Live PDF Preview (Noctorium & ex_test Architecture)
-- **Mô tả:** Thay thế hoàn toàn phân hệ số hóa ảnh/OCR cũ bằng phân hệ **Soạn đề** (LaTeX Exam Writing Workspace) mô phỏng thiết kế của `Noctorium` kết hợp gói lệnh khảo thí quốc gia `ex_test.sty` (v3.3). Cung cấp không gian làm việc 2 cột tích hợp (Split View Workspace):
-  1. *Cột bên trái:*
+- **Mô tả:** Thay thế hoàn toàn phân hệ số hóa ảnh/OCR cũ bằng phân hệ **Soạn đề** (LaTeX Exam Writing Workspace) mô phỏng thiết kế của `Noctorium` kết hợp gói lệnh khảo thí quốc gia `ex_test.sty` (v3.3). Cung cấp không gian làm việc 2 cột tích hợp có khả năng kéo thả điều chỉnh kích thước linh hoạt (Resizable Split View Workspace):
+  1. *Cột bên trái (Editor Pane):*
      - *Khung trên:* Trình soạn thảo mã nguồn LaTeX Dark mode (`#141824`, bảo toàn màu nền khi click con trỏ focus, thanh cuộn mượt mà không kẹt `overflow-y: scroll`) với toolbar `MỚI`, `THÊM ▾` (7 template chuẩn `ex_test`), phím tắt hoàn tác (Undo/Redo), dọn dẹp, sao chép, đánh số dòng và hiển thị vị trí con trỏ.
      - *Thanh Banner Gợi ý Sửa đổi (Inline Diff Banner):* Hiển thị trực tiếp số dòng cần sửa, tự động cuộn và bôi đen vị trí cần thay thế trên editor, hiển thị trực quan khối so sánh `- old_text` (đỏ) và `+ new_text` (xanh), cho phép duyệt nhanh với 2 nút bấm **`[Đồng ý]`** và **`[Từ chối]`**.
-     - *Khung dưới:* Trợ lý Soạn thảo AI Copilot hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ `\immini`.
-  2. *Cột bên phải:*
+     - *Khung dưới:* Trợ lý Soạn thảo AI Copilot hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ `\immini`, hỗ trợ kéo thả thanh ngang hoặc biên trên để co giãn độ cao tùy ý.
+  2. *Thanh Phân Tách Ngang (Horizontal Splitter):*
+     - Nằm giữa Cột Trái và Cột Phải (`#composer-col-splitter`), hỗ trợ kéo thả chuột/cảm ứng để thay đổi tỷ lệ chiều ngang linh hoạt từ 25% đến 75% (mặc định 60% Left : 40% Right), ghi nhớ tỷ lệ vào `localStorage`.
+  3. *Cột bên phải (Live Preview Pane):*
      - *Thanh công cụ:* Tab `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động đảo giữa in đề thi `[dethi]` và in đáp án `[loigiai]`), menu `XUẤT FILE ▾` (PDF, TeX, Ngân hàng, Copy).
      - *Bản xem trước Live Preview:* Hiển thị trực tiếp trang PDF biên dịch sắc nét từ Tectonic XeTeX Engine (Docker trên host ARM) hoặc Chromium Headless.
      - *Chân trang (Footer):* Nút bấm thanh ngang toàn chiều rộng nổi bật màu xanh dương **`BIÊN DỊCH`** (`#0071e3`).
-  3. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, lịch sử hội thoại và lịch sử biên dịch vào `localStorage` của trình duyệt.
-  4. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
+  4. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, cấu hình tỷ lệ chia cột, độ cao trợ lý và kho lưu trữ lịch sử các phiên chat vào `localStorage` của trình duyệt.
+  5. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
 
 #### SRS-FEAT-04e: Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Màu Tương Phản Dark Mode (High-Contrast Input Tokens)
 - **Mô tả:** Cung cấp thanh nhập lệnh AI nhỏ gọn dạng viên thuốc (floating pill bar) neo tại chân khung soạn thảo (`bottom-7`, căn giữa `w-[92%] max-w-xl`, phong cách Apple Glassmorphism bo tròn viền bán trong suốt `#1c1c1f/95`), giữ không gian làm việc luôn tối giản và tập trung cao độ.
@@ -203,8 +205,8 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   4. AI Copilot được định hướng phân tích chính xác nguyên nhân lỗi cú pháp, tự động đối chiếu dòng mã nguồn bị lỗi trong `current_latex` và sinh ra khối đề xuất sửa đổi diff (dòng đỏ `-` là dòng lỗi, dòng xanh `+` là dòng sửa hoặc chú thích comment vô hiệu hóa) để giáo viên 1-click sửa lỗi ngay lập tức.
   5. Khi biên dịch thành công, hệ thống tự động reset `lastCompileError = null`, xóa sạch cờ cảnh báo lỗi.
 
-#### SRS-FEAT-04h: Giao Diện Trực Quan Hóa Diff Trực Tiếp Trên Ô Soạn Thảo (Inline Editor Diff Overlay / Widget)
-- **Mô tả:** Bên cạnh banner cố định ở trên đầu editor, hệ thống cung cấp giao diện hiển thị khối so sánh Diff trực quan trực tiếp tại đúng vị trí dòng mã nguồn cần sửa đổi trên trình soạn thảo (Inline Editor Diff Overlay / Inline Diff Widget mô phỏng trải nghiệm Cursor / VS Code Copilot).
+#### SRS-FEAT-04h: Giao Diện Trực Quan Hóa Diff Trực Tiếp Trên Ô Soạn Thảo (Inline Editor Diff Overlay / Banner Độc Quyền)
+- **Mô tả:** Khi AI đề xuất sửa đổi/diff mã nguồn, hệ thống hiển thị trực quan khối so sánh Diff trực tiếp và độc quyền trên trình soạn thảo mã nguồn LaTeX (thông qua Inline Editor Diff Overlay tại đúng dòng bị ảnh hưởng và/hoặc Inline Diff Banner trên đỉnh editor). **Bắt buộc:** Tuyệt đối KHÔNG hiển thị widget diff trùng lặp trong bubble chat của Trợ lý để giữ không gian hội thoại gọn gàng, tinh tế và tập trung cao độ.
 - **Cấu trúc & Trải nghiệm Trực quan:**
   1. *Khối Dòng Đỏ Xóa (`- <old_line>`):* Nền đỏ mờ `rgba(225, 29, 72, 0.15)` (`bg-rose-950/70`), viền trái đỏ tươi `border-l-4 border-rose-500`, văn bản đỏ `text-rose-300`, hiển thị chính xác nội dung dòng mã cũ kèm ký hiệu `-`.
   2. *Khối Dòng Xanh Thêm (`+ <new_line>`):* Nền xanh lục mờ `rgba(16, 185, 129, 0.15)` (`bg-emerald-950/70`), viền trái xanh ngọc `border-l-4 border-emerald-500`, văn bản xanh `text-emerald-300`, hiển thị chính xác nội dung dòng mã mới kèm ký hiệu `+`.
@@ -212,6 +214,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
      - Nút **`[Keep / Đồng ý]`**: Icon checkmark, nền xanh dương `bg-blue-600 hover:bg-blue-500 text-white`, nhấp vào áp dụng ngay thay đổi qua Fuzzy Replacement Engine, tự động kích hoạt `compile(true)` và xóa bỏ overlay diff.
      - Nút **`[Undo / Từ chối]`**: Icon undo / dismiss, nền xám tối `bg-slate-700 hover:bg-slate-600 text-slate-200`, nhấp vào hủy bỏ gợi ý sửa đổi, khôi phục trạng thái con trỏ và giữ nguyên vẹn 100% mã nguồn.
   4. *Neo Tọa Độ & Đồng Bộ Cuộn:* Vị trí của Inline Overlay được neo theo tọa độ dòng nguồn trong editor (`top = (lineNo - 1) * lineHeight`), tự động cuộn đồng bộ mượt mà khi người dùng cuộn textarea editor.
+  5. *Bubble Chat Tinh Gọn:* Khung tin nhắn Assistant chỉ hiển thị lời chào, giải thích ngắn gọn, phân tích lỗi cú pháp hoặc hướng dẫn sư phạm dưới dạng markdown thuần túy, không chèn các khối card `- / +` hay nút bấm duyệt diff lặp lại.
 
 #### SRS-FEAT-04i: Tối Ưu Hóa Hiệu Năng Gửi Prompt & Tương Tác Box Chat Mượt Mà (Fast Prompt Dispatch & Smooth Micro-Interactions)
 - **Mô tả:** Loại bỏ hoàn toàn độ trễ khi gửi prompt và bảo đảm giao diện hộp thoại Trợ lý AI vận hành mượt mà chuẩn 60 FPS theo triết lý Apple Human Interface Guidelines và tương tác xúc giác Emil Kowalski.
@@ -220,6 +223,41 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   2. *Chuyển Động Hardware-Accelerated:* Hộp thoại Popup Trợ lý sử dụng thuộc tính CSS `transform: translate3d(0, 0, 0)`, `transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1)`, loại bỏ tình trạng giật cục (jank) khi co giãn chiều cao.
   3. *Tối Ưu DOM & Lucide Icon Parsing:* Thay vì quét toàn trang qua `lucide.createIcons()`, hệ thống chỉ gọi render icon cục bộ trong node tin nhắn mới, giảm thiểu 95% thời gian layout thrashing.
   4. *Non-blocking Async AI Request:* Kết nối Backend AI sử dụng `httpx.AsyncClient` bất đồng bộ với timeout linh hoạt 15s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu hiện tượng đóng băng socket hay nghẽn thread pool.
+
+#### SRS-FEAT-04j: Quản Lý Khởi Tạo Phiên Chat Mới Sạch Sẽ & Ngăn Kéo Lưu Trữ Lịch Sử Phiên Cũ (Session Lifecycle & Clean Workspace)
+- **Mô tả:** Tách biệt tuyệt đối giữa phiên làm việc hiện tại (Active Session) và kho lưu trữ lịch sử các phiên trước đó (Archived Chat Sessions).
+- **Hành vi nghiệp vụ:**
+  1. *Khởi đầu Sạch sẽ (Fresh Initial State):* Khi người dùng truy cập màn hình `/composer` hoặc khi mở một phiên mới, khung chat active luôn bắt đầu sạch sẽ với duy nhất 1 tin nhắn chào mặc định từ Trợ lý soạn thảo Quesy Copilot. Tuyệt đối không tự động nạp lại hàng loạt tin nhắn trao đổi cũ gây rối mắt.
+  2. *Lưu trữ Tự động vào Kho Phiên Cũ:* Khi người dùng bắt đầu phiên mới (`newChat()`), nếu phiên hiện tại đã có tương tác (có $\ge 1$ tin nhắn người dùng), hệ thống tự động đóng gói toàn bộ hội thoại của phiên đó vào danh sách phiên lưu trữ trong `localStorage` (`quesy_composer_chat_sessions`).
+  3. *Ngăn kéo Lịch sử (History Drawer / Panel):* Chỉ khi người dùng nhấp vào nút **`[Lịch sử]`** (`#composer-ai-history-btn`), hệ thống mới mở giao diện danh sách các phiên cũ. Mỗi mục hiển thị: thời gian tạo, câu lệnh đầu tiên làm tiêu đề, số lượng trao đổi. Người dùng có thể:
+     - Nhấp vào một phiên cũ để xem lại hoặc tải lại các câu lệnh/mã nguồn đã thảo luận.
+     - Bấm nút đóng để quay lại phiên hội thoại hiện tại.
+     - Bấm nút dọn dẹp để xóa sạch kho lưu trữ lịch sử.
+
+#### SRS-FEAT-04k: Kéo Thả Điều Chỉnh Độ Cao Linh Hoạt Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Pill Handle)
+- **Mô tả:** Cho phép giáo viên tùy biến độ cao của Box Trợ lý Soạn thảo (`#composer-ai-popup`) một cách linh hoạt, mượt mà theo phương thẳng đứng bằng thao tác kéo chuột hoặc vuốt chạm cảm ứng.
+- **Tiêu chuẩn tương tác & Giới hạn:**
+  1. *Điểm chạm Kéo thả (Drag Handles):* Hỗ trợ kéo thả tại 2 vị trí:
+     - Toàn bộ thanh biên trên (Top Border / Resizer Bar) của popup với con trỏ chuột dạng `cursor-row-resize` / `cursor-ns-resize`.
+     - Thanh ngang dạng viên thuốc (Pill Handle `#composer-ai-pill-handle`) ở trung tâm header popup. Vẫn duy trì tính năng nhấp nhanh (click toggle) giữa 56% và 78% nếu người dùng chỉ click mà không thực hiện thao tác kéo.
+  2. *Cơ chế Kéo thả Liên tục (Continuous Drag Lifecycle):*
+     - Bắt sự kiện `mousedown` / `touchstart` trên handle, ghi nhận tọa độ `startY` và độ cao ban đầu.
+     - Lắng nghe `mousemove` / `touchmove` trên `window`: Tính toán độ chênh lệch `deltaY = startY - currentY` và cập nhật độ cao tức thì theo thời gian thực (60 FPS, tạm thời tắt transition CSS trong lúc kéo để triệt tiêu độ trễ).
+     - Áp dụng bộ kẹp giới hạn an toàn (Clamping Bounds):
+       + Chiều cao tối thiểu: $180\text{px}$ (hoặc $20\%$ khung editor) để đảm bảo luôn nhìn thấy thanh header và ô nhập lệnh.
+       + Chiều cao tối đa: $92\%$ chiều cao khung editor để không bao giờ che lấp thanh công cụ trên cùng (`MỚI`, `THÊM ▾`, `LỜI GIẢI`, `XUẤT FILE`).
+     - Khi `mouseup` / `touchend`: Kết thúc thao tác kéo, khôi phục lại hiệu ứng chuyển động và lưu chiều cao tùy chỉnh vào `localStorage` (`quesy_composer_ai_height`).
+
+#### SRS-FEAT-04l: Thanh Phân Tách Kéo Thả Ngang 2 Cột Editor & Live Preview (Horizontal Splitter & Dual-Pane Drag Resize)
+- **Mô tả:** Trang bị thanh chia cột tương tác (`#composer-col-splitter`) nằm giữa Cột Soạn thảo LaTeX (Left Pane) và Cột Live Preview (Right Pane), thay thế tỷ lệ cố định 60:40 bằng cơ chế điều chỉnh kích thước hai chiều linh hoạt.
+- **Cấu trúc & Tiêu chuẩn Kỹ thuật:**
+  1. *Phần tử Phân tách (Interactive Splitter Element):* Thanh dọc mỏng kích thước `w-2` (hover `w-2.5`), nền trong suốt kèm vạch chỉ báo Apple Minimalist đổi màu sáng xanh nhẹ `#0071e3/40` khi di chuột hoặc đang kéo, con trỏ chuột dạng `cursor-col-resize`.
+  2. *Quy trình Kéo thả Ngang (Horizontal Drag Lifecycle):*
+     - Bắt sự kiện `mousedown` / `touchstart` trên splitter: Ghi nhận tọa độ `startX` và bề rộng container.
+     - Lắng nghe `mousemove` / `touchmove` trên `window`: Tính toán bề rộng cột trái theo phần trăm `leftPercent = ((startWidth + (currentX - startX)) / containerWidth) * 100`.
+     - Bộ kẹp giới hạn (Clamping Range): Tỷ lệ cột trái được giới hạn nghiêm ngặt từ $25\%$ đến $75\%$ (bảo đảm mỗi cột luôn rộng tối thiểu $320\text{px}$, không bị vỡ giao diện trên mọi kích thước màn hình).
+     - Cơ chế chống gián đoạn (Pointer Shield): Tự động áp dụng `pointer-events: none` lên canvas/iframe xem trước PDF trong quá trình kéo chuột nhanh để loại bỏ hiện tượng giật con trỏ khi đi qua frame tài liệu.
+     - Tự động lưu cấu hình tỷ lệ vào `localStorage` (`quesy_composer_split_ratio`) và khôi phục chính xác khi giáo viên tải lại trang.
 
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings

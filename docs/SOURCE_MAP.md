@@ -150,7 +150,7 @@ quesy/
 │   ├── test_api_contracts_and_negatives.py # Kiểm thử hợp đồng API & trường hợp biên âm tính (276 dòng)
 │   ├── test_api_endpoints.py          # Kiểm thử các API endpoints cốt lõi (256 dòng)
 │   ├── test_cloud_vision_adapter.py   # Kiểm thử adapter cloud vision (97 dòng)
-│   ├── test_composer.py               # Kiểm thử Soạn đề, Tectonic compile, AI Inline Diff (181 dòng)
+│   ├── test_composer.py               # Kiểm thử Soạn đề, Tectonic compile, AI Inline Diff, Chat API Contract (1550+ dòng)
 │   ├── test_deduplication.py          # Kiểm thử lọc trùng câu hỏi (84 dòng)
 │   ├── test_digitize_2pass.py         # Kiểm thử pipeline 2-Pass số hóa (273 dòng)
 │   ├── test_digitize_docx_export.py   # Kiểm thử xuất Word từ dữ liệu số hóa (91 dòng)
@@ -166,7 +166,7 @@ quesy/
 │   └── comprehensive_loop_test.py     # Script kiểm thử vòng lặp toàn diện (664 dòng)
 │
 └── .github/workflows/
-    └── ci.yml                         # Quy trình CI/CD GitHub Actions trên Ubuntu runner (64 dòng)
+    └── ci.yml                         # Quy trình CI/CD GitHub Actions trên Ubuntu runner (JS syntax check & pytest)
 ```
 
 ---
@@ -337,7 +337,12 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 - **Mô hình Single Page Application (SPA):** Điều hướng thuần Client-side trên `frontend/static/app.js` thông qua đối tượng toàn cục `app`:
   - `app.navigate(route)`: Chuyển đổi trạng thái hiển thị giữa các view mà không tải lại trang (`history.pushState`).
-  - `app.composer`: Quản lý toàn bộ vòng đời soạn thảo đề thi, tỷ lệ ngang 6:4 (60% Code Editor, 40% Live Preview), Trợ lý soạn thảo dạng Bottom Sheet Popup đa trạng thái (Compact Floating Bar $\leftrightarrow$ Expanded History Panel), undo/redo stack, debounced compiler, AI copilot chat, inline diff review, toggle lời giải `[dethi]` $\leftrightarrow$ `[loigiai]`, và trình xem trước High-DPI Vector Canvas (PDF.js) đồng bộ 100% tỷ lệ thu phóng (Zoom Sync giữa nút bấm và Ctrl+Scroll).
+  - `app.composer`: Quản lý toàn bộ vòng đời soạn thảo đề thi:
+    + *Không gian làm việc co giãn linh hoạt:* Thanh phân tách ngang `#composer-col-splitter` hỗ trợ kéo thả chuột/cảm ứng để tùy biến tỷ lệ chiều rộng giữa Code Editor và Live Preview từ 25% đến 75% (mặc định 60:40, lưu `quesy_composer_split_ratio`).
+    + *Trợ lý Soạn thảo AI Đa năng:* Box trợ lý `#composer-ai-popup` hỗ trợ kéo thả điều chỉnh độ cao theo phương đứng (Vertical Drag Resize qua pill handle `#composer-ai-pill-handle` hoặc viền trên, dải an toàn 180px - 92%, lưu `quesy_composer_ai_height`).
+    + *Quản lý Phiên Sạch sẽ & Ngăn kéo Lịch sử:* Mỗi phiên mới bắt đầu sạch sẽ với tin nhắn chào mặc định từ Quesy Copilot; các phiên cũ được lưu trữ vào kho `quesy_composer_chat_sessions` và mở xem lại khi người dùng bấm nút "Lịch sử".
+    + *Đề xuất Diff Độc quyền trên Editor:* Loại bỏ hoàn toàn widget diff trùng lặp trong bubble chat của trợ lý; toàn bộ giao diện so sánh `- old_text` / `+ new_text` và các nút hành động `[Keep / Đồng ý]` / `[Undo / Từ chối]` được hiển thị tập trung trên Editor (Inline Diff Overlay và Top Banner).
+    + *Các tính năng cốt lõi khác:* Undo/redo stack, debounced compiler, AI copilot chat, toggle lời giải `[dethi]` <-> `[loigiai]`, và trình xem trước High-DPI Vector Canvas (PDF.js) đồng bộ 100% tỷ lệ thu phóng (Zoom Sync giữa nút bấm và Ctrl+Scroll).
   - `app.bank`: Quản lý tìm kiếm câu hỏi, cây bộ lọc 6 tầng, preview công thức toán KaTeX.
   - `app.matrix`: Quản lý ma trận đề thi 2 chiều, phân bổ số lượng câu theo mức độ nhận thức.
   - `app.shuffler`: Quản lý thuật toán xáo trộn đề, tạo mã đề hoán vị và xuất bản tài liệu.

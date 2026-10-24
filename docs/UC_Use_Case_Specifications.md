@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
+- **Phiên bản:** 2.9 (Cải tiến Giao diện Soạn đề LaTeX: Splitter Kéo Thả Ngang 2 Cột, Kéo Thả Độ Cao Trợ Lý Soạn Thảo, Hiển Thị Diff Độc Quyền Trên Code Editor & Quản Lý Phiên Chat Sạch Sẽ Với History Drawer)  
 - **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn và trợ lý soạn đề AI Copilot trực tiếp.  
-- **Ngày phát hành:** 2026-10-23
-- **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)  
+- **Ngày phát hành:** 2026-10-24  
+- **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
 ---
 
@@ -231,28 +231,28 @@
 
 ---
 
-### UC-11: SOẠN ĐỀ VỚI TRỢ LÝ AI COPILOT & DUYỆT DIFF TRỰC TIẾP
+### UC-11: SOẠN ĐỀ VỚI TRỢ LÝ AI COPILOT, KÉO THẢ RESIZE ĐA CHIỀU & DUYỆT DIFF TRÊN EDITOR
 - **Mã Use Case:** `UC-11`
-- **Tên Use Case:** Soạn thảo đề thi với Trợ lý AI Copilot, Thanh Compact Prompt Bar và Duyệt Diff trực tiếp trên Editor
+- **Tên Use Case:** Soạn thảo đề thi với Trợ lý AI Copilot, Kéo thả Resize Đa chiều, Quản lý Phiên sạch sẽ và Duyệt Diff độc quyền trên Editor
 - **Tác nhân chính:** Giáo viên Bộ môn
 - **Tác nhân hỗ trợ:** AI Copilot Service (`/api/v1/composer/chat`), Tectonic Compiler Engine
 - **Điều kiện tiên quyết:** Người dùng truy cập phân hệ Soạn đề (`/composer`).
 
 #### Luồng sự kiện chính (Main Success Scenario):
-1. Người dùng soạn thảo mã LaTeX trên trình soạn thảo Dark mode (`#141824`).
+1. Người dùng soạn thảo mã LaTeX trên trình soạn thảo Dark mode (`#141824`). Mỗi phiên mới bắt đầu với màn hình chat sạch sẽ và lời chào mặc định từ Quesy Copilot.
 2. Khi cần hỗ trợ chỉnh sửa (đổi font 11pt sang 12pt, sửa đáp án, vẽ bảng biến thiên, kiểm tra và sửa lỗi biên dịch):
    - Người dùng nhấp chuột vào Thanh Nhập Prompt AI thu gọn ở chân editor (`#composer-compact-bar`).
    - Ô nhập nhận focus bình thường (`cursor-text`), chữ hiển thị màu trắng sáng `#f8fafc` và con trỏ `#38bdf8` rõ nét trên nền tối Dark mode, **tuyệt đối không tự động mở full popup**, cho phép người dùng gõ hoặc dán nội dung yêu cầu mà không bị che khuất màn hình.
 3. Người dùng nhấn phím **`Enter`** (hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**):
-   - Giao diện phản hồi tức thì (Optimistic Fast Dispatch $\le 16$ms): mở bung full Popup Trợ lý Soạn thảo (`#composer-ai-popup`), ẩn thanh compact bar, đưa tin nhắn vào lịch sử và cuộn mượt đến đáy.
+   - Giao diện phản hồi tức thì (Optimistic Fast Dispatch $\le 16$ms): mở bung full Popup Trợ lý Soạn thảo (`#composer-ai-popup`), ẩn thanh compact bar, đưa tin nhắn vào lịch sử phiên hiện tại và cuộn mượt đến đáy.
    - Nếu lần biên dịch trước đó gặp lỗi từ XeTeX/Tectonic, hệ thống tự động đính kèm `compile_error_log` vào payload gửi đến `POST /api/v1/composer/chat`.
 4. Phía máy chủ AI Copilot phân tích yêu cầu cùng tài liệu hiện tại và log lỗi biên dịch (nếu có), chẩn đoán nguyên nhân và bóc tách đề xuất sửa đổi thành cấu trúc `DiffSuggestion(action, old_text, new_text, description)`.
 5. Phía trình duyệt tiếp nhận phản hồi:
-   - Thuật toán định vị tìm chính xác dòng mã nguồn của đoạn `old_text` trong editor, tự động cuộn khung nhìn textarea đến đúng dòng đó và bôi đen vùng chọn.
-   - Đồng thời hiển thị 2 tầng giao diện trực quan:
+   - Trong bubble chat của Trợ lý: Chỉ hiển thị lời văn giải thích ngắn gọn, phân tích nguyên nhân lỗi cú pháp hoặc hướng dẫn sư phạm dưới dạng markdown thuần túy. **Quy tắc bắt buộc:** Tuyệt đối KHÔNG hiển thị widget diff hay nút duyệt diff lặp lại bên trong bubble chat.
+   - Trên vùng Code Editor: Thuật toán định vị tìm chính xác dòng mã nguồn của đoạn `old_text` trong editor, tự động cuộn khung nhìn textarea đến đúng dòng đó và bôi đen vùng chọn. Đồng thời kích hoạt hiển thị khối so sánh diff:
      + Banner Gợi ý Sửa đổi (Inline Diff Banner) trên đỉnh editor: huy hiệu số dòng `GỢI Ý TẠI DÒNG [lineNo]`.
      + Giao diện Diff Nội Dòng (Inline Editor Diff Overlay / Widget) ngay tại đúng vị trí dòng mã nguồn trên textarea: khối dòng đỏ xóa `- old_text` và khối dòng xanh thêm `+ new_text` kèm hai nút điều khiển trực tiếp `[Keep / Đồng ý]` và `[Undo / Từ chối]`.
-6. Người dùng xem xét đề xuất sửa đổi và có 2 lựa chọn thao tác trực tiếp:
+6. Người dùng xem xét đề xuất sửa đổi và có 2 lựa chọn thao tác trực tiếp trên Editor:
    - **Kịch bản 6a - Người dùng nhấn [Keep / Đồng ý]:**
      1. Hệ thống kích hoạt Động cơ Thay thế Dòng mờ Đa tầng (5-Tier Fuzzy Line Replacement Engine): so khớp chuỗi chuẩn hóa, bỏ qua thụt lề, quét cửa sổ trượt hoặc thay thế theo phạm vi dòng đã ghim `pinnedRange`.
      2. Đảm bảo thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
@@ -261,4 +261,18 @@
    - **Kịch bản 6b - Người dùng nhấn [Undo / Từ chối]:**
      1. Hệ thống ẩn diff overlay và banner diff, hủy bỏ vùng bôi đen, đưa con trỏ về trạng thái bình thường.
      2. Toàn bộ mã nguồn tài liệu được giữ nguyên vẹn 100% không bị thay đổi.
-7. Người dùng có thể tiếp tục trò chuyện hoặc tái áp dụng đề xuất từ thẻ Diff Card lưu trong lịch sử chat bất kỳ lúc nào.
+
+#### Các luồng phụ (Alternate Flows):
+- **Luồng 6c - Kéo thả thanh Splitter ngang điều chỉnh tỷ lệ 2 cột (Horizontal Split Resize):**
+  1. Người dùng di chuột vào thanh phân cách `#composer-col-splitter` giữa cột Editor và Live Preview (con trỏ đổi thành `cursor-col-resize`).
+  2. Người dùng nhấn giữ và kéo chuột sang trái hoặc sang phải.
+  3. Hệ thống kích hoạt tấm chắn bảo vệ `pointer-events: none` trên khung PDF Preview, tính toán tỷ lệ bề rộng phần trăm cột trái theo thời gian thực (60 FPS) trong dải an toàn $25\% - 75\%$.
+  4. Khi thả chuột, hệ thống cập nhật layout, kích hoạt `syncEditorScroll()`, và lưu tỷ lệ mới vào `localStorage` (`quesy_composer_split_ratio`).
+- **Luồng 6d - Kéo thả điều chỉnh độ cao Box Trợ lý Soạn thảo (Vertical Drag Resize):**
+  1. Người dùng di chuột vào biên trên của popup trợ lý hoặc thanh ngang viên thuốc (`#composer-ai-pill-handle`).
+  2. Người dùng nhấn giữ và kéo chuột/ngón tay lên trên (tăng chiều cao) hoặc xuống dưới (giảm chiều cao).
+  3. Hệ thống tạm thời ngắt CSS transition, cập nhật độ cao liên tục trong phạm vi $180\text{px}$ (hoặc $20\%$) đến $92\%$ chiều cao khung editor.
+  4. Khi thả chuột, hệ thống lưu độ cao tùy chỉnh vào `localStorage` (`quesy_composer_ai_height`). Nếu người dùng chỉ click nhanh vào pill handle mà không kéo, hệ thống toggle nhanh giữa 56% và 78%.
+- **Luồng 6e - Quản lý Phiên mới & Tra cứu Lịch sử Phiên cũ:**
+  1. Khi người dùng muốn bắt đầu phiên thảo luận mới, nhấp vào nút `newChat` (icon reset xoay vòng): Phiên hiện tại (nếu có tin nhắn người dùng) được đóng gói và lưu trữ vào kho phiên cũ `quesy_composer_chat_sessions`. Khung chat active lập tức được dọn dẹp sạch sẽ và hiển thị lời chào ban đầu.
+  2. Khi người dùng muốn xem lại các câu lệnh trước đó, nhấp vào nút **`[Lịch sử]`** (`#composer-ai-history-btn`): Khung chat tạm ẩn, mở ra panel danh sách lịch sử với đầy đủ các phiên cũ. Người dùng có thể nhấp vào một câu lệnh cũ để nạp lại vào ô nhập hoặc tải lại phiên cũ, sau đó bấm "✕ Đóng" để tiếp tục làm việc.

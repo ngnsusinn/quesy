@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 2.8 (Hoàn thiện Trợ lý Soạn thảo LaTeX: Tương phản Dark Mode WCAG 2.1 AA, Chuyển tiếp Log Lỗi XeTeX/Tectonic, Động cơ Fuzzy Diff & Inline Overlay trực tiếp trên Editor, Tối ưu Fast Prompt Dispatch)  
+- **Phiên bản:** 2.9 (Cải tiến Giao diện Soạn đề LaTeX: Splitter Kéo Thả Ngang 2 Cột, Kéo Thả Độ Cao Trợ Lý Soạn Thảo, Hiển Thị Diff Độc Quyền Trên Code Editor & Quản Lý Phiên Chat Sạch Sẽ Với History Drawer)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, độ tin cậy của thuật toán thay thế dòng mờ, độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.  
-- **Ngày phát hành:** 2026-10-23
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.  
+- **Ngày phát hành:** 2026-10-24
 
 ---
 
@@ -55,7 +55,9 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
   3. *Headless Chromium Fallback:* Cơ chế dự phòng nội tại với Chromium + MathJax 4.0 + TikZ Vector SVG + CMU Serif typography bảo đảm hệ thống luôn xuất bản được PDF chất lượng cao ngay cả khi ngắt kết nối mạng ngoài.
 - **NFR-PERF-12 (Tốc độ Phản hồi Gửi Prompt Trợ lý AI - Optimistic Dispatch):** Khi người dùng nhấn Enter hoặc bấm gửi, giao diện phản hồi optimistic cập nhật bong bóng chat trong vòng $\le 16$ ms (1 frame); timeout Backend kết nối nhà cung cấp AI ngoài khống chế $\le 15$s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu độ trễ gây đóng băng UI.
 - **NFR-UX-01 (Độ Tương phản Màu sắc Giao diện Dark Mode - WCAG 2.1 AA):** Tỷ lệ tương phản giữa chữ và nền ô chat (`#composer-compact-input` và `#composer-chat-input`) bắt buộc đạt $\ge 7:1$ (sử dụng văn bản trắng sáng `#f8fafc` trên nền tối `#1c1c1f` / `#141824`, con trỏ caret màu xanh Apple `#38bdf8`), loại bỏ hoàn toàn lỗi chữ đen chìm trên nền tối.
+- **NFR-UX-02 (Tốc độ & Độ Mượt mà Khi Kéo Thả Resizer & Splitter - 60 FPS Smooth Dragging):** Thao tác kéo thả thay đổi kích thước Splitter ngang (2 cột Editor/Preview) và Vertical Resizer (Box Trợ lý Soạn thảo) bắt buộc đạt tốc độ dựng hình 60 FPS ($\le 16.6$ ms/frame) trên trình duyệt, triệt tiêu hoàn toàn hiện tượng lag, giật khung hình (zero jank). Tự động ngắt transition CSS trong quá trình kéo và khôi phục mượt mà khi kết thúc thao tác; áp dụng Pointer Shield (`pointer-events: none`) trên canvas PDF để tránh gián đoạn con trỏ chuột.
 - **NFR-REL-03 (Độ Tin cậy của Động cơ Thay thế Diff - Zero Drift Fuzzy Matcher):** Tỷ lệ áp dụng diff sửa đổi thành công qua thuật toán so khớp mờ 5 tầng đạt $\ge 99.5\%$, triệt tiêu lỗi false-negative "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại" do khoảng trắng, ngắt dòng hoặc thụt lề.
+- **NFR-REL-05 (Bảo Toàn Tùy Biến Giao Diện & Độc Lập Phiên Chat Trong Local Storage):** Cấu hình tỷ lệ chia cột (`quesy_composer_split_ratio`), độ cao tùy chỉnh box trợ lý (`quesy_composer_ai_height`), và danh sách phiên chat cũ (`quesy_composer_chat_sessions`) được lưu trữ độc lập và bảo toàn $100\%$ qua các lần tải lại trang (F5) mà không gây rò rỉ hay ghi đè lẫn nhau.
 
 ---
 

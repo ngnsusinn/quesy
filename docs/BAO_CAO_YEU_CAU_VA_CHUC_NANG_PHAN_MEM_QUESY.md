@@ -298,9 +298,10 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
 * **Mã phân hệ:** `MOD-10`
 * **Mục tiêu:** Cung cấp không gian làm việc chuyên nghiệp chuẩn hóa theo gói lệnh quốc gia `ex_test.sty` v3.3, biên dịch PDF thời gian thực (Live Preview) và tích hợp Trợ lý AI Copilot hỗ trợ soạn thảo, đề xuất sửa lỗi cục bộ thông minh.
 * **Các chức năng chi tiết:**
-  1. **Không gian Làm việc Phân tách 2 Cột (6:4 Split View):**
-     - Cột trái (60%): Editor mã nguồn Dark mode (`#141824`), toolbar `MỚI`, `THÊM ▾` (7 mẫu lệnh `ex_test`), đánh số dòng, hoàn tác/làm lại, dọn dẹp, sao chép.
-     - Cột phải (40%): Xem trước trực tiếp tệp PDF biên dịch từ XeTeX Engine (Live Preview), tab Lịch sử biên dịch, công tắc LỜI GIẢI (`[dethi]` $\leftrightarrow$ `[loigiai]`), menu xuất PDF/TeX/Ngân hàng và thanh nút bấm nổi bật màu xanh **`BIÊN DỊCH`**.
+  1. **Không gian Làm việc Phân tách 2 Cột Co Giãn Linh Hoạt (Resizable Split View):**
+     - Cột trái: Editor mã nguồn Dark mode (`#141824`), toolbar `MỚI`, `THÊM ▾` (7 mẫu lệnh `ex_test`), đánh số dòng, hoàn tác/làm lại, dọn dẹp, sao chép.
+     - Thanh phân cách ngang (`#composer-col-splitter`): Nằm giữa 2 cột, hỗ trợ kéo thả chuột/cảm ứng để tùy biến tỷ lệ bề rộng từ 25% đến 75% (mặc định 60:40, tự động ghi nhớ cấu hình vào `localStorage`).
+     - Cột phải: Xem trước trực tiếp tệp PDF biên dịch từ XeTeX Engine (Live Preview), tab Lịch sử biên dịch, công tắc LỜI GIẢI (`[dethi]` <-> `[loigiai]`), menu xuất PDF/TeX/Ngân hàng và thanh nút bấm nổi bật màu xanh **`BIÊN DỊCH`**.
   2. **Thanh Nhập Prompt AI Thu Gọn & Quy Chuẩn Tương Phản Dark Mode (High-Contrast Tokens):**
      - Thanh dạng viên thuốc (floating pill bar) neo tại chân editor (`#composer-ai-compact-bar`), thiết kế bán trong suốt Apple Glassmorphism.
      - *Độ tương phản Dark Mode (WCAG 2.1 AA):* Chữ trong ô input `#composer-compact-input` và ô chat chính `#composer-chat-input` hiển thị màu trắng sáng `#f8fafc`, caret màu xanh Apple `#38bdf8`, loại bỏ hoàn toàn lỗi chữ đen chìm trên nền tối.
@@ -310,13 +311,20 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
   3. **Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding):**
      - Khi biên dịch LaTeX qua Tectonic/XeTeX phát sinh lỗi (`success = false`), hệ thống tự động lưu giữ thông báo lỗi vào `lastCompileError`.
      - Prompt tiếp theo của người dùng tự động đính kèm `compile_error_log` để AI Copilot phân tích cú pháp TeX và tự động đề xuất khối `diff` sửa lỗi trực tiếp dòng mã nguồn bị sai.
-  4. **Động Cơ Thay Thế Dòng Mờ (Fuzzy Replacement) & Inline Editor Diff Overlay Trực Tiếp Tại Dòng:**
-     - Bên cạnh banner đỉnh `#composer-pending-diff-banner`, hệ thống trang bị Giao diện Diff Nội Dòng (Inline Editor Diff Overlay / Widget) neo trực tiếp tại đúng vị trí dòng mã nguồn trên textarea:
+  4. **Động Cơ Thay Thế Dòng Mờ (Fuzzy Replacement) & Inline Editor Diff Overlay Độc Quyền Trên Khung Soạn Thảo:**
+     - Khi AI đề xuất sửa đổi/diff, hệ thống hiển thị trực quan khối so sánh Diff trực tiếp và độc quyền trên trình soạn thảo mã nguồn LaTeX (thông qua Inline Editor Diff Overlay tại đúng dòng bị ảnh hưởng và/hoặc Inline Diff Banner trên đỉnh editor).
+     - **Bắt buộc:** Tuyệt đối KHÔNG hiển thị widget diff trùng lặp trong bubble chat của Trợ lý. Khung chat chỉ hiển thị lời giải thích, hướng dẫn sư phạm hoặc phân tích lỗi ngắn gọn.
+     - Khối so sánh trên Editor:
        + Dòng đỏ xóa (`- old_text`): Nền `rose-950/70`, viền trái đỏ tươi `border-l-4 border-rose-500`, chữ đỏ `text-rose-300`.
        + Dòng xanh thêm (`+ new_text`): Nền `emerald-950/70`, viền trái xanh ngọc `border-l-4 border-emerald-500`, chữ xanh `text-emerald-300`.
        + Nút điều khiển nội dòng: **`[Keep / Đồng ý]`** và **`[Undo / Từ chối]`** ngay tại dòng mã nguồn.
      - Động cơ Khớp Mờ 5 Tầng (5-Tier Resilient Line Matcher): Chuẩn hóa ngắt dòng, bỏ qua thụt lề, quét cửa sổ trượt và thay thế theo phạm vi dòng đã ghim `pinnedRange`, bảo đảm tỷ lệ thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
-     - Thẻ Diff Card tương tác song song trong luồng chat lịch sử cho phép xem lại và tái áp dụng đề xuất bất cứ lúc nào.
+  5. **Kéo Thả Điều Chỉnh Độ Cao Box Trợ Lý Soạn Thảo Linh Hoạt (Vertical Drag Resize):**
+     - Hỗ trợ kéo thả tại biên trên của popup hoặc thanh ngang viên thuốc (`#composer-ai-pill-handle`) để co giãn độ cao mượt mà theo phương đứng (giới hạn an toàn từ 180px đến 92% chiều cao khung editor).
+     - Tự động lưu và khôi phục độ cao tùy chỉnh từ `localStorage` (`quesy_composer_ai_height`), nhấp chuột đơn không kéo vẫn hỗ trợ toggle nhanh 56% và 78%.
+  6. **Khởi Tạo Phiên Chat Mới Sạch Sẽ & Ngăn Kéo Lưu Trữ Lịch Sử Phiên Cũ:**
+     - Mỗi phiên mới bắt đầu với màn hình sạch và lời chào mặc định từ Quesy Copilot, không nạp lại tin nhắn của các phiên cũ gây rối mắt.
+     - Các phiên cũ được lưu trữ vào kho `quesy_composer_chat_sessions` và hiển thị chi tiết khi người dùng nhấn nút **`[Lịch sử]`** (`#composer-ai-history-btn`). Người dùng có thể xem lại câu lệnh cũ, tải lại phiên hoặc dọn sạch lịch sử.
 
 ---
 

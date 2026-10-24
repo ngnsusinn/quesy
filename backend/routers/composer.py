@@ -575,13 +575,14 @@ def extract_diff_from_text(reply_text: str, current_latex: Optional[str], user_m
         target_choice = m_choice_chg.group(1).upper()
         target_idx = {"A": 0, "B": 1, "C": 2, "D": 3}.get(target_choice)
         if target_idx is not None:
-            m_ch = re.search(r'\\choice\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}', current_latex)
+            m_ch = re.search(r'\\choice\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}', current_latex)
             if m_ch:
                 old_full = m_ch.group(0)
                 opts = [m_ch.group(1), m_ch.group(2), m_ch.group(3), m_ch.group(4)]
                 cleaned_opts = [re.sub(r'\\True\s*', '', opt).strip() for opt in opts]
                 cleaned_opts[target_idx] = "\\True " + cleaned_opts[target_idx]
-                new_full = f"\\choice{{{cleaned_opts[0]}}}{{{cleaned_opts[1]}}}{{{cleaned_opts[2]}}}{{{cleaned_opts[3]}}}"
+                sep = "\n" if "\n" in old_full else ""
+                new_full = f"\\choice{sep}{{{cleaned_opts[0]}}}{sep}{{{cleaned_opts[1]}}}{sep}{{{cleaned_opts[2]}}}{sep}{{{cleaned_opts[3]}}}"
                 if old_full != new_full:
                     return DiffSuggestion(
                         action="replace",

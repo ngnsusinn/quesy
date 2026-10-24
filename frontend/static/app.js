@@ -3850,6 +3850,8 @@
     aiPaneCollapsed: false,
     showSolution: true,
     chatHistory: [],
+    sessions: [],
+    currentSessionId: null,
     compilationHistory: [],
     templates: {},
 
@@ -3924,9 +3926,11 @@
         this.updateCharCount();
       }
 
-      // 4. Restore Chat & History
+      // 4. Restore Chat & History & Resizers
       this.initChat();
       this.initHistory();
+      this.initAIPopupResizer();
+      this.initSplitResizer();
 
       // 5. Setup global click-outside for dropdowns
       document.addEventListener('click', (e) => {
@@ -4321,14 +4325,50 @@
       }
     },
 
+    archiveCurrentSession() {
+      if (!this.chatHistory || !this.chatHistory.some(m => m.role === 'user')) return;
+      if (!this.currentSessionId) {
+        this.currentSessionId = 'session_' + Date.now();
+      }
+      const firstUser = this.chatHistory.find(m => m.role === 'user');
+      const title = (firstUser ? firstUser.content : 'Phiên trò chuyện').slice(0, 50);
+      const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('vi-VN');
+
+      const existingIdx = this.sessions.findIndex(s => s.id === this.currentSessionId);
+      const sessionObj = {
+        id: this.currentSessionId,
+        title: title,
+        timestamp: existingIdx >= 0 && this.sessions[existingIdx].timestamp ? this.sessions[existingIdx].timestamp : nowStr,
+        updatedAt: nowStr,
+        messages: JSON.parse(JSON.stringify(this.chatHistory))
+      };
+
+      if (existingIdx >= 0) {
+        this.sessions[existingIdx] = sessionObj;
+      } else {
+        this.sessions.unshift(sessionObj);
+      }
+
+      if (this.sessions.length > 30) {
+        this.sessions = this.sessions.slice(0, 30);
+      }
+
+      try {
+        localStorage.setItem('quesy_composer_sessions', JSON.stringify(this.sessions));
+      } catch (e) {
+        console.warn('Could not save sessions:', e);
+      }
+    },
+
     newChat() {
+      this.archiveCurrentSession();
+      this.currentSessionId = 'session_' + Date.now();
       this.chatHistory = [
         {
           role: 'assistant',
           content: 'Cuộc trò chuyện mới đã bắt đầu! Bạn có thể yêu cầu tôi đổi cỡ chữ (`12pt`), tạo câu hỏi trắc nghiệm chuẩn, chèn bảng biến thiên `tkz-tab` hoặc vẽ hình TikZ.'
         }
       ];
-      localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory));
       this.renderChatMessages();
       this.renderHistoryList();
       showToast('Đã bắt đầu phiên trò chuyện mới!', 'info');
@@ -4337,16 +4377,24 @@
     toggleHistoryView() {
       const historyPanel = document.getElementById('composer-ai-history-panel');
       const chatMessages = document.getElementById('composer-chat-messages');
+      const inputContainer = document.getElementById('composer-chat-input-container');
+      const popup = document.getElementById('composer-ai-popup');
       if (!historyPanel || !chatMessages) return;
 
       this.isHistoryViewOpen = !this.isHistoryViewOpen;
       if (this.isHistoryViewOpen) {
+        if (popup && popup.offsetHeight < 320) {
+          popup.style.height = '56%';
+          this.aiPopupHeight = '56%';
+        }
         this.renderHistoryList();
         historyPanel.classList.remove('hidden');
         chatMessages.classList.add('hidden');
+        if (inputContainer) inputContainer.classList.add('hidden');
       } else {
         historyPanel.classList.add('hidden');
         chatMessages.classList.remove('hidden');
+        if (inputContainer) inputContainer.classList.remove('hidden');
       }
     },
 
@@ -4354,31 +4402,107 @@
       const listEl = document.getElementById('composer-ai-history-list');
       if (!listEl) return;
 
-      const userMessages = (this.chatHistory || []).filter(m => m.role === 'user');
-      if (!userMessages.length) {
+      try {
+        const saved = localStorage.getItem('quesy_composer_sessions');
+        if (saved) {
+          this.sessions = JSON.parse(saved);
+        }
+      } catch (e) {}
+
+      if (!this.sessions || this.sessions.length === 0) {
         listEl.innerHTML = `
-          <div class="py-6 text-center text-slate-500 text-xs">
+          <div class="py-8 text-center text-slate-500 text-xs select-none">
             <i data-lucide="history" class="w-8 h-8 mx-auto mb-2 text-slate-600 stroke-[1.5]"></i>
-            <p>Chưa có lịch sử câu lệnh nào trong phiên này</p>
+            <p class="font-medium text-slate-400">Chưa có phiên lịch sử nào</p>
+            <p class="text-[11px] text-slate-600 mt-1">Các phiên trò chuyện trước sẽ tự động lưu lại ở đây khi bạn tương tác với Trợ lý.</p>
           </div>
         `;
         if (window.lucide) lucide.createIcons();
         return;
       }
 
-      listEl.innerHTML = userMessages.slice().reverse().map((msg, idx) => {
-        const text = escapeHtml(msg.content);
-        return `
-          <div onclick="app.composer.selectHistoryItem('${encodeURIComponent(msg.content)}')" class="p-2.5 rounded-xl bg-[#222226] hover:bg-[#2c2c32] border border-white/5 hover:border-white/15 transition-all cursor-pointer flex items-center justify-between text-xs text-slate-300">
-            <div class="flex items-center space-x-2 min-w-0">
-              <span class="w-5 h-5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] flex items-center justify-center shrink-0">#${userMessages.length - idx}</span>
-              <span class="truncate font-sans font-medium text-slate-200">${text}</span>
+      listEl.innerHTML = this.sessions.map((sess) => {
+        const userMsgs = (sess.messages || []).filter(m => m.role === 'user');
+        const msgCount = userMsgs.length;
+        const isCurrent = sess.id === this.currentSessionId;
+        const titleEscaped = escapeHtml(sess.title || 'Phiên trò chuyện');
+        const timeDisplay = escapeHtml(sess.updatedAt || sess.timestamp || '');
+
+        const promptsList = userMsgs.slice(-3).map(m => {
+          const rawTextB64 = btoa(unescape(encodeURIComponent(m.content || '')));
+          return `
+            <div onclick="app.composer.selectHistoryItemB64('${rawTextB64}')" class="px-2 py-1 rounded bg-[#1c1c20] hover:bg-[#282830] text-slate-300 text-[11px] truncate cursor-pointer transition-colors flex items-center space-x-1.5" title="Bấm để dùng lại câu lệnh này">
+              <span class="text-purple-400 font-bold text-[10px]">›</span>
+              <span class="truncate">${escapeHtml(m.content)}</span>
             </div>
-            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+          `;
+        }).join('');
+
+        return `
+          <div class="p-3 rounded-xl bg-[#202024] border ${isCurrent ? 'border-purple-500/40 bg-purple-950/10' : 'border-white/5'} hover:border-white/15 transition-all text-xs space-y-2">
+            <div class="flex items-center justify-between min-w-0">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center space-x-2">
+                  <span class="font-bold text-slate-200 truncate font-sans text-xs">${titleEscaped}</span>
+                  ${isCurrent ? '<span class="px-1.5 py-0.2 rounded-full bg-purple-500/20 text-purple-300 text-[9px] font-bold">Hiện tại</span>' : ''}
+                </div>
+                <div class="text-[10px] text-slate-400 mt-0.5 flex items-center space-x-2">
+                  <span>${timeDisplay}</span>
+                  <span>•</span>
+                  <span>${msgCount} câu lệnh</span>
+                </div>
+              </div>
+              <div class="flex items-center space-x-1 shrink-0 ml-2">
+                <button type="button" onclick="app.composer.loadSession('${sess.id}')" class="px-2.5 py-1 bg-purple-600/90 hover:bg-purple-600 text-white rounded-lg text-[11px] font-semibold flex items-center space-x-1 active:scale-95 transition-all cursor-pointer shadow-xs" title="Nạp lại toàn bộ phiên này">
+                  <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                  <span>Nạp lại</span>
+                </button>
+                <button type="button" onclick="app.composer.deleteSession('${sess.id}')" class="p-1 hover:bg-rose-900/30 text-slate-500 hover:text-rose-400 rounded-lg transition-all cursor-pointer" title="Xóa phiên này">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+            ${promptsList ? `<div class="space-y-1 pt-1 border-t border-white/5">${promptsList}</div>` : ''}
           </div>
         `;
       }).join('');
+
       if (window.lucide) lucide.createIcons();
+    },
+
+    loadSession(sessionId) {
+      const sess = this.sessions.find(s => s.id === sessionId);
+      if (!sess) return;
+      this.currentSessionId = sess.id;
+      this.chatHistory = JSON.parse(JSON.stringify(sess.messages || []));
+
+      const historyPanel = document.getElementById('composer-ai-history-panel');
+      const chatMessages = document.getElementById('composer-chat-messages');
+      if (historyPanel) historyPanel.classList.add('hidden');
+      if (chatMessages) chatMessages.classList.remove('hidden');
+      const inputContainer = document.getElementById('composer-chat-input-container');
+      if (inputContainer) inputContainer.classList.remove('hidden');
+      this.isHistoryViewOpen = false;
+
+      this.renderChatMessages();
+      showToast(`Đã nạp lại phiên: ${sess.title}`, 'success');
+    },
+
+    deleteSession(sessionId) {
+      this.sessions = this.sessions.filter(s => s.id !== sessionId);
+      try {
+        localStorage.setItem('quesy_composer_sessions', JSON.stringify(this.sessions));
+      } catch (e) {}
+      this.renderHistoryList();
+      showToast('Đã xóa phiên khỏi lịch sử!', 'info');
+    },
+
+    clearAllSessions() {
+      if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử các phiên trước?')) return;
+      this.sessions = [];
+      localStorage.removeItem('quesy_composer_sessions');
+      this.renderHistoryList();
+      showToast('Đã xóa toàn bộ lịch sử các phiên!', 'info');
     },
 
     selectHistoryItem(encodedText) {
@@ -4387,12 +4511,151 @@
       const chatMessages = document.getElementById('composer-chat-messages');
       if (historyPanel) historyPanel.classList.add('hidden');
       if (chatMessages) chatMessages.classList.remove('hidden');
+      const inputContainer = document.getElementById('composer-chat-input-container');
+      if (inputContainer) inputContainer.classList.remove('hidden');
       this.isHistoryViewOpen = false;
 
       const input = document.getElementById('composer-chat-input');
       if (input) {
         input.value = text;
         input.focus();
+      }
+    },
+
+    selectHistoryItemB64(b64) {
+      try {
+        const text = decodeURIComponent(escape(atob(b64)));
+        this.selectHistoryItem(encodeURIComponent(text));
+      } catch (e) {
+        console.error('Error selecting history item:', e);
+      }
+    },
+
+    initAIPopupResizer() {
+      const popup = document.getElementById('composer-ai-popup');
+      const handle = document.getElementById('composer-ai-resize-handle');
+      const editorPane = document.getElementById('composer-editor-pane');
+      if (!popup || !editorPane) return;
+
+      const savedHeight = localStorage.getItem('quesy_composer_ai_height');
+      if (savedHeight) {
+        this.aiPopupHeight = savedHeight;
+        popup.style.height = savedHeight;
+      }
+
+      let isDragging = false;
+
+      const onMouseDown = (e) => {
+        e.preventDefault();
+        isDragging = true;
+        popup.style.transition = 'none';
+        document.body.classList.add('composer-resizing-v');
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      };
+
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+        const paneRect = editorPane.getBoundingClientRect();
+        if (!paneRect.height) return;
+
+        const newHeightPx = paneRect.bottom - e.clientY;
+        let pct = (newHeightPx / paneRect.height) * 100;
+        pct = Math.min(90, Math.max(20, pct));
+
+        popup.style.height = `${pct.toFixed(1)}%`;
+        this.aiPopupHeight = `${pct.toFixed(1)}%`;
+      };
+
+      const onMouseUp = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        popup.style.transition = '';
+        document.body.classList.remove('composer-resizing-v');
+
+        if (this.aiPopupHeight) {
+          localStorage.setItem('quesy_composer_ai_height', this.aiPopupHeight);
+        }
+
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      if (handle) {
+        handle.addEventListener('mousedown', onMouseDown);
+      }
+    },
+
+    initSplitResizer() {
+      const container = document.getElementById('composer-split-container');
+      const leftCol = document.getElementById('composer-left-col');
+      const resizer = document.getElementById('composer-split-resizer');
+      if (!container || !leftCol || !resizer) return;
+
+      const savedRatio = localStorage.getItem('quesy_composer_split_ratio');
+      if (savedRatio) {
+        const r = parseFloat(savedRatio);
+        if (!isNaN(r) && r >= 25 && r <= 75) {
+          leftCol.style.width = `${r}%`;
+        }
+      }
+
+      let isDragging = false;
+
+      const onMouseDown = (e) => {
+        if (window.innerWidth < 1024) return;
+        e.preventDefault();
+        isDragging = true;
+        document.body.classList.add('composer-resizing-h');
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      };
+
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+        const rect = container.getBoundingClientRect();
+        if (!rect.width) return;
+
+        const offsetX = e.clientX - rect.left;
+        let pct = (offsetX / rect.width) * 100;
+        pct = Math.min(75, Math.max(25, pct));
+
+        leftCol.style.width = `${pct.toFixed(1)}%`;
+      };
+
+      const onMouseUp = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        document.body.classList.remove('composer-resizing-h');
+
+        const pct = parseFloat(leftCol.style.width);
+        if (!isNaN(pct)) {
+          localStorage.setItem('quesy_composer_split_ratio', pct.toFixed(1));
+        }
+
+        this.renderPDF();
+        window.dispatchEvent(new Event('resize'));
+
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      resizer.addEventListener('mousedown', onMouseDown);
+
+      resizer.addEventListener('dblclick', () => {
+        leftCol.style.width = '60%';
+        localStorage.setItem('quesy_composer_split_ratio', '60');
+        this.renderPDF();
+        window.dispatchEvent(new Event('resize'));
+        showToast('Đã đặt lại tỷ lệ chia 60:40', 'info');
+      });
+    },
+
+    renderPDF() {
+      if (typeof this.renderAllPages === 'function' && this.pdfPages && this.pdfPages.length > 0) {
+        this.renderAllPages();
       }
     },
 
@@ -4878,14 +5141,15 @@
         const targetChoice = choiceMatch[1].toUpperCase();
         const targetIdx = { A: 0, B: 1, C: 2, D: 3 }[targetChoice];
         if (targetIdx !== undefined) {
-          const chRegex = /\\choice\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/;
+          const chRegex = /\\choice\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/;
           const chMatch = currentLatex.match(chRegex);
           if (chMatch) {
             const oldFull = chMatch[0];
             const opts = [chMatch[1], chMatch[2], chMatch[3], chMatch[4]];
             const cleanedOpts = opts.map(o => o.replace(/\\True\s*/g, '').trim());
             cleanedOpts[targetIdx] = '\\True ' + cleanedOpts[targetIdx];
-            const newFull = `\\choice{${cleanedOpts[0]}}{${cleanedOpts[1]}}{${cleanedOpts[2]}}{${cleanedOpts[3]}}`;
+            const sep = oldFull.includes('\n') ? '\n' : '';
+            const newFull = `\\choice${sep}{${cleanedOpts[0]}}${sep}{${cleanedOpts[1]}}${sep}{${cleanedOpts[2]}}${sep}{${cleanedOpts[3]}}`;
             if (oldFull !== newFull) {
               return {
                 action: 'replace',
@@ -5021,23 +5285,46 @@
       const chatContainer = document.getElementById('composer-chat-messages');
       if (!chatContainer) return;
 
-      const savedChat = localStorage.getItem('quesy_composer_chat');
-      if (savedChat) {
-        try {
-          this.chatHistory = JSON.parse(savedChat);
-        } catch (e) {
-          this.chatHistory = [];
-        }
+      // 1. Load stored sessions from localStorage
+      try {
+        const savedSessions = localStorage.getItem('quesy_composer_sessions');
+        this.sessions = savedSessions ? JSON.parse(savedSessions) : [];
+      } catch (e) {
+        this.sessions = [];
       }
 
-      if (!this.chatHistory || this.chatHistory.length === 0) {
-        this.chatHistory = [
-          {
-            role: 'assistant',
-            content: 'Chào bạn! Tôi là **Trợ lý soạn thảo** (Quesy Copilot). Bạn có thể yêu cầu tôi đổi cỡ chữ (`12pt`), tạo câu hỏi trắc nghiệm, tạo bảng biến thiên `tkz-tab`, vẽ đồ thị TikZ hoặc kiểm tra và sửa lỗi cú pháp LaTeX trực tiếp.'
+      // 2. Migrate legacy single-chat history if it exists and has user messages
+      try {
+        const legacyChat = localStorage.getItem('quesy_composer_chat');
+        if (legacyChat) {
+          const parsed = JSON.parse(legacyChat);
+          if (Array.isArray(parsed) && parsed.some(m => m.role === 'user')) {
+            const firstUser = parsed.find(m => m.role === 'user');
+            const legacySess = {
+              id: 'session_' + Date.now(),
+              title: (firstUser ? firstUser.content : 'Phiên trước').slice(0, 50),
+              timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('vi-VN'),
+              messages: parsed
+            };
+            if (!this.sessions.some(s => s.title === legacySess.title)) {
+              this.sessions.unshift(legacySess);
+              localStorage.setItem('quesy_composer_sessions', JSON.stringify(this.sessions));
+            }
           }
-        ];
+        }
+      } catch (e) {
+        console.warn('Migration error:', e);
       }
+
+      // 3. New session starts fresh with ONLY the default greeting message
+      this.currentSessionId = 'session_' + Date.now();
+      this.chatHistory = [
+        {
+          role: 'assistant',
+          content: 'Chào bạn! Tôi là **Trợ lý soạn thảo** (Quesy Copilot). Bạn có thể yêu cầu tôi đổi cỡ chữ (`12pt`), tạo câu hỏi trắc nghiệm, tạo bảng biến thiên `tkz-tab`, vẽ đồ thị TikZ hoặc kiểm tra và sửa lỗi cú pháp LaTeX trực tiếp.'
+        }
+      ];
+
       this.renderChatMessages();
       this.renderHistoryList();
 
@@ -5105,110 +5392,25 @@
         diff = this.extractDiffFromText(text, this.currentLatex);
       }
 
-      // If diff payload is provided and text doesn't already have an inline diff block
-      if (diff && diff.old_text && !html.includes('```diff')) {
-        const b64Old = btoa(unescape(encodeURIComponent(diff.old_text)));
-        const b64New = btoa(unescape(encodeURIComponent(diff.new_text || '')));
-        const diffBlock = `
-          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
-            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
-              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý thay đổi trực tiếp (${escapeHtml(diff.description || 'Chỉnh sửa dòng')})</span>
-              <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý áp dụng</span>
-                </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
-                  <span>✖ Từ chối</span>
-                </button>
-              </div>
-            </div>
-            <div class="diff-body text-[11px] leading-relaxed">
-              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
-                <span class="text-rose-400 font-bold select-none">-</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(diff.old_text)}</span>
-              </div>
-              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
-                <span class="text-emerald-400 font-bold select-none">+</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(diff.new_text || '')}</span>
-              </div>
-            </div>
-          </div>
-        `;
-        // Strip out redundant full-file latex snippet block
-        html = html.replace(/```(?:latex|tex)?\s*[\s\S]*?```/g, '');
-        html += diffBlock;
-      }
+      const hasDiff = Boolean(
+        (diff && diff.old_text) ||
+        /```diff/i.test(html) ||
+        /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+[\s\S]*?\n+(?:NEW|MỚI|MÃ MỚI|SAU):/i.test(html) ||
+        /(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n[\s\S]*?\n```\s*\n*(?:thành|bằng|sang|mới|sau):/i.test(html)
+      );
 
-      // 1. Interactive Diff Blocks (```diff ... ```)
-      html = html.replace(/```diff\s*([\s\S]*?)```/g, (match, diffContent) => {
-        const lines = diffContent.trim().split('\n');
-        const oldLines = lines.filter(l => l.trim().startsWith('-')).map(l => l.trim().replace(/^-\s*/, '')).join('\n');
-        const newLines = lines.filter(l => l.trim().startsWith('+')).map(l => l.trim().replace(/^\+\s*/, '')).join('\n');
-        const b64Old = btoa(unescape(encodeURIComponent(oldLines)));
-        const b64New = btoa(unescape(encodeURIComponent(newLines)));
+      // 1. Remove ```diff ... ``` blocks from chat bubble
+      html = html.replace(/```diff\s*[\s\S]*?```/gi, '');
 
-        return `
-          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
-            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
-              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
-              <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý áp dụng</span>
-                </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
-                  <span>✖ Từ chối</span>
-                </button>
-              </div>
-            </div>
-            <div class="diff-body text-[11px] leading-relaxed">
-              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
-                <span class="text-rose-400 font-bold select-none">-</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(oldLines)}</span>
-              </div>
-              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
-                <span class="text-emerald-400 font-bold select-none">+</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(newLines)}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-
-      // 2. Interactive OLD / NEW or CŨ / MỚI replacement blocks
+      // 2. Remove OLD / NEW or CŨ / MỚI replacement blocks from chat bubble
       const oldNewRegex = /(?:OLD|CŨ|MÃ CŨ|TRƯỚC):\s*\n+([\s\S]*?)\n+(?:NEW|MỚI|MÃ MỚI|SAU):\s*\n+([\s\S]*?)(?:\n\n|$)/gi;
-      html = html.replace(oldNewRegex, (match, oldContent, newContent) => {
-        const oldClean = oldContent.trim();
-        const newClean = newContent.trim();
-        const b64Old = btoa(unescape(encodeURIComponent(oldClean)));
-        const b64New = btoa(unescape(encodeURIComponent(newClean)));
-        return `
-          <div class="diff-block-wrapper my-2 rounded-xl overflow-hidden border border-[#2d3d60] shadow-xs font-mono text-[11px]">
-            <div class="diff-block-actions flex items-center justify-between bg-[#1e2535] text-slate-300 px-3 py-1.5 text-[10px]">
-              <span class="font-sans font-bold text-blue-400">⚡ Gợi ý chỉnh sửa trực tiếp</span>
-              <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="app.composer.applyDiffDirect(decodeURIComponent(escape(atob('${b64Old}'))), decodeURIComponent(escape(atob('${b64New}'))))" class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] active:scale-95 transition-all shadow-xs flex items-center space-x-1 cursor-pointer">
-                  <span>✔ Đồng ý áp dụng</span>
-                </button>
-                <button type="button" onclick="app.composer.rejectPendingDiff()" class="px-2.5 py-1 rounded bg-[#2c364c] hover:bg-[#3a4763] text-slate-300 text-[10px] active:scale-95 transition-all cursor-pointer">
-                  <span>✖ Từ chối</span>
-                </button>
-              </div>
-            </div>
-            <div class="diff-body text-[11px] leading-relaxed">
-              <div class="px-2.5 py-1.5 bg-rose-950/70 text-rose-300 border-b border-rose-900/60 flex items-start space-x-2">
-                <span class="text-rose-400 font-bold select-none">-</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(oldClean)}</span>
-              </div>
-              <div class="px-2.5 py-1.5 bg-emerald-950/70 text-emerald-300 flex items-start space-x-2">
-                <span class="text-emerald-400 font-bold select-none">+</span>
-                <span class="whitespace-pre-wrap flex-1 break-all">${escapeHtml(newClean)}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      });
+      html = html.replace(oldNewRegex, '');
 
-      // 2. Standard LaTeX Snippets (```latex ... ```)
+      // 3. Remove block replacement code fences from chat bubble if it was just replacing code
+      const blockRepRegex = /(?:thay thế|thay|đổi|sửa|cũ|trước):\s*\n*```(?:latex|tex)?\s*\n[\s\S]*?\n```\s*\n*(?:thành|bằng|sang|mới|sau):\s*\n*```(?:latex|tex)?\n[\s\S]*?\n```/gi;
+      html = html.replace(blockRepRegex, '');
+
+      // 4. Standard LaTeX Snippets (```latex ... ```) - keep for code reference with insert/copy buttons
       html = html.replace(/```(?:latex|tex)?\s*([\s\S]*?)```/g, (match, code) => {
         const rawCode = code.trim();
         const b64Code = btoa(unescape(encodeURIComponent(rawCode)));
@@ -5234,7 +5436,18 @@
       html = html.replace(/\*([^*]+)\*/g, '<em class="text-slate-300">$1</em>');
       html = html.replace(/`([^`]+)`/g, '<code class="bg-[#2d2d31] text-purple-300 border border-white/10 px-1.5 py-0.5 rounded font-mono text-[11px] font-semibold">$1</code>');
       html = html.replace(/\n\n/g, '<br><br>');
-      return html;
+
+      // 5. If a diff was detected, add brief unobtrusive notification note
+      if (hasDiff) {
+        html += `
+          <div class="my-2 px-2.5 py-1.5 rounded-lg bg-blue-950/40 border border-blue-500/25 text-blue-300 text-[11px] flex items-center space-x-1.5 select-none">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+            <span>Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn</span>
+          </div>
+        `;
+      }
+
+      return html.trim();
     },
 
     insertB64Code(b64) {
@@ -5307,6 +5520,7 @@
         this.openAIPopup();
       }
       this.chatHistory.push({ role: 'user', content: promptText });
+      this.archiveCurrentSession();
       this.renderChatMessages();
       this.renderHistoryList();
 
@@ -5355,6 +5569,7 @@
             diff = this.extractDiffFromText(data.reply, this.currentLatex, promptText);
           }
           this.chatHistory.push({ role: 'assistant', content: data.reply, diff: diff || null });
+          this.archiveCurrentSession();
           localStorage.setItem('quesy_composer_chat', JSON.stringify(this.chatHistory.slice(-20)));
           this.renderChatMessages();
 
@@ -5363,17 +5578,20 @@
           }
         } else {
           this.chatHistory.push({ role: 'assistant', content: 'Rất tiếc, đã có lỗi kết nối với máy chủ AI. Vui lòng thử lại sau.' });
+          this.archiveCurrentSession();
           this.renderChatMessages();
         }
       } catch (err) {
         const typingEl = document.getElementById(tempId);
         if (typingEl) typingEl.remove();
         this.chatHistory.push({ role: 'assistant', content: `Lỗi kết nối: ${err.message}` });
+        this.archiveCurrentSession();
         this.renderChatMessages();
       }
     },
 
     clearChat() {
+      this.currentSessionId = 'session_' + Date.now();
       this.chatHistory = [
         {
           role: 'assistant',
@@ -5383,7 +5601,7 @@
       localStorage.removeItem('quesy_composer_chat');
       this.renderChatMessages();
       this.renderHistoryList();
-      showToast('Đã xóa sạch lịch sử hội thoại.', 'info');
+      showToast('Đã xóa sạch nội dung hội thoại hiện tại.', 'info');
     },
 
     handleEditorInput() {

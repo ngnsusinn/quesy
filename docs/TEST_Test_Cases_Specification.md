@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 2.5 (Tập trung kiểm thử chức năng & Độ tin cậy giải pháp)  
+- **Phiên bản:** 2.9 (Cải tiến Giao diện Soạn đề LaTeX: Splitter Kéo Thả Ngang 2 Cột, Kéo Thả Độ Cao Trợ Lý Soạn Thảo, Hiển Thị Diff Độc Quyền Trên Code Editor & Quản Lý Phiên Chat Sạch Sẽ Với History Drawer)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 46 Tests (100% Passed)  
-- **Ngày lập:** 2026-10-18  
+- **Tổng số kịch bản tự động hóa:** 50 Tests (100% Passed)  
+- **Ngày lập:** 2026-10-24
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)  
 
 ---
@@ -40,7 +40,7 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 | **TS-06** | Động cơ Trộn Đề Hoán vị An toàn | BR-04.2, FR-06.2, SRS-FEAT-08 | 5 | P0 (Critical) |
 | **TS-07** | Xuất bản File Word 2 Cột & In ấn | BR-05.1, FR-07, SRS-FEAT-09 | 4 | P0 (Must Have) |
 | **TS-08** | Bảo mật, RBAC & Khảo thí Thống kê | BR-05.2, BR-06, FR-08 | 3 | P1 / P2 |
-| **TS-09** | Soạn đề LaTeX AI & Live PDF (Tectonic) | FR-02.1, FR-02.2, NFR-COMP-02 | 4 | P0 (Must Have) |
+| **TS-09** | Soạn đề LaTeX AI & Live PDF (Tectonic) | FR-02.1, FR-02.2, NFR-COMP-02 | 15 | P0 (Must Have) |
 
 ---
 
@@ -268,6 +268,39 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
 #### TC-COMP-10: Hiệu Năng Gửi Prompt Không Độ Trễ & Box Chat Mượt Chuẩn Apple HIG
 - **Mô tả:** Kiểm tra hành động nhấn Enter hoặc click nút gửi prompt: phản hồi optimistic UI lập tức ($\le 16$ms), ẩn compact bar và mở bung popup chat với hiệu ứng hardware transition mượt mà, cuộn mượt đến đáy và hiển thị typing indicator không giật khung hình.
 - **Kết quả kỳ vọng:** Thao tác gửi tức thì không độ trễ, 0 lỗi JavaScript màu đỏ trong Console DevTools.
+
+#### TC-COMP-11: Tính Toàn Vẹn Của API Chat & Bóc Tách Diff Độc Lập Hiển Thị Frontend
+- **Mô tả:** Kiểm tra API `/api/v1/composer/chat` bảo toàn tính toàn vẹn của cấu trúc `ChatResponse` (bao gồm `reply`, `diff`, `suggested_latex`). Cơ chế bóc tách diff (`extract_diff_from_text`) hoàn toàn phân tách giữa nội dung giải thích tự nhiên hiển thị trong luồng hội thoại chat và payload diff vận hành trên khung soạn thảo (`DiffSuggestion` với `old_text` và `new_text`).
+- **Kết quả kỳ vọng:** Phản hồi API luôn trả về HTTP 200, trường `reply` nguyên vẹn nội dung đàm thoại cho chat bubble, trường `diff` chứa lát cắt mã nguồn chính xác khớp ký tự trong editor (`old_text` tồn tại trong buffer hiện tại) và mã thay thế `new_text` sạch sẽ (không chứa tiền tố đánh dấu `- ` hay `+ `). Xử lý an toàn các ký tự toán đặc biệt LaTeX, câu hỏi trắc nghiệm `\choice` đơn dòng và đa dòng, đổi cỡ chữ, và các tài liệu lớn (>25k ký tự) mà không gây lỗi máy chủ.
+
+#### TC-COMP-12: Hiển Thị Đề Xuất Diff Độc Quyền Trên Khung Code Editor (Loại Bỏ Hoàn Toàn Diff Widget Trong Bubble Chat)
+- **Mô tả:** Khi AI Copilot phản hồi một đề xuất diff thay đổi mã nguồn (ví dụ: đổi font size, sửa câu hỏi trắc nghiệm, sửa lỗi cú pháp):
+  1. Kiểm tra bong bóng chat của Assistant (`#composer-chat-messages`): Chỉ hiển thị văn bản trả lời tự nhiên của AI; xác nhận **không xuất hiện phần tử widget diff** (`.diff-block-wrapper`, khối chứa nút "✔ Đồng ý áp dụng" và "✖ Từ chối" trong bong bóng chat).
+  2. Kiểm tra vùng Code Editor (`#composer-editor-pane`): Xác nhận hiển thị chính xác khối diff thông qua Inline Diff Overlay (`#composer-inline-diff-overlay`) và/hoặc Top Diff Banner (`#composer-pending-diff-banner`) kèm 2 nút thao tác trực tiếp `[Keep / Đồng ý]` và `[Undo / Từ chối]`.
+- **Kết quả kỳ vọng:** Khung chat sạch sẽ, không có widget diff trùng lặp gây rối mắt; toàn bộ thao tác duyệt diff được tập trung trực tiếp trên mã nguồn editor; khi bấm Keep/Undo trên editor thì diff biến mất và mã nguồn được cập nhật chính xác.
+
+#### TC-COMP-13: Quản Lý Khởi Tạo Phiên Chat Mới Sạch Sẽ & Tra Cứu Lịch Sử Phiên Cũ (Session Lifecycle & Clean Workspace)
+- **Mô tả:** 
+  1. Khi người dùng mở trang `/composer` hoặc nhấn nút "Bắt đầu hội thoại mới" (`newChat`): Kiểm tra khung chat active bắt đầu sạch sẽ với duy nhất 1 tin nhắn chào mặc định từ Quesy Copilot, không nạp lại tin nhắn từ phiên cũ.
+  2. Kiểm tra nếu phiên trước đó đã có tin nhắn trao đổi, toàn bộ phiên đó được lưu trữ tự động vào mảng phiên cũ `quesy_composer_chat_sessions` trong `localStorage`.
+  3. Khi nhấp nút **`[Lịch sử]`** (`#composer-ai-history-btn`), mở giao diện `#composer-ai-history-panel` hiển thị danh sách các phiên cũ kèm thời gian và tóm tắt prompt. Nhấp vào một phiên hoặc câu lệnh cũ sẽ điền nội dung vào ô nhập hoặc tải lại phiên cũ. Nhấp "✕ Đóng" quay lại phiên hiện tại.
+- **Kết quả kỳ vọng:** Mỗi phiên mới luôn sạch sẽ tinh giản; lịch sử các phiên trước không bị mất mà được lưu trữ khoa học trong ngăn kéo Lịch sử.
+
+#### TC-COMP-14: Kéo Thả Điều Chỉnh Độ Cao Linh Hoạt Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Pill Handle)
+- **Mô tả:** Kiểm tra khả năng co giãn độ cao của Box Trợ lý Soạn thảo (`#composer-ai-popup`) theo phương thẳng đứng:
+  1. Thao tác nhấn giữ chuột (`mousedown`) trên thanh pill handle (`#composer-ai-pill-handle`) hoặc viền trên của popup và kéo chuột lên/xuống (`mousemove`).
+  2. Đo đạc chiều cao `style.height` của `#composer-ai-popup`: Độ cao thay đổi mượt mà theo thời gian thực (60 FPS, không gián đoạn), bị giới hạn trong khoảng an toàn $180\text{px}$ đến $92\%$ chiều cao khung editor.
+  3. Kiểm tra nhấp chuột đơn (click không kéo) vào pill handle: Vẫn duy trì tính năng toggle nhanh giữa 56% và 78%.
+  4. Sau khi kéo thả, tải lại trang (F5): Kiểm tra độ cao tùy chỉnh được khôi phục từ `localStorage` (`quesy_composer_ai_height`).
+- **Kết quả kỳ vọng:** Co giãn độ cao trực quan, mượt mà chuẩn Apple HIG, không làm vỡ bố cục editor hay che khuất toolbar đỉnh.
+
+#### TC-COMP-15: Kéo Thả Thanh Phân Tách Ngang 2 Cột Editor & Live Preview (Horizontal Splitter & Dual-Pane Drag Resize)
+- **Mô tả:** Kiểm tra khả năng co giãn chiều rộng của 2 cột Editor và Live Preview thông qua thanh phân tách ngang:
+  1. Di chuột vào phần tử phân cách `#composer-col-splitter`: Con trỏ hiển thị `cursor-col-resize`, vạch phân cách đổi hiệu ứng hover.
+  2. Nhấn giữ chuột (`mousedown`) và kéo sang trái/phải (`mousemove`): Chiều rộng cột trái (`#composer-left-col`) thay đổi mượt mà, tỷ lệ co giãn được giới hạn nghiêm ngặt trong khoảng $25\%$ đến $75\%$.
+  3. Trong lúc kéo, kiểm tra vùng canvas PDF có áp dụng `pointer-events: none` chống giật chuột.
+  4. Khi thả chuột (`mouseup`), tỷ lệ mới được lưu vào `localStorage` (`quesy_composer_split_ratio`) và tự động kích hoạt `syncEditorScroll()`. Tải lại trang (F5), tỷ lệ chia cột được bảo toàn nguyên vẹn.
+- **Kết quả kỳ vọng:** Thao tác chia cột mượt mà 60 FPS, tỷ lệ phản hồi chính xác, không phát sinh bất kỳ lỗi console nào.
 
 ---
 
