@@ -522,14 +522,7 @@ def compile_latex_source_to_html(
     if norm_mode == "dethi":
         body = re.sub(r'\\begin\{loigiai\}[\s\S]*?\\end\{loigiai\}', '', body)
         body = re.sub(r'\\loigiai\{[\s\S]*?\}', '', body)
-    else:
-        def _render_lg(m):
-            lg_inner = m.group(1).strip()
-            lg_inner = re.sub(r'\\begin\{itemchoice\}', '<div style="margin-top:4px;">', lg_inner)
-            lg_inner = re.sub(r'\\end\{itemchoice\}', '</div>', lg_inner)
-            lg_inner = re.sub(r'\\itemch\s*', '<div style="margin-bottom:2px;">• ', lg_inner)
-            return f'<div class="loigiai-block" style="background:#f8fafc; border-left:3px solid #0071e3; padding:8px 12px; margin:8px 0; border-radius:4px; font-size:10pt;"><strong>Lời giải:</strong><div style="margin-top:4px;">{lg_inner}</div></div>'
-        body = re.sub(r'\\begin\{loigiai\}([\s\S]*?)\\end\{loigiai\}', _render_lg, body)
+    # When norm_mode == "loigiai", we keep \begin{loigiai}...\end{loigiai} in body so math inside loigiai gets rendered in step 7.
 
     # 4. Extract and render all TikZ blocks to vector SVGs
     tikz_blocks = []
@@ -592,7 +585,26 @@ def compile_latex_source_to_html(
 
     final_body = "\n".join(rendered_paragraphs)
 
-    # Restore TikZ and Tables
+    # 7b. Parse minipages, hfill, rule, dotfill, framebox, fbox on final_body
+    # (Applied after render_math_html to protect HTML tags from being escaped into &lt; and &gt;)
+    final_body = re.sub(r'\\begin\{minipage\}(?:\[[^\]]*\])?\{([^}]+)\}', r'<div style="display: inline-block; vertical-align: top; width: \1;">', final_body)
+    final_body = re.sub(r'\\end\{minipage\}', '</div>', final_body)
+    final_body = re.sub(r'\\hfill', '<span style="float: right;"></span>', final_body)
+    final_body = re.sub(r'\\rule\{([^}]+)\}\{([^}]+)\}', r'<hr style="width: \1; height: \2; background: #000; border: none; margin: 4px 0;">', final_body)
+    final_body = re.sub(r'\\dotfill', '<span style="border-bottom: 1px dotted #000; display: inline-block; width: 80px;"></span>', final_body)
+    final_body = re.sub(r'\\(?:framebox|fbox)\{((?:[^{}]|\{[^{}]*\})+)\}', r'<span style="border: 1px solid #000; padding: 2px 4px; display: inline-block;">\1</span>', final_body)
+
+    # 7c. Render loigiai block on final_body if in loigiai mode
+    if norm_mode == "loigiai":
+        def _render_lg(m):
+            lg_inner = m.group(1).strip()
+            lg_inner = re.sub(r'\\begin\{itemchoice\}', '<div style="margin-top:4px;">', lg_inner)
+            lg_inner = re.sub(r'\\end\{itemchoice\}', '</div>', lg_inner)
+            lg_inner = re.sub(r'\\itemch\s*', '<div style="margin-bottom:2px;">• ', lg_inner)
+            return f'<div class="loigiai-block" style="background:#f8fafc; border-left:3px solid #0071e3; padding:8px 12px; margin:8px 0; border-radius:4px; font-size:10pt;"><strong>Lời giải:</strong><div style="margin-top:4px;">{lg_inner}</div></div>'
+        final_body = re.sub(r'\\begin\{loigiai\}([\s\S]*?)\\end\{loigiai\}', _render_lg, final_body)
+
+    # 7d. Restore TikZ and Tables
     for idx, svg_html in enumerate(tikz_blocks):
         final_body = final_body.replace(f"__LATEX_TIKZ_COMPILED_{idx}__", svg_html)
     for idx, tbl_html in enumerate(table_blocks):
@@ -632,7 +644,6 @@ def compile_latex_source_to_html(
     .latex-section {{
       font-size: 11.5pt;
       font-weight: bold;
-      text-transform: uppercase;
       margin-top: 14px;
       margin-bottom: 6px;
       break-after: avoid;

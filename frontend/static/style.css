@@ -124,9 +124,6 @@ select:focus, input[type="text"]:not(#composer-compact-input):focus, input[type=
 #composer-chat-input,
 #composer-chat-input:focus,
 #composer-chat-input:active,
-#composer-compact-input,
-#composer-compact-input:focus,
-#composer-compact-input:active,
 .composer-chat-input,
 .composer-chat-input:focus,
 .composer-chat-input:active {
@@ -137,6 +134,35 @@ select:focus, input[type="text"]:not(#composer-compact-input):focus, input[type=
   color: #f1f5f9 !important;
   caret-color: #c084fc !important;
   -webkit-text-fill-color: #f1f5f9 !important;
+}
+
+#composer-compact-input {
+  font-size: 13.5px !important;
+  line-height: 22px !important;
+  height: 24px !important;
+  padding: 1px 0 !important;
+  caret-color: #c084fc !important;
+  color: #f8fafc !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  -webkit-text-fill-color: #f8fafc !important;
+}
+
+#composer-ai-compact-bar:focus-within {
+  border-color: rgba(168, 85, 247, 0.75) !important;
+  box-shadow: 0 0 0 3.5px rgba(168, 85, 247, 0.28), 0 16px 40px -6px rgba(0, 0, 0, 0.9) !important;
+  background-color: rgba(28, 28, 32, 0.98) !important;
+  transform: translate(-50%, -1px) scale(1.005) !important;
+}
+
+#composer-ai-compact-bar:focus-within .text-purple-400 {
+  filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.8));
+}
+
+#composer-ai-compact-bar:focus-within button {
+  color: #c084fc !important;
 }
 
 #composer-chat-input::placeholder,

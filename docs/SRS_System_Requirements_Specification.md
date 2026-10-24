@@ -184,26 +184,35 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   4. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, cấu hình tỷ lệ chia cột, độ cao trợ lý và kho lưu trữ lịch sử các phiên chat vào `localStorage` của trình duyệt.
   5. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
 
-#### SRS-FEAT-04e: Thanh Nhập Prompt AI Thu Gọn, Cơ Chế Xóa Sạch Lạc Quan (Optimistic Input Reset) & Quy Chuẩn Màu Tương Phản Dark Mode
+#### SRS-FEAT-04e: Thanh Nhập Prompt AI Thu Gọn, Con Trỏ Soạn Thảo Toàn Chiều (Full-Height Caret), Hiệu Ứng Nổi Bật Khi Focus (:focus-within Glow) & Cơ Chế Xóa Sạch Lạc Quan
 - **Mô tả:** Cung cấp thanh nhập lệnh AI nhỏ gọn dạng viên thuốc (floating pill bar) neo tại chân khung soạn thảo (`bottom-7`, căn giữa `w-[92%] max-w-xl`, phong cách Apple Glassmorphism bo tròn viền bán trong suốt `#1c1c1f/95`), giữ không gian làm việc luôn tối giản và tập trung cao độ.
 - **Hành vi tương tác và kích hoạt 2 trạng thái:**
-  1. *Trạng thái Nhập liệu Cục bộ (In-place Typing):* Khi người dùng nhấp chuột vào thanh hoặc trường nhập văn bản (`#composer-compact-input`), hệ thống chỉ kích hoạt focus con trỏ để gõ văn bản bình thường (`cursor-text`), **tuyệt đối không tự động bung mở modal/popup trợ lý** nhằm loại bỏ hoàn toàn hiện tượng che khuất màn hình gây gián đoạn mạch soạn thảo.
-  2. *Trạng thái Kích hoạt Mở rộng (Expansion & Dispatch Trigger):* Hệ thống chỉ mở bung toàn bộ giao diện Popup Trợ lý Soạn thảo (`composer-ai-popup`, độ cao mặc định 56%, có thể phóng to 78% hoặc 92%) khi xảy ra một trong hai điều kiện sau:
+  1. *Trạng thái Nhập liệu Cục bộ (In-place Typing) & Hiển thị Full Con Trỏ (Full-Height Caret):*
+     - Khi người dùng nhấp chuột vào thanh hoặc trường nhập văn bản (`#composer-compact-input`), hệ thống chỉ kích hoạt focus con trỏ để gõ văn bản bình thường (`cursor-text`), **tuyệt đối không tự động bung mở modal/popup trợ lý** nhằm loại bỏ hoàn toàn hiện tượng che khuất màn hình gây gián đoạn mạch soạn thảo.
+     - **Hiển thị Full Con Trỏ Soạn Thảo (Anti-Caret-Clipping):** Khắc phục triệt để lỗi con trỏ soạn thảo (caret) bị ăn mất hoặc cụt ngủn khi click vào ô input. Định nghĩa chiều cao và giãn dòng tường minh (`font-size: 13px; line-height: 20px; height: 24px; padding: 1px 0; box-sizing: border-box; caret-color: #c084fc;`), bảo đảm caret hiển thị trọn vẹn 100% chiều cao con trỏ nhấp nháy, không bị clipping do container `overflow` hay co kéo `line-height`.
+  2. *Hiệu Ứng Nổi Bật Box Chat Khi Được Select (:focus-within Apple Neon Glow):*
+     - Khi bất kỳ thành phần nào trong `#composer-ai-compact-bar` nhận focus (đặc biệt là `#composer-compact-input:focus`), toàn bộ khung thanh bar được kích hoạt trạng thái nổi bật tức thì qua pseudo-class `:focus-within`:
+       + **Viền phát sáng (Border Highlight):** Chuyển từ viền mờ `border-white/15` sang viền tím neon đậm đà `border-color: rgba(168, 85, 247, 0.75)` (Apple Purple).
+       + **Vòng sáng tỏa (Focus Ring & Glow):** Áp dụng `box-shadow: 0 0 0 3.5px rgba(168, 85, 247, 0.28), 0 16px 40px -6px rgba(0, 0, 0, 0.9)`.
+       + **Nền kính sâu hơn:** `background-color: rgba(28, 28, 32, 0.98)` tách biệt rõ rệt khỏi editor.
+       + **Phản hồi xúc giác vi mô (Micro-interaction):** Nhấc nhẹ `transform: translate(-50%, -1px) scale(1.005)`.
+       + **Icon Sparkles:** Sáng rực rỡ với `filter: drop-shadow(0 0 6px rgba(192, 132, 252, 0.65))` và nút gửi chuyển sang tím neon đồng bộ.
+  3. *Trạng thái Kích hoạt Mở rộng (Expansion & Dispatch Trigger):* Hệ thống chỉ mở bung toàn bộ giao diện Popup Trợ lý Soạn thảo (`composer-ai-popup`, độ cao mặc định 56%, có thể phóng to 78% hoặc 92%) khi xảy ra một trong hai điều kiện sau:
      - Người dùng nhấn phím **`Enter`** trong ô nhập liệu.
      - Người dùng nhấp chuột vào **Nút Gửi Mũi Tên Tròn** (`#composer-ai-compact-bar button` - icon `arrow-up`).
-  3. *Cơ Chế Xóa Sạch Lạc Quan (Optimistic Dual-Input Reset & Event Decoupling):*
+  4. *Cơ Chế Xóa Sạch Lạc Quan (Optimistic Dual-Input Reset & Event Decoupling):*
      - Khắc phục triệt để lỗi văn bản cũ còn lưu kẹt trong ô nhập chat của trợ lý sau khi đã gửi đi (Ảnh 1).
      - Ngay tại thời điểm kích hoạt gửi ($t = 0\text{ms}$ khi bắt sự kiện `submitChat`, `submitFromCompact`, hoặc `sendPrompt`), hệ thống đồng thời xóa sạch giá trị (`chatInput.value = ''` và `compactInput.value = ''`) TRƯỚC BẤT KỲ tác vụ bất đồng bộ hoặc render DOM nào.
      - Phân định rõ ngữ nghĩa hàm mở popup: Khi mở do gửi lệnh (`submitFromCompact`), gọi `openAIPopup('')` với tham số rỗng, không truyền lại chuỗi prompt đã gửi vào `prefillPrompt` (loại bỏ hoàn toàn cơ chế gán ngược `chatInput.value = prefillPrompt`). Chỉ khi người dùng bấm mẫu lệnh nhanh (`applyQuickPrompt`), chuỗi mẫu mới được điền vào ô nhập để biên tập.
-     - Duy trì con trỏ phím (caret) sẵn sàng tại ô nhập rỗng với màu Apple blue `#38bdf8`, sẵn sàng cho câu lệnh kế tiếp mà không cần xóa thủ công.
-  4. *Chuyển tiếp Dữ liệu Liền mạch:* Khi được kích hoạt, chuỗi prompt được đẩy vào lịch sử phiên hiện tại, thanh thu gọn tạm thời ẩn đi, hiển thị chỉ báo AI đang phản hồi (`composer-typing-indicator`), và gửi yêu cầu bất đồng bộ đến endpoint `/api/v1/composer/chat`.
-  5. *Menu Mẫu Lệnh Nhanh (Quick Actions Menu):* Biểu tượng dấu cộng `+` trên thanh compact mở menu ngữ cảnh cho phép chọn nhanh các tác vụ phổ biến: đổi cỡ chữ toàn tài liệu sang 12pt, tạo câu hỏi trắc nghiệm 4 lựa chọn, tạo câu hỏi Đúng/Sai 4 ý QĐ 764, vẽ bảng biến thiên `tkz-tab`, và kiểm tra/sửa cú pháp LaTeX.
-- **Quy chuẩn Màu Tương Phản Dark Mode (WCAG 2.1 AA Compliant - Sửa lỗi chữ đen trên nền tối):**
+     - Duy trì con trỏ phím (caret) sẵn sàng tại ô nhập rỗng với màu tím neon sáng `#c084fc` hoặc xanh Apple `#38bdf8`, sẵn sàng cho câu lệnh kế tiếp mà không cần xóa thủ công.
+  5. *Chuyển tiếp Dữ liệu Liền mạch:* Khi được kích hoạt, chuỗi prompt được đẩy vào lịch sử phiên hiện tại, thanh thu gọn tạm thời ẩn đi, hiển thị chỉ báo AI đang phản hồi (`composer-typing-indicator`), và gửi yêu cầu bất đồng bộ đến endpoint `/api/v1/composer/chat`.
+  6. *Menu Mẫu Lệnh Nhanh (Quick Actions Menu):* Biểu tượng dấu cộng `+` trên thanh compact mở menu ngữ cảnh cho phép chọn nhanh các tác vụ phổ biến: tạo Header đề thi chuẩn Quốc gia 2 cột & mã đề, tạo khung 3 Phần đề thi chuẩn Bộ GD&ĐT 2025, đổi cỡ chữ toàn tài liệu sang 12pt, tạo câu hỏi trắc nghiệm 4 lựa chọn, tạo câu hỏi Đúng/Sai 4 ý QĐ 764, vẽ bảng biến thiên `tkz-tab`, và kiểm tra/sửa cú pháp LaTeX.
+- **Quy chuẩn Màu Tương Phản Dark Mode (WCAG 2.1 AA Compliant - Sửa lỗi chữ đen trên nền tối):*
   - Khắc phục triệt để lỗi chữ màu đen `#1d1d1f` bị chìm trên nền tối `#1c1c1f` / `#141824`.
   - Thiết lập design tokens bắt buộc với độ ưu tiên cao (`!important`) cho cả 2 trường nhập liệu `#composer-compact-input` và `#composer-chat-input`:
     - *Text Color:* `#f8fafc` (Slate-50) hoặc `#ffffff` xuyên suốt mọi trạng thái (default, hover, focus, active).
     - *Placeholder Color:* `rgba(226, 232, 240, 0.5)` (Slate-200 / 50%) phân biệt rõ ràng nhưng dịu mắt trên nền tối.
-    - *Caret Color (Con trỏ nhập môn):* `#38bdf8` (Sky-400 / Apple Blue) định vị sắc nét vị trí con trỏ.
+    - *Caret Color (Con trỏ nhập môn):* `#c084fc` (Purple-400) hoặc `#38bdf8` (Sky-400 / Apple Blue) định vị sắc nét vị trí con trỏ với chiều cao chuẩn 100%.
     - *Selection Color:* `::selection { background-color: rgba(59, 130, 246, 0.4); color: #ffffff; }`.
     - *Background & Borders:* Nền trong suốt `background-color: transparent !important`, loại bỏ toàn bộ viền trong, bóng hộp mặc định (`border: none !important; outline: none !important; box-shadow: none !important`).
 
@@ -414,6 +423,51 @@ ightarrow$ `fontspec`, bổ sung các gói lệnh thiếu (`tcolorbox`, `xparse`
 ightarrow$ `Tải mã nguồn TeX (.tex)`, nếu nội dung hiện tại là dạng tinh gọn không preamble, hệ thống tự động bọc Canonical Preamble đầy đủ và `\begin{document}...\end{document}` vào tệp tải về để đảm bảo tệp `.tex` có thể biên dịch thành công 100% ngay lập tức trên các trình soạn thảo TeX bên ngoài (TeXShop, TeXstudio, Overleaf).
   5. *Định Hướng Trợ Lý AI Copilot:*
      - Prompt hệ thống của Quesy Copilot được chỉ dẫn rõ: môi trường làm việc đã tích hợp sẵn Canonical Preamble của `ex_test.sty` v3.3. Khi giáo viên yêu cầu tạo câu hỏi, AI chỉ sinh phần thân câu hỏi `\begin{ex}...\end{ex}` và tiêu đề cần thiết, tuyệt đối không xuất các đoạn preamble thừa thãi làm ô nhiễm khung soạn thảo.
+
+#### SRS-FEAT-04r: Cấu Trúc Header Đề Thi 2 Cột Chuẩn Quốc Gia, Khung Mã Đề & 3 Phân Vùng Section Khảo Thí (Bộ GD&ĐT 2025)
+- **Mô tả:** Cung cấp mẫu mã nguồn LaTeX và các công cụ chèn nhanh cấu trúc đề thi chuẩn Quốc gia theo quy cách Bộ Giáo dục & Đào tạo (Áp dụng từ Kỳ thi Tốt nghiệp THPT 2025). Cho phép giáo viên chèn ngay lập tức từ thanh công cụ `THÊM ▾`, gọi qua menu Gợi ý tác vụ AI, hoặc ra lệnh trực tiếp bằng ngôn ngữ tự nhiên cho AI Copilot.
+- **Quy cách Cấu trúc Đề thi Chuẩn Quốc gia 2025:**
+  1. *Header 2 Cột Đối Xứng (Sở/Bộ GD&ĐT & Kỳ thi):*
+     - Bố cục 2 cột cân bằng bằng môi trường `minipage` chuẩn LaTeX:
+       + Cột trái (độ rộng `0.42\textwidth`, căn giữa `\begin{center}`):
+         `\textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\`
+         `\textbf{ĐỀ CHÍNH THỨC}\\`
+         `
+ule{2.8cm}{0.6pt}` (đường gạch kẻ mảnh chuẩn quy cách hành chính).
+       + Cột phải (độ rộng `0.54\textwidth`, căn giữa `\begin{center}`):
+         `\textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG NĂM 2025}\\`
+         `\textbf{Môn: TOÁN HỌC}\\`
+         `\textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}`
+     - Tương thích 100% cả khi biên dịch qua Tectonic XeTeX engine lẫn Chromium HTML Vector preview engine.
+  2. *Dòng Thông Tin Thí Sinh & Hộp Khung Mã Đề:*
+     - Hàng thông tin được phân cách bằng dấu chấm lửng co giãn `\dotfill` và khung bao mã đề:
+       `\noindent\textbf{Họ, tên thí sinh:} \dotfill\ \textbf{Số báo danh:} \dotfill\ \framebox{\textbf{Mã đề: 0102}}`
+     - Khung mã đề sử dụng lệnh `\framebox` hoặc `\fbox`, đóng khung vuông viền đen sắc nét, định vị rõ mã đề trắc nghiệm.
+  3. *3 Phân Vùng Section Đề Thi Chuẩn Bộ GD&ĐT 2025:*
+     - **PHẦN I (Trắc nghiệm nhiều phương án lựa chọn - 12 câu, 3.0 điểm):**
+       `\section*{PHẦN I. Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}`
+       Chứa 12 câu hỏi trắc nghiệm chuẩn lệnh `\begin{ex} ... \choice{A}{B}{C}{D} ... \end{ex}`.
+     - **PHẦN II (Trắc nghiệm Đúng/Sai 4 khẳng định - 4 câu, 4.0 điểm, QĐ 764/QĐ-BGDĐT):**
+       `\section*{PHẦN II. Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}`
+       Chứa 4 câu hỏi trắc nghiệm Đúng/Sai với lệnh `\choiceTF` và barem bậc thang `\begin{itemchoice}\itemch...\end{itemchoice}`.
+     - **PHẦN III (Trắc nghiệm trả lời ngắn - 6 câu, 3.0 điểm):**
+       `\section*{PHẦN III. Thí sinh trả lời từ câu 1 đến câu 6. Mỗi câu hỏi thí sinh chỉ điền kết quả vào ô trả lời.}`
+       Chứa 6 câu hỏi điền kết quả số/phân số với lệnh `\shortans`.
+  4. *Tích Hợp Giao Diện Người Dùng (UI Integration):*
+     - Dropdown menu `THÊM ▾` trên thanh công cụ của Editor phân chia thành 2 nhóm rõ rệt:
+       + Nhóm *CẤU TRÚC ĐỀ THI QUỐC GIA 2025*: Header 2 Cột & Mã đề, Phần I (12 câu), Phần II (4 câu QĐ 764), Phần III (6 câu ngắn), và Trọn bộ Đề thi Quốc Gia.
+       + Nhóm *MẪU LỆNH EX_TEST*: Trắc nghiệm, Đúng/Sai, Trả lời ngắn, Tự luận, Hình TikZ, Hình cạnh chữ, Lời giải.
+     - Menu Popover Gợi ý tác vụ AI trên thanh Compact Bar (`#composer-compact-quick-menu`) bổ sung mục:
+       * *Tạo Header đề thi chuẩn Quốc gia 2 cột & mã đề*
+       * *Tạo khung 3 Phần đề thi chuẩn Bộ GD&ĐT 2025*
+  5. *Động Cơ Render HTML/PDF Hỗ Trợ Đầy Đủ Các Lệnh:*
+     - Engine `compile_latex_source_to_html` trong `composer_service.py` bổ sung bộ phân giải cho:
+       + `\begin{minipage}[t]{...} ... \end{minipage}` và `\hfill` $\rightarrow$ Thẻ flexbox/inline-block CSS.
+       + `\rule{...}{...}` $\rightarrow$ Thẻ divider đường kẻ đen mảnh căn giữa (`<hr>`).
+       + `\dotfill` $\rightarrow$ Thẻ co giãn đường chấm dotted baseline.
+       + `\framebox{...}` / `\fbox{...}` $\rightarrow$ Khung viền đen 1.5px bọc mã đề.
+       + Bỏ thuộc tính `text-transform: uppercase` trên `.latex-section` để giữ nguyên đoạn hướng dẫn chữ thường chuẩn mực của Bộ GD&ĐT.
+       + **Kiến trúc Pipeline Tránh Lỗi Over-Escaping:** Các macro layout (`minipage`, `hfill`, `rule`, `dotfill`, `framebox`, `fbox`) và khối `loigiai` được phân giải trực tiếp trên `final_body` **SAU** khi bước bóc tách đoạn văn và render công thức toán `render_math_html` hoàn tất. Cơ chế này bảo vệ các thẻ HTML thực tế (`<div>`, `<span>`, `<hr>`) không bị chuyển hóa nhầm thành text thô đã escape (`&lt;div...&gt;`, `&lt;span...&gt;`). Regex `\rule` chuẩn hóa tuyệt đối với `r'\\rule\{([^}]+)\}\{([^}]+)\}'`.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.

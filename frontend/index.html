@@ -437,10 +437,34 @@
                       <span>THÊM</span>
                       <i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>
                     </button>
-                    <!-- Templates Menu -->
-                    <div id="composer-dropdown-them" class="hidden absolute top-full mt-1.5 left-0 z-50 w-52 bg-[#1e2433] border border-[#2d364d] rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs font-mono">
+                    <!-- Templates Menu (2 Groups) -->
+                    <div id="composer-dropdown-them" class="hidden absolute top-full mt-1.5 left-0 z-50 w-60 bg-[#1e2433] border border-[#2d364d] rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs font-mono max-h-96 overflow-y-auto">
+                      <div class="px-3 py-1 text-[10px] font-sans font-bold text-purple-400 uppercase tracking-wider border-b border-[#2d364d]/60 mb-1">
+                        I. CẤU TRÚC ĐỀ THI QUỐC GIA 2025
+                      </div>
+                      <button type="button" onclick="app.composer.insertTemplate('header_quocgia')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
+                        <span class="text-purple-400 font-bold">◆</span>
+                        <span class="font-sans font-medium">Tiêu đề 2 Cột & Mã đề</span>
+                      </button>
+                      <button type="button" onclick="app.composer.insertTemplate('section_phan1')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
+                        <span class="text-purple-400 font-bold">◆</span>
+                        <span class="font-sans font-medium">Phần I (12 câu Trắc nghiệm)</span>
+                      </button>
+                      <button type="button" onclick="app.composer.insertTemplate('section_phan2')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
+                        <span class="text-purple-400 font-bold">◆</span>
+                        <span class="font-sans font-medium">Phần II (4 câu Đúng/Sai)</span>
+                      </button>
+                      <button type="button" onclick="app.composer.insertTemplate('section_phan3')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
+                        <span class="text-purple-400 font-bold">◆</span>
+                        <span class="font-sans font-medium">Phần III (6 câu Trả lời ngắn)</span>
+                      </button>
+                      <button type="button" onclick="app.composer.insertTemplate('dethi_quocgia_full')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2 border-b border-[#2d364d]/60 pb-1.5 mb-1">
+                        <span class="text-emerald-400 font-bold">★</span>
+                        <span class="font-sans font-bold text-emerald-300">Trọn bộ Đề thi Quốc Gia</span>
+                      </button>
+
                       <div class="px-3 py-1 text-[10px] font-sans font-bold text-slate-400 uppercase tracking-wider border-b border-[#2d364d]/60 mb-1">
-                        Mẫu lệnh ex_test chuẩn
+                        II. MẪU LỆNH EX_TEST CHUẨN
                       </div>
                       <button type="button" onclick="app.composer.insertTemplate('tracnghiem')" class="w-full text-left px-3 py-1.5 hover:bg-[#2c354a] hover:text-white flex items-center space-x-2">
                         <span class="text-amber-400 font-bold">1.</span>
@@ -645,11 +669,11 @@
 
               <!-- ================= TRỢ LÝ SOẠN THẢO (AI COPILOT POPUP) ================= -->
               <!-- A. Compact Floating Prompt Bar (Image 2 style) -->
-              <div id="composer-ai-compact-bar" class="absolute bottom-7 left-1/2 -translate-x-1/2 w-[92%] max-w-xl z-20 bg-[#1c1c1f]/95 backdrop-blur-md border border-white/15 rounded-full px-3.5 py-1.5 shadow-2xl flex items-center justify-between text-white transition-all duration-300 hover:border-white/25">
+              <div id="composer-ai-compact-bar" class="absolute bottom-7 left-1/2 -translate-x-1/2 w-[92%] max-w-xl z-20 bg-[#1c1c1f]/95 backdrop-blur-md border border-white/15 rounded-full px-3.5 py-1.5 shadow-2xl flex items-center justify-between text-white transition-all duration-300 hover:border-white/25 focus-within:border-purple-500/70 focus-within:ring-2 focus-within:ring-purple-500/30">
                 <!-- Left: Sparkles & Input Trigger -->
                 <div class="flex items-center space-x-2 flex-1 min-w-0 cursor-text" onclick="document.getElementById('composer-compact-input')?.focus()">
                   <i data-lucide="sparkles" class="w-4 h-4 text-purple-400 shrink-0"></i>
-                  <input type="text" id="composer-compact-input" placeholder="Yêu cầu AI sửa đổi, thêm câu hỏi, vẽ TikZ... (Nhấn Enter để gửi)" onkeydown="app.composer.handleCompactInputKey(event)" class="composer-chat-input w-full bg-transparent text-xs text-[#f1f5f9] placeholder-slate-400 outline-none cursor-text font-sans" style="color: #f1f5f9 !important; caret-color: #c084fc !important; background-color: transparent !important;" />
+                  <input type="text" id="composer-compact-input" placeholder="Yêu cầu AI sửa đổi, thêm câu hỏi, vẽ TikZ... (Nhấn Enter để gửi)" onkeydown="app.composer.handleCompactInputKey(event)" class="composer-chat-input w-full bg-transparent text-[13.5px] h-6 leading-[22px] text-[#f1f5f9] placeholder-slate-400 outline-none cursor-text font-sans" style="color: #f1f5f9 !important; caret-color: #c084fc !important; background-color: transparent !important;" />
                 </div>
                 <!-- Right Controls (Matching Image 2) -->
                 <div class="flex items-center space-x-2 shrink-0">
@@ -658,21 +682,32 @@
                       <i data-lucide="plus" class="w-4 h-4"></i>
                     </button>
                     <!-- Compact Quick Prompts Menu -->
-                    <div id="composer-compact-quick-menu" class="hidden absolute bottom-full mb-2 right-0 z-50 w-56 bg-[#1f1f23] border border-white/15 rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs">
-                      <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-white/10 mb-1">
-                        Gợi ý tác vụ AI
+                    <div id="composer-compact-quick-menu" class="hidden absolute bottom-full mb-2 right-0 z-50 w-64 bg-[#1f1f23] border border-white/15 rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs max-h-96 overflow-y-auto">
+                      <div class="px-3 py-1 text-[10px] font-bold text-purple-400 uppercase tracking-wider border-b border-white/10 mb-1">
+                        Gợi ý Đề thi Quốc Gia 2025
+                      </div>
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo tiêu đề đề thi 2 cột và mã đề chuẩn')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                        <span class="text-purple-400 font-bold">◆</span>
+                        <span>Tạo Header tiêu đề 2 cột</span>
+                      </button>
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo Phần I gồm 12 câu trắc nghiệm 4 lựa chọn')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                        <span class="text-purple-400 font-bold">◆</span>
+                        <span>Tạo Phần I (12 câu Trắc nghiệm)</span>
+                      </button>
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo Phần II gồm 4 câu Đúng/Sai theo QĐ 764')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                        <span class="text-purple-400 font-bold">◆</span>
+                        <span>Tạo Phần II (4 câu Đúng/Sai)</span>
+                      </button>
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo Phần III gồm 6 câu Trả lời ngắn')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                        <span class="text-purple-400 font-bold">◆</span>
+                        <span>Tạo Phần III (6 câu Trả lời ngắn)</span>
+                      </button>
+                      <div class="px-3.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-white/10 my-1 pt-1">
+                        Gợi ý tác vụ AI khác
                       </div>
                       <button type="button" onclick="app.composer.applyQuickPrompt('Đổi cỡ chữ toàn tài liệu sang 12pt')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
-                        <span class="text-purple-400 font-bold">●</span>
-                        <span>Đổi cỡ chữ sang 12pt</span>
-                      </button>
-                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo một câu hỏi trắc nghiệm 4 lựa chọn về hàm số')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
                         <span class="text-blue-400 font-bold">●</span>
-                        <span>Trắc nghiệm 4 lựa chọn</span>
-                      </button>
-                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo câu hỏi Đúng/Sai 4 ý theo Quyết định 764')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
-                        <span class="text-emerald-400 font-bold">●</span>
-                        <span>Đúng/Sai 4 ý QĐ 764</span>
+                        <span>Đổi cỡ chữ sang 12pt</span>
                       </button>
                       <button type="button" onclick="app.composer.applyQuickPrompt('Vẽ bảng biến thiên hàm bậc 3 bằng tkz-tab')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
                         <span class="text-amber-400 font-bold">●</span>

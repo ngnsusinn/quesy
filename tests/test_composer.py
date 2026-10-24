@@ -2773,6 +2773,272 @@ def test_composer_chat_api_gemini_provider_empty_or_mocked_key():
             assert mock_client.post.call_args[0][0] == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
 
 
+# ---------------------------------------------------------------------------
+# 14. Comprehensive Unit Tests: National Exam 2025 Headers, 3 Sections & Templates
+# ---------------------------------------------------------------------------
+
+def test_composer_national_exam_2025_templates_frontend():
+    """Verify that all 5 National Exam 2025 templates are correctly registered in frontend code."""
+    app_js_path = Path("frontend/static/app.js")
+    assert app_js_path.exists(), "frontend/static/app.js must exist"
+    app_js = app_js_path.read_text(encoding="utf-8")
+
+    # 1. header_quocgia template
+    assert "'header_quocgia':" in app_js
+    assert "begin{minipage}[t]{0.48" in app_js or "begin{minipage}[t]{0.55" in app_js
+    assert "KỲ THI TỐT NGHIỆP THPT NĂM 2025" in app_js
+    assert "Mã đề" in app_js or "MÃ ĐỀ" in app_js
+
+    # 2. section_phan1 template
+    assert "'section_phan1':" in app_js
+    assert "PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN" in app_js
+    assert "Thí sinh trả lời từ câu 1 đến câu 12" in app_js
+
+    # 3. section_phan2 template
+    assert "'section_phan2':" in app_js
+    assert "PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI" in app_js
+    assert "Thí sinh trả lời từ câu 1 đến câu 4" in app_js
+
+    # 4. section_phan3 template
+    assert "'section_phan3':" in app_js
+    assert "PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN" in app_js
+    assert "Thí sinh trả lời từ câu 1 đến câu 6" in app_js
+
+    # 5. dethi_quocgia_full template
+    assert "'dethi_quocgia_full':" in app_js
+    assert "choice" in app_js
+    assert "choiceTF" in app_js
+    assert "shortans" in app_js
+
+    # Verify dropdown options in frontend/index.html
+    index_html_path = Path("frontend/index.html")
+    assert index_html_path.exists(), "frontend/index.html must exist"
+    index_html = index_html_path.read_text(encoding="utf-8")
+    assert "CẤU TRÚC ĐỀ THI QUỐC GIA 2025" in index_html
+    assert "insertTemplate('header_quocgia')" in index_html
+    assert "insertTemplate('section_phan1')" in index_html
+    assert "insertTemplate('section_phan2')" in index_html
+    assert "insertTemplate('section_phan3')" in index_html
+    assert "insertTemplate('dethi_quocgia_full')" in index_html
+
+
+def test_composer_ensure_full_latex_document_national_exam_structures():
+    """Verify ensure_full_latex_document packages 2-column header and 3 sections with exam preamble."""
+    from backend.services.composer_service import ensure_full_latex_document
+
+    header_snippet = r"""\noindent
+\begin{minipage}[t]{0.55\textwidth}
+  \textbf{SỞ GD\&ĐT HÀ NỘI}\\
+  \textbf{TRƯỜNG THPT CHUYÊN}
+\end{minipage}
+\begin{minipage}[t]{0.45\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+  \textbf{Môn thi: TOÁN HỌC}\\
+  \textit{Thời gian làm bài: 90 phút}
+\end{minipage}
+\vspace{0.3cm}
+\begin{center}
+  \textbf{MÃ ĐỀ THI: 101}
+\end{center}"""
+
+    # 1. Wrap pure header in dethi mode
+    doc = ensure_full_latex_document(header_snippet, mode="dethi", title="Đề Thi Quốc Gia")
+    assert r"\documentclass[12pt,a4paper]{article}" in doc
+    assert r"\usepackage{fontspec}" in doc
+    assert r"\usepackage[dethi]{ex_test}" in doc
+    assert r"\usepackage{tcolorbox}" in doc
+    assert r"\begin{document}" in doc
+    assert r"\end{document}" in doc
+    assert r"\begin{minipage}[t]{0.55\textwidth}" in doc
+    assert r"KỲ THI TỐT NGHIỆP THPT NĂM 2025" in doc
+
+    # 2. Wrap pure header in loigiai mode
+    doc_sol = ensure_full_latex_document(header_snippet, mode="loigiai", title="Lời Giải")
+    assert r"\usepackage[loigiai]{ex_test}" in doc_sol
+    assert r"\usepackage[dethi]{ex_test}" not in doc_sol
+
+    # 3. Full 3-section exam wrapping
+    full_exam_code = header_snippet + r"""
+\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+\begin{ex}
+Câu hỏi trắc nghiệm
+\choice
+{A}
+{\True B}
+{C}
+{D}
+\end{ex}
+
+\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}
+\begin{ex}
+Câu hỏi đúng sai
+\choiceTF
+{\True Đúng}
+{Sai}
+{\True Đúng}
+{Sai}
+\end{ex}
+
+\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
+\begin{ex}
+Câu hỏi ngắn
+\shortans{42}
+\end{ex}"""
+
+    doc_full = ensure_full_latex_document(full_exam_code, mode="dethi")
+    assert r"\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}" in doc_full
+    assert r"\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}" in doc_full
+    assert r"\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}" in doc_full
+    assert r"\shortans{42}" in doc_full
+
+
+def test_composer_chat_api_national_exam_fallbacks():
+    """Verify composer chat endpoint handles 2-column header and 3-section requests with rule-based fallback."""
+    # 1. Header request
+    res_header = client.post(
+        "/api/v1/composer/chat",
+        json={"message": "Tạo header 2 cột đề thi chuẩn Bộ GD", "current_latex": "", "history": []}
+    )
+    assert res_header.status_code == 200
+    data_header = res_header.json()
+    assert "minipage" in data_header.get("suggested_latex", "")
+    assert "KỲ THI TỐT NGHIỆP" in data_header["suggested_latex"] and "2025" in data_header["suggested_latex"]
+    assert "Mã đề" in data_header["suggested_latex"] or "MÃ ĐỀ" in data_header["suggested_latex"]
+
+    # 2. Header request via "tiêu đề 2 cột"
+    res_col2 = client.post(
+        "/api/v1/composer/chat",
+        json={"message": "tạo tiêu đề 2 cột cho trường thpt", "current_latex": "", "history": []}
+    )
+    assert res_col2.status_code == 200
+    data_col2 = res_col2.json()
+    assert "minipage" in data_col2.get("suggested_latex", "")
+
+    # 3. Section 1 request
+    res_s1 = client.post(
+        "/api/v1/composer/chat",
+        json={"message": "thêm phần 1 trắc nghiệm 4 lựa chọn", "current_latex": "", "history": []}
+    )
+    assert res_s1.status_code == 200
+    data_s1 = res_s1.json()
+    assert "PHẦN I" in data_s1["suggested_latex"]
+    assert r"\choice" in data_s1["suggested_latex"]
+
+    # 4. Section 2 request
+    res_s2 = client.post(
+        "/api/v1/composer/chat",
+        json={"message": "soạn phần 2 đúng sai 4 khẳng định", "current_latex": "", "history": []}
+    )
+    assert res_s2.status_code == 200
+    data_s2 = res_s2.json()
+    assert "PHẦN II" in data_s2["suggested_latex"]
+    assert r"\choiceTF" in data_s2["suggested_latex"]
+    assert r"\begin{itemchoice}" in data_s2["suggested_latex"]
+
+    # 5. Section 3 request
+    res_s3 = client.post(
+        "/api/v1/composer/chat",
+        json={"message": "tạo phần 3 trắc nghiệm trả lời ngắn", "current_latex": "", "history": []}
+    )
+    assert res_s3.status_code == 200
+    data_s3 = res_s3.json()
+    assert "PHẦN III" in data_s3["suggested_latex"]
+    assert r"\shortans" in data_s3["suggested_latex"]
+
+    # 6. Full 3-part exam request
+    res_full = client.post(
+        "/api/v1/composer/chat",
+        json={"message": "tạo trọn bộ đề thi chuẩn quốc gia 2025 với 3 phần", "current_latex": "", "history": []}
+    )
+    assert res_full.status_code == 200
+    data_full = res_full.json()
+    full_latex = data_full["suggested_latex"]
+    assert "minipage" in full_latex
+    assert "PHẦN I" in full_latex
+    assert "PHẦN II" in full_latex
+    assert "PHẦN III" in full_latex
+    assert r"\choice" in full_latex
+    assert r"\choiceTF" in full_latex
+    assert r"\shortans" in full_latex
+
+
+def test_compile_latex_source_to_html_national_sections_and_styling():
+    """Verify compile_latex_source_to_html renders Section H2 and omits uppercase text-transform."""
+    from backend.services.composer_service import compile_latex_source_to_html
+
+    sample_latex = r"""\documentclass[12pt]{article}
+\begin{document}
+\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+Nội dung phần I...
+
+\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai}
+Nội dung phần II...
+
+\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
+Nội dung phần III...
+\end{document}"""
+
+    html = compile_latex_source_to_html(sample_latex, default_title="Đề Thi Thử 2025")
+    assert "<!DOCTYPE html>" in html
+    assert "CMU Serif" in html
+    assert '<h2 class="latex-section">PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN</h2>' in html
+    assert '<h2 class="latex-section">PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai</h2>' in html
+    assert '<h2 class="latex-section">PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN</h2>' in html
+
+    # Verify that text-transform: uppercase is NOT enforced on .latex-section
+    assert "text-transform: uppercase;" not in html
+
+
+def test_compile_latex_source_to_html_minipage_and_layout_elements():
+    """Verify compile_latex_source_to_html supports minipage, hfill, dotfill, and box commands."""
+    from backend.services.composer_service import compile_latex_source_to_html
+
+    sample_layout = r"""\documentclass[12pt]{article}
+\begin{document}
+\noindent
+\begin{minipage}[t]{0.55\textwidth}
+  \textbf{SỞ GD\&ĐT TP. HỒ CHÍ MINH}
+\end{minipage}
+\begin{minipage}[t]{0.45\textwidth}
+  \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}
+\end{minipage}
+
+\hfill
+\dotfill
+\rule{5cm}{0.4pt}
+\framebox{MÃ ĐỀ 101}
+\fbox{HẾT}
+\end{document}"""
+
+    html = compile_latex_source_to_html(sample_layout, default_title="Bố cục 2 cột")
+    # Verify minipage width inline-block styling is present
+    assert '<div style="display: inline-block' in html
+    assert "&lt;div" not in html
+    assert '<hr style="width:' in html
+    assert "0.55\\textwidth" in html or "0.55\textwidth" in html
+    assert "0.45\\textwidth" in html or "0.45\textwidth" in html
+    # Verify hfill float: right
+    assert "float: right;" in html
+    # Verify dotfill border-bottom dotted
+    assert "border-bottom: 1px dotted" in html
+    # Verify framebox/fbox solid border
+    assert "border: 1px solid #000;" in html
+
+
+def test_composer_frontend_compact_bar_styling():
+    """Verify compact bar has Apple purple focus ring/glow and proper CSS hierarchy."""
+    css_path = Path("frontend/static/style.css")
+    assert css_path.exists(), "frontend/static/style.css must exist"
+    css = css_path.read_text(encoding="utf-8")
+
+    # Verify CSS selector for compact bar focus-within
+    assert "#composer-ai-compact-bar:focus-within" in css or "#composer-compact-input" in css
+    # Verify Apple Purple styling presence (#a855f7 or rgba)
+    assert "#a855f7" in css or "rgba(168, 85, 247" in css or "168, 85, 247" in css
+
+
+
 
 
 
