@@ -384,16 +384,41 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 ---
 
-## 9. QUY TRÌNH KÍCH HOẠT 4 SUB-AGENT ĐỒNG THỜI CHO MỖI YÊU CẦU TÍNH NĂNG
+## 9. QUY TRÌNH PHỐI HỢP & HOẠT ĐỘNG CỦA 4 SUB-AGENT
 
-Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi hệ thống bắt buộc phải kích hoạt 4 Sub-Agent chạy đồng thời (song song qua `delegate_task`), tuyệt đối không chạy đơn luồng tuần tự:
-1. **Sub-Agent 1 - Analysis, Specs & Docs:** Phân tích kiến trúc, rà soát tác động, đồng bộ toàn bộ tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`). **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`).
-2. **Sub-Agent 2 - Software Engineering & Coding:** Hiện thực hóa tính năng, lập trình backend/frontend, tuân thủ Apple HIG và thiết kế hệ thống. **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`). Chủ động cung cấp thông tin cập nhật mã nguồn/thư viện cho Sub-Agent 3.
-3. **Sub-Agent 3 - Automated Test & CI/CD Verification (Độc quyền CI/CD):**
-   - **Strict CI Isolation:** Là sub-agent DUY NHẤT được phép truy cập, đọc, viết, chỉnh sửa toàn bộ cấu hình CI/CD (`.github/workflows/`). Hoàn toàn tách biệt với các sub-agents còn lại.
-   - **Tiếp nhận thông tin một chiều:** Có toàn quyền đọc và tiếp nhận thông tin từ Sub-Agent 1, Sub-Agent 2, Sub-Agent 4 để cập nhật CI đồng bộ theo code mới, loại bỏ nguy cơ lỗi trên runner.
-   - **Kiểm thử tự động & Quản lý Cổng Pre-Commit Gate:** Viết mới/cập nhật test cases `pytest`, chạy toàn bộ test suite. Quản lý vòng lặp sửa lỗi CI (CI Loop) và chỉ cho phép commit khi 100% test cases vượt qua trên CI.
-4. **Sub-Agent 4 - E2E Browser Blind Test & UI/UX Audit:** Mở trình duyệt thật qua `browser_exec`, thao tác thủ công (`fill_input`, `click_at_xy`), chụp màn hình, kiểm tra console log/error, đối chiếu toàn diện 5 nhóm khuyết tật phần mềm. **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`).
+Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi hệ thống được điều phối qua 4 Sub-Agent với quy chuẩn phân định mô hình AI và trình tự phối hợp nghiêm ngặt:
+
+### 9.1 Quy định về Mô hình AI (Sub-Agent Model Mapping)
+- **Sub-Agent 1 (Analysis, Specs & Docs):** `gemini 3.8 flash high`, `thinking: ultra`, `temp: 0.2`.
+- **Sub-Agent 2 (Software Engineering & Coding):** `gemini 3 flash`, `thinking: medium`.
+- **Sub-Agent 3 (Automated Test & CI/CD Verification):** `gemini 3.5 flash lite`.
+- **Sub-Agent 4 (E2E Browser Blind Test & UI/UX Audit):** `gemini 3.8 flash high`, `thinking: ultra`, `temp: 0.2`.
+
+### 9.2 Quy định về Trình tự Hoạt động & Tương tác giữa các Sub-Agent
+1. **Pha 1 - Đọc hiểu, Phân tích & Đặc tả Kiến trúc (Sub-Agent 1):**
+   - Phân tích kiến trúc, rà soát tác động, đồng bộ toàn bộ tài liệu kỹ thuật (`SRS`, `FRD`, `BRD`, `NFR`, `SOURCE_MAP.md`, `README.md`).
+   - Định vị chính xác các file, hàm, API bị ảnh hưởng và xây dựng bản đặc tả kỹ thuật chi tiết.
+   - **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`).
+2. **Pha 2 - Triển khai Mã nguồn & Trao đổi Làm rõ (Sub-Agent 2):**
+   - Hiện thực hóa tính năng, lập trình backend/frontend, tuân thủ Apple HIG và thiết kế hệ thống.
+   - **Quy tắc hỏi lại Sub-Agent 1:** Trong quá trình triển khai, **nếu Sub-Agent 2 cần làm rõ bất kỳ điều gì (về logic, data contract, phạm vi...), bắt buộc phải hỏi lại Sub-Agent 1** để được làm rõ và thống nhất giải pháp trước khi code tiếp.
+   - **Quy tắc cô lập CI:** Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`). Chủ động cung cấp thông tin cập nhật mã nguồn/thư viện cho Sub-Agent 3.
+3. **Pha 3 - Cổng Kiểm thử Song song (Sub-Agent 3 & Sub-Agent 4):**
+   - **QUY TẮC BẮT BUỘC:** **Sub-Agent 3 và Sub-Agent 4 CHỈ ĐƯỢC PHÉP CHẠY SAU KHI Sub-Agent 2 ĐÃ CHẠY XONG HOÀN TOÀN.** Tuyệt đối không kích hoạt Sub-Agent 3 và 4 khi Sub-Agent 2 chưa hoàn thành mã nguồn.
+   - Sau khi Sub-Agent 2 hoàn thành, Sub-Agent 3 và Sub-Agent 4 được kích hoạt song song:
+     - **Sub-Agent 3 (Automated Test & Độc quyền CI/CD):**
+       + *Strict CI Isolation:* Là sub-agent DUY NHẤT được phép truy cập, đọc, viết, chỉnh sửa toàn bộ cấu hình CI/CD (`.github/workflows/ci.yml`). Tách biệt hoàn toàn với các sub-agent còn lại.
+       + *Tiếp nhận thông tin một chiều:* Có toàn quyền đọc và tiếp nhận thông tin từ các sub-agent khác để cập nhật CI đồng bộ.
+       + *Kiểm thử tự động & Quản lý Cổng Pre-Commit Gate:* Viết mới/cập nhật test cases `pytest`, chạy toàn bộ test suite, chỉ cho phép commit khi 100% test cases vượt qua trên CI.
+     - **Sub-Agent 4 (E2E Browser Blind Test & UI/UX Audit):**
+       + Mở trình duyệt thật qua `browser_exec`, thao tác thủ công (`fill_input`, `click_at_xy`), chụp màn hình, kiểm tra console log/error, đối chiếu toàn diện 5 nhóm khuyết tật phần mềm.
+       + *Quy tắc cô lập CI:* Tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc tệp cấu hình CI/CD (`.github/workflows/`).
+4. **Pha 4 - Quy trình Xử lý Lỗi & Vòng lặp Hiệu chỉnh (Defect Clarification & Refactoring Loop):**
+   - **QUY TẮC BẮT BUỘC:** **Nếu Sub-Agent 3 hoặc Sub-Agent 4 run fail, xảy ra lỗi hoặc tìm ra bất kỳ lỗi nào** (trong 5 nhóm khuyết tật phần mềm hoặc fail test CI):
+     1. Sub-Agent 3 và/hoặc Sub-Agent 4 **bắt buộc phải đưa toàn bộ thông tin lỗi (log, traceback, console error, screenshot) và trao đổi lại với Sub-Agent 1 để làm rõ lỗi ở đâu** (nghiệp vụ, kiến trúc, API contract, CSS hay logic).
+     2. Sau khi Sub-Agent 1 làm rõ nguyên nhân, **Sub-Agent 1 chỉ thị và bắt Sub-Agent 2 code lại (refactor / bug fix)**.
+     3. Sau khi Sub-Agent 2 code lại xong, hệ thống **tiến hành tiếp tục trình tự tiếp theo:** kích hoạt lại Sub-Agent 3 và Sub-Agent 4 để kiểm thử lại mã nguồn mới.
+     4. Lặp lại quy trình liên tục cho đến khi **hoàn thành 100% mọi yêu cầu mà không còn bất kỳ lỗi nào** mới được phép commit.
 
 - **Định nghĩa "Lỗi" bao trùm 5 nhóm:**
   1. Lỗi logic nghiệp vụ & backend (API exception 500/422, sai điểm QĐ 764, treo port/process).
