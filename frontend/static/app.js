@@ -4544,10 +4544,14 @@
       }
 
       let isDragging = false;
+      let startY = 0;
+      let hasDragged = false;
 
       const onMouseDown = (e) => {
         e.preventDefault();
         isDragging = true;
+        hasDragged = false;
+        startY = e.clientY;
         popup.style.transition = 'none';
         document.body.classList.add('composer-resizing-v');
 
@@ -4557,6 +4561,9 @@
 
       const onMouseMove = (e) => {
         if (!isDragging) return;
+        if (Math.abs(e.clientY - startY) > 4) {
+          hasDragged = true;
+        }
         const paneRect = editorPane.getBoundingClientRect();
         if (!paneRect.height) return;
 
@@ -4584,6 +4591,12 @@
 
       if (handle) {
         handle.addEventListener('mousedown', onMouseDown);
+        handle.addEventListener('click', (e) => {
+          if (hasDragged) {
+            e.stopPropagation();
+            hasDragged = false;
+          }
+        }, true);
       }
     },
 
@@ -4623,6 +4636,16 @@
         pct = Math.min(75, Math.max(25, pct));
 
         leftCol.style.width = `${pct.toFixed(1)}%`;
+
+        const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+        if (scrollContainer && this.pdfBaseViewports && this.pdfBaseViewports[0]) {
+          const baseW = this.pdfBaseViewports[0].width;
+          const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+          const currentW = baseW * (this.zoomLevel || 1.0);
+          if (this.isFitWidth || currentW > availableW) {
+            this.fitToWidth(false);
+          }
+        }
       };
 
       const onMouseUp = () => {
@@ -4635,9 +4658,21 @@
           localStorage.setItem('quesy_composer_split_ratio', pct.toFixed(1));
         }
 
-        this.renderPDF();
-        window.dispatchEvent(new Event('resize'));
+        const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+        if (scrollContainer && this.pdfBaseViewports && this.pdfBaseViewports[0]) {
+          const baseW = this.pdfBaseViewports[0].width;
+          const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+          const currentW = baseW * (this.zoomLevel || 1.0);
+          if (this.isFitWidth || currentW > availableW) {
+            this.fitToWidth(true);
+          } else {
+            this.renderPDF();
+          }
+        } else {
+          this.renderPDF();
+        }
 
+        window.dispatchEvent(new Event('resize'));
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('mouseup', onMouseUp);
       };
@@ -4647,15 +4682,89 @@
       resizer.addEventListener('dblclick', () => {
         leftCol.style.width = '60%';
         localStorage.setItem('quesy_composer_split_ratio', '60');
-        this.renderPDF();
+        const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+        if (scrollContainer && this.pdfBaseViewports && this.pdfBaseViewports[0]) {
+          const baseW = this.pdfBaseViewports[0].width;
+          const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+          const currentW = baseW * (this.zoomLevel || 1.0);
+          if (this.isFitWidth || currentW > availableW) {
+            this.fitToWidth(true);
+          } else {
+            this.renderPDF();
+          }
+        } else {
+          this.renderPDF();
+        }
         window.dispatchEvent(new Event('resize'));
         showToast('Đã đặt lại tỷ lệ chia 60:40', 'info');
       });
+
+      if (!window._composerSplitResizeBound) {
+        window._composerSplitResizeBound = true;
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            if (window.app && window.app.composer && window.app.composer.pdfBaseViewports && window.app.composer.pdfBaseViewports[0]) {
+              const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+              if (scrollContainer) {
+                const baseW = window.app.composer.pdfBaseViewports[0].width;
+                const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+                const currentW = baseW * (window.app.composer.zoomLevel || 1.0);
+                if (window.app.composer.isFitWidth || currentW > availableW) {
+                  window.app.composer.fitToWidth(true);
+                }
+              }
+            }
+          }, 150);
+        });
+      }
+    },
+
+    fitToWidth(fullRender = true) {
+      const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+      if (!scrollContainer || !this.pdfBaseViewports || !this.pdfBaseViewports[0]) return;
+      const baseW = this.pdfBaseViewports[0].width;
+      if (baseW <= 0) return;
+      const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+
+      const fitScale = +(availableW / baseW).toFixed(2);
+      this.zoomLevel = Math.max(0.2, Math.min(3.0, fitScale));
+      this.isFitWidth = true;
+
+      const zoomDisplay = document.getElementById('composer-zoom-display');
+      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
+
+      if (this.pdfPages && this.pdfPages.length) {
+        const z = this.zoomLevel;
+        for (let i = 0; i < this.pdfPages.length; i++) {
+          const baseVp = this.pdfBaseViewports[i];
+          const card = document.getElementById(`pdf-page-${i + 1}`);
+          const canvas = document.getElementById(`pdf-canvas-${i + 1}`);
+          if (card && baseVp) {
+            const displayWidth = Math.round(baseVp.width * z);
+            const displayHeight = Math.round(baseVp.height * z);
+            card.style.width = `${displayWidth}px`;
+            card.style.height = `${displayHeight}px`;
+            if (canvas) {
+              canvas.style.width = `${displayWidth}px`;
+              canvas.style.height = `${displayHeight}px`;
+            }
+          }
+        }
+
+        if (fullRender) {
+          clearTimeout(this._renderTimer);
+          this._renderTimer = setTimeout(() => {
+            this.renderAllPages();
+          }, 80);
+        }
+      }
     },
 
     renderPDF() {
       if (typeof this.renderAllPages === 'function' && this.pdfPages && this.pdfPages.length > 0) {
-        this.renderAllPages();
+        this.fitToWidth(true);
       }
     },
 
@@ -5899,7 +6008,7 @@
             if (e.ctrlKey || e.metaKey) {
               e.preventDefault();
               const delta = e.deltaY < 0 ? 0.1 : -0.1;
-              app.composer.zoomPreview(delta);
+              app.composer.zoomPreview(delta, { clientX: e.clientX, clientY: e.clientY });
             }
           }, { passive: false });
 
@@ -5944,12 +6053,15 @@
 
         // Calculate initial zoom to fit container width nicely
         if (scrollContainer && this.pdfBaseViewports[0]) {
-          const availableW = scrollContainer.clientWidth - 48;
-          if (availableW > 200 && this.pdfBaseViewports[0].width > 0) {
-            const fitZoom = +(availableW / this.pdfBaseViewports[0].width).toFixed(1);
-            this.zoomLevel = Math.max(0.5, Math.min(2.0, fitZoom));
+          const baseW = this.pdfBaseViewports[0].width;
+          const availableW = Math.max(100, scrollContainer.clientWidth - 32);
+          if (availableW > 200 && baseW > 0) {
+            const fitZoom = +(availableW / baseW).toFixed(2);
+            this.zoomLevel = Math.max(0.2, Math.min(3.0, fitZoom));
+            this.isFitWidth = true;
           } else {
             this.zoomLevel = 1.0;
+            this.isFitWidth = false;
           }
         }
         const zoomDisplay = document.getElementById('composer-zoom-display');
@@ -5994,8 +6106,78 @@
       }
     },
 
-    zoomPreview(delta) {
-      this.zoomLevel = Math.max(0.4, Math.min(2.5, +(this.zoomLevel + delta).toFixed(1)));
+    zoomPreview(delta, anchorPoint = null) {
+      this.isFitWidth = false;
+      const scrollContainer = document.getElementById('composer-pdf-scroll-container');
+      const oldScale = this.zoomLevel || 1.0;
+      const newScale = Math.max(0.4, Math.min(2.5, +(oldScale + delta).toFixed(1)));
+      if (newScale === oldScale) return;
+
+      const zoomDisplay = document.getElementById('composer-zoom-display');
+      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(newScale * 100)}%`;
+
+      let originX = 0;
+      let originY = 0;
+      let oldScrollLeft = 0;
+      let oldScrollTop = 0;
+
+      if (scrollContainer) {
+        oldScrollLeft = scrollContainer.scrollLeft;
+        oldScrollTop = scrollContainer.scrollTop;
+        const containerRect = scrollContainer.getBoundingClientRect();
+        if (
+          anchorPoint &&
+          typeof anchorPoint.clientX === 'number' &&
+          typeof anchorPoint.clientY === 'number' &&
+          anchorPoint.clientX >= containerRect.left &&
+          anchorPoint.clientX <= containerRect.right &&
+          anchorPoint.clientY >= containerRect.top &&
+          anchorPoint.clientY <= containerRect.bottom
+        ) {
+          originX = anchorPoint.clientX - containerRect.left;
+          originY = anchorPoint.clientY - containerRect.top;
+        } else {
+          originX = scrollContainer.clientWidth / 2;
+          originY = scrollContainer.clientHeight / 2;
+        }
+      }
+
+      this.zoomLevel = newScale;
+      const ratio = newScale / oldScale;
+
+      if (this.pdfPages && this.pdfPages.length) {
+        const z = this.zoomLevel;
+        for (let i = 0; i < this.pdfPages.length; i++) {
+          const baseVp = this.pdfBaseViewports[i];
+          const card = document.getElementById(`pdf-page-${i + 1}`);
+          const canvas = document.getElementById(`pdf-canvas-${i + 1}`);
+          if (card && baseVp) {
+            const displayWidth = Math.round(baseVp.width * z);
+            const displayHeight = Math.round(baseVp.height * z);
+            card.style.width = `${displayWidth}px`;
+            card.style.height = `${displayHeight}px`;
+            if (canvas) {
+              canvas.style.width = `${displayWidth}px`;
+              canvas.style.height = `${displayHeight}px`;
+            }
+          }
+        }
+
+        if (scrollContainer) {
+          scrollContainer.scrollLeft = (oldScrollLeft + originX) * ratio - originX;
+          scrollContainer.scrollTop = (oldScrollTop + originY) * ratio - originY;
+        }
+
+        clearTimeout(this._renderTimer);
+        this._renderTimer = setTimeout(() => {
+          this.renderAllPages();
+        }, 100);
+      }
+    },
+
+    resetZoom() {
+      this.isFitWidth = false;
+      this.zoomLevel = 1.0;
       const zoomDisplay = document.getElementById('composer-zoom-display');
       if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
 
@@ -6016,30 +6198,8 @@
             }
           }
         }
-
-        clearTimeout(this._renderTimer);
-        this._renderTimer = setTimeout(() => {
-          this.renderAllPages();
-        }, 120);
+        this.renderAllPages();
       }
-    },
-
-    resetZoom() {
-      const scrollContainer = document.getElementById('composer-pdf-scroll-container');
-      if (scrollContainer && this.pdfBaseViewports[0]) {
-        const availableW = scrollContainer.clientWidth - 48;
-        if (availableW > 200 && this.pdfBaseViewports[0].width > 0) {
-          const fitZoom = +(availableW / this.pdfBaseViewports[0].width).toFixed(1);
-          this.zoomLevel = Math.max(0.5, Math.min(2.0, fitZoom));
-        } else {
-          this.zoomLevel = 1.0;
-        }
-      } else {
-        this.zoomLevel = 1.0;
-      }
-      const zoomDisplay = document.getElementById('composer-zoom-display');
-      if (zoomDisplay) zoomDisplay.innerText = `${Math.round(this.zoomLevel * 100)}%`;
-      this.renderAllPages();
     },
 
     downloadPdf() {

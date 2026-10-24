@@ -1588,3 +1588,150 @@ def test_composer_frontend_resizers_and_session_elements():
     assert "#composer-split-resizer" in style_css
     assert ".composer-resizing-h" in style_css
     assert "renderPDF" in app_js
+
+
+def test_composer_ai_popup_single_resizer_handle_no_duplicates():
+    """Verify that the AI assistant popup contains exactly ONE resize handle (no duplicate handles or clutter)."""
+    from pathlib import Path
+    root = Path(__file__).parent.parent
+    index_html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
+    app_js = (root / "frontend" / "static" / "app.js").read_text(encoding="utf-8")
+
+    # 1. Exactly 1 id="composer-ai-resize-handle" in the entire index.html
+    assert index_html.count('id="composer-ai-resize-handle"') == 1
+
+    # 2. Inside #composer-ai-popup, verify only ONE vertical resizer exists (no duplicated top bar + center pill)
+    popup_start = index_html.find('id="composer-ai-popup"')
+    assert popup_start != -1
+    popup_end = index_html.find('id="composer-pdf-scroll-container"', popup_start)
+    popup_snippet = index_html[popup_start:popup_end]
+
+    # Exactly one element with class composer-v-resizer inside the popup
+    assert popup_snippet.count("composer-v-resizer") == 1
+    assert popup_snippet.count("composer-ai-pill-handle") == 1
+    assert popup_snippet.count("cursor-row-resize") == 1
+
+    # 3. Handle connects to toggleAIPopupHeight with drag guard in app.js
+    assert 'onclick="app.composer.toggleAIPopupHeight()"' in popup_snippet
+    assert "toggleAIPopupHeight" in app_js
+    assert "hasDragged" in app_js
+
+
+def test_composer_preview_fit_to_width_and_zoom_anchoring():
+    """Verify fitToWidth calculation and zoomPreview anchoring with center or cursor anchor points."""
+    from pathlib import Path
+    root = Path(__file__).parent.parent
+    index_html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
+    app_js = (root / "frontend" / "static" / "app.js").read_text(encoding="utf-8")
+
+    # 1. fitToWidth exists and calculates responsive zoom factor
+    assert "fitToWidth(fullRender = true)" in app_js
+    assert "availableW = Math.max(100, scrollContainer.clientWidth - 32);" in app_js
+    assert "fitScale = +(availableW / baseW).toFixed(2);" in app_js
+    assert "this.zoomLevel = Math.max(0.2, Math.min(3.0, fitScale));" in app_js
+
+    # 2. fitToWidth is wired to split resizing, ratio reset, and window resize
+    assert "this.fitToWidth(false);" in app_js  # during split drag
+    assert "this.fitToWidth(true);" in app_js   # on split drop / reset
+    assert "window._composerSplitResizeBound" in app_js
+    assert "window.addEventListener('resize'" in app_js
+
+    # 3. zoomPreview supports anchoring (anchorPoint / center anchor)
+    assert "zoomPreview(delta, anchorPoint = null)" in app_js
+    assert "anchorPoint.clientX" in app_js
+    assert "anchorPoint.clientY" in app_js
+    # Fallback to container center anchor
+    assert "originX = scrollContainer.clientWidth / 2;" in app_js
+    assert "originY = scrollContainer.clientHeight / 2;" in app_js
+
+    # 4. Proportional coordinate scaling with scroll preservation
+    assert "ratio = newScale / oldScale;" in app_js
+    assert "scrollContainer.scrollLeft = (oldScrollLeft + originX) * ratio - originX;" in app_js
+    assert "scrollContainer.scrollTop = (oldScrollTop + originY) * ratio - originY;" in app_js
+
+    # 5. Ctrl+wheel event binds focalPoint with cursor coordinates
+    assert "zoomPreview(delta, { clientX: e.clientX, clientY: e.clientY })" in app_js
+
+    # 6. Container styling in index.html allows smooth multi-directional scrolling without overflow clip
+    assert 'id="composer-pdf-scroll-container"' in index_html
+    assert 'overflow-x-auto' in index_html.split('id="composer-pdf-scroll-container"')[1].split('>')[0]
+    assert 'overflow-x-hidden' not in index_html.split('id="composer-pdf-scroll-container"')[1].split('>')[0]
+    assert 'min-w-full w-fit mx-auto origin-top' in index_html
+
+
+def test_composer_api_and_ui_configuration_integrity():
+    """Verify end-to-end API contracts and visual configuration integrity for Exam Composer."""
+    # 1. Templates API Contract
+    res_tpl = client.get("/api/v1/composer/templates")
+    assert res_tpl.status_code == 200
+    tpl_data = res_tpl.json()
+    assert "templates" in tpl_data
+    assert len(tpl_data["templates"]) >= 4
+    for tpl in tpl_data["templates"]:
+        assert "id" in tpl
+        assert "title" in tpl
+        assert "latex" in tpl
+        assert len(tpl["latex"]) > 50
+
+    # 2. LaTeX Live Compilation & Streaming Contract
+    sample_latex = r"""\documentclass{article}
+\usepackage{amsmath}
+\begin{document}
+\textbf{Câu 1.} Khẳng định nào sau đây là đúng?
+\end{document}
+"""
+    res_compile = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": sample_latex, "title": "Đề Khảo Sát"}
+    )
+    assert res_compile.status_code == 200
+    comp_data = res_compile.json()
+    assert comp_data["success"] is True
+    assert "pdf_url" in comp_data
+    assert comp_data["total_pages"] >= 1
+
+    pdf_stream = client.get(comp_data["pdf_url"])
+    assert pdf_stream.status_code == 200
+    assert pdf_stream.headers["content-type"] == "application/pdf"
+    assert pdf_stream.content.startswith(b"%PDF")
+
+    # 3. Chat Copilot Contract
+    res_chat = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "Thêm câu trắc nghiệm Đúng/Sai theo chuẩn Bộ GD&ĐT",
+            "current_latex": sample_latex,
+            "history": []
+        }
+    )
+    assert res_chat.status_code == 200
+    chat_data = res_chat.json()
+    assert "reply" in chat_data
+    assert len(chat_data["reply"]) > 10
+
+    # 4. Save to Question Bank Contract
+    res_bank = client.post(
+        "/api/v1/composer/save-to-bank",
+        json={"latex_code": sample_latex}
+    )
+    assert res_bank.status_code == 200
+    assert res_bank.json()["success"] is True
+
+    # 5. UI Layout & Style Configuration Checks
+    from pathlib import Path
+    root = Path(__file__).parent.parent
+    index_html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
+    app_js = (root / "frontend" / "static" / "app.js").read_text(encoding="utf-8")
+
+    # BIÊN DỊCH button uses Apple HIG blue #0071e3
+    assert "#0071e3" in index_html
+    assert "BIÊN DỊCH" in index_html
+
+    # Zoom percentage indicator
+    assert 'id="composer-zoom-display"' in index_html
+
+    # Clamping constraints preserved in app.js
+    assert "Math.min(90, Math.max(20, pct))" in app_js
+    assert "Math.min(75, Math.max(25, pct))" in app_js
+    assert "Math.max(0.4, Math.min(2.5," in app_js
+

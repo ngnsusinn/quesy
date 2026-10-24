@@ -180,7 +180,8 @@ select:focus, input[type="text"]:not(#composer-compact-input):focus, input[type=
 }
 
 /* Resizers for Composer (Vertical AI Popup & Horizontal Split) */
-.composer-v-resizer {
+.composer-v-resizer,
+#composer-ai-resize-handle {
   cursor: ns-resize !important;
   cursor: row-resize !important;
   touch-action: none;
@@ -211,6 +212,11 @@ select:focus, input[type="text"]:not(#composer-compact-input):focus, input[type=
 .composer-resizing-h iframe,
 .composer-resizing-h canvas {
   pointer-events: none !important;
+}
+
+#composer-pdf-scroll-container {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
 }
 
 /* Centered Vector PDF Pages */

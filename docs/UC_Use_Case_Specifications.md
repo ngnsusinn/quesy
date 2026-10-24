@@ -268,11 +268,19 @@
   2. Người dùng nhấn giữ và kéo chuột sang trái hoặc sang phải.
   3. Hệ thống kích hoạt tấm chắn bảo vệ `pointer-events: none` trên khung PDF Preview, tính toán tỷ lệ bề rộng phần trăm cột trái theo thời gian thực (60 FPS) trong dải an toàn $25\% - 75\%$.
   4. Khi thả chuột, hệ thống cập nhật layout, kích hoạt `syncEditorScroll()`, và lưu tỷ lệ mới vào `localStorage` (`quesy_composer_split_ratio`).
-- **Luồng 6d - Kéo thả điều chỉnh độ cao Box Trợ lý Soạn thảo (Vertical Drag Resize):**
-  1. Người dùng di chuột vào biên trên của popup trợ lý hoặc thanh ngang viên thuốc (`#composer-ai-pill-handle`).
+- **Luồng 6d - Kéo thả điều chỉnh độ cao Box Trợ lý Soạn thảo (Vertical Drag Resize & Single Pill Handle):**
+  1. Người dùng di chuột vào thanh ngang viên thuốc duy nhất (`#composer-ai-resize-handle`) ở trung tâm header của popup trợ lý (hoặc viền trên).
   2. Người dùng nhấn giữ và kéo chuột/ngón tay lên trên (tăng chiều cao) hoặc xuống dưới (giảm chiều cao).
   3. Hệ thống tạm thời ngắt CSS transition, cập nhật độ cao liên tục trong phạm vi $180\text{px}$ (hoặc $20\%$) đến $92\%$ chiều cao khung editor.
-  4. Khi thả chuột, hệ thống lưu độ cao tùy chỉnh vào `localStorage` (`quesy_composer_ai_height`). Nếu người dùng chỉ click nhanh vào pill handle mà không kéo, hệ thống toggle nhanh giữa 56% và 78%.
+  4. Khi thả chuột, hệ thống lưu độ cao tùy chỉnh vào `localStorage` (`quesy_composer_ai_height`). Nếu người dùng chỉ click nhanh hoặc nhấp đúp vào pill handle mà không kéo, hệ thống toggle nhanh giữa 56% và 78%.
 - **Luồng 6e - Quản lý Phiên mới & Tra cứu Lịch sử Phiên cũ:**
   1. Khi người dùng muốn bắt đầu phiên thảo luận mới, nhấp vào nút `newChat` (icon reset xoay vòng): Phiên hiện tại (nếu có tin nhắn người dùng) được đóng gói và lưu trữ vào kho phiên cũ `quesy_composer_chat_sessions`. Khung chat active lập tức được dọn dẹp sạch sẽ và hiển thị lời chào ban đầu.
   2. Khi người dùng muốn xem lại các câu lệnh trước đó, nhấp vào nút **`[Lịch sử]`** (`#composer-ai-history-btn`): Khung chat tạm ẩn, mở ra panel danh sách lịch sử với đầy đủ các phiên cũ. Người dùng có thể nhấp vào một câu lệnh cũ để nạp lại vào ô nhập hoặc tải lại phiên cũ, sau đó bấm "✕ Đóng" để tiếp tục làm việc.
+- **Luồng 6f - Tự động Co giãn Chiều rộng PDF & Cuộn Ngang An Toàn (Auto Fit-to-Width & Horizontal Scroll):**
+  1. Khi người dùng kéo thanh splitter `#composer-col-splitter` làm thay đổi bề rộng Cột Xem Trước (Live Preview) hoặc đổi cỡ cửa sổ:
+  2. Nếu hệ thống đang ở chế độ xem mặc định (`isAutoFit === true`), tỷ lệ `fitZoom` được tự động tính toán lại theo chiều rộng khả dụng (`clientWidth - 48px`), co giãn trực tiếp thẻ trang PDF và canvas theo thời gian thực (60 FPS trong lúc kéo), sau đó vẽ lại vector sắc nét (debounced 100ms).
+  3. Khung cuộn `#composer-pdf-scroll-container` kích hoạt thuộc tính `overflow-x-auto`, khi kích thước trang vượt quá bề rộng khung nhìn, thanh cuộn ngang hiển thị trơn tru, cho phép giáo viên cuộn xem trọn vẹn lề phải tài liệu mà không bao giờ bị cắt xén.
+- **Luồng 6g - Phóng to / Thu nhỏ Thông Minh theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point):**
+  1. *Trường hợp A (Con trỏ nằm trên PDF):* Người dùng giữ `Ctrl` và lăn chuột (`wheel`): Hệ thống lấy chính xác tọa độ con trỏ chuột $(x_v, y_v)$ làm điểm neo, phóng to / thu nhỏ mà điểm nội dung ngay dưới con trỏ chuột được ghim bất biến, không bị trôi lệch.
+  2. *Trường hợp B (Con trỏ nằm ngoài PDF hoặc bấm nút thanh công cụ):* Người dùng nhấp vào nút `+` hoặc `-` trên floating toolbar: Hệ thống lấy tâm điểm màn hình làm điểm neo, tài liệu phóng to / thu nhỏ đồng tâm từ chính giữa khung nhìn của giáo viên.
+  3. Triệt tiêu hoàn toàn hiện tượng giật cục hoặc bị nhảy về góc trên cùng bên trái $(0, 0)$. Khôi phục ổn định tọa độ cuộn khi vẽ lại canvas ở độ phân giải thực.

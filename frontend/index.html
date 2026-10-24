@@ -668,11 +668,6 @@
 
               <!-- B. Full AI Assistant Popup / Bottom Sheet (Image 3 style) -->
               <div id="composer-ai-popup" class="hidden absolute bottom-0 left-0 right-0 z-30 bg-[#18181b] border-t border-white/10 shadow-2xl rounded-t-2xl flex flex-col overflow-hidden transition-all duration-300 h-[56%]">
-                
-                <!-- Vertical Resize Drag Bar (Mép trên cùng của popup) -->
-                <div id="composer-ai-resize-handle" class="composer-ai-pill-handle composer-v-resizer w-full h-3 cursor-row-resize flex items-center justify-center shrink-0 bg-[#18181b] hover:bg-[#222226] select-none group border-b border-white/5 transition-colors" title="Kéo để chỉnh độ cao hộp trợ lý (Nháy đúp để đổi kích thước)">
-                  <div class="w-12 h-1 bg-slate-600/80 group-hover:bg-slate-400 group-active:bg-purple-400 rounded-full transition-colors"></div>
-                </div>
 
                 <!-- Popup Header (Matching Image 3) -->
                 <div class="px-4 py-1.5 bg-[#18181b] border-b border-white/10 flex items-center justify-between text-xs select-none shrink-0">
@@ -684,9 +679,9 @@
                     </button>
                   </div>
 
-                  <!-- Center: Drag / Resize Handle Pill -->
-                  <div class="composer-v-resizer w-14 h-3 cursor-row-resize flex items-center justify-center select-none group" onclick="app.composer.toggleAIPopupHeight()" title="Kéo thả hoặc bấm để đổi chiều cao">
-                    <div class="w-10 h-1 bg-slate-600/60 group-hover:bg-slate-400 group-active:bg-purple-400 rounded-full transition-colors"></div>
+                  <!-- Center: Drag / Resize Handle Pill (Duy nhất 1 thanh ngang ở đỉnh box trợ lý) -->
+                  <div id="composer-ai-resize-handle" class="composer-ai-pill-handle composer-v-resizer cursor-row-resize w-16 h-3.5 flex items-center justify-center select-none group cursor-pointer" onclick="app.composer.toggleAIPopupHeight()" title="Kéo để chỉnh độ cao hộp trợ lý (Bấm để đổi kích thước)">
+                    <div class="w-10 h-1 bg-slate-600/70 group-hover:bg-slate-400 group-active:bg-purple-400 rounded-full transition-colors"></div>
                   </div>
 
                   <!-- Right: New Chat, History Tab, Clear, Fullscreen -->
@@ -819,6 +814,7 @@
                     <span id="composer-zoom-display" class="font-mono text-slate-300 px-0.5 text-[10px]">100%</span>
                     <button type="button" onclick="app.composer.zoomPreview(0.1)" class="w-5 h-5 flex items-center justify-center hover:bg-slate-700 rounded font-bold cursor-pointer" title="Phóng to">+</button>
                     <button type="button" onclick="app.composer.resetZoom()" class="px-1 py-0.5 hover:bg-slate-700 rounded text-[10px] text-slate-300 font-medium cursor-pointer" title="Về 100%">1:1</button>
+                    <button type="button" onclick="app.composer.fitToWidth()" id="composer-zoom-fit-btn" class="px-1.5 py-0.5 hover:bg-slate-700 rounded text-[10px] text-slate-300 font-medium cursor-pointer" title="Vừa chiều ngang khung (Fit Width)">Vừa khung</button>
                   </div>
                   <span class="text-slate-600">|</span>
                   <!-- Reload -->
@@ -834,7 +830,7 @@
                 </div>
 
                 <!-- Native PDF.js Interactive Container (Synchronized Vector Canvas & Wheel Zoom) -->
-                <div id="composer-pdf-scroll-container" class="w-full h-full overflow-y-auto overflow-x-hidden bg-slate-200/80 flex flex-col items-center p-3 select-none relative">
+                <div id="composer-pdf-scroll-container" class="w-full h-full overflow-y-auto overflow-x-auto bg-slate-200/80 p-3 select-none relative">
                   <!-- Empty placeholder when no PDF is compiled yet -->
                   <div id="composer-pdf-empty" class="my-auto flex flex-col items-center justify-center text-slate-400 space-y-2 p-6 text-center">
                     <i data-lucide="file-text" class="w-12 h-12 stroke-[1.2] text-slate-400"></i>
@@ -842,7 +838,7 @@
                     <p class="text-[11px] text-slate-400 max-w-xs">Bấm <strong class="text-[#0071e3]">BIÊN DỊCH</strong> ở góc dưới để tạo bản in PDF sắc nét với Tectonic XeTeX</p>
                   </div>
                   <!-- PDF Pages Wrapper (Canvas elements are dynamically injected here) -->
-                  <div id="composer-pdf-pages" class="flex flex-col items-center space-y-3 w-full origin-top"></div>
+                  <div id="composer-pdf-pages" class="flex flex-col items-center space-y-3 min-w-full w-fit mx-auto origin-top"></div>
                 </div>
 
                 <!-- Fallback Iframe (Hidden by default) -->

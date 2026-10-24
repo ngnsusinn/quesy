@@ -286,13 +286,14 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
   3. Khi nhấp nút **`[Lịch sử]`** (`#composer-ai-history-btn`), mở giao diện `#composer-ai-history-panel` hiển thị danh sách các phiên cũ kèm thời gian và tóm tắt prompt. Nhấp vào một phiên hoặc câu lệnh cũ sẽ điền nội dung vào ô nhập hoặc tải lại phiên cũ. Nhấp "✕ Đóng" quay lại phiên hiện tại.
 - **Kết quả kỳ vọng:** Mỗi phiên mới luôn sạch sẽ tinh giản; lịch sử các phiên trước không bị mất mà được lưu trữ khoa học trong ngăn kéo Lịch sử.
 
-#### TC-COMP-14: Kéo Thả Điều Chỉnh Độ Cao Linh Hoạt Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Pill Handle)
-- **Mô tả:** Kiểm tra khả năng co giãn độ cao của Box Trợ lý Soạn thảo (`#composer-ai-popup`) theo phương thẳng đứng:
-  1. Thao tác nhấn giữ chuột (`mousedown`) trên thanh pill handle (`#composer-ai-pill-handle`) hoặc viền trên của popup và kéo chuột lên/xuống (`mousemove`).
-  2. Đo đạc chiều cao `style.height` của `#composer-ai-popup`: Độ cao thay đổi mượt mà theo thời gian thực (60 FPS, không gián đoạn), bị giới hạn trong khoảng an toàn $180\text{px}$ đến $92\%$ chiều cao khung editor.
-  3. Kiểm tra nhấp chuột đơn (click không kéo) vào pill handle: Vẫn duy trì tính năng toggle nhanh giữa 56% và 78%.
-  4. Sau khi kéo thả, tải lại trang (F5): Kiểm tra độ cao tùy chỉnh được khôi phục từ `localStorage` (`quesy_composer_ai_height`).
-- **Kết quả kỳ vọng:** Co giãn độ cao trực quan, mượt mà chuẩn Apple HIG, không làm vỡ bố cục editor hay che khuất toolbar đỉnh.
+#### TC-COMP-14: Kéo Thả Điều Chỉnh Độ Cao Linh Hoạt Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Unified Single Pill Handle)
+- **Mô tả:** Kiểm tra khả năng co giãn độ cao của Box Trợ lý Soạn thảo (`#composer-ai-popup`) theo phương thẳng đứng với thanh pill hợp nhất:
+  1. Kiểm tra DOM và giao diện: Xác nhận **chỉ tồn tại duy nhất 1 thanh ngang viên thuốc** (`#composer-ai-resize-handle`) ở trung tâm header của popup trợ lý. Không còn thanh pill phụ bên trên mép popup.
+  2. Thao tác nhấn giữ chuột (`mousedown`) trên thanh pill handle `#composer-ai-resize-handle` và kéo chuột lên/xuống (`mousemove`).
+  3. Đo đạc chiều cao `style.height` của `#composer-ai-popup`: Độ cao thay đổi mượt mà theo thời gian thực (60 FPS, không gián đoạn), bị giới hạn trong khoảng an toàn $180\text{px}$ đến $92\%$ chiều cao khung editor.
+  4. Kiểm tra nhấp chuột đơn (click) hoặc nhấp đúp (dblclick) vào pill handle khi không kéo: Chuyển đổi nhanh (toggle) độ cao giữa 56% và 78%.
+  5. Sau khi kéo thả, tải lại trang (F5): Kiểm tra độ cao tùy chỉnh được khôi phục từ `localStorage` (`quesy_composer_ai_height`).
+- **Kết quả kỳ vọng:** Giao diện tối giản chuẩn Apple HIG với duy nhất 1 thanh pill; co giãn độ cao trực quan mượt mà, không làm vỡ bố cục editor hay che khuất toolbar đỉnh.
 
 #### TC-COMP-15: Kéo Thả Thanh Phân Tách Ngang 2 Cột Editor & Live Preview (Horizontal Splitter & Dual-Pane Drag Resize)
 - **Mô tả:** Kiểm tra khả năng co giãn chiều rộng của 2 cột Editor và Live Preview thông qua thanh phân tách ngang:
@@ -301,6 +302,36 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
   3. Trong lúc kéo, kiểm tra vùng canvas PDF có áp dụng `pointer-events: none` chống giật chuột.
   4. Khi thả chuột (`mouseup`), tỷ lệ mới được lưu vào `localStorage` (`quesy_composer_split_ratio`) và tự động kích hoạt `syncEditorScroll()`. Tải lại trang (F5), tỷ lệ chia cột được bảo toàn nguyên vẹn.
 - **Kết quả kỳ vọng:** Thao tác chia cột mượt mà 60 FPS, tỷ lệ phản hồi chính xác, không phát sinh bất kỳ lỗi console nào.
+
+#### TC-COMP-16: Tự Động Co Giãn PDF Theo Chiều Rộng Cột & Khung Cuộn Ngang An Toàn (PDF Auto Fit-to-Width & Horizontal Scroll Resiliency)
+- **Mô tả:** Kiểm tra cơ chế tự động co giãn kích thước trang PDF khi chiều rộng cột thay đổi và tính năng cuộn ngang không xén lề phải:
+  1. Biên dịch tài liệu mẫu LaTeX sang PDF.
+  2. Kéo thanh splitter `#composer-col-splitter` sang phải để nới rộng cột Editor lên $75\%$ (thu hẹp cột Live Preview xuống $25\%$):
+     - Xác nhận tỷ lệ hiển thị trang PDF tự động co nhỏ lại tương ứng với bề rộng cột khả dụng (`fitZoom`), các dòng chữ và công thức toán học co giãn đều đặn theo thời gian thực mà không bị tràn viền hay xén mất mép phải.
+  3. Kiểm tra thuộc tính CSS của `#composer-pdf-scroll-container`:
+     - Xác nhận thuộc tính cuộn là `overflow-x: auto` (không phải `overflow-x-hidden`).
+  4. Thao tác phóng to tài liệu lên mức zoom cao ($150\% - 200\%$):
+     - Xác nhận xuất hiện thanh cuộn ngang trơn tru.
+     - Người dùng có thể cuộn ngang sang phải để xem trọn vẹn toàn bộ nội dung mép phải của tài liệu mà không bị cắt cụt.
+  5. Nhấp nút `1:1` (hoặc `resetZoom`):
+     - Hệ thống tự động căn khít chiều ngang tài liệu vừa vặn với kích thước cột preview hiện thời (`isAutoFit = true`).
+- **Kết quả kỳ vọng:** Tài liệu PDF luôn co giãn linh hoạt theo độ rộng khung nhìn; $100\%$ nội dung hiển thị trọn vẹn không bị xén mép phải.
+
+#### TC-COMP-17: Thuật Toán Phóng To / Thu Nhỏ Thông Minh Theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point & Center Anchor)
+- **Mô tả:** Kiểm tra thuật toán zoom-to-point thông minh, loại bỏ triệt để hiện tượng giật màn hình hoặc nhảy về góc trên cùng bên trái $(0, 0)$:
+  1. *Kiểm tra Zoom theo Con trỏ Chuột (Cursor Anchor):*
+     - Di chuyển con trỏ chuột đến một công thức toán cụ thể ở giữa trang PDF (ví dụ bảng biến thiên hoặc câu hỏi 2).
+     - Giữ phím `Ctrl` (hoặc `Cmd`) và lăn chuột phóng to (`wheel delta < 0`):
+     - Xác nhận điểm công thức toán đang nằm dưới con trỏ chuột được ghim cố định ngay dưới con trỏ, tài liệu phóng to xung quanh điểm này.
+     - Tuyệt đối không có hiện tượng trang bị giật văng về góc $(0, 0)$.
+  2. *Kiểm tra Zoom theo Trọng tâm Màn hình (Center Anchor):*
+     - Di chuyển con trỏ chuột ra khỏi tài liệu PDF (ví dụ nhấp vào nút `+` hoặc `-` trên thanh công cụ nổi góc trên bên phải):
+     - Nhấp nhiều lần vào nút `+` (phóng to) và `-` (thu nhỏ):
+     - Xác nhận tài liệu phóng to / thu nhỏ đồng tâm từ chính giữa khung nhìn của người dùng (Viewport Center). Khung nhìn không bị lệch sang góc trái hay trôi dạt.
+  3. *Kiểm tra Khôi phục Tọa độ Cuộn Khi Re-render:*
+     - Sau khi dừng thao tác zoom 100ms, hàm `renderAllPages` vẽ lại canvas ở độ phân giải retina thực:
+     - Xác nhận vị trí cuộn `scrollTop` và `scrollLeft` được bảo toàn ổn định, không xuất hiện hiện tượng chớp nháy hoặc nhảy giật vị trí cuộn.
+- **Kết quả kỳ vọng:** Trải nghiệm phóng to / thu nhỏ mượt mà chuẩn Apple HIG; bảo toàn điểm neo chính xác tuyệt đối; 0 lỗi Console.
 
 ---
 

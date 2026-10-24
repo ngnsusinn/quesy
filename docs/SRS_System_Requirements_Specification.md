@@ -234,12 +234,16 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
      - Bấm nút đóng để quay lại phiên hội thoại hiện tại.
      - Bấm nút dọn dẹp để xóa sạch kho lưu trữ lịch sử.
 
-#### SRS-FEAT-04k: Kéo Thả Điều Chỉnh Độ Cao Linh Hoạt Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Pill Handle)
+#### SRS-FEAT-04k: Kéo Thả Điều Chỉnh Độ Cao Linh Hoạt Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Unified Single Pill Handle)
 - **Mô tả:** Cho phép giáo viên tùy biến độ cao của Box Trợ lý Soạn thảo (`#composer-ai-popup`) một cách linh hoạt, mượt mà theo phương thẳng đứng bằng thao tác kéo chuột hoặc vuốt chạm cảm ứng.
 - **Tiêu chuẩn tương tác & Giới hạn:**
-  1. *Điểm chạm Kéo thả (Drag Handles):* Hỗ trợ kéo thả tại 2 vị trí:
-     - Toàn bộ thanh biên trên (Top Border / Resizer Bar) của popup với con trỏ chuột dạng `cursor-row-resize` / `cursor-ns-resize`.
-     - Thanh ngang dạng viên thuốc (Pill Handle `#composer-ai-pill-handle`) ở trung tâm header popup. Vẫn duy trì tính năng nhấp nhanh (click toggle) giữa 56% và 78% nếu người dùng chỉ click mà không thực hiện thao tác kéo.
+  1. *Điểm chạm Kéo thả Hợp nhất (Unified Single Pill Handle):*
+     - Hợp nhất hoàn toàn thanh kéo biên trên và thanh pill trong header thành **duy nhất 1 thanh ngang viên thuốc** (`#composer-ai-resize-handle`) đặt tại trung tâm header của popup trợ lý (giữa nút thu gọn bên trái và các nút tác vụ bên phải).
+     - Loại bỏ dứt điểm thanh pill phụ trùng lặp bên ngoài đỉnh popup, tối ưu hóa diện tích hiển thị và tuân thủ chặt chẽ Apple Human Interface Guidelines cho modal bottom sheet.
+     - Thanh pill hỗ trợ con trỏ chuột dạng `cursor-row-resize` / `cursor-ns-resize`, đổi màu tương tác xúc giác khi di chuột hoặc nhấn giữ (`group-hover:bg-slate-400 group-active:bg-purple-400`).
+     - Hỗ trợ cả 2 phương thức điều khiển:
+       + *Kéo thả liên tục:* Kéo chuột lên/xuống để co giãn chiều cao tùy ý.
+       + *Nhấp chuột / Nhấp đúp (Click / Double-click Toggle):* Nhấp nhanh để chuyển đổi tức thì giữa độ cao mặc định (56%) và độ cao mở rộng (78%).
   2. *Cơ chế Kéo thả Liên tục (Continuous Drag Lifecycle):*
      - Bắt sự kiện `mousedown` / `touchstart` trên handle, ghi nhận tọa độ `startY` và độ cao ban đầu.
      - Lắng nghe `mousemove` / `touchmove` trên `window`: Tính toán độ chênh lệch `deltaY = startY - currentY` và cập nhật độ cao tức thì theo thời gian thực (60 FPS, tạm thời tắt transition CSS trong lúc kéo để triệt tiêu độ trễ).
@@ -258,6 +262,48 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
      - Bộ kẹp giới hạn (Clamping Range): Tỷ lệ cột trái được giới hạn nghiêm ngặt từ $25\%$ đến $75\%$ (bảo đảm mỗi cột luôn rộng tối thiểu $320\text{px}$, không bị vỡ giao diện trên mọi kích thước màn hình).
      - Cơ chế chống gián đoạn (Pointer Shield): Tự động áp dụng `pointer-events: none` lên canvas/iframe xem trước PDF trong quá trình kéo chuột nhanh để loại bỏ hiện tượng giật con trỏ khi đi qua frame tài liệu.
      - Tự động lưu cấu hình tỷ lệ vào `localStorage` (`quesy_composer_split_ratio`) và khôi phục chính xác khi giáo viên tải lại trang.
+
+#### SRS-FEAT-04m: Tự Động Co Giãn PDF Theo Chiều Rộng Cột & Khung Cuộn Ngang An Toàn (PDF Auto Fit-to-Width & Horizontal Scroll Resiliency)
+- **Mô tả:** Đảm bảo trang xem trước PDF luôn hiển thị toàn vẹn, tự động co giãn theo chiều rộng khung hiển thị (Preview Container) khi người dùng kéo thay đổi kích thước cột hoặc thay đổi kích thước cửa sổ trình duyệt, đồng thời hỗ trợ cuộn ngang linh hoạt loại bỏ hoàn toàn hiện tượng tràn viền và xén mất mép phải trang.
+- **Tiêu chuẩn Kỹ thuật & Hành vi:**
+  1. *Khung Cuộn Đa Chiều Linh Hoạt (`#composer-pdf-scroll-container`):*
+     - Thay thế triệt để thuộc tính `overflow-x-hidden` bằng `overflow-x-auto` (kết hợp `overflow-y-auto`).
+     - Bố cục vùng chứa trang `#composer-pdf-pages` với `min-w-full w-fit flex flex-col items-center space-y-3` và căn lề tự động an toàn cho các thẻ `.pdf-page-card`: Khi chiều rộng trang PDF nhỏ hơn bề rộng khung nhìn, trang được tự động căn giữa cân đối; khi chiều rộng trang PDF vượt quá bề rộng khung nhìn (do thu hẹp cột hoặc phóng to zoom), toàn bộ trang bắt đầu từ lề trái $x=0$ và thanh cuộn ngang xuất hiện trơn tru, bảo đảm không bao giờ mất thông tin hay xén nét ở lề phải.
+  2. *Cơ Chế Tự Động Co Giãn Chiều Rộng (Auto Fit-to-Width Mechanism):*
+     - Hệ thống duy trì cờ trạng thái `isAutoFit: true` theo mặc định khi tải tài liệu hoặc khi người dùng nhấp đặt lại tỷ lệ xem (nút `1:1` / `Fit Width`).
+     - Trang bị `ResizeObserver` (kèm lắng nghe sự kiện `resize` của cửa sổ) giám sát kích thước khung xem trước (`#composer-preview-canvas` / `#composer-pdf-scroll-container`).
+     - Khi bề rộng container thay đổi (do kéo thanh splitter `#composer-col-splitter`, mở rộng/thu gọn panel, hoặc đổi kích thước cửa sổ):
+       + Nếu `isAutoFit === true`: Hệ thống tự động tính toán lại tỷ lệ phóng thu tối ưu:
+         $$\text{fitZoom} = \max\left(0.3, \min\left(2.5, \frac{\text{availableWidth}}{\text{basePageWidth}}
+ight)
+ight)$$
+         (với $\text{availableWidth} = \text{clientWidth} - 48\text{px}$ để bảo toàn khoảng đệm padding thẩm mỹ hai bên).
+       + Cập nhật tức thì kích thước CSS hiển thị của thẻ trang và canvas (60 FPS trong lúc kéo), sau đó kích hoạt render lại vector sắc nét có chống rung (debounced 100ms).
+     - Khi người dùng chủ động zoom thủ công (Ctrl+wheel hoặc bấm nút `+` / `-`), cờ `isAutoFit` được chuyển sang `false` để tôn trọng tỷ lệ xem người dùng đã chọn; khi đó thanh cuộn ngang `overflow-x-auto` đảm bảo người dùng có thể cuộn xem mọi góc của trang mà không bị cắt cụt.
+
+#### SRS-FEAT-04n: Thuật Toán Phóng To / Thu Nhỏ Thông Minh Theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point & Center Anchor Engine)
+- **Mô tả:** Triệt tiêu hoàn toàn lỗi giật cục hoặc trang bị nhảy về góc trên cùng bên trái $(0, 0)$ khi phóng to / thu nhỏ. Hệ thống trang bị thuật toán điều hướng zoom theo điểm neo tương đối (Adaptive Anchor Zooming) thông minh dựa trên ngữ cảnh tương tác.
+- **Tiêu chuẩn Kỹ thuật & Thuật Toán:**
+  1. *Phát Hiện & Xác Định Điểm Neo (Anchor Point Detection):*
+     - **Chế độ 1 - Neo theo Vị trí Con trỏ Chuột (Cursor Anchor):** Khi thao tác zoom bằng cuộn chuột kết hợp phím bổ trợ (`Ctrl + Wheel` / `Cmd + Wheel`) và con trỏ chuột nằm bên trong vùng hiển thị PDF (`#composer-pdf-scroll-container`), điểm neo được gán chính xác bằng tọa độ con trỏ:
+       $$x_v = \text{event.clientX}, \quad y_v = \text{event.clientY}$$
+       Điểm nội dung tài liệu nằm ngay dưới con trỏ chuột được bảo toàn cố định tại đúng vị trí con trỏ sau khi phóng to / thu nhỏ.
+     - **Chế độ 2 - Neo theo Trọng tâm Màn hình (Viewport Center Anchor):** Khi thao tác zoom bằng nút bấm trên thanh công cụ nổi (`+`, `-`) hoặc phím tắt bàn phím (con trỏ chuột nằm ngoài tài liệu PDF):
+       $$x_v = \text{rect.left} + \frac{\text{rect.width}}{2}, \quad y_v = \text{rect.top} + \frac{\text{rect.height}}{2}$$
+       Điểm trọng tâm chính giữa khung nhìn của giáo viên được giữ nguyên ở trung tâm màn hình, bảo đảm không bị trôi dạt sang bất kỳ góc nào.
+  2. *Công Thức Bảo Toàn Tọa Độ Cuộn (Invariant Scroll Math):*
+     - Bước 1: Tính độ dời tương đối của điểm neo so với khung nhìn container:
+       $$dx = x_v - \text{rect.left}, \quad dy = y_v - \text{rect.top}$$
+     - Bước 2: Xác định tọa độ điểm neo trong không gian nội dung trước khi zoom:
+       $$X_{\text{content}} = \text{scrollLeft}_{\text{old}} + dx, \quad Y_{\text{content}} = \text{scrollTop}_{\text{old}} + dy$$
+     - Bước 3: Chuẩn hóa tọa độ theo tỷ lệ nội dung:
+       $$r_x = \frac{X_{\text{content}}}{\text{scrollWidth}_{\text{old}}}, \quad r_y = \frac{Y_{\text{content}}}{\text{scrollHeight}_{\text{old}}}$$
+     - Bước 4: Cập nhật tỷ lệ `zoomLevel` mới, gán kích thước mới cho các thẻ trang và canvas trong DOM.
+     - Bước 5: Cập nhật tức thời vị trí cuộn mới:
+       $$\text{scrollLeft}_{\text{new}} = \text{round}(r_x \times \text{scrollWidth}_{\text{new}} - dx)$$
+       $$\text{scrollTop}_{\text{new}} = \text{round}(r_y \times \text{scrollHeight}_{\text{new}} - dy)$$
+  3. *Bảo Toàn Trạng Thái Khi Dựng Hình Lại (High-DPI Re-rendering Persistence):*
+     - Cơ chế render lại trang canvas ở độ phân giải thực (`renderAllPages` với devicePixelRatio) chạy sau khoảng trễ debounce 100ms tự động lưu giữ và khôi phục giá trị `scrollTop` và `scrollLeft`, loại bỏ tuyệt đối hiện tượng chớp nháy hoặc nhảy góc $(0, 0)$.
 
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings

@@ -166,14 +166,14 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   3. *Tối Ưu DOM & Lucide Icon Parsing:* Thay vì quét toàn trang qua `lucide.createIcons()`, hệ thống chỉ gọi render icon cục bộ trong node tin nhắn mới, giảm thiểu 95% thời gian layout thrashing.
   4. *Non-blocking Async AI Request:* Kết nối Backend AI sử dụng `httpx.AsyncClient` bất đồng bộ với timeout linh hoạt 15s kèm cơ chế fallback quy tắc thông minh tức thì, triệt tiêu hiện tượng đóng băng socket hay nghẽn thread pool.
 
-### 2.4.6. FR-02.8: Kéo Thả Điều Chỉnh Độ Cao Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Pill Handle)
-- **Mục tiêu:** Cho phép giáo viên thay đổi chiều cao của Popup Trợ lý Soạn thảo (`#composer-ai-popup`) một cách trực quan, mượt mà theo phương đứng.
+### 2.4.6. FR-02.8: Kéo Thả Điều Chỉnh Độ Cao Box Trợ Lý Soạn Thảo (Vertical Drag Resize & Unified Single Pill Handle)
+- **Mục tiêu:** Cho phép giáo viên thay đổi chiều cao của Popup Trợ lý Soạn thảo (`#composer-ai-popup`) một cách trực quan, mượt mà theo phương đứng với duy nhất một điểm chạm kéo thả chuẩn Apple HIG.
 - **Hành vi tương tác:**
-  1. *Vùng nhận diện kéo thả:* Toàn bộ viền trên (`border-t`) của box trợ lý (`cursor-row-resize`) và thanh ngang viên thuốc (`#composer-ai-pill-handle`) ở chính giữa header.
-  2. *Sự kiện kéo thả:* Bắt `mousedown`/`touchstart`, theo dõi `mousemove`/`touchmove` trên toàn màn hình, cập nhật chiều cao `newHeight = startHeight + (startY - currentY)` trong thời gian thực (60 FPS, tạm ngắt transition).
+  1. *Điểm chạm hợp nhất (Unified Single Pill Handle):* Toàn bộ thao tác kéo thả và nhấp đổi độ cao được tích hợp vào **duy nhất 1 thanh ngang viên thuốc** (`#composer-ai-resize-handle`) đặt tại trung tâm header của popup trợ lý. Loại bỏ hoàn toàn thanh pill phụ bên trên mép popup, tránh trùng lặp thị giác.
+  2. *Sự kiện kéo thả:* Bắt `mousedown`/`touchstart` trên `#composer-ai-resize-handle`, theo dõi `mousemove`/`touchmove` trên toàn màn hình, cập nhật chiều cao `newHeight = startHeight + (startY - currentY)` trong thời gian thực (60 FPS, tạm ngắt transition).
   3. *Bộ kẹp an toàn (Clamping):* Giới hạn chiều cao từ $180\text{px}$ (hoặc $20\%$ khung editor) đến $92\%$ chiều cao khung editor, tránh làm ẩn header công cụ.
   4. *Ghi nhớ thiết lập:* Lưu chiều cao vào `localStorage` (`quesy_composer_ai_height`) để khôi phục cho các lần làm việc tiếp theo.
-  5. *Tương thích nhấp đúp:* Nhấp chuột đơn (click) vào thanh pill handle không kéo thả vẫn hỗ trợ chuyển đổi nhanh (toggle) độ cao giữa 56% và 78%.
+  5. *Tương thích nhấp đúp:* Nhấp chuột đơn (click) hoặc nhấp đúp (dblclick) vào thanh pill handle không kéo thả hỗ trợ chuyển đổi nhanh (toggle) độ cao giữa 56% và 78%.
 
 ### 2.4.7. FR-02.9: Quản Lý Khởi Tạo Phiên Chat Mới Sạch Sẽ & Ngăn Kéo Lịch Sử Phiên Cũ (Session Lifecycle & Clean Workspace)
 - **Mục tiêu:** Đảm bảo mỗi phiên làm việc mới luôn có không gian hội thoại gọn gàng, khởi đầu sạch sẽ với lời chào mặc định, đồng thời lưu trữ đầy đủ các phiên cũ vào ngăn kéo Lịch sử.
@@ -189,6 +189,30 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   2. *Sự kiện kéo thả:* Bắt sự kiện chuột/cảm ứng, tính toán tỷ lệ bề rộng cột trái `leftPercent` từ $25\%$ đến $75\%$ tổng chiều rộng container.
   3. *Tấm chắn con trỏ (Pointer Shield):* Bật `pointer-events: none` trên vùng xem trước PDF để ngăn chặn con trỏ bị bắt nhầm vào canvas/iframe khi kéo chuột nhanh.
   4. *Lưu trữ cấu hình:* Lưu tỷ lệ vào `localStorage` (`quesy_composer_split_ratio`) và áp dụng ngay khi khởi tạo ứng dụng.
+
+### 2.4.9. FR-02.11: Tự Động Co Giãn PDF Theo Chiều Rộng Cột & Khung Cuộn Ngang An Toàn (PDF Auto Fit-to-Width & Horizontal Scroll Resiliency)
+- **Mục tiêu:** Đảm bảo trang tài liệu PDF tự động co giãn theo chiều ngang khi kích thước khung preview thay đổi và cho phép cuộn ngang an toàn, không xén mất mép phải trang.
+- **Hành vi tương tác & Đặc tả:**
+  1. *Khung cuộn an toàn (#composer-pdf-scroll-container):*
+     - Áp dụng `overflow-x-auto overflow-y-auto` thay thế cho `overflow-x-hidden`.
+     - Vùng chứa trang `#composer-pdf-pages` (`min-w-full w-fit flex flex-col items-center space-y-3`) kết hợp căn giữa an toàn cho `.pdf-page-card` (`mx-auto`).
+     - Khi kích thước trang vượt quá khung nhìn, tài liệu bắt đầu từ lề trái $x=0$, thanh cuộn ngang hiển thị đầy đủ, không bao giờ bị xén mất lề phải.
+  2. *Cơ chế Auto Fit-to-Width:*
+     - Lắng nghe biến đổi kích thước khung preview qua `ResizeObserver`.
+     - Khi người dùng kéo thanh splitter `#composer-col-splitter` hoặc đổi cỡ cửa sổ trình duyệt: nếu `isAutoFit === true`, hệ thống tự động tính toán lại tỷ lệ `fitZoom = (containerWidth - 48) / basePageWidth` và co giãn thẻ trang/canvas mượt mà theo thời gian thực (60 FPS trong lúc kéo), sau đó kích hoạt vẽ lại vector sắc nét (debounced 100ms).
+     - Khi người dùng zoom thủ công, chuyển `isAutoFit = false`. Khi nhấn `resetZoom()` (1:1), bật lại `isAutoFit = true` và tự động căn khít chiều ngang.
+
+### 2.4.10. FR-02.12: Thuật Toán Phóng To / Thu Nhỏ Thông Minh Theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point & Center Anchor Engine)
+- **Mục tiêu:** Khắc phục triệt để lỗi tài liệu PDF bị giật về góc trên cùng bên trái $(0, 0)$ khi thực hiện thao tác zoom.
+- **Thuật toán & Cơ chế:**
+  1. *Xác định điểm neo linh hoạt:*
+     - *Mode 1 (Cursor Anchor):* Khi zoom bằng cuộn chuột (`Ctrl + Wheel`) và con trỏ nằm trên vùng xem trước PDF, lấy tọa độ con trỏ chuột $(x_v, y_v) = (\text{e.clientX}, \text{e.clientY})$ làm điểm neo cố định. Điểm ảnh tài liệu tại con trỏ giữ nguyên vị trí dưới đầu chuột.
+     - *Mode 2 (Center Anchor):* Khi zoom bằng nút bấm `+` / `-` trên thanh công cụ nổi hoặc phím tắt (con trỏ nằm ngoài tài liệu), lấy chính giữa khung nhìn làm điểm neo: $(x_v, y_v) = (\text{rect.left} + \text{width}/2, \text{rect.top} + \text{height}/2)$. Trọng tâm màn hình đang quan sát được giữ nguyên.
+  2. *Công thức cuộn tỷ lệ:*
+     - Ghi nhận tỷ lệ tọa độ nội dung trước khi đổi zoom: $r_x = (\text{scrollLeft} + dx) / \text{scrollWidth}$, $r_y = (\text{scrollTop} + dy) / \text{scrollHeight}$.
+     - Cập nhật tỷ lệ phóng thu `zoomLevel` mới trong khoảng $[0.4, 2.5]$, gán kích thước mới cho các thẻ trang trong DOM.
+     - Cập nhật ngay tọa độ cuộn: $\text{scrollLeft} = \text{round}(r_x \times \text{scrollWidth}_{\text{new}} - dx)$, $\text{scrollTop} = \text{round}(r_y \times \text{scrollHeight}_{\text{new}} - dy)$.
+  3. *Chống rung khi render lại:* Lưu giữ và phục hồi tọa độ cuộn khi `renderAllPages()` chạy lại với devicePixelRatio, đảm bảo không có bất kỳ hiện tượng nhảy giật khung hình nào.
 
 ---
 

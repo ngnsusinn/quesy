@@ -319,12 +319,20 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
        + Dòng xanh thêm (`+ new_text`): Nền `emerald-950/70`, viền trái xanh ngọc `border-l-4 border-emerald-500`, chữ xanh `text-emerald-300`.
        + Nút điều khiển nội dòng: **`[Keep / Đồng ý]`** và **`[Undo / Từ chối]`** ngay tại dòng mã nguồn.
      - Động cơ Khớp Mờ 5 Tầng (5-Tier Resilient Line Matcher): Chuẩn hóa ngắt dòng, bỏ qua thụt lề, quét cửa sổ trượt và thay thế theo phạm vi dòng đã ghim `pinnedRange`, bảo đảm tỷ lệ thay thế thành công 100%, triệt tiêu hoàn toàn lỗi toast "Không tìm thấy dòng cũ tương ứng trong văn bản hiện tại".
-  5. **Kéo Thả Điều Chỉnh Độ Cao Box Trợ Lý Soạn Thảo Linh Hoạt (Vertical Drag Resize):**
-     - Hỗ trợ kéo thả tại biên trên của popup hoặc thanh ngang viên thuốc (`#composer-ai-pill-handle`) để co giãn độ cao mượt mà theo phương đứng (giới hạn an toàn từ 180px đến 92% chiều cao khung editor).
-     - Tự động lưu và khôi phục độ cao tùy chỉnh từ `localStorage` (`quesy_composer_ai_height`), nhấp chuột đơn không kéo vẫn hỗ trợ toggle nhanh 56% và 78%.
+  5. **Kéo Thả Điều Chỉnh Độ Cao Box Trợ Lý Soạn Thảo Linh Hoạt (Vertical Drag Resize & Unified Single Pill Handle):**
+     - Hợp nhất hoàn toàn thanh kéo biên trên và thanh pill trong header thành duy nhất một thanh ngang viên thuốc (`#composer-ai-resize-handle`) ở trung tâm header của popup trợ lý (loại bỏ hoàn toàn thanh pill phụ bên trên mép popup).
+     - Co giãn độ cao mượt mà theo phương đứng (giới hạn an toàn từ 180px đến 92% chiều cao khung editor).
+     - Tự động lưu và khôi phục độ cao tùy chỉnh từ `localStorage` (`quesy_composer_ai_height`), nhấp chuột đơn không kéo hoặc nhấp đúp vẫn hỗ trợ toggle nhanh 56% và 78%.
   6. **Khởi Tạo Phiên Chat Mới Sạch Sẽ & Ngăn Kéo Lưu Trữ Lịch Sử Phiên Cũ:**
      - Mỗi phiên mới bắt đầu với màn hình sạch và lời chào mặc định từ Quesy Copilot, không nạp lại tin nhắn của các phiên cũ gây rối mắt.
      - Các phiên cũ được lưu trữ vào kho `quesy_composer_chat_sessions` và hiển thị chi tiết khi người dùng nhấn nút **`[Lịch sử]`** (`#composer-ai-history-btn`). Người dùng có thể xem lại câu lệnh cũ, tải lại phiên hoặc dọn sạch lịch sử.
+  7. **Tự Động Co Giãn PDF Theo Chiều Rộng Cột & Khung Cuộn Ngang An Toàn (Auto Fit-to-Width & Horizontal Scroll):**
+     - Tự động tính toán lại tỷ lệ hiển thị `fitZoom` khi người dùng kéo thanh splitter `#composer-col-splitter` hoặc đổi cỡ cửa sổ, giúp tài liệu PDF tự động co nhỏ lại vừa vặn với cột xem trước trong thời gian thực (60 FPS), loại bỏ hoàn toàn hiện tượng tràn viền.
+     - Khung xem trước `#composer-pdf-scroll-container` hỗ trợ `overflow-x-auto`, khi phóng to zoom mức cao, thanh cuộn ngang hiển thị trơn tru cho phép cuộn xem toàn vẹn mép phải tài liệu mà không bao giờ bị cắt xén.
+  8. **Thuật Toán Phóng To / Thu Nhỏ Thông Minh Theo Điểm Neo Chuột & Trọng Tâm Viewport (Smart Zoom-to-Point):**
+     - Neo chính xác theo vị trí con trỏ chuột (`Cursor Anchor`) khi cuộn chuột `Ctrl+Wheel` trên tài liệu, giữ điểm nội dung dưới đầu chuột đứng yên bất biến.
+     - Neo theo trọng tâm chính giữa màn hình (`Center Anchor`) khi bấm nút `+` / `-` trên thanh công cụ nổi hoặc phím tắt.
+     - Triệt tiêu $100\%$ hiện tượng tài liệu bị giật văng về góc trên cùng bên trái $(0, 0)$ và bảo toàn vị trí cuộn khi vẽ lại vector canvas ở độ phân giải thực.
 
 ---
 

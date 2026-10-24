@@ -58,6 +58,8 @@ jobs:
       - name: Verify Frontend JavaScript Syntax
         run: |
           node -c frontend/static/app.js
+          node -c frontend/sw.js
+          node -c backend/services/mathjax_worker.js
 
       - name: Run Pytest Suite
         env:
