@@ -373,63 +373,81 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
      - Tác vụ `Tải mã nguồn TeX (.tex)`:
        + Khi người dùng chọn xuất file TeX, nếu mã nguồn đang ở dạng không preamble, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi tạo file tải xuống (`.tex`), đảm bảo giáo viên có thể mở và biên dịch độc lập ngay lập tức trên máy tính cá nhân.
 
-### 2.4.14. FR-02.16: Cấu Trúc Header 2 Cột & Phân Vùng Section Khảo Thí Chuẩn Quốc Gia 2025
-- **Mục tiêu Nghiệp vụ:** Cung cấp bộ khung cấu trúc đề thi chính thức chuẩn hóa theo mẫu của Bộ Giáo dục & Đào tạo (Kỳ thi Tốt nghiệp THPT 2025). Cho phép giáo viên tạo lập ngay lập tức qua menu thanh công cụ `THÊM ▾`, gọi mẫu qua Quick Action Menu trên Compact Bar, hoặc giao tiếp ngôn ngữ tự nhiên với AI Copilot.
+### 2.4.14. FR-02.16: Cấu Trúc Header 2 Cột Căn Giữa (0.38/0.58), Section textbf/textit & Tự Động Nhận Diện Số Lượng Câu Hỏi Từng Phần
+- **Mục tiêu Nghiệp vụ:** Cung cấp bộ khung cấu trúc đề thi chính thức chuẩn hóa theo mẫu mới nhất của Bộ Giáo dục & Đào tạo (Kỳ thi Tốt nghiệp THPT 2025). Tối ưu hóa tỷ lệ 2 cột minipage (0.38\textwidth bên trái và 0.58\textwidth bên phải, căn giữa `\centering` cả 2 bên), loại bỏ đường kẻ liền trên và chỉ giữ đường nét liền đơn dưới thông tin thí sinh. Loại bỏ hoàn toàn `\section*{...}`, thay thế bằng định dạng in đậm `\noindent\textbf{PHẦN ...}` và in nghiêng `\textit{...}`. Đồng thời tích hợp thuật toán đồng bộ hai tầng (Two-Tier Sync) tự động nhận diện số lượng câu hỏi và cập nhật câu hướng dẫn của từng phần.
 - **Quy cách Chi tiết Cấu trúc Đề thi Chuẩn Quốc Gia 2025:**
-  1. *Header 2 Cột Đối Xứng Minipage:*
-     - Cột Trái (độ rộng `0.42\textwidth`):
+  1. *Header 2 Cột Đối Xứng Minipage (Tỉ lệ 0.38/0.58, Căn Giữa Cả 2 Cột):*
+     - Cột Trái (độ rộng `0.38\textwidth`, căn giữa nội dung):
        ```latex
        \noindent
-       \begin{minipage}[t]{0.42\textwidth}
-       \begin{center}
-       \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
-       \textbf{ĐỀ CHÍNH THỨC}\\
-       
-ule{2.8cm}{0.6pt}
-       \end{center}
-       \end{minipage}%
-       ```
-     - Cột Phải (độ rộng `0.54\textwidth`):
-       ```latex
-       \hfill
-       \begin{minipage}[t]{0.54\textwidth}
-       \begin{center}
-       \textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG NĂM 2025}\\
-       \textbf{Môn: TOÁN HỌC}\\
-       \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
-       \end{center}
+       \begin{minipage}[t]{0.38\textwidth}
+         \centering
+         \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+         \textbf{TRƯỜNG THPT ...}\\
+         \textbf{ĐỀ CHÍNH THỨC}
        \end{minipage}
        ```
-  2. *Hàng Thông Tin Thí Sinh & Khung Mã Đề:*
-     - Phân định rõ ràng Họ tên, SBD với chấm lửng tự co giãn `\dotfill` và khung bao mã đề nổi bật:
+     - Cột Phải (độ rộng `0.58\textwidth`, căn giữa nội dung):
        ```latex
-       \vspace{0.3cm}
-       \noindent
-       \textbf{Họ, tên thí sinh:} \dotfill\ \textbf{Số báo danh:} \dotfill\ \framebox{\textbf{Mã đề: 0102}}
-       \vspace{0.4cm}
+       \hfill
+       \begin{minipage}[t]{0.58\textwidth}
+         \centering
+         \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+         \textbf{MÔN: TOÁN}\\
+         \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+       \end{minipage}
        ```
-  3. *3 Phân Vùng Section Khảo Thí Chuẩn Bộ GD&ĐT 2025:*
+  2. *Hàng Thông Tin Thí Sinh & Khung Mã Đề (Chỉ Giữ Nét Liền Đơn Phía Dưới):*
+     - Bỏ hoàn toàn đường nét liền `\rule{\textwidth}{0.5pt}` phía trên dòng thông tin thí sinh.
+     - Duy trì khoảng đệm dọc `\vspace{0.25cm}`, dòng thông tin thí sinh kèm khung mã đề `\framebox`, khoảng đệm `\vspace{0.1cm}`, và đường nét liền đơn `\rule{\textwidth}{0.5pt}` phía dưới:
+       ```latex
+       \vspace{0.25cm}
+       \noindent
+       Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+       \vspace{0.1cm}
+       \noindent\rule{\textwidth}{0.5pt}
+       \vspace{0.3cm}
+       ```
+  3. *3 Phân Vùng Section Khảo Thí Chuẩn Bộ GD&ĐT 2025 (Thay \section* bằng \textbf + \textit):*
      - **PHẦN I (Trắc nghiệm nhiều lựa chọn):**
-       `\section*{PHẦN I. Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}`
-     - **PHẦN II (Trắc nghiệm Đúng/Sai 4 khẳng định):**
-       `\section*{PHẦN II. Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}`
+       ```latex
+       \noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+       ```
+     - **PHẦN II (Trắc nghiệm Đúng/Sai 4 khẳng định theo QĐ 764):**
+       ```latex
+       \noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+       ```
      - **PHẦN III (Trắc nghiệm trả lời ngắn):**
-       `\section*{PHẦN III. Thí sinh trả lời từ câu 1 đến câu 6. Mỗi câu hỏi thí sinh chỉ điền kết quả vào ô trả lời.}`
-  4. *Tích Hợp Giao Diện Menu THÊM ▾ & Quick Actions:*
-     - Giao diện dropdown `THÊM ▾` trên thanh công cụ chia làm 2 phân vùng:
-       + Nhóm *CẤU TRÚC ĐỀ THI QUỐC GIA 2025*: Header 2 Cột & Mã đề, Phần I, Phần II, Phần III, Trọn bộ Đề thi Quốc Gia.
+       ```latex
+       \noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+       ```
+  4. *Thuật Toán Tự Động Nhận Diện Số Lượng Câu Hỏi Từng Phần (Two-Tier Dynamic Sync):*
+     - **Backend Tier (`backend/services/composer_service.py`):**
+       + Hàm `sync_section_question_counts(latex_code: str) -> str`:
+         * Tìm vị trí bắt đầu các phần bằng regex: `(?:^|\n)\s*(?:\\noindent\s*)?(?:\\textbf\{|\\section\*?\{)?\s*PHẦN\s+(I{1,3}|IV|V|[1-9])\b` (cờ `re.IGNORECASE`).
+         * Tách nội dung văn bản thành các block tương ứng với từng phần.
+         * Đếm số câu hỏi trong từng phần:
+           - Ưu tiên 1 (chuẩn gói `ex_test.sty`): `len(re.findall(r'\\begin\{(?:ex|bt|vd)\}', sec_content))`.
+           - Ưu tiên 2 (cú pháp kinh điển): Loại bỏ chuỗi hướng dẫn (tránh đếm nhầm "câu 1" / "câu 12" trong "từ câu 1 đến câu X"), sau đó đếm `\textbf{Câu \d+}` hoặc các câu đặt ở đầu dòng `(?:^|\n)\s*(?:\\noindent\s*)?(?:Câu|Bài)\s*\d+[\.:]`.
+         * Nếu `count > 0`: Thay thế mẫu `([Tt]ừ\s+câu\s+1\s+đến\s+câu\s+)\d+` thành `\g<1>{count}` (giới hạn `count=1` trên câu hướng dẫn).
+         * Tích hợp tự động vào `ensure_full_latex_document`, endpoint `compile`, và các luồng export TeX.
+     - **Frontend Tier (`frontend/static/app.js`):**
+       + Hàm `syncSectionQuestionCounts(latexCode)`:
+         * Ánh xạ chính xác giải thuật backend trên client bằng ES6 JavaScript.
+         * Tự động đồng bộ nội dung trên ô soạn thảo `#composer-editor-input` khi người dùng bấm nút **BIÊN DỊCH** (`app.composer.compile(true)`), khi nhấn tổ hợp phím tắt `Ctrl+S` / `Cmd+S`, khi kết thúc thời gian debounce gõ phím (800ms), hoặc khi nhấn tải file TeX (`downloadTex`).
+  5. *Tích Hợp Giao Diện Menu THÊM ▾ & Quick Actions:*
+     - Giao diện dropdown `THÊM ▾` trên thanh công cụ cập nhật:
+       + Nhóm *CẤU TRÚC ĐỀ THI QUỐC GIA 2025*: Header 2 Cột Căn Giữa (0.38/0.58), Phần I (Trắc nghiệm nhiều phương án - Tự động đếm), Phần II (Đúng/Sai QĐ 764 - Tự động đếm), Phần III (Trả lời ngắn - Tự động đếm), Trọn bộ Đề thi Quốc Gia.
        + Nhóm *MẪU LỆNH EX_TEST*: Trắc nghiệm, Đúng/Sai, Trả lời ngắn, Tự luận, Hình TikZ, Hình cạnh chữ, Lời giải.
-     - Quick Action Menu (`#composer-compact-quick-menu`) trang bị 2 shortcut:
-       * *Tạo Header đề thi chuẩn Quốc gia 2 cột & mã đề*
-       * *Tạo khung 3 Phần đề thi chuẩn Bộ GD&ĐT 2025*
-  5. *Động Cơ Render HTML/PDF Hỗ Trợ Đầy Đủ Các Lệnh:*
+     - Quick Action Menu (`#composer-compact-quick-menu`) và AI Prompt Handling (`system_prompt` và fallback) cập nhật cú pháp Header và Section mới.
+  6. *Động Cơ Render HTML/PDF Hỗ Trợ Đầy Đủ Các Lệnh:*
      - Xử lý mượt mà trên cả Tectonic XeTeX engine lẫn Chromium HTML fallback:
-       + Biên dịch `minipage` thành cấu trúc inline-block / flexbox cân đối.
-       + Biên dịch `
-ule{...}{...}` thành đường kẻ divider ngang căn giữa.
+       + Chuyển đổi `\begin{minipage}[t]{0.38\textwidth}` thành thẻ div inline-block có `width: 38.0%` và `text-align: center;`.
+       + Chuyển đổi `\begin{minipage}[t]{0.58\textwidth}` thành thẻ div inline-block có `width: 58.0%` và `text-align: center;`.
+       + Chuyển đổi `\noindent\textbf{...}` và `\textit{...}` thành `<strong>` và `<em>` tương ứng chuẩn HTML5.
+       + Biên dịch `\rule{...}{...}` thành đường kẻ divider ngang (`<hr>`).
        + Biên dịch `\dotfill` thành đường kẻ chấm co giãn linh hoạt.
        + Biên dịch `\framebox` / `\fbox` thành thẻ viền chữ nhật bao quanh mã đề.
-       + Bảo toàn chữ thường không ép uppercase trên `.latex-section`.
 
 ---
 

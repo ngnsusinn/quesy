@@ -3873,65 +3873,57 @@
     compilationHistory: [],
     templates: {},
 
-    EX_TEST_TEMPLATES: {
+        EX_TEST_TEMPLATES: {
       'header_quocgia': `\\noindent
-\\begin{minipage}[t]{0.48\\textwidth}
+\\begin{minipage}[t]{0.38\\textwidth}
+  \\centering
   \\textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\\\
   \\textbf{TRƯỜNG THPT ...}\\\\
   \\textbf{ĐỀ CHÍNH THỨC}
 \\end{minipage}
 \\hfill
-\\begin{minipage}[t]{0.48\\textwidth}
+\\begin{minipage}[t]{0.58\\textwidth}
   \\centering
   \\textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\\\
   \\textbf{MÔN: TOÁN}\\\\
   \\textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
 \\end{minipage}
-\\vspace{0.2cm}
-\\noindent\\rule{\\textwidth}{0.5pt}
-\\vspace{-0.1cm}
+\\vspace{0.25cm}
 \\noindent
 Họ và tên thí sinh: \\dotfill\\ Số báo danh: \\dotfill\\ \\hfill \\framebox{\\textbf{Mã đề: 0102}}
 \\vspace{0.1cm}
 \\noindent\\rule{\\textwidth}{0.5pt}
 \\vspace{0.3cm}
 `,
-      'section_phan1': `\\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
-\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
-
+      'section_phan1': `\\noindent\\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 `,
-      'section_phan2': `\\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}
-\\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
-
+      'section_phan2': `\\noindent\\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 `,
-      'section_phan3': `\\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
-\\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
-
+      'section_phan3': `\\noindent\\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
 `,
       'dethi_quocgia_full': `\\noindent
-\\begin{minipage}[t]{0.48\\textwidth}
+\\begin{minipage}[t]{0.38\\textwidth}
+  \\centering
   \\textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\\\
   \\textbf{TRƯỜNG THPT ...}\\\\
   \\textbf{ĐỀ CHÍNH THỨC}
 \\end{minipage}
 \\hfill
-\\begin{minipage}[t]{0.48\\textwidth}
+\\begin{minipage}[t]{0.58\\textwidth}
   \\centering
   \\textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\\\
   \\textbf{MÔN: TOÁN}\\\\
   \\textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
 \\end{minipage}
-\\vspace{0.2cm}
-\\noindent\\rule{\\textwidth}{0.5pt}
-\\vspace{-0.1cm}
+\\vspace{0.25cm}
 \\noindent
 Họ và tên thí sinh: \\dotfill\\ Số báo danh: \\dotfill\\ \\hfill \\framebox{\\textbf{Mã đề: 0102}}
 \\vspace{0.1cm}
-\\noindent\\rule{\\textwidth}{0.5pt}
+\\noindent\
+ule{\\textwidth}{0.5pt}
 \\vspace{0.3cm}
 
-\\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
-\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+\\noindent\\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 
 \\begin{ex}
 Cho hàm số $y = f(x)$ có đạo hàm $f'(x) = x(x-1)^2$. Số điểm cực trị của hàm số là:
@@ -3941,18 +3933,18 @@ Cho hàm số $y = f(x)$ có đạo hàm $f'(x) = x(x-1)^2$. Số điểm cực 
 {1}
 {3}
 \\begin{loigiai}
-$f'(x) = 0 \\Leftrightarrow x = 0$ hoặc $x = 1$. Số điểm cực trị là 1.\\end{loigiai}
+$f'(x) = 0 \\Leftrightarrow x = 0$ hoặc $x = 1$. Số điểm cực trị là 1.
+\\end{loigiai}
 \\end{ex}
 
-\\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}
-\\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+\\noindent\\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 
 \\begin{ex}
 Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
 \\choiceTF
-{\\True Hàm số đạt cực đại tại $x = -1$.}
-{Giá trị cực tiểu bằng $1$.}
-{\\True Tiệm cận ngang không có.}
+{\\True Hàm số đạt cực đại tại $x = -1$.}\\\\
+{Giá trị cực tiểu bằng $1$.}\\\\
+{\\True Tiệm cận ngang không có.5}\\\\
 {Đồ thị nhận điểm $I(0;1)$ làm tâm đối xứng.}
 \\begin{loigiai}
 \\begin{itemchoice}
@@ -3964,23 +3956,23 @@ Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
 \\end{loigiai}
 \\end{ex}
 
-\\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
-\\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+\\noindent\\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
 
 \\begin{ex}
 Tìm giá trị lớn nhất của hàm số $y = -x^2 + 4x - 3$ trên đoạn $[0; 3]$.
 \\shortans{1}
 \\begin{loigiai}
-$y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.\\end{loigiai}
+$y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
+\\end{loigiai}
 \\end{ex}
 `,
-      'tracnghiem': `\\begin{ex}\n\n\\choice\n{}\n{}\n{}\n{}\n\\loigiai{\n\n}\n\\end{ex}\n`,
-      'dungsai': `\\begin{ex}\n\n\\choiceTFt\n{}\n{}\n{}\n{}\n\\loigiai{\n\\begin{itemchoice}\n\\itemch\n\\itemch\n\\itemch\n\\itemch\n\\end{itemchoice}\n}\n\\end{ex}\n`,
-      'traloingan': `\\begin{ex}\n\n\\par\n\\shortans[oly]{}\n\\loigiai{\n\n}\n\\end{ex}\n`,
-      'tuluan': `\\begin{bt}\n\n\\begin{enumerate}[a]\n\\item \n\\item \n\\end{enumerate}\n\\loigiai{\n\\begin{enumerate}[a]\n\\item \n\\item \n\\end{enumerate}\n}\n\\end{bt}\n`,
-      'hinhtikz': `\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]\n\n\\end{tikzpicture}\n`,
-      'hinhcanhchu': `\\immini[thm]{}{\n\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]\n\n\\end{tikzpicture}\n}\n`,
-      'loigiai': `\\loigiai{\n\n}\n`
+      'tracnghiem': `\\begin{ex}\\n\\n\\choice\\n{}\\n{}\\n{}\\n{}\\n\\loigiai{\\n\\n}\\n\\end{ex}\\n`,
+      'dungsai': `\\begin{ex}\\n\\n\\choiceTFt\\n{}\\n{}\\n{}\\n{}\\n\\loigiai{\\n\\begin{itemchoice}\\n\\itemch\\n\\itemch\\n\\itemch\\n\\itemch\\n\\end{itemchoice}\\n}\\n\\end{ex}\\n`,
+      'traloingan': `\\begin{ex}\\n\\n\\par\\n\\shortans[oly]{}\\n\\loigiai{\\n\\n}\\n\\end{ex}\\n`,
+      'tuluan': `\\begin{bt}\\n\\n\\begin{enumerate}[a]\\n\\item \\n\\item \\n\\end{enumerate}\\n\\loigiai{\\n\\begin{enumerate}[a]\\n\\item \\n\\item \\n\\end{enumerate}\\n}\\n\\end{bt}\\n`,
+      'hinhtikz': `\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]\\n\\n\\end{tikzpicture}\\n`,
+      'hinhcanhchu': `\\immini[thm]{}{\\n\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]\\n\\n\\end{tikzpicture}\\n}\\n`,
+      'loigiai': `\\loigiai{\\n\\n}\\n`
     },
 
     SNIPPETS: {
@@ -3996,6 +3988,38 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.\\end{loigiai}
       'tikz_cubic': `\\begin{tikzpicture}[scale=0.65, >=stealth]\n  \\clip (-3.8, -5.5) rectangle (4.2, 5.5);\n  \\draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};\n  \\draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};\n  \\node[below left] at (0, 0) {$O$};\n  \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};\n  \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};\n  \\draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n  \\fill (-1, 4) circle (1.5pt);\n  \\fill (2, -3) circle (1.5pt);\n\\end{tikzpicture}\n`,
       'tikz_rational': `\\begin{tikzpicture}[scale=0.7, >=stealth]\n  \\clip (-4.5, -4.5) rectangle (4.5, 5.5);\n  \\draw[->, thick] (-4.2, 0) -- (4.2, 0) node[right] {$x$};\n  \\draw[->, thick] (0, -4.2) -- (0, 5.2) node[above] {$y$};\n  \\node[below left] at (0, 0) {$O$};\n  \\draw[dashed, thick] (1, -4.2) -- (1, 5.2) node[above] {$x=1$};\n  \\draw[dashed, thick] (-4.2, 2) -- (4.2, 2) node[right] {$y=2$};\n  \\draw[thick, black, smooth, domain=-4:0.7, samples=80] plot (\\x, {(2*\\x - 1)/(\\x - 1)});\n  \\draw[thick, black, smooth, domain=1.3:4, samples=80] plot (\\x, {(2*\\x - 1)/(\\x - 1)});\n\\end{tikzpicture}\n`,
       'tikz_pyramid': `\\begin{tikzpicture}[scale=0.8]\n  \\coordinate (A) at (0, 0);\n  \\coordinate (B) at (-1.5, -1.2);\n  \\coordinate (C) at (2, -1.2);\n  \\coordinate (D) at (3.5, 0);\n  \\coordinate (S) at (1, 2.5);\n  \\draw[thick] (S) -- (B) -- (C) -- (D) -- (S) -- (C);\n  \\draw[dashed, thick] (B) -- (A) -- (D) (S) -- (A);\n  \\node[above] at (S) {$S$};\n  \\node[left] at (B) {$B$};\n  \\node[below] at (C) {$C$};\n  \\node[right] at (D) {$D$};\n  \\node[above left] at (A) {$A$};\n\\end{tikzpicture}\n`
+    },
+
+
+    syncSectionQuestionCounts(latexCode) {
+      if (!latexCode) return latexCode;
+      const sectionHeaders = latexCode.match(/(?:\\noindent\s*)?\\textbf\{PHẦN\s+[IVX0-9]+[^}]*\}|\\section\*?\{PHẦN\s+[IVX0-9]+[^}]*\}|PHẦN\s+[IVX0-9]+\.[^\n]*/gi);
+      if (!sectionHeaders) return latexCode;
+
+      let sections = latexCode.split(/(?=(?:\\noindent\s*)?\\textbf\{PHẦN|\\section\*?\{PHẦN|PHẦN\s+[IVX0-9]+\.)/i);
+      if (sections.length <= 1) return latexCode;
+
+      let updated = sections.map(sec => {
+        const exMatches = sec.match(/\\begin\{(ex|bt|vd)\}/g);
+        let count = exMatches ? exMatches.length : 0;
+        if (count === 0) {
+          const cleanBody = sec.replace(/từ\s+câu\s+1\s*(?:đến|tới|-)\s*câu\s*\d+[^\n]*/gi, '');
+          const classicRegex = /(?:\\textbf\{\s*Câu\s*(\d+)[\.:]?\s*\}|(?<![\w\\{])Câu\s*(\d+)[\.:])/gi;
+          const qNums = new Set();
+          let m;
+          while ((m = classicRegex.exec(cleanBody)) !== null) {
+            const num = m[1] || m[2];
+            if (num) qNums.add(parseInt(num, 10));
+          }
+          count = qNums.size;
+        }
+        if (count > 0) {
+          sec = sec.replace(/(từ\s+câu\s+1\s+đến\s+câu\s+)\d+/gi, `$1${count}`);
+          sec = sec.replace(/(từ\s+câu\s+1\s*(?:đến|tới|-)\s*câu\s*)\d+/gi, `$1${count}`);
+        }
+        return sec;
+      });
+      return updated.join('');
     },
 
     async init() {
@@ -6415,7 +6439,8 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.\\end{loigiai}
       const editor = document.getElementById('composer-editor-input');
 
       if (editor) {
-        this.currentLatex = editor.value;
+        this.currentLatex = this.syncSectionQuestionCounts(editor.value);
+        editor.value = this.currentLatex;
       }
       if (errorDrawer) errorDrawer.classList.add('hidden');
       if (errorText) errorText.innerText = '';

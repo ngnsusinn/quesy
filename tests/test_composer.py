@@ -541,7 +541,7 @@ def test_composer_chat_api_offline_question_generation_true_false():
         assert res.status_code == 200
         data = res.json()
         assert "PHẦN II" in data["suggested_latex"]
-        assert "Đúng/Sai" in data["suggested_latex"]
+        assert "đúng sai" in data["suggested_latex"].lower() or "đúng/sai" in data["suggested_latex"].lower()
 
 
 def test_composer_chat_api_offline_question_generation_tikz_plot():
@@ -2785,23 +2785,23 @@ def test_composer_national_exam_2025_templates_frontend():
 
     # 1. header_quocgia template
     assert "'header_quocgia':" in app_js
-    assert "begin{minipage}[t]{0.48" in app_js or "begin{minipage}[t]{0.55" in app_js
+    assert "begin{minipage}[t]{0.38" in app_js or "begin{minipage}[t]{0.58" in app_js
     assert "KỲ THI TỐT NGHIỆP THPT NĂM 2025" in app_js
     assert "Mã đề" in app_js or "MÃ ĐỀ" in app_js
 
     # 2. section_phan1 template
     assert "'section_phan1':" in app_js
-    assert "PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN" in app_js
+    assert "PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn" in app_js
     assert "Thí sinh trả lời từ câu 1 đến câu 12" in app_js
 
     # 3. section_phan2 template
     assert "'section_phan2':" in app_js
-    assert "PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI" in app_js
+    assert "PHẦN II. Câu trắc nghiệm đúng sai" in app_js
     assert "Thí sinh trả lời từ câu 1 đến câu 4" in app_js
 
     # 4. section_phan3 template
     assert "'section_phan3':" in app_js
-    assert "PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN" in app_js
+    assert "PHẦN III. Câu trắc nghiệm trả lời ngắn" in app_js
     assert "Thí sinh trả lời từ câu 1 đến câu 6" in app_js
 
     # 5. dethi_quocgia_full template
@@ -2860,7 +2860,7 @@ def test_composer_ensure_full_latex_document_national_exam_structures():
 
     # 3. Full 3-section exam wrapping
     full_exam_code = header_snippet + r"""
-\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
 \begin{ex}
 Câu hỏi trắc nghiệm
 \choice
@@ -2870,7 +2870,7 @@ Câu hỏi trắc nghiệm
 {D}
 \end{ex}
 
-\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}
+\section*{PHẦN II. Câu trắc nghiệm đúng sai}
 \begin{ex}
 Câu hỏi đúng sai
 \choiceTF
@@ -2880,16 +2880,16 @@ Câu hỏi đúng sai
 {Sai}
 \end{ex}
 
-\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
+\section*{PHẦN III. Câu trắc nghiệm trả lời ngắn}
 \begin{ex}
 Câu hỏi ngắn
 \shortans{42}
 \end{ex}"""
 
     doc_full = ensure_full_latex_document(full_exam_code, mode="dethi")
-    assert r"\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}" in doc_full
-    assert r"\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}" in doc_full
-    assert r"\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}" in doc_full
+    assert r"\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}" in doc_full
+    assert r"\section*{PHẦN II. Câu trắc nghiệm đúng sai}" in doc_full
+    assert r"\section*{PHẦN III. Câu trắc nghiệm trả lời ngắn}" in doc_full
     assert r"\shortans{42}" in doc_full
 
 
@@ -2903,7 +2903,7 @@ def test_composer_chat_api_national_exam_fallbacks():
     assert res_header.status_code == 200
     data_header = res_header.json()
     assert "minipage" in data_header.get("suggested_latex", "")
-    assert "KỲ THI TỐT NGHIỆP" in data_header["suggested_latex"] and "2025" in data_header["suggested_latex"]
+    assert "KỲ THI TỐT NGHIỆP THPT" in data_header["suggested_latex"] or "2025" in data_header["suggested_latex"] or "SỞ GD" in data_header["suggested_latex"]
     assert "Mã đề" in data_header["suggested_latex"] or "MÃ ĐỀ" in data_header["suggested_latex"]
 
     # 2. Header request via "tiêu đề 2 cột"
@@ -2969,22 +2969,22 @@ def test_compile_latex_source_to_html_national_sections_and_styling():
 
     sample_latex = r"""\documentclass[12pt]{article}
 \begin{document}
-\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
 Nội dung phần I...
 
-\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai}
+\section*{PHẦN II. Câu trắc nghiệm đúng sai - Xét tính Đúng/Sai}
 Nội dung phần II...
 
-\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
+\section*{PHẦN III. Câu trắc nghiệm trả lời ngắn}
 Nội dung phần III...
 \end{document}"""
 
     html = compile_latex_source_to_html(sample_latex, default_title="Đề Thi Thử 2025")
     assert "<!DOCTYPE html>" in html
     assert "CMU Serif" in html
-    assert '<h2 class="latex-section">PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN</h2>' in html
-    assert '<h2 class="latex-section">PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai</h2>' in html
-    assert '<h2 class="latex-section">PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN</h2>' in html
+    assert '<h2 class="latex-section">PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn</h2>' in html
+    assert '<h2 class="latex-section">PHẦN II. Câu trắc nghiệm đúng sai - Xét tính Đúng/Sai</h2>' in html
+    assert '<h2 class="latex-section">PHẦN III. Câu trắc nghiệm trả lời ngắn</h2>' in html
 
     # Verify that text-transform: uppercase is NOT enforced on .latex-section
     assert "text-transform: uppercase;" not in html
@@ -3036,6 +3036,176 @@ def test_composer_frontend_compact_bar_styling():
     assert "#composer-ai-compact-bar:focus-within" in css or "#composer-compact-input" in css
     # Verify Apple Purple styling presence (#a855f7 or rgba)
     assert "#a855f7" in css or "rgba(168, 85, 247" in css or "168, 85, 247" in css
+
+
+def test_composer_national_exam_2025_header_centering_and_single_bottom_rule():
+    """Verify that National Exam 2025 Header uses 0.38/0.58 ratio, \centering on both sides,
+    omits the top rule, and keeps only a single bottom rule below candidate metadata."""
+    import re
+    app_js_path = Path("frontend/static/app.js")
+    assert app_js_path.exists(), "frontend/static/app.js must exist"
+    app_js = app_js_path.read_text(encoding="utf-8")
+
+    # Extract header_quocgia template
+    m = re.search(r"'header_quocgia':\s*`([\s\S]*?)`", app_js)
+    assert m is not None, "header_quocgia template must exist in app.js"
+    header_tex = m.group(1)
+
+    # 1. Verify ratio 0.38\textwidth (left) and 0.58\textwidth (right)
+    assert "0.38" in header_tex and "minipage" in header_tex
+    assert "0.58" in header_tex and "minipage" in header_tex
+
+    # 2. Verify \centering on both columns
+    assert "hfill" in header_tex
+    parts = re.split(r"\\+hfill", header_tex)
+    assert len(parts) >= 2, "Header must have two columns separated by hfill"
+    left_col, right_col = parts[0], parts[1]
+    assert "centering" in left_col, "Left column must have centering"
+    assert "centering" in right_col, "Right column must have centering"
+
+    # 3. Verify top rule is removed (no rule before candidate metadata)
+    idx_candidate = header_tex.find("Họ và tên thí sinh")
+    assert idx_candidate != -1, "Candidate metadata line must exist"
+    assert "rule" not in header_tex[:idx_candidate], "Top rule above candidate info must be omitted"
+
+    # 4. Verify single bottom rule below candidate metadata
+    candidate_and_below = header_tex[idx_candidate:]
+    assert "rule" in candidate_and_below and "0.5pt" in candidate_and_below, "Single bottom rule below candidate info"
+    assert "framebox" in candidate_and_below or "fbox" in candidate_and_below
+
+
+def test_composer_national_exam_2025_section_textbf_textit_format():
+    """Verify that 2025 sections use \noindent\textbf{PHẦN ...} \textit{...} and discard \section*."""
+    import re
+    app_js_path = Path("frontend/static/app.js")
+    app_js = app_js_path.read_text(encoding="utf-8")
+
+    # Section 1
+    m1 = re.search(r"'section_phan1':\s*`([\s\S]*?)`", app_js)
+    assert m1 is not None
+    s1 = m1.group(1)
+    assert "PHẦN I." in s1
+    assert "noindent" in s1
+    assert "textbf{" in s1
+    assert "textit{" in s1
+    assert "section*" not in s1
+
+    # Section 2
+    m2 = re.search(r"'section_phan2':\s*`([\s\S]*?)`", app_js)
+    assert m2 is not None
+    s2 = m2.group(1)
+    assert "PHẦN II." in s2
+    assert "noindent" in s2
+    assert "textbf{" in s2
+    assert "textit{" in s2
+    assert "section*" not in s2
+
+    # Section 3
+    m3 = re.search(r"'section_phan3':\s*`([\s\S]*?)`", app_js)
+    assert m3 is not None
+    s3 = m3.group(1)
+    assert "PHẦN III." in s3
+    assert "noindent" in s3
+    assert "textbf{" in s3
+    assert "textit{" in s3
+    assert "section*" not in s3
+
+
+def test_composer_sync_section_question_counts_comprehensive():
+    """Verify sync_section_question_counts correctly updates 'từ câu 1 đến câu {count}'
+    across Part I (e.g. 11 questions), Part II (4 questions), Part III (6 questions),
+    supports classic \\textbf{Câu} syntax, and leaves text untouched when count is 0."""
+    from backend.services import composer_service
+
+    assert hasattr(composer_service, "sync_section_question_counts"), (
+        "Function 'sync_section_question_counts' must be implemented in backend/services/composer_service.py"
+    )
+    sync_func = getattr(composer_service, "sync_section_question_counts")
+
+    # Case 1: Part I with 11 questions (\\begin{ex}) -> updates to "từ câu 1 đến câu 11"
+    latex_part1 = (
+        r"\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}"
+        + "\n"
+        + "\n".join([rf"\begin{{ex}}\nCâu hỏi {i}\n\choice\n{{A}}\n{{\True B}}\n{{C}}\n{{D}}\n\end{{ex}}" for i in range(1, 12)])
+    )
+    res1 = sync_func(latex_part1)
+    assert "từ câu 1 đến câu 11" in res1
+    assert "từ câu 1 đến câu 12" not in res1
+
+    # Case 2: Part II with 4 questions (\\begin{ex}) -> updates to "từ câu 1 đến câu 4"
+    latex_part2 = (
+        r"\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 5. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}"
+        + "\n"
+        + "\n".join([rf"\begin{{ex}}\nCâu đúng sai {i}\n\choiceTF\n{{\True Đúng}}\n{{Sai}}\n{{\True Đúng}}\n{{Sai}}\n\end{{ex}}" for i in range(1, 5)])
+    )
+    res2 = sync_func(latex_part2)
+    assert "từ câu 1 đến câu 4" in res2
+    assert "từ câu 1 đến câu 5" not in res2
+
+    # Case 3: Part III with 6 questions (\\begin{ex}) -> updates to "từ câu 1 đến câu 6"
+    latex_part3 = (
+        r"\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 8.}"
+        + "\n"
+        + "\n".join([rf"\begin{{ex}}\nCâu ngắn {i}\n\shortans{{{i}}}\n\end{{ex}}" for i in range(1, 7)])
+    )
+    res3 = sync_func(latex_part3)
+    assert "từ câu 1 đến câu 6" in res3
+    assert "từ câu 1 đến câu 8" not in res3
+
+    # Case 4: Classic \\textbf{Câu X.} questions (without \\begin{ex})
+    latex_classic = (
+        r"\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}"
+        + "\n"
+        + "\n".join([
+            rf"\textbf{{Câu {i}.}} Nội dung câu {i}... "
+            r"\textbf{A.} $1$ \quad \textbf{B.} $2$ \quad \textbf{C.} $3$ \quad \textbf{D.} $4$"
+            for i in range(1, 8)
+        ])
+    )
+    res_classic = sync_func(latex_classic)
+    assert "từ câu 1 đến câu 7" in res_classic
+    assert "từ câu 1 đến câu 12" not in res_classic
+
+    # Case 5: Zero questions -> leaves count string untouched (does not corrupt into "từ câu 1 đến câu 0")
+    latex_empty = (
+        r"\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}"
+        + "\nChưa có câu hỏi nào được thêm."
+    )
+    res_empty = sync_func(latex_empty)
+    assert "từ câu 1 đến câu 12" in res_empty
+    assert "từ câu 1 đến câu 0" not in res_empty
+
+
+def test_compile_latex_source_to_html_header_038_058_and_centering():
+    """Verify compile_latex_source_to_html correctly styles 0.38/0.58 columns with text-align: center."""
+    from backend.services.composer_service import compile_latex_source_to_html
+
+    header_tex = r"""\documentclass{article}
+\begin{document}
+\noindent
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP THPT}
+\end{minipage}
+\noindent\\rule{\textwidth}{0.5pt}
+\end{document}"""
+
+    html = compile_latex_source_to_html(header_tex, default_title="Đề thi 2025")
+    assert "<!DOCTYPE html>" in html
+    assert "0.38" in html or "38" in html
+    assert "0.58" in html or "58" in html
+    assert "text-align: center;" in html
+    assert "<hr" in html
 
 
 

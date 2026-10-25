@@ -483,7 +483,53 @@ def ensure_full_latex_document(
 
 
 # ---------------------------------------------------------------------------
-# 2. LaTeX to HTML Compilation Parser
+# 2. Section Question Counter & Sync
+# ---------------------------------------------------------------------------
+
+def sync_section_question_counts(latex_code: str) -> str:
+    """Dynamically counts questions in each section (PHẦN I, II, III) and updates
+    the instruction text 'từ câu 1 đến câu X' to match actual question count."""
+    if not latex_code:
+        return latex_code
+
+    section_headers = re.findall(
+        r'(?:\\noindent\s*)?\\textbf\{PHẦN\s+[IVX0-9]+[^}]*\}|\\section\*?\{PHẦN\s+[IVX0-9]+[^}]*\}|PHẦN\s+[IVX0-9]+\.[^\n]*',
+        latex_code,
+        re.IGNORECASE
+    )
+    if not section_headers:
+        return latex_code
+
+    sections = re.split(
+        r'(?=(?:\\noindent\s*)?\\textbf\{PHẦN|\\section\*?\{PHẦN|PHẦN\s+[IVX0-9]+\.)',
+        latex_code,
+        flags=re.IGNORECASE
+    )
+    if len(sections) <= 1:
+        return latex_code
+
+    updated = []
+    for sec in sections:
+        ex_matches = re.findall(r'\\begin\{(?:ex|bt|vd)\}', sec)
+        count = len(ex_matches) if ex_matches else 0
+        if count == 0:
+            clean_body = re.sub(r'từ\s+câu\s+1\s*(?:đến|tới|-)\s*câu\s*\d+[^\n]*', '', sec, flags=re.IGNORECASE)
+            q_nums = set()
+            for m in re.finditer(r'(?:\\textbf\{\s*Câu\s*(\d+)[\.:]?\s*\}|(?<![\w\\{])Câu\s*(\d+)[\.:])', clean_body, re.IGNORECASE):
+                num = m.group(1) or m.group(2)
+                if num:
+                    q_nums.add(int(num))
+            count = len(q_nums)
+        if count > 0:
+            sec = re.sub(r'(từ\s+câu\s+1\s+đến\s+câu\s+)\d+', rf'\g<1>{count}', sec, flags=re.IGNORECASE)
+            sec = re.sub(r'(từ\s+câu\s+1\s*(?:đến|tới|-)\s*câu\s*)\d+', rf'\g<1>{count}', sec, flags=re.IGNORECASE)
+        updated.append(sec)
+
+    return "".join(updated)
+
+
+# ---------------------------------------------------------------------------
+# 3. LaTeX to HTML Compilation Parser
 # ---------------------------------------------------------------------------
 
 def compile_latex_source_to_html(
@@ -567,6 +613,25 @@ def compile_latex_source_to_html(
     body = re.sub(r'\\section\*?\{([^}]+)\}', r'<h2 class="latex-section">\1</h2>', body)
     body = re.sub(r'\\subsection\*?\{([^}]+)\}', r'<h3 class="latex-subsection">\1</h3>', body)
 
+    # 6b. Parse minipages on body before paragraph splitting
+    minipage_blocks = []
+    def _save_minipage(m):
+        width_arg = m.group(1).strip()
+        content = m.group(2)
+        align_style = "text-align: center;" if r"\centering" in content else "text-align: left;"
+        content_cleaned = content.replace(r"\centering", "").strip()
+        m_w = re.match(r'^([\d.]+)\s*\\(?:textwidth|linewidth)$', width_arg)
+        if m_w:
+            css_width = f"{float(m_w.group(1))*100:.1f}%"
+        else:
+            css_width = width_arg.replace(r"	extwidth", "100%").replace(r"\linewidth", "100%")
+        content_cleaned = re.sub(r'\\\\(?:\s*\[[^\]]*\])?', '<br>', content_cleaned)
+        div_html = f'<div style="display: inline-block; vertical-align: top; width: {css_width}; width: {width_arg}; {align_style}">{content_cleaned}</div>'
+        minipage_blocks.append(div_html)
+        return f"__LATEX_MINIPAGE_COMPILED_{len(minipage_blocks) - 1}__"
+
+    body = re.sub(r'\\begin\{minipage\}(?:\[[^\]]*\])?\{([^}]+)\}([\s\S]*?)\\end\{minipage\}', _save_minipage, body, flags=re.DOTALL)
+
     # 7. Convert paragraphs
     paragraphs = re.split(r'\n\s*\n', body)
     rendered_paragraphs = []
@@ -575,7 +640,7 @@ def compile_latex_source_to_html(
         p = p.strip()
         if not p:
             continue
-        if any(p.startswith(prefix) for prefix in ("__LATEX_TIKZ_COMPILED_", "__LATEX_TABLE_COMPILED_", "<h2", "<h3")):
+        if any(p.startswith(prefix) for prefix in ("__LATEX_TIKZ_COMPILED_", "__LATEX_TABLE_COMPILED_", "__LATEX_MINIPAGE_COMPILED_", "<h2", "<h3")):
             rendered_paragraphs.append(p)
             continue
 
@@ -587,12 +652,24 @@ def compile_latex_source_to_html(
 
     # 7b. Parse minipages, hfill, rule, dotfill, framebox, fbox on final_body
     # (Applied after render_math_html to protect HTML tags from being escaped into &lt; and &gt;)
-    final_body = re.sub(r'\\begin\{minipage\}(?:\[[^\]]*\])?\{([^}]+)\}', r'<div style="display: inline-block; vertical-align: top; width: \1;">', final_body)
-    final_body = re.sub(r'\\end\{minipage\}', '</div>', final_body)
+    def _fix_rule(m):
+        w = m.group(1).strip()
+        h = m.group(2).strip()
+        m_w = re.match(r'^([\d.]+)\s*\\(?:textwidth|linewidth)$', w)
+        if m_w:
+            css_w = f"{float(m_w.group(1))*100:.1f}%"
+        else:
+            css_w = w.replace(r"	extwidth", "100%").replace(r"\linewidth", "100%")
+        return f'<hr style="width: {css_w}; height: {h}; background: #000; border: none; margin: 4px 0;">'
+
+    final_body = re.sub(r'(?:\\\\|\\)rule\{([^}]+)\}\{([^}]+)\}', _fix_rule, final_body)
     final_body = re.sub(r'\\hfill', '<span style="float: right;"></span>', final_body)
-    final_body = re.sub(r'\\rule\{([^}]+)\}\{([^}]+)\}', r'<hr style="width: \1; height: \2; background: #000; border: none; margin: 4px 0;">', final_body)
     final_body = re.sub(r'\\dotfill', '<span style="border-bottom: 1px dotted #000; display: inline-block; width: 80px;"></span>', final_body)
-    final_body = re.sub(r'\\(?:framebox|fbox)\{((?:[^{}]|\{[^{}]*\})+)\}', r'<span style="border: 1px solid #000; padding: 2px 4px; display: inline-block;">\1</span>', final_body)
+    final_body = re.sub(r'\\(?:framebox|fbox)\{((?:[^{}]|\\{[^{}]*\\})+)\}', r'<span style="border: 1px solid #000; padding: 2px 4px; display: inline-block;">\1</span>', final_body)
+    final_body = re.sub(r'\\noindent\s*', '', final_body)
+    final_body = re.sub(r'\\vspace\{[^}]*\}', '', final_body)
+    final_body = re.sub(r'\	extbf\{((?:[^{}]|\\{[^{}]*\\})+)\}', r'<strong>\1</strong>', final_body)
+    final_body = re.sub(r'\	extit\{((?:[^{}]|\\{[^{}]*\\})+)\}', r'<em>\1</em>', final_body)
 
     # 7c. Render loigiai block on final_body if in loigiai mode
     if norm_mode == "loigiai":
@@ -604,11 +681,13 @@ def compile_latex_source_to_html(
             return f'<div class="loigiai-block" style="background:#f8fafc; border-left:3px solid #0071e3; padding:8px 12px; margin:8px 0; border-radius:4px; font-size:10pt;"><strong>Lời giải:</strong><div style="margin-top:4px;">{lg_inner}</div></div>'
         final_body = re.sub(r'\\begin\{loigiai\}([\s\S]*?)\\end\{loigiai\}', _render_lg, final_body)
 
-    # 7d. Restore TikZ and Tables
+    # 7d. Restore TikZ, Tables, and Minipages
     for idx, svg_html in enumerate(tikz_blocks):
         final_body = final_body.replace(f"__LATEX_TIKZ_COMPILED_{idx}__", svg_html)
     for idx, tbl_html in enumerate(table_blocks):
         final_body = final_body.replace(f"__LATEX_TABLE_COMPILED_{idx}__", tbl_html)
+    for idx, mini_html in enumerate(minipage_blocks):
+        final_body = final_body.replace(f"__LATEX_MINIPAGE_COMPILED_{idx}__", mini_html)
 
     font_css = get_cmu_font_css()
 

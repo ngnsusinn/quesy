@@ -424,49 +424,75 @@ ightarrow$ `Tải mã nguồn TeX (.tex)`, nếu nội dung hiện tại là d�
   5. *Định Hướng Trợ Lý AI Copilot:*
      - Prompt hệ thống của Quesy Copilot được chỉ dẫn rõ: môi trường làm việc đã tích hợp sẵn Canonical Preamble của `ex_test.sty` v3.3. Khi giáo viên yêu cầu tạo câu hỏi, AI chỉ sinh phần thân câu hỏi `\begin{ex}...\end{ex}` và tiêu đề cần thiết, tuyệt đối không xuất các đoạn preamble thừa thãi làm ô nhiễm khung soạn thảo.
 
-#### SRS-FEAT-04r: Cấu Trúc Header Đề Thi 2 Cột Chuẩn Quốc Gia, Khung Mã Đề & 3 Phân Vùng Section Khảo Thí (Bộ GD&ĐT 2025)
-- **Mô tả:** Cung cấp mẫu mã nguồn LaTeX và các công cụ chèn nhanh cấu trúc đề thi chuẩn Quốc gia theo quy cách Bộ Giáo dục & Đào tạo (Áp dụng từ Kỳ thi Tốt nghiệp THPT 2025). Cho phép giáo viên chèn ngay lập tức từ thanh công cụ `THÊM ▾`, gọi qua menu Gợi ý tác vụ AI, hoặc ra lệnh trực tiếp bằng ngôn ngữ tự nhiên cho AI Copilot.
+#### SRS-FEAT-04r: Cấu Trúc Header Đề Thi 2 Cột Chuẩn Quốc Gia (0.38/0.58 Căn Giữa), Khung Mã Đề, 3 Phân Vùng Section textbf/textit & Tự Động Nhận Diện Số Lượng Câu Hỏi (Bộ GD&ĐT 2025)
+- **Mô tả:** Cung cấp mẫu mã nguồn LaTeX và các công cụ chèn nhanh cấu trúc đề thi chuẩn Quốc gia theo quy cách Bộ Giáo dục & Đào tạo (Áp dụng từ Kỳ thi Tốt nghiệp THPT 2025). Cho phép giáo viên chèn ngay lập tức từ thanh công cụ `THÊM ▾`, gọi qua menu Gợi ý tác vụ AI, hoặc ra lệnh trực tiếp bằng ngôn ngữ tự nhiên cho AI Copilot. Tích hợp động cơ tự động đếm câu hỏi và cập nhật số lượng câu của từng phần theo thời gian thực.
 - **Quy cách Cấu trúc Đề thi Chuẩn Quốc gia 2025:**
-  1. *Header 2 Cột Đối Xứng (Sở/Bộ GD&ĐT & Kỳ thi):*
-     - Bố cục 2 cột cân bằng bằng môi trường `minipage` chuẩn LaTeX:
-       + Cột trái (độ rộng `0.42\textwidth`, căn giữa `\begin{center}`):
-         `\textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\`
-         `\textbf{ĐỀ CHÍNH THỨC}\\`
-         `
-ule{2.8cm}{0.6pt}` (đường gạch kẻ mảnh chuẩn quy cách hành chính).
-       + Cột phải (độ rộng `0.54\textwidth`, căn giữa `\begin{center}`):
-         `\textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG NĂM 2025}\\`
-         `\textbf{Môn: TOÁN HỌC}\\`
-         `\textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}`
+  1. *Header 2 Cột Đối Xứng Minipage (Tỉ lệ 0.38/0.58, Căn Giữa Cả 2 Bên, Bỏ Nét Liền Trên):*
+     - Bố cục 2 cột cân đối bằng môi trường `minipage` chuẩn LaTeX:
+       + Cột trái (độ rộng `0.38\textwidth`, căn giữa `\centering`):
+         ```latex
+         \noindent
+         \begin{minipage}[t]{0.38\textwidth}
+           \centering
+           \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+           \textbf{TRƯỜNG THPT ...}\\
+           \textbf{ĐỀ CHÍNH THỨC}
+         \end{minipage}
+         ```
+       + Cột phải (độ rộng `0.58\textwidth`, căn giữa `\centering`):
+         ```latex
+         \hfill
+         \begin{minipage}[t]{0.58\textwidth}
+           \centering
+           \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+           \textbf{MÔN: TOÁN}\\
+           \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+         \end{minipage}
+         ```
      - Tương thích 100% cả khi biên dịch qua Tectonic XeTeX engine lẫn Chromium HTML Vector preview engine.
-  2. *Dòng Thông Tin Thí Sinh & Hộp Khung Mã Đề:*
-     - Hàng thông tin được phân cách bằng dấu chấm lửng co giãn `\dotfill` và khung bao mã đề:
-       `\noindent\textbf{Họ, tên thí sinh:} \dotfill\ \textbf{Số báo danh:} \dotfill\ \framebox{\textbf{Mã đề: 0102}}`
-     - Khung mã đề sử dụng lệnh `\framebox` hoặc `\fbox`, đóng khung vuông viền đen sắc nét, định vị rõ mã đề trắc nghiệm.
-  3. *3 Phân Vùng Section Đề Thi Chuẩn Bộ GD&ĐT 2025:*
-     - **PHẦN I (Trắc nghiệm nhiều phương án lựa chọn - 12 câu, 3.0 điểm):**
-       `\section*{PHẦN I. Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}`
-       Chứa 12 câu hỏi trắc nghiệm chuẩn lệnh `\begin{ex} ... \choice{A}{B}{C}{D} ... \end{ex}`.
-     - **PHẦN II (Trắc nghiệm Đúng/Sai 4 khẳng định - 4 câu, 4.0 điểm, QĐ 764/QĐ-BGDĐT):**
-       `\section*{PHẦN II. Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}`
-       Chứa 4 câu hỏi trắc nghiệm Đúng/Sai với lệnh `\choiceTF` và barem bậc thang `\begin{itemchoice}\itemch...\end{itemchoice}`.
-     - **PHẦN III (Trắc nghiệm trả lời ngắn - 6 câu, 3.0 điểm):**
-       `\section*{PHẦN III. Thí sinh trả lời từ câu 1 đến câu 6. Mỗi câu hỏi thí sinh chỉ điền kết quả vào ô trả lời.}`
-       Chứa 6 câu hỏi điền kết quả số/phân số với lệnh `\shortans`.
-  4. *Tích Hợp Giao Diện Người Dùng (UI Integration):*
+  2. *Dòng Thông Tin Thí Sinh & Hộp Khung Mã Đề (Chỉ Giữ Nét Liền Đơn Phía Dưới):*
+     - Bỏ hoàn toàn nét kẻ ngang `\rule` ở phía trên; chỉ duy trì một nét liền đơn duy nhất ở phía dưới dòng thông tin thí sinh:
+       ```latex
+       \vspace{0.25cm}
+       \noindent
+       Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+       \vspace{0.1cm}
+       \noindent\rule{\textwidth}{0.5pt}
+       \vspace{0.3cm}
+       ```
+  3. *3 Phân Vùng Section Đề Thi Chuẩn Bộ GD&ĐT 2025 (Thay \section* bằng \textbf + \textit):*
+     - Loại bỏ hoàn toàn lệnh `\section*{...}` để tránh chiếm dụng khoảng cách dọc quá lớn và lệch chuẩn văn bản hành chính; thay bằng cặp lệnh chuẩn `\noindent\textbf{PHẦN ...} \textit{...}`:
+     - **PHẦN I (Trắc nghiệm nhiều phương án lựa chọn):**
+       `\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}`
+       Chứa các câu hỏi trắc nghiệm chuẩn lệnh `\begin{ex} ... \choice{A}{\True B}{C}{D} ... \end{ex}`.
+     - **PHẦN II (Trắc nghiệm Đúng/Sai 4 khẳng định, QĐ 764/QĐ-BGDĐT):**
+       `\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}`
+       Chứa các câu hỏi trắc nghiệm Đúng/Sai với lệnh `\choiceTF` và barem bậc thang `\begin{itemchoice}\itemch...\end{itemchoice}`.
+     - **PHẦN III (Trắc nghiệm trả lời ngắn):**
+       `\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}`
+       Chứa các câu hỏi điền kết quả số/phân số với lệnh `\shortans`.
+  4. *Thuật Toán Tự Động Nhận Diện Số Lượng Câu Hỏi Từng Phần (Two-Tier Section Question Count Sync):*
+     - Hệ thống vận hành cơ chế đồng bộ số lượng câu hỏi hai tầng (Dual-tier Synchronization):
+       + **Backend Tier (`composer_service.py` - `sync_section_question_counts(latex_code: str) -> str`):**
+         * Phân tách mã nguồn thành các block Phần I, Phần II, Phần III qua regex `PHẦN\s+(I{1,3}|IV|V|[1-9])\b`.
+         * Đếm số câu hỏi trong từng phần theo thứ tự ưu tiên: Ưu tiên 1 phát hiện các môi trường `\begin{ex}`, `\begin{bt}`, `\begin{vd}` (`re.findall(r'\\begin\{(?:ex|bt|vd)\}', sec_content)`); Ưu tiên 2 (khi không dùng ex_test) bóc tách tiêu đề hướng dẫn ra khỏi phần thân (`clean_body`), đếm các câu đánh số kinh điển `\textbf{Câu \d+}` hoặc đầu dòng `Câu \d+[\.:]` nhằm ngăn chặn tuyệt đối lỗi đếm nhầm "câu 1" trong chuỗi hướng dẫn "từ câu 1 đến câu X".
+         * Nếu `count > 0`: Tự động thay thế mẫu `[Tt]ừ\s+câu\s+1\s+đến\s+câu\s+\d+` thành `từ câu 1 đến câu {count}`.
+         * Tự động kích hoạt trước khi gửi mã sang Tectonic XeTeX engine, Chromium HTML Preview, hoặc xuất file `.tex`.
+       + **Frontend Tier (`app.js` - `syncSectionQuestionCounts(latexCode)`):**
+         * Tự động đồng bộ nội dung trực tiếp trên textarea của editor khi người dùng bấm nút **BIÊN DỊCH** (hoặc `Ctrl+S` / `Cmd+S`), sau thời gian gõ debounce (800ms), hoặc khi nhấn Xuất/Sao chép mã.
+  5. *Tích Hợp Giao Diện Người Dùng (UI Integration):*
      - Dropdown menu `THÊM ▾` trên thanh công cụ của Editor phân chia thành 2 nhóm rõ rệt:
-       + Nhóm *CẤU TRÚC ĐỀ THI QUỐC GIA 2025*: Header 2 Cột & Mã đề, Phần I (12 câu), Phần II (4 câu QĐ 764), Phần III (6 câu ngắn), và Trọn bộ Đề thi Quốc Gia.
+       + Nhóm *CẤU TRÚC ĐỀ THI QUỐC GIA 2025*: Header 2 Cột & Mã đề (0.38/0.58), Phần I (12 câu - tự động đếm), Phần II (4 câu QĐ 764 - tự động đếm), Phần III (6 câu ngắn - tự động đếm), và Trọn bộ Đề thi Quốc Gia.
        + Nhóm *MẪU LỆNH EX_TEST*: Trắc nghiệm, Đúng/Sai, Trả lời ngắn, Tự luận, Hình TikZ, Hình cạnh chữ, Lời giải.
-     - Menu Popover Gợi ý tác vụ AI trên thanh Compact Bar (`#composer-compact-quick-menu`) bổ sung mục:
-       * *Tạo Header đề thi chuẩn Quốc gia 2 cột & mã đề*
-       * *Tạo khung 3 Phần đề thi chuẩn Bộ GD&ĐT 2025*
-  5. *Động Cơ Render HTML/PDF Hỗ Trợ Đầy Đủ Các Lệnh:*
+     - AI Copilot (`POST /api/v1/composer/chat`) cập nhật `system_prompt` và các phản hồi mẫu (fallback) tự động xuất định dạng Header 0.38/0.58 căn giữa và các Section chuẩn `\noindent\textbf{PHẦN ...}` `\textit{...}`.
+  6. *Động Cơ Render HTML/PDF Hỗ Trợ Đầy Đủ Các Lệnh:*
      - Engine `compile_latex_source_to_html` trong `composer_service.py` bổ sung bộ phân giải cho:
-       + `\begin{minipage}[t]{...} ... \end{minipage}` và `\hfill` $\rightarrow$ Thẻ flexbox/inline-block CSS.
-       + `\rule{...}{...}` $\rightarrow$ Thẻ divider đường kẻ đen mảnh căn giữa (`<hr>`).
+       + `\begin{minipage}[t]{...} ... \end{minipage}` chuyển đổi tỉ lệ `0.38\textwidth` $\rightarrow$ `38.0%` và `0.58\textwidth` $\rightarrow$ `58.0%` responsive flexbox/inline-block CSS.
+       + `\centering` bên trong `minipage` tự động thiết lập `text-align: center;` cho khối hiển thị.
+       + `\noindent\textbf{...}` và `\textit{...}` chuyển đổi thành thẻ `<strong>` và `<em>` tương ứng chuẩn HTML5.
+       + `\rule{...}{...}` $\rightarrow$ Thẻ divider đường kẻ đen mảnh (`<hr>`).
        + `\dotfill` $\rightarrow$ Thẻ co giãn đường chấm dotted baseline.
        + `\framebox{...}` / `\fbox{...}` $\rightarrow$ Khung viền đen 1.5px bọc mã đề.
-       + Bỏ thuộc tính `text-transform: uppercase` trên `.latex-section` để giữ nguyên đoạn hướng dẫn chữ thường chuẩn mực của Bộ GD&ĐT.
        + **Kiến trúc Pipeline Tránh Lỗi Over-Escaping:** Các macro layout (`minipage`, `hfill`, `rule`, `dotfill`, `framebox`, `fbox`) và khối `loigiai` được phân giải trực tiếp trên `final_body` **SAU** khi bước bóc tách đoạn văn và render công thức toán `render_math_html` hoàn tất. Cơ chế này bảo vệ các thẻ HTML thực tế (`<div>`, `<span>`, `<hr>`) không bị chuyển hóa nhầm thành text thô đã escape (`&lt;div...&gt;`, `&lt;span...&gt;`). Regex `\rule` chuẩn hóa tuyệt đối với `r'\\rule\{([^}]+)\}\{([^}]+)\}'`.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings

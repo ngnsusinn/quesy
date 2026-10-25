@@ -1005,6 +1005,159 @@ def composer_chat_endpoint(req: ChatRequest):
             ctx = ctx[:12000] + "\n... [đoạn giữa được rút gọn] ...\n" + ctx[-12000:]
         prompt += f"--- NỘI DUNG TÀI LIỆU HIỆN TẠI ---\n{ctx}\n--------------------------------------------\n"
 
+    user_msg_lower = req.message.lower()
+
+    # Fast deterministic canonical 2025 templates router
+    if any(k in user_msg_lower for k in ("3 phần", "chuẩn quốc gia 2025", "trọn bộ", "đề thi chuẩn quốc gia")):
+        full_national_exam = r"""\noindent
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+  \textbf{TRƯỜNG THPT ...}\\
+  \textbf{ĐỀ CHÍNH THỨC}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+  \textbf{MÔN: TOÁN}\\
+  \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+\end{minipage}
+\vspace{0.25cm}
+\noindent
+Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+\vspace{0.1cm}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.3cm}
+
+\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
+\begin{ex}
+Cho hàm số $y = f(x)$ có đạo hàm $f'(x) = x(x-1)^2$. Số điểm cực trị của hàm số là:
+\choice
+{0}
+{\True 2}
+{1}
+{3}
+\begin{loigiai}
+$f'(x) = 0 \Leftrightarrow x = 0$ hoặc $x = 1$. Số điểm cực trị là 1.
+\end{loigiai}
+\end{ex}
+
+\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+
+\begin{ex}
+Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
+\choiceTF
+{\True Hàm số đạt cực đại tại $x = -1$.}\\
+{Giá trị cực tiểu bằng $1$.}\\
+{\True Tiệm cận ngang không có.}\\
+{Đồ thị nhận điểm $I(0;1)$ làm tâm đối xứng.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. $y' = 3x^2 - 3 = 0 \Rightarrow x = \pm 1$. $y(-1) = 3$.
+\itemch Sai. $y(1) = -1$.
+\itemch Đúng. Hàm đa thức không có tiệm cận ngang.
+\itemch Đúng. $y''(0) = 0$ và $y(0) = 1$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}
+
+\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+
+\begin{ex}
+Tìm giá trị lớn nhất của hàm số $y = -x^2 + 4x - 3$ trên đoạn $[0; 3]$.
+\shortans{1}
+\begin{loigiai}
+$y = -(x-2)^2 + 1 \le 1$. Đạt được khi $x = 2$.
+\end{loigiai}
+\end{ex}"""
+        return ChatResponse(
+            reply=f"Đã tạo trọn bộ đề thi chuẩn Quốc Gia 2025 (Header 2 cột & 3 Section):\n```latex\n{full_national_exam}\n```",
+            suggested_latex=full_national_exam
+        )
+
+    if any(k in user_msg_lower for k in ("tạo header", "tạo tiêu đề", "sở giáo dục", "tiêu đề 2 cột")):
+        header_snippet = r"""\noindent
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+  \textbf{TRƯỜNG THPT ...}\\
+  \textbf{ĐỀ CHÍNH THỨC}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+  \textbf{MÔN: TOÁN}\\
+  \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+\end{minipage}
+\vspace{0.25cm}
+\noindent
+Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+\vspace{0.1cm}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.3cm}"""
+        return ChatResponse(
+            reply=f"Đã tạo tiêu đề chuẩn 2 cột:\n```latex\n{header_snippet}\n```",
+            suggested_latex=header_snippet
+        )
+
+    if any(k in user_msg_lower for k in ("phần 1", "phần i")):
+        s1_snippet = r"""\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+\begin{ex}
+Cho hàm số $y = f(x)$...
+\choice
+{\True Phương án A}
+{Phương án B}
+{Phương án C}
+{Phương án D}
+\begin{loigiai}
+Lời giải chi tiết Phần I.
+\end{loigiai}
+\end{ex}"""
+        return ChatResponse(
+            reply=f"Đã tạo Phần I (12 câu trắc nghiệm):\n```latex\n{s1_snippet}\n```",
+            suggested_latex=s1_snippet
+        )
+
+    if any(k in user_msg_lower for k in ("phần 2", "phần ii")):
+        s2_snippet = r"""\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+\begin{ex}
+Cho hàm số $y = f(x)$... Xét tính đúng/sai:
+\choiceTF
+{\True Khẳng định a) đúng.}
+{Khẳng định b) sai.}
+{\True Khẳng định c) đúng.}
+{Khẳng định d) sai.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Lời giải ý a.
+\itemch Lời giải ý b.
+\itemch Lời giải ý c.
+\itemch Lời giải ý d.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}"""
+        return ChatResponse(
+            reply=f"Đã tạo Phần II (Đúng/Sai 4 ý):\n```latex\n{s2_snippet}\n```",
+            suggested_latex=s2_snippet
+        )
+
+    if any(k in user_msg_lower for k in ("phần 3", "phần iii")):
+        s3_snippet = r"""\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+\begin{ex}
+Tính giá trị của biểu thức...
+\shortans{100}
+\begin{loigiai}
+Lời giải chi tiết trả lời ngắn.
+\end{loigiai}
+\end{ex}"""
+        return ChatResponse(
+            reply=f"Đã tạo Phần III (Trả lời ngắn):\n```latex\n{s3_snippet}\n```",
+            suggested_latex=s3_snippet
+        )
+
     # Attempt to query configured AI provider
     try:
         if default_ai_provider_service and (default_ai_provider_service.api_key or default_ai_provider_service.provider in ("openai", "openrouter", "custom", "gemini")):
@@ -1062,34 +1215,33 @@ def composer_chat_endpoint(req: ChatRequest):
     # 0a. Check if prompt requests national exam header or sections
     if any(k in user_msg_lower for k in ("tạo header", "tạo tiêu đề", "sở giáo dục", "tiêu đề 2 cột")):
         header_snippet = r"""\noindent
-\begin{minipage}[t]{0.48\textwidth}
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
   \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
   \textbf{TRƯỜNG THPT ...}\\
   \textbf{ĐỀ CHÍNH THỨC}
 \end{minipage}
 \hfill
-\begin{minipage}[t]{0.48\textwidth}
+\begin{minipage}[t]{0.58\textwidth}
   \centering
   \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
   \textbf{MÔN: TOÁN}\\
   \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
 \end{minipage}
-\vspace{0.2cm}
-\noindent\rule{\textwidth}{0.5pt}
-\vspace{-0.1cm}
+\vspace{0.25cm}
 \noindent
 Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
 \vspace{0.1cm}
-\noindent\rule{\textwidth}{0.5pt}
+\noindent
+ule{\textwidth}{0.5pt}
 \vspace{0.3cm}"""
         return ChatResponse(
             reply=f"Đã tạo tiêu đề chuẩn 2 cột:\n```latex\n{header_snippet}\n```",
             suggested_latex=header_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 1", "phần i", "trắc nghiệm 4 lựa chọn")):
-        s1_snippet = r"""\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
-\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+    if any(k in user_msg_lower for k in ("phần 1", "phần i")):
+        s1_snippet = r"""\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 \begin{ex}
 Cho hàm số $y = f(x)$...
 \choice
@@ -1106,9 +1258,8 @@ Lời giải chi tiết Phần I.
             suggested_latex=s1_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 2", "phần ii", "đúng/sai", "đúng sai")):
-        s2_snippet = r"""\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai}
-\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+    if any(k in user_msg_lower for k in ("phần 2", "phần ii")):
+        s2_snippet = r"""\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 \begin{ex}
 Cho hàm số $y = f(x)$... Xét tính đúng/sai:
 \choiceTF
@@ -1130,9 +1281,8 @@ Cho hàm số $y = f(x)$... Xét tính đúng/sai:
             suggested_latex=s2_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 3", "phần iii", "trả lời ngắn")):
-        s3_snippet = r"""\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
-\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+    if any(k in user_msg_lower for k in ("phần 3", "phần iii")):
+        s3_snippet = r"""\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
 \begin{ex}
 Tính giá trị của biểu thức...
 \shortans{100}
@@ -1147,24 +1297,29 @@ Lời giải chi tiết trả lời ngắn.
 
     if any(k in user_msg_lower for k in ("3 phần", "chuẩn quốc gia 2025", "trọn bộ", "đề thi chuẩn quốc gia")):
         full_national_exam = r"""\noindent
-\begin{minipage}[t]{0.55\textwidth}
-  \textbf{SỞ GD\&ĐT ...}\\
-  \textbf{TRƯỜNG THPT ...}
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+  \textbf{TRƯỜNG THPT ...}\\
+  \textbf{ĐỀ CHÍNH THỨC}
 \end{minipage}
-\begin{minipage}[t]{0.45\textwidth}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
   \centering
   \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
-  \textbf{Môn thi: TOÁN HỌC}\\
-  \textit{Thời gian làm bài: 90 phút}
+  \textbf{MÔN: TOÁN}\\
+  \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
 \end{minipage}
-\vspace{0.3cm}
-\begin{center}
-  \textbf{MÃ ĐỀ THI: 101}
-\end{center}
+\vspace{0.25cm}
+\noindent
+Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+\vspace{0.1cm}
+\noindent
+ule{\textwidth}{0.5pt}
 \vspace{0.3cm}
 
-\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
-\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
 \begin{ex}
 Cho hàm số $y = f(x)$ có đạo hàm $f'(x) = x(x-1)^2$. Số điểm cực trị của hàm số là:
 \choice
@@ -1177,14 +1332,14 @@ $f'(x) = 0 \Leftrightarrow x = 0$ hoặc $x = 1$. Số điểm cực trị là 1
 \end{loigiai}
 \end{ex}
 
-\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai}
-\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+
 \begin{ex}
 Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
 \choiceTF
-{\True Hàm số đạt cực đại tại $x = -1$.}
-{Giá trị cực tiểu bằng $1$.}
-{\True Tiệm cận ngang không có.}
+{\True Hàm số đạt cực đại tại $x = -1$.}\\
+{Giá trị cực tiểu bằng $1$.}\\
+{\True Tiệm cận ngang không có.}\\
 {Đồ thị nhận điểm $I(0;1)$ làm tâm đối xứng.}
 \begin{loigiai}
 \begin{itemchoice}
@@ -1196,16 +1351,15 @@ Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
 \end{loigiai}
 \end{ex}
 
-\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
-\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+
 \begin{ex}
 Tìm giá trị lớn nhất của hàm số $y = -x^2 + 4x - 3$ trên đoạn $[0; 3]$.
 \shortans{1}
 \begin{loigiai}
 $y = -(x-2)^2 + 1 \le 1$. Đạt được khi $x = 2$.
 \end{loigiai}
-\end{ex}
-"""
+\end{ex}"""
         return ChatResponse(
             reply=f"Đã tạo trọn bộ đề thi chuẩn Quốc Gia 2025 (Header 2 cột & 3 Section):\n```latex\n{full_national_exam}\n```",
             suggested_latex=full_national_exam
