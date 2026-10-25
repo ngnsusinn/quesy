@@ -1207,19 +1207,20 @@ def composer_chat_endpoint(req: ChatRequest):
         "Bạn là Trợ lý Soạn thảo Đề thi & LaTeX Chuyên nghiệp (Quesy AI Copilot), lấy cảm hứng từ open-prism.\n"
         "Nhiệm vụ của bạn là hỗ trợ giáo viên Toán tại Việt Nam soạn thảo đề thi chất lượng cao theo chuẩn Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT (Định dạng 2025).\n\n"
         "KIẾN TRÚC SOẠN THẢO PREAMBLE-FREE (KHÔNG PREAMBLE):\n"
-        "- Khung soạn thảo (editor) CHỈ CHỨA trực tiếp phần tiêu đề đề thi (\\section*, \\begin{center}) và các khối câu hỏi theo chuẩn gói lệnh ex_test.sty (\\begin{ex}...\\end{ex}).\n"
+        "- Khung soạn thảo (editor) CHỈ CHỨA trực tiếp phần tiêu đề đề thi chuẩn 2 cột và các khối câu hỏi theo chuẩn gói lệnh ex_test.sty (\\begin{ex}...\\end{ex}).\n"
         "- Toàn bộ Preamble (\\documentclass, \\usepackage{fontspec}, \\usepackage{amsmath,amssymb,amsfonts}, \\usepackage{geometry}, \\usepackage{multicol}, \\usepackage{tikz,tkz-tab}, \\usepackage{tcolorbox}, \\usepackage[dethi]{ex_test}, \\begin{document}, \\end{document}) ĐÃ ĐƯỢC HỆ THỐNG TỰ ĐỘNG NHÚNG NGẦM ở backend khi biên dịch.\n"
         "- TUYỆT ĐỐI KHÔNG sinh lại preamble, \\documentclass, \\usepackage, \\begin{document} hay \\end{document}. Khi sinh mới hoặc sửa câu hỏi, CHỈ TRẢ VỀ mã câu hỏi \\begin{ex}...\\end{ex} chuẩn ex_test.\n\n"
         "HỆ THỐNG ĐÃ TÍCH HỢP TOÀN DIỆN GÓI LỆNH ex_test.sty (v3.3):\n"
+        "- Tiêu đề đề thi chuẩn MoET 2025: Bắt buộc dùng Header 2 cột (cột trái 0.38\\textwidth, cột phải 0.58\\textwidth, căn giữa cả hai bên, \\hfill giữa 2 minipage, dòng họ tên & SBD dùng \\dotfill kèm \\framebox{\\textbf{Mã đề: ...}}, đường kẻ đơn phía dưới \\noindent\\rule{\\textwidth}{0.5pt}).\n"
         "- Phần I (Trắc nghiệm 4 lựa chọn): Dùng \\begin{ex} ... \\choice{A}{\\True B}{C}{D} \\begin{loigiai}...\\end{loigiai} \\end{ex}.\n"
-        "- Phần II (Đúng/Sai 4 khẳng định): Dùng \\begin{ex} ... \\choiceTF{\\True a)...}{b)...}{\\True c)...}{d)...} \\begin{loigiai}\\begin{itemchoice}\\itemch...\\end{itemchoice}\\end{loigiai} \\end{ex}.\n"
-        "- Phần III (Trả lời ngắn): Dùng \\begin{ex} ... \\shortans{kết_quả} \\begin{loigiai}...\\end{loigiai} \\end{ex}.\n"
-        "- Chèn hình song song chữ: Dùng \\immini{Văn bản câu hỏi}{Mã hình TikZ} (hình bên phải) hoặc \\imminiL (hình bên trái). Tuyệt đối không lồng \\choice vào trong tham số của \\immini.\n\n"
-        "QUY TẮC BẮT BUỘC:\n"
-        "1. Bảng biến thiên BẮT BUỘC dùng TikZ package tkz-tab (\\tkzTabInit, \\tkzTabLine, \\tkzTabVar). Không dùng \\begin{array} cho bảng biến thiên!\n"
-        "2. Đồ thị hàm số và hình học BẮT BUỘC dùng khối \\begin{tikzpicture} ... \\end{tikzpicture}.\n"
-        "3. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n"
-        "4. Khi tạo đồ thị hàm số TikZ, luôn đặt samples=50 hoặc samples=60 mặc định thay vì samples=100 để đảm bảo thời gian biên dịch nhanh nhất và tránh lỗi quá thời gian (Timeout).\n\n"
+        "- Phần II (Đúng/Sai 4 khẳng định): BẮT BUỘC dùng \\choiceTF[1] (luôn có tham số [1] để mỗi ý 1 dòng). TUYỆT ĐỐI KHÔNG gõ tiền tố nhãn a), b), c), d) vào trong nội dung khẳng định.\n"
+        "- Phần III (Trả lời ngắn): Dùng \\begin{ex} ... \\shortans{kết_quả} \\begin{loigiai}...\\end{loigiai} \\end{ex}.\n\n"
+        "QUY TẮC BẮT BUỘC VỀ BỐ CỤC ĐỒ THỊ & BẢNG BIỂU (CENTERED LAYOUT INVARIANT):\n"
+        "1. MẶC ĐỊNH TOÀN BỘ các đồ thị hàm số TikZ, hình học TikZ, bảng biến thiên tkz-tab và bảng biểu ĐỀU PHẢI NẰM Ở CHÍNH GIỮA (CENTERED), TUYỆT ĐỐI KHÔNG nằm lệch 1 bên hay dùng \\immini / \\imminiL.\n"
+        "2. BẮT BUỘC đặt trong môi trường căn giữa: \\begin{center}\\begin{tikzpicture}...\\end{tikzpicture}\\end{center} (hoặc tkz-tab), nằm ngay bên dưới phần dẫn đề bài (stem) và ở phía trên các phương án lựa chọn (\\choice / \\choiceTF[1] / \\shortans).\n"
+        "3. Bảng biến thiên BẮT BUỘC dùng TikZ package tkz-tab (\\tkzTabInit, \\tkzTabLine, \\tkzTabVar). Không dùng \\begin{array} cho bảng biến thiên!\n"
+        "4. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n"
+        "5. Khi tạo đồ thị hàm số TikZ, luôn đặt samples=50 hoặc samples=60 mặc định để đảm bảo thời gian biên dịch nhanh nhất.\n\n"
         "PHÂN TÍCH ĐA PHƯƠNG TIỆN (MULTI-MODAL IMAGE ANALYSIS):\n"
         "- Khi người dùng đính kèm hình ảnh (ảnh chụp đề thi, đồ thị hàm số, bảng biến thiên tkz-tab, hình học không gian tikz, bài toán trắc nghiệm ex_test), bạn phải phân tích chi tiết nội dung hình ảnh đó.\n"
         "- Trích xuất chính xác văn bản, công thức toán học và biểu đồ từ ảnh thành mã LaTeX chuẩn ex_test & TikZ tương ứng.\n\n"
@@ -1948,7 +1949,7 @@ Dựa vào bảng biến thiên, tại $x = -2$ đạo hàm đổi dấu từ d�
 
 \begin{ex}
 Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tính Đúng/Sai của các khẳng định sau:
-\choiceTF
+\choiceTF[1]
 {\True Đồ thị hàm số bậc ba luôn có tâm đối xứng là điểm uốn.}
 {Nếu hàm số có hai điểm cực trị thì tích các giá trị cực trị luôn âm.}
 {\True Hàm số luôn có đạo hàm cấp hai liên tục trên $\mathbb{R}$.}
@@ -1970,14 +1971,8 @@ Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tín
 
     elif any(k in user_msg_lower for k in ("đồ thị", "tikz", "bậc ba", "bậc 3")):
         latex_snippet = r"""\begin{ex}
-\immini{
-  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình vẽ bên. Hàm số đã cho đồng biến trên khoảng nào dưới đây?
-  \choice
-  {\True $(-\infty; -1)$}
-  {$(-1; 2)$}
-  {$(0; 2)$}
-  {$(-2; 1)$}
-}{
+Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình vẽ bên. Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\begin{center}
   \begin{tikzpicture}[scale=0.6, >=stealth]
     \clip (-3.8, -5.5) rectangle (4.2, 5.5);
     \draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};
@@ -1985,11 +1980,16 @@ Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tín
     \node[below left] at (0, 0) {$O$};
     \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};
     \draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};
-    \draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
+    \draw[thick, black, smooth, samples=50, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
     \fill (-1, 4) circle (1.5pt);
     \fill (2, -3) circle (1.5pt);
   \end{tikzpicture}
-}
+\end{center}
+\choice
+{\True $(-\infty; -1)$}
+{$(-1; 2)$}
+{$(0; 2)$}
+{$(-2; 1)$}
 \begin{loigiai}
 Dựa vào đồ thị, hàm số đi lên từ trái sang phải trên khoảng $(-\infty; -1)$ và $(2; +\infty)$, do đó đồng biến trên $(-\infty; -1)$.
 \end{loigiai}

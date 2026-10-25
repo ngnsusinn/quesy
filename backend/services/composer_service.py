@@ -39,33 +39,46 @@ STORAGE_COMPOSER_CACHE.mkdir(parents=True, exist_ok=True)
 TEMPLATES: Dict[str, Dict[str, str]] = {
     "ex_test_standard_exam": {
         "title": "Đề thi Chuẩn Quốc Gia 2025 (Gói ex_test v3.3)",
-        "description": "Đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn (\\choice), Đúng/Sai (\\choiceTF), Trả lời ngắn (\\shortans), chèn hình \\immini.",
-        "latex": r"""\begin{center}
-  \textbf{\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\
-  \textbf{\large MÔN THI: TOÁN HỌC}\\
-  \textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}
-\end{center}
+        "description": "Đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn (\\choice), Đúng/Sai (\\choiceTF), Trả lời ngắn (\\shortans), chèn hình TikZ căn giữa.",
+        "latex": r"""\noindent
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+  \textbf{TRƯỜNG THPT ...}\\
+  \textbf{ĐỀ CHÍNH THỨC}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+  \textbf{MÔN: TOÁN}\\
+  \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+\end{minipage}
+\vspace{0.25cm}
+\noindent
+Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+\vspace{0.1cm}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.3cm}
 \vspace{0.4cm}
 
 \section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
 \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 
 \begin{ex}
-\immini{
-  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.
-  Hàm số đã cho đồng biến trên khoảng nào dưới đây?
-}{
+Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên. Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\begin{center}
   \begin{tikzpicture}[scale=0.55, >=stealth]
     \draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};
     \draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};
     \node[below left] at (0, 0) {$O$};
     \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};
     \draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};
-    \draw[thick, smooth, domain=-2.3:3.1] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
+    \draw[thick, smooth, samples=50, domain=-2.3:3.1] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
     \fill (-1, 3) circle (1.5pt);
     \fill (2, -2) circle (1.5pt);
   \end{tikzpicture}
-}
+\end{center}
 \choice
 {\True $(-\infty; -1)$}
 {$(-1; 2)$}
@@ -136,10 +149,8 @@ $s = \int_{0}^{2} (3t^2 + 2t)\,\mathrm{d}t = \left. (t^3 + t^2) \right|_0^2 = 12
 \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 
 \begin{ex}
-\immini{
-  Cho hàm số bậc ba $y = f(x)$ liên tục trên $\mathbb{R}$ có đồ thị như hình vẽ.
-  Hàm số đã cho nghịch biến trên khoảng nào dưới đây?
-}{
+Cho hàm số bậc ba $y = f(x)$ liên tục trên $\mathbb{R}$ có đồ thị như hình vẽ. Hàm số đã cho nghịch biến trên khoảng nào dưới đây?
+\begin{center}
   \begin{tikzpicture}[scale=0.55, >=stealth]
     \clip (-3.8, -5.5) rectangle (4.2, 5.5);
     \draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};
@@ -147,11 +158,11 @@ $s = \int_{0}^{2} (3t^2 + 2t)\,\mathrm{d}t = \left. (t^3 + t^2) \right|_0^2 = 12
     \node[below left] at (0, 0) {$O$};
     \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};
     \draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};
-    \draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
+    \draw[thick, black, smooth, samples=50, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
     \fill (-1, 4) circle (1.5pt);
     \fill (2, -3) circle (1.5pt);
   \end{tikzpicture}
-}
+\end{center}
 \choice
 {$(-\infty; -1)$}
 {\True $(-1; 2)$}

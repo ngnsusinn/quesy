@@ -4041,9 +4041,9 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
       '\\overrightarrow{u}': '\\overrightarrow{u}',
       '\\in \\mathbb{R}': '\\in \\mathbb{R}',
       'extest_ex': `\\begin{ex}\nCho hàm số $y = f(x)$... Mệnh đề nào sau đây đúng?\n\\choice\n{\\True Phương án A}\n{Phương án B}\n{Phương án C}\n{Phương án D}\n\\begin{loigiai}\nLời giải chi tiết cho câu hỏi.\n\\end{loigiai}\n\\end{ex}\n`,
-      'extest_choiceTF': `\\begin{ex}\nCho hàm số $y = f(x)$... Xét tính đúng/sai của các khẳng định sau:\n\\choiceTF\n{\\True Khẳng định a) đúng.}\n{Khẳng định b) sai.}\n{\\True Khẳng định c) đúng.}\n{Khẳng định d) sai.}\n\\begin{loigiai}\n\\begin{itemchoice}\n\\itemch Lời giải ý a.\n\\itemch Lời giải ý b.\n\\itemch Lời giải ý c.\n\\itemch Lời giải ý d.\n\\end{itemchoice}\n\\end{loigiai}\n\\end{ex}\n`,
+      'extest_choiceTF': `\\begin{ex}\nCho hàm số $y = f(x)$... Xét tính đúng/sai của các khẳng định sau:\n\\choiceTF[1]\n{\\True Khẳng định đúng thứ nhất.}\n{Khẳng định sai thứ hai.}\n{\\True Khẳng định đúng thứ ba.}\n{Khẳng định sai thứ tư.}\n\\begin{loigiai}\n\\begin{itemchoice}\n\\itemch Lời giải ý 1.\n\\itemch Lời giải ý 2.\n\\itemch Lời giải ý 3.\n\\itemch Lời giải ý 4.\n\\end{itemchoice}\n\\end{loigiai}\n\\end{ex}\n`,
       'extest_shortans': `\\begin{ex}\nTính giá trị của biểu thức $P = ...$\n\\shortans{12}\n\\begin{loigiai}\nLời giải chi tiết.\n\\end{loigiai}\n\\end{ex}\n`,
-      'extest_immini': `\\immini{\n  Nội dung câu hỏi đặt ở đây...\n  \\choice\n  {\\True $A$}\n  {$B$}\n  {$C$}\n  {$D$}\n}{\n  \\begin{tikzpicture}[scale=0.6, >=stealth]\n    \\draw[->] (-2.5,0) -- (2.5,0) node[right] {$x$};\n    \\draw[->] (0,-2.5) -- (0,2.5) node[above] {$y$};\n    \\node[below left] at (0,0) {$O$};\n  \\end{tikzpicture}\n}\n`,
+      'extest_immini': `Nội dung câu hỏi đặt ở đây...\n\\begin{center}\n  \\begin{tikzpicture}[scale=0.6, >=stealth, samples=50]\n    \\draw[->] (-2.5,0) -- (2.5,0) node[right] {$x$};\n    \\draw[->] (0,-2.5) -- (0,2.5) node[above] {$y$};\n    \\node[below left] at (0,0) {$O$};\n  \\end{tikzpicture}\n\\end{center}\n\\choice\n{\\True $A$}\n{$B$}\n{$C$}\n{$D$}\n`,
       'tkz_tab': `\\begin{tikzpicture}\n  \\tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]\n  {$x$/.6, $f'(x)$/.6, $f(x)$/2}\n  {$-\\infty$,$-2$,$1$,$+\\infty$}\n  \\tkzTabLine{,+,0,-,0,+,}\n  \\tkzTabVar{-/$-\\infty$,+/$4$,-/$-1$,+/$+\\infty$}\n\\end{tikzpicture}\n`,
       'tikz_cubic': `\\begin{tikzpicture}[scale=0.65, >=stealth]\n  \\clip (-3.8, -5.5) rectangle (4.2, 5.5);\n  \\draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};\n  \\draw[->, thick] (0, -5) -- (0, 5) node[above] {$y$};\n  \\node[below left] at (0, 0) {$O$};\n  \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};\n  \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};\n  \\draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n  \\fill (-1, 4) circle (1.5pt);\n  \\fill (2, -3) circle (1.5pt);\n\\end{tikzpicture}\n`,
       'tikz_rational': `\\begin{tikzpicture}[scale=0.7, >=stealth]\n  \\clip (-4.5, -4.5) rectangle (4.5, 5.5);\n  \\draw[->, thick] (-4.2, 0) -- (4.2, 0) node[right] {$x$};\n  \\draw[->, thick] (0, -4.2) -- (0, 5.2) node[above] {$y$};\n  \\node[below left] at (0, 0) {$O$};\n  \\draw[dashed, thick] (1, -4.2) -- (1, 5.2) node[above] {$x=1$};\n  \\draw[dashed, thick] (-4.2, 2) -- (4.2, 2) node[right] {$y=2$};\n  \\draw[thick, black, smooth, domain=-4:0.7, samples=80] plot (\\x, {(2*\\x - 1)/(\\x - 1)});\n  \\draw[thick, black, smooth, domain=1.3:4, samples=80] plot (\\x, {(2*\\x - 1)/(\\x - 1)});\n\\end{tikzpicture}\n`,
@@ -4119,7 +4119,55 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
       } else if (this.templates['circular_32_full_exam']) {
         this.currentLatex = extractPreambleFreeBody(this.templates['circular_32_full_exam'].latex);
       } else {
-        this.currentLatex = `\\begin{center}\n  \\textbf{\\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\\\\\n  \\textbf{\\large MÔN THI: TOÁN HỌC}\\\\\\n  \\textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}\n\\end{center}\n\\vspace{0.4cm}\n\n\\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}\n\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}\n\n\\begin{ex}\n\\immini{\n  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.\n  Hàm số đã cho đồng biến trên khoảng nào dưới đây?\n}{\n  \\begin{tikzpicture}[scale=0.55, >=stealth]\n    \\draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};\n    \\draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};\n    \\node[below left] at (0, 0) {$O$};\n    \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};\n    \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};\n    \\draw[thick, smooth, domain=-2.3:3.1] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});\n    \\fill (-1, 3) circle (1.5pt);\n    \\fill (2, -2) circle (1.5pt);\n  \\end{tikzpicture}\n}\n\\choice\n{\\True $(-\\infty; -1)$}\n{$(-1; 2)$}\n{$(0; 2)$}\n{$(-\\infty; 2)$}\n\\begin{loigiai}\nDựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty; -1)$ và $(2; +\\infty)$.\n\\end{loigiai}\n\\end{ex}\n`;
+        this.currentLatex = `\\noindent
+\\begin{minipage}[t]{0.38\\textwidth}
+  \\centering
+  \\textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\\\
+  \\textbf{TRƯỜNG THPT ...}\\\\
+  \\textbf{ĐỀ CHÍNH THỨC}
+\\end{minipage}
+\\hfill
+\\begin{minipage}[t]{0.58\\textwidth}
+  \\centering
+  \\textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\\\
+  \\textbf{MÔN: TOÁN}\\\\
+  \\textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+\\end{minipage}
+\\vspace{0.25cm}
+\\noindent
+Họ và tên thí sinh: \\dotfill\\ Số báo danh: \\dotfill\\ \\hfill \\framebox{\\textbf{Mã đề: 0102}}
+\\vspace{0.1cm}
+\noindent\rule{\textwidth}{0.5pt}
+\\vspace{0.3cm}
+\\vspace{0.4cm}
+
+\\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
+\\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
+\\begin{ex}
+Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên. Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\\begin{center}
+  \\begin{tikzpicture}[scale=0.55, >=stealth]
+    \\draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};
+    \\draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};
+    \\node[below left] at (0, 0) {$O$};
+    \\draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};
+    \\draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};
+    \\draw[thick, smooth, samples=50, domain=-2.3:3.1] plot (\\x, {(\\x)^3 - 1.5*(\\x)^2 - 6*(\\x) + 0.5});
+    \\fill (-1, 3) circle (1.5pt);
+    \\fill (2, -2) circle (1.5pt);
+  \\end{tikzpicture}
+\\end{center}
+\\choice
+{\\True $(-\\infty; -1)$}
+{$(-1; 2)$}
+{$(0; 2)$}
+{$(-\\infty; 2)$}
+\\begin{loigiai}
+Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty; -1)$ và $(2; +\\infty)$.
+\\end{loigiai}
+\\end{ex}
+`;
       }
 
       if (editor) {

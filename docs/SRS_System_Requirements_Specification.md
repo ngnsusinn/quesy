@@ -174,7 +174,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   1. *Cột bên trái (Editor Pane):*
      - *Khung trên:* Trình soạn thảo mã nguồn LaTeX Dark mode (`#141824`, bảo toàn màu nền khi click con trỏ focus, thanh cuộn mượt mà không kẹt `overflow-y: scroll`) với toolbar `MỚI`, `THÊM ▾` (7 template chuẩn `ex_test`), phím tắt hoàn tác (Undo/Redo), dọn dẹp, sao chép, đánh số dòng và hiển thị vị trí con trỏ.
      - *Thanh Banner Gợi ý Sửa đổi (Inline Diff Banner):* Hiển thị trực tiếp số dòng cần sửa, tự động cuộn và bôi đen vị trí cần thay thế trên editor, hiển thị trực quan khối so sánh `- old_text` (đỏ) và `+ new_text` (xanh), cho phép duyệt nhanh với 2 nút bấm **`[Đồng ý]`** và **`[Từ chối]`**.
-     - *Khung dưới:* Trợ lý Soạn thảo AI Copilot hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ `\immini`, hỗ trợ kéo thả thanh ngang hoặc biên trên để co giãn độ cao tùy ý.
+     - *Khung dưới:* Trợ lý Soạn thảo AI Copilot hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764 chuẩn `\choiceTF[1]`), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ căn giữa `\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}`, hỗ trợ kéo thả thanh ngang hoặc biên trên để co giãn độ cao tùy ý.
   2. *Thanh Phân Tách Ngang (Horizontal Splitter):*
      - Nằm giữa Cột Trái và Cột Phải (`#composer-col-splitter`), hỗ trợ kéo thả chuột/cảm ứng để thay đổi tỷ lệ chiều ngang linh hoạt từ 25% đến 75% (mặc định 60% Left : 40% Right), ghi nhớ tỷ lệ vào `localStorage`.
   3. *Cột bên phải (Live Preview Pane):*
@@ -392,7 +392,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   - Khi không cấu hình AI Provider hoặc mạng gián đoạn, động cơ dự phòng nhận diện câu lệnh thay thế câu $n$ (ví dụ: "đơn điệu hàm số thay thế câu 1"), tự động sinh câu hỏi toán chuẩn `ex_test.sty` và bóc tách câu $n$ cũ để trả về `DiffSuggestion` hoàn chỉnh.
 
 #### SRS-FEAT-04q: Hộp Soạn Thảo Đề Thi Tinh Gọn Không Preamble & Động Cơ Nhúng Ngầm Canonical Preamble Injection (Preamble-Free Question Editor)
-- **Mô tả:** Tách biệt triệt để giữa phần Khai báo Gói Lệnh (Preamble) và Phần Thân Nội Dung Đề Thi (Exam Body). Giáo viên khi sử dụng phân hệ Soạn đề (`/composer`) chỉ cần tập trung viết nội dung đề thi và các câu hỏi chuẩn gói lệnh khảo thí quốc gia `ex_test.sty` (`\begin{ex}...\choice...\loigiai...\end{ex}`, `\choiceTF`, `\shortans`, `\immini`, TikZ, `tkz-tab`), hoàn toàn KHÔNG CẦN viết các dòng lệnh rườm rà như `\documentclass`, `\usepackage`, hay `\begin{document}...\end{document}`.
+- **Mô tả:** Tách biệt triệt để giữa phần Khai báo Gói Lệnh (Preamble) và Phần Thân Nội Dung Đề Thi (Exam Body). Giáo viên khi sử dụng phân hệ Soạn đề (`/composer`) chỉ cần tập trung viết nội dung đề thi và các câu hỏi chuẩn gói lệnh khảo thí quốc gia `ex_test.sty` (`\begin{ex}...\choice...\loigiai...\end{ex}`, `\choiceTF[1]`, `\shortans`, TikZ căn giữa, `tkz-tab`), hoàn toàn KHÔNG CẦN viết các dòng lệnh rườm rà như `\documentclass`, `\usepackage`, hay `\begin{document}...\end{document}`. Toàn bộ hình vẽ đồ thị và bảng biến thiên mặc định căn giữa, loại bỏ khuyến nghị `\immini` khỏi cấu trúc chuẩn.
 - **Kiến trúc Nhúng Ngầm Preamble Chuẩn (Canonical Preamble Injection):**
   1. *Định nghĩa Preamble Chuẩn (Canonical Preamble Spec):*
      ```latex
@@ -561,9 +561,9 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
        `[{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": img_base64_data_url}}]`.
   3. *Định hướng System Prompt & Năng lực Phân tích Ảnh:*
      - Nhận diện đề thi, bảng biến thiên, đồ thị hàm số (bậc ba, phân thức, bậc bốn), hình học không gian hoặc chữ viết tay trong ảnh.
-     - Tái tạo đồ thị hàm số và hình học thành mã TikZ (`\begin{tikzpicture}...\end{tikzpicture}`) hoặc `\immini`.
-     - Tái tạo bảng biến thiên bằng gói `tkz-tab` (`\tkzTabInit...`).
-     - Đóng gói câu hỏi chuẩn `ex_test.sty` (`\begin{ex}...\choice / \choiceTF / \shortans...\loigiai...\end{ex}`).
+     - Tái tạo đồ thị hàm số và hình học thành mã TikZ căn giữa (`\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}`), loại bỏ hoàn toàn việc dùng `\immini` làm mặc định để chống méo mó bố cục và tràn viền.
+     - Tái tạo bảng biến thiên bằng gói `tkz-tab` (`\tkzTabInit...`) căn giữa.
+     - Đóng gói câu hỏi chuẩn `ex_test.sty` (`\begin{ex}...\choice / \choiceTF[1] / \shortans...\loigiai...\end{ex}`), Phần II tuyệt đối không gõ tiền tố `a)`, `b)`.
   4. *Động Cơ Dự Phòng Cục Bộ (Local/Offline Fallback Engine):*
      - Khi AI ngoại vi không khả dụng hoặc mất mạng, hệ thống phát hiện cờ có ảnh `images`, đối chiếu từ khóa ngữ cảnh yêu cầu (đồ thị, bảng biến thiên, tikz, giải bài) và trả về khối mã nguồn LaTeX/TikZ mẫu hoàn chỉnh kèm khối diff và lời giải thích rõ ràng.
 
@@ -594,6 +594,25 @@ ight)$$
   3. *Thông Báo Tiến Trình Biên Dịch Đề Thi Lớn (Progressive Status Feedback):*
      - Trên giao diện Frontend (`app.js`), khi biên dịch tài liệu lớn (`code_len > 10000` hoặc $\ge 4$ khối TikZ), nhãn trạng thái `#composer-status-text` lập tức hiển thị `"Đang biên dịch đề thi lớn (nhiều hình TikZ)..."`.
      - Kích hoạt đồng hồ tiến trình đa nấc (Progressive Status Timer: 5s, 15s, 35s) cập nhật thông điệp thời gian thực (ví dụ: *"Đang xử lý hình vẽ TikZ & tính toán toạ độ..."*, *"Đang kết xuất các trang PDF vector qua XeTeX..."*), triệt tiêu hoàn toàn cảm giác giao diện bị đơ/treo khi biên dịch tài liệu nặng.
+
+#### SRS-FEAT-04w: Chuẩn Hóa Căn Giữa Đồ Thị Toán Học, Bảng Biến Thiên & Bảng Biểu (Centered Diagrams Invariant) & Loại Bỏ Hoàn Toàn Khuyến Nghị `\immini`
+- **Bối cảnh & Vấn đề Kỹ thuật:**
+  - Trước đây, `system_prompt` của AI Copilot khuyến nghị sử dụng `\immini{Văn bản câu hỏi}{Mã hình TikZ}` khiến mô hình AI tự động bao bọc tất cả hình ảnh, đồ thị sang góc phải. Khi người dùng tải ảnh đề thi hoặc tạo câu hỏi, đồ thị bị co ép lệch một bên, văn bản và 4 phương án bị ép dạt sang mép trái, đồng thời việc lồng `\choice` vào trong `\immini` gây xung đột hộp TeX (`Missing }`, `box overflow`).
+  - Hơn nữa, việc thiếu quy chuẩn căn lề minipage trong tiêu đề đề thi khiến AI sinh Header chia đôi `0.5\textwidth` mỗi bên, thiếu `\centering` cột trái, thiếu `\hfill`, thiếu dòng thí sinh `\dotfill` kèm khung mã đề `\framebox{\textbf{Mã đề: ...}}`, và câu hỏi Đúng/Sai Phần II sinh thiếu tham số `[1]` (`\choiceTF` thay vì `\choiceTF[1]`) đồng thời gõ nhầm tiền tố `a)`, `b)` vào nội dung khẳng định gây lỗi hiển thị lặp `a) a)`, `b) b)`.
+- **Đặc tả Giải pháp & Quy chuẩn Bắt buộc (Centered Diagrams Invariant):**
+  1. *Mặc định Căn Giữa 100% (Centered Layout):*
+     - Toàn bộ đồ thị hàm số TikZ, hình học không gian TikZ, bảng biến thiên `tkz-tab` và bảng biểu thống kê BẮT BUỘC PHẢI ĐƯỢC ĐẶT Ở CHÍNH GIỮA bằng môi trường `\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}`.
+     - Vị trí: Đặt ngay bên dưới phần dẫn đề bài (stem) và ở phía trên các phương án lựa chọn `\choice` / `\choiceTF[1]` / `\shortans`.
+     - Tuyệt đối loại bỏ khuyến nghị `\immini` khỏi toàn bộ system prompt và template mẫu.
+  2. *Chuẩn hóa Header 2 Cột Bộ GD&ĐT 2025:*
+     - Minipage trái `0.38\textwidth` căn giữa `\centering`; Minipage phải `0.58\textwidth` căn giữa `\centering`; phân cách bằng `\hfill`.
+     - Dòng thông tin thí sinh: `Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: ...}}`.
+     - Duy nhất 1 đường nét liền đơn `\noindent\rule{\textwidth}{0.5pt}` dưới thông tin thí sinh.
+     - Tiêu đề Section in đậm & in nghiêng: `\noindent\textbf{PHẦN ...} \textit{...}` (không dùng `\large` hay `\section*`).
+  3. *Chuẩn hóa Phần II Đúng/Sai:*
+     - Bắt buộc dùng `\choiceTF[1]`, khẳng định chiếm 100% độ rộng 1 cột.
+     - Tuyệt đối không gõ tiền tố `a)`, `b)`, `c)`, `d)` trong khẳng định để tránh lặp nhãn kép.
+  4. *Tối ưu hóa Lấy Mẫu TikZ:* Mặc định `samples=50` hoặc `samples=60` trên mọi đồ thị hàm số để bảo đảm biên dịch siêu tốc.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.

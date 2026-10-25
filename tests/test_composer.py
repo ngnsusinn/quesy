@@ -3234,7 +3234,7 @@ def test_composer_all_backend_and_frontend_templates_compilation_and_syntax():
         latex = tmpl_data.get("latex", "")
         assert len(latex) > 20, f"Template {tmpl_id} has empty latex"
         # Check for typos
-        assert r"ule{\textwidth}" not in latex, f"Typo ule found in backend template {tmpl_id}"
+        assert r"\ule{\textwidth}" not in latex, f"Typo ule found in backend template {tmpl_id}"
         assert r"\choiceTFt" not in latex, f"Typo \\choiceTFt found in backend template {tmpl_id}"
         assert not re.search(r'(?<!r)ight\|', latex), f"Typo ight| found in backend template {tmpl_id}"
         
@@ -3249,7 +3249,7 @@ def test_composer_all_backend_and_frontend_templates_compilation_and_syntax():
     app_js_content = app_js_path.read_text(encoding="utf-8")
 
     # Check for forbidden typos in app.js
-    assert r"ule{\textwidth}" not in app_js_content
+    assert r"\ule{\textwidth}" not in app_js_content and r"\\ule{" not in app_js_content
     assert r"\choiceTFt" not in app_js_content
     assert not re.search(r'(?<!r)ight\|', app_js_content)
 
@@ -4119,6 +4119,206 @@ def test_composer_compile_large_viet_duc_exam_pdf_success(tmp_path):
         socket_timeout = mock_urlopen.call_args[1].get("timeout")
         assert socket_timeout == calc_timeout + 15
         assert socket_timeout >= 215
+
+
+def test_composer_system_prompt_centered_diagrams_invariant():
+    """Verify system_prompt in backend/routers/composer.py strictly enforces
+    Centered Layout Invariant, requires \\begin{center}\\begin{tikzpicture},
+    prohibits default \\immini, recommends samples=50/60, enforces \\choiceTF[1]
+    without label prefixes in content, and standardizes MoET 2025 2-column header.
+    """
+    import inspect
+    from backend.routers.composer import composer_chat_endpoint
+
+    # 1. Inspect source of composer_chat_endpoint
+    source = inspect.getsource(composer_chat_endpoint)
+    assert "system_prompt" in source, "system_prompt must be defined in composer_chat_endpoint"
+
+    # 2. Intercept actual system_prompt payload delivered via httpx.Client.post
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-secret-key"
+    mock_service.provider = "gemini"
+    mock_service.model = "gemini-2.5-flash"
+    mock_service.base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": "Sample LLM reply"}}]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    captured_system_prompt = None
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service), \
+         patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Tạo một câu hỏi trắc nghiệm hàm số bậc 3 có đồ thị TikZ",
+                "current_latex": r"\begin{document}\end{document}",
+                "history": [],
+            },
+        )
+        assert res.status_code == 200
+        assert mock_client.post.called, "httpx.Client.post must be called when provider is active"
+        json_payload = mock_client.post.call_args[1].get("json") or {}
+        messages = json_payload.get("messages", [])
+        assert len(messages) >= 1
+        assert messages[0]["role"] == "system"
+        captured_system_prompt = messages[0]["content"]
+
+    assert captured_system_prompt is not None, "Failed to capture system_prompt from chat endpoint"
+
+    # 3. Assert Centered Layout Invariant rules
+    assert "CENTERED LAYOUT INVARIANT" in captured_system_prompt
+    assert r"\begin{center}\begin{tikzpicture}" in captured_system_prompt
+    assert r"\end{tikzpicture}\end{center}" in captured_system_prompt
+    assert (
+        "TUYỆT ĐỐI KHÔNG nằm lệch 1 bên hay dùng \\immini" in captured_system_prompt
+        or "TUYỆT ĐỐI KHÔNG nằm lệch 1 bên hay dùng \\\\immini" in captured_system_prompt
+    )
+    assert "samples=50" in captured_system_prompt
+
+    # 4. Assert True/False \\choiceTF[1] standardization
+    assert r"\choiceTF[1]" in captured_system_prompt
+    assert "TUYỆT ĐỐI KHÔNG gõ tiền tố nhãn a), b), c), d) vào trong nội dung khẳng định" in captured_system_prompt
+
+    # 5. Assert MoET 2025 2-column header standardization
+    assert "0.38" in captured_system_prompt and "0.58" in captured_system_prompt
+    assert r"\dotfill" in captured_system_prompt
+    assert "Mã đề:" in captured_system_prompt
+    assert "0.5pt" in captured_system_prompt
+
+
+def test_ai_provider_system_prompt_centered_diagrams():
+    """Verify SYSTEM_PROMPT and SYSTEM_PROMPT_PASS2_FIGURE in ai_provider_service.py
+    enforce Centered Layout Invariant and ban label prefixes in sub_statements.
+    """
+    from backend.services.ai_provider_service import SYSTEM_PROMPT, SYSTEM_PROMPT_PASS2_FIGURE
+
+    # 1. Check SYSTEM_PROMPT
+    assert "CENTERED LAYOUT INVARIANT" in SYSTEM_PROMPT
+    assert r"\begin{center}\begin{tikzpicture}" in SYSTEM_PROMPT
+    assert r"\end{tikzpicture}\end{center}" in SYSTEM_PROMPT
+    assert "TUYỆT ĐỐI KHÔNG dùng \\immini" in SYSTEM_PROMPT or "TUYỆT ĐỐI KHÔNG dùng \\\\immini" in SYSTEM_PROMPT
+    assert "samples=50" in SYSTEM_PROMPT
+    assert "TUYỆT ĐỐI CẤM gõ tiền tố nhãn a), b), c), d)" in SYSTEM_PROMPT
+    assert "sub_statements" in SYSTEM_PROMPT
+
+    # 2. Check SYSTEM_PROMPT_PASS2_FIGURE
+    assert r"\begin{center}\begin{tikzpicture}" in SYSTEM_PROMPT_PASS2_FIGURE
+    assert r"\end{tikzpicture}\end{center}" in SYSTEM_PROMPT_PASS2_FIGURE
+    assert "samples=50" in SYSTEM_PROMPT_PASS2_FIGURE
+    assert "tkz-tab" in SYSTEM_PROMPT_PASS2_FIGURE
+    assert r"\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}" in SYSTEM_PROMPT_PASS2_FIGURE
+
+
+def test_composer_templates_centered_diagrams_no_immini():
+    """Verify TEMPLATES in composer_service.py and EX_TEST_TEMPLATES in app.js
+    strictly use centered TikZ diagrams, contain NO \\immini in question templates,
+    and successfully compile to PDF.
+    """
+    import re
+    from backend.services.composer_service import TEMPLATES
+
+    # 1. Test backend TEMPLATES['ex_test_standard_exam']
+    assert "ex_test_standard_exam" in TEMPLATES
+    tmpl_quocgia = TEMPLATES["ex_test_standard_exam"]["latex"]
+    assert r"\immini" not in tmpl_quocgia, "ex_test_standard_exam must not contain \\immini"
+    assert r"\begin{center}" in tmpl_quocgia
+    assert r"\begin{tikzpicture}" in tmpl_quocgia
+    assert "samples=50" in tmpl_quocgia
+    assert r"\choiceTF[1]" in tmpl_quocgia
+    assert "0.38" in tmpl_quocgia and "0.58" in tmpl_quocgia
+    assert "rule" in tmpl_quocgia and "0.5pt" in tmpl_quocgia
+
+    # Compile ex_test_standard_exam to PDF
+    res_qg = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": tmpl_quocgia, "title": "Đề thi Chuẩn Quốc Gia 2025"}
+    )
+    assert res_qg.status_code == 200
+    data_qg = res_qg.json()
+    assert data_qg["success"] is True
+    assert data_qg["pdf_url"].startswith("/api/v1/composer/pdf/")
+    assert data_qg["total_pages"] >= 1
+
+    # 2. Test backend TEMPLATES['circular_32_full_exam']
+    assert "circular_32_full_exam" in TEMPLATES
+    tmpl_tt32 = TEMPLATES["circular_32_full_exam"]["latex"]
+    assert r"\immini" not in tmpl_tt32, "circular_32_full_exam must not contain \\immini"
+    assert r"\begin{center}" in tmpl_tt32
+    assert r"\begin{tikzpicture}" in tmpl_tt32
+    assert "samples=50" in tmpl_tt32
+    assert r"\choiceTF[1]" in tmpl_tt32
+
+    # Compile circular_32_full_exam to PDF
+    res_tt32 = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": tmpl_tt32, "title": "Đề thi Chuẩn Thông tư 32"}
+    )
+    assert res_tt32.status_code == 200
+    data_tt32 = res_tt32.json()
+    assert data_tt32["success"] is True
+    assert data_tt32["pdf_url"].startswith("/api/v1/composer/pdf/")
+    assert data_tt32["total_pages"] >= 1
+
+    # 3. Test frontend app.js EX_TEST_TEMPLATES and fallback currentLatex
+    app_js_path = Path(__file__).resolve().parent.parent / "frontend" / "static" / "app.js"
+    assert app_js_path.exists()
+    app_js_content = app_js_path.read_text(encoding="utf-8")
+
+    # dethi_quocgia_full must NOT contain \immini and MUST use \choiceTF[1]
+    m_extest = re.search(r'EX_TEST_TEMPLATES\s*:\s*\{([\s\S]*?)\n\s*\},', app_js_content)
+    assert m_extest is not None
+    extest_body = m_extest.group(1)
+
+    m_dethi_full = re.search(r"'dethi_quocgia_full'\s*:\s*`([\s\S]*?)`", extest_body)
+    assert m_dethi_full is not None
+    dethi_full_code = m_dethi_full.group(1)
+    clean_dethi_full = dethi_full_code.replace('\\\\', '\\')
+    assert r"\immini" not in clean_dethi_full, "dethi_quocgia_full must not contain \\immini"
+    assert r"\choiceTF[1]" in clean_dethi_full
+    assert "0.38" in clean_dethi_full and "0.58" in clean_dethi_full
+    assert "rule" in clean_dethi_full and "0.5pt" in clean_dethi_full
+
+    # Compile dethi_quocgia_full to PDF
+    res_fe = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": clean_dethi_full, "title": "Đề thi Quốc Gia 2025 Frontend"}
+    )
+    assert res_fe.status_code == 200
+    data_fe = res_fe.json()
+    assert data_fe["success"] is True
+    assert data_fe["pdf_url"].startswith("/api/v1/composer/pdf/")
+
+    # extest_immini snippet must use centered diagram and samples=50
+    m_immini_snip = re.search(r"'extest_immini'\s*:\s*`([\s\S]*?)`", app_js_content)
+    assert m_immini_snip is not None
+    immini_body = m_immini_snip.group(1)
+    assert r"\immini{" not in immini_body, "extest_immini snippet must not contain \\immini{"
+    assert r"\begin{center}" in immini_body
+    assert "samples=50" in immini_body
+
+    # extest_choiceTF snippet must use \choiceTF[1] without label prefixes a), b)
+    m_choicetf_snip = re.search(r"'extest_choiceTF'\s*:\s*`([\s\S]*?)`", app_js_content)
+    assert m_choicetf_snip is not None
+    choicetf_body = m_choicetf_snip.group(1)
+    assert r"\choiceTF[1]" in choicetf_body
+    assert "a)" not in choicetf_body
+    assert "b)" not in choicetf_body
+
+    # Fallback this.currentLatex must NOT contain \immini and MUST have centered tikz
+    assert "Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên." in app_js_content
+    m_fallback = re.search(r"this\.currentLatex\s*=\s*`[\\/]*noindent[\s\S]*?\\end\{ex\}\s*`", app_js_content)
+    assert m_fallback is not None, "Fallback this.currentLatex must be updated to 2-column header"
+    fallback_code = m_fallback.group(0)
+    assert r"\immini" not in fallback_code, "Fallback this.currentLatex must not contain \\immini"
+    assert "begin{center}" in fallback_code
+    assert "samples=50" in fallback_code
 
 
 

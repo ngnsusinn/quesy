@@ -35,6 +35,7 @@ QUY TẮC CẤU TRÚC 3 PHẦN THI THEO QUYẾT ĐỊNH 764/QĐ-BGDĐT:
 2. PHẦN II: Câu trắc nghiệm Đúng/Sai (item_format: "TRUE_FALSE_GROUP")
    - Mỗi câu gồm phần dẫn (stem) và đúng 4 ý khẳng định phụ a), b), c), d) (mảng sub_statements).
    - Mỗi ý khẳng định con có nhãn "a", "b", "c", "d", thuộc tính is_true: true hoặc false, kèm lời giải giải thích tính đúng sai (explanation).
+   - TUYỆT ĐỐI CẤM gõ tiền tố nhãn a), b), c), d) vào trường content của khẳng định con (nhãn đã được lưu riêng ở trường label).
 
 3. PHẦN III: Câu trắc nghiệm trả lời ngắn (item_format: "SHORT_ANSWER")
    - Thí sinh điền kết quả số hoặc chuỗi.
@@ -70,7 +71,7 @@ QUY TẮC NHẬN DIỆN VÀ TÁI TẠO ĐỒ THỊ, HÌNH VẼ, BẢNG BIẾN TH
        * Đối với hàm phân thức có tiệm cận đứng x = x0: Nhánh trái vẽ từ mép trái x_min đến (x0 - 0.2); Nhánh phải vẽ từ (x0 + 0.2) đến mép phải x_max. Tuyệt đối không được ngắt cụt lơ lửng đồ thị ở giữa chừng.
      + KHUNG HÌNH (BOUNDING BOX & CLIP): Khung \clip (xmin - 1.2, ymin - 1.2) rectangle (xmax + 1.2, ymax + 1.2); PHẢI ĐỦ RỘNG để bao trọn toàn bộ các điểm cực trị, nhánh đồ thị, đường dóng nét đứt, mũi tên trục và nhãn tên trục $x, y, O$ mà không bị cắt cụt (crop) mất bất kỳ chi tiết nào.
      + CÂU HỎI NHẬN DIỆN ĐỒ THỊ Ở 4 PHƯƠNG ÁN A, B, C, D: BẮT BUỘC CẢ 4 HÌNH ĐỀU PHẢI CÓ ĐẦY ĐỦ VẠCH CHIA TỌA ĐỘ VÀ SỐ LIỆU ĐỒNG BỘ ĐỂ ĐỐI CHIẾU (không được hình có số, hình bị mất số). Dùng khối TikZ thu nhỏ \begin{tikzpicture}[scale=0.22, font=\tiny, >=stealth] ... \end{tikzpicture}.
-     + TUYỆT ĐỐI KHÔNG bọc thẻ \begin{center} hay \end{center} quanh TikZ (hệ thống tự động căn giữa).
+     + QUY TẮC CĂN GIỮA (CENTERED LAYOUT INVARIANT): Mặc định toàn bộ đồ thị TikZ, hình học TikZ và bảng biến thiên tkz-tab BẮT BUỘC phải đặt trong môi trường căn giữa: \begin{center}\begin{tikzpicture} ... \end{tikzpicture}\end{center} nằm ngay bên dưới phần dẫn và phía trên các phương án lựa chọn. TUYỆT ĐỐI KHÔNG dùng \\immini hay để lệch 1 bên. Luôn khuyến nghị samples=50 hoặc samples=60.
    - TUYỆT ĐỐI KHÔNG BỎ QUA HÌNH VẼ, ĐỒ THỊ! Mọi câu hỏi có hình minh họa đều phải có khối mã TikZ tương ứng để hệ thống biên dịch hiển thị đồ thị vector SVG sắc nét.
 2. BẢNG BIẾN THIÊN & BẢNG XÉT DẤU (BẮT BUỘC 100% DÙNG TIKZ PACKAGE TKZ-TAB):
    - Khi đề bài có Bảng biến thiên hoặc Bảng xét dấu:
@@ -149,12 +150,11 @@ Trên tài liệu đã được đánh dấu trực quan các khung nhãn địn
 SYSTEM_PROMPT_PASS2_FIGURE = r"""Bạn là Chuyên gia Đồ họa Toán học LaTeX & TikZ hàng đầu.
 Nhiệm vụ của bạn là quan sát kỹ bức ảnh được cung cấp (chứa một hình vẽ hình học, đồ thị hàm số, hoặc bảng số liệu/bảng biến thiên) và chuyển đổi thành mã nguồn LaTeX chuẩn mực:
 1. Nếu là ĐỒ THỊ HÀM SỐ hoặc HÌNH HỌC:
-   - Hãy xuất mã \begin{tikzpicture} ... \end{tikzpicture} hoàn chỉnh, tự chứa.
+   - Hãy xuất mã \begin{center}\begin{tikzpicture} ... \end{tikzpicture}\end{center} hoàn chỉnh, đặt trong môi trường căn giữa (samples=50).
    - Thể hiện rõ hệ trục tọa độ Ox, Oy, mũi tên, các điểm gốc O, các tọa độ đặc biệt, tiệm cận (nét đứt), đường cong hàm số mượt mà.
-2. Nếu là BẢNG BIẾN THIÊN hoặc BẢNG SỐ LIỆU:
-   - Hãy xuất mã \begin{array}{...} ... \end{array} chuẩn KaTeX, sử dụng các mũi tên \nearrow, \searrow, các giá trị giới hạn, hàng x, y', y.
-Chỉ trả về duy nhất khối mã LaTeX/TikZ (hoặc bọc trong ```latex ... ```), không kèm lời giải thích rườm rà.
-"""
+2. Nếu là BẢNG BIẾN THIÊN hoặc BẢNG XÉT DẤU:
+   - BẮT BUỘC dùng tkz-tab và đặt trong môi trường căn giữa: \begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}.
+Chỉ trả về duy nhất khối mã LaTeX/TikZ (hoặc bọc trong ```latex ... ```), không kèm lời giải thích rườm rà."""
 
 
 def detect_provider() -> str:
