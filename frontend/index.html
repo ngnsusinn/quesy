@@ -888,6 +888,12 @@
                       <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
                     </button>
                   </div>
+                  <!-- Status Badge -->
+                  <div id="composer-compile-status" class="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span id="composer-status-badge-text">Sẵn sàng</span>
+                  </div>
+                  <span class="text-slate-600">|</span>
                   <!-- Zoom Controls -->
                   <div class="flex items-center space-x-1 text-[11px]">
                     <button type="button" onclick="app.composer.zoomPreview(-0.1)" class="w-5 h-5 flex items-center justify-center hover:bg-slate-700 rounded font-bold cursor-pointer" title="Thu nhỏ">-</button>
@@ -906,7 +912,7 @@
                 <!-- Loading Spinner Overlay -->
                 <div id="composer-compiling-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-xs flex flex-col items-center justify-center text-slate-800 space-y-2 z-30 hidden">
                   <i data-lucide="loader-2" class="w-7 h-7 animate-spin text-[#0071e3]"></i>
-                  <span class="text-xs font-bold text-slate-700">Đang biên dịch với Tectonic XeTeX Engine...</span>
+                  <span id="composer-status-text" class="text-xs font-bold text-slate-700">Đang biên dịch...</span>
                 </div>
 
                 <!-- Native PDF.js Interactive Container (Synchronized Vector Canvas & Wheel Zoom) -->

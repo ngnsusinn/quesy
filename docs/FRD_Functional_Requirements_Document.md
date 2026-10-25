@@ -514,6 +514,39 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
          3. System prompt chuyên sâu: Định hướng mô hình nhận diện đề bài, chuyển đổi công thức toán học chuẩn Thông tư 32, tái tạo đồ thị và hình học bằng mã TikZ, tái tạo bảng biến thiên bằng `tkz-tab`, bao bọc chuẩn `ex_test.sty`.
          4. Động cơ Local Fallback: Khi mất mạng hoặc không có API key ngoại vi, hệ thống nhận diện từ khóa (đồ thị, bảng biến thiên, tikz, giải bài) và trả về mã nguồn LaTeX/TikZ hoàn chỉnh phù hợp ngữ cảnh kèm diff để người dùng áp dụng trực tiếp.
 
+       ### 2.4.17. FR-02.19: Cơ Chế Dynamic Adaptive Compilation Timeout Cho Đề Thi Quy Mô Lớn & Trợ Lý AI Chẩn Đoán Tối Ưu Hóa TikZ (Dynamic Adaptive Compilation Timeout & TikZ Optimization Copilot)
+       - **Mô tả Chức năng:** Nâng cấp động cơ biên dịch LaTeX Hybrid và Trợ lý AI Copilot của phân hệ Soạn đề (`/composer`) nhằm xử lý triệt để các sự cố quá thời gian biên dịch (Compilation timed out) khi soạn thảo các đề thi chuẩn Quốc gia quy mô lớn (ví dụ: Đề thi THPT Việt Đức 2026-2027 với ~24.000 ký tự, 12 câu trắc nghiệm đơn, 4 câu đúng/sai QĐ 764, 6 câu trả lời ngắn, chứa hơn 10 hình TikZ/tkz-tab và đồ thị phân thức/bậc ba nhiều nhánh có tham số `samples=100`).
+       - **Đặc Tả Thuật Toán Tính Timeout Động Phích Thích Ứng (Dynamic Adaptive Compilation Timeout):**
+         1. *Định tuyến & Bóc tách Độ phức tạp:*
+            - Hàm phụ trợ `compute_compilation_timeout(latex_source: str) -> int` được gọi trước khi dispatch payload sang Docker microservice hoặc Local Tectonic subprocess.
+            - `tikz_count = len(re.findall(r'\\begin\{(?:tikzpicture|tkzTab)\}|\\tkzTabInit', latex_source, re.IGNORECASE))`
+            - `code_len = len(latex_source)`
+            - Công thức chuẩn hóa:
+              $$\text{calc\_timeout} = \max\left(60, \min\left(240, 45 + 10 \times \text{tikz\_count} + \left\lfloor \frac{\text{code\_len}}{250} 
+ight
+floor 
+ight)
+ight)$$
+         2. *Truyền nhận Endpoint & Thiết Lập Socket Mạng:*
+            - Trong `compile_with_remote_tectonic_api`: Đóng gói `payload = json.dumps({"latex_code": sanitized_latex, "timeout_s": calc_timeout}).encode("utf-8")`.
+            - Thiết lập `urllib.request.urlopen(req, timeout=calc_timeout + 15)` bảo đảm socket client không ngắt trước container khi xử lý các đề thi nặng.
+            - Trong `compile_with_tectonic`: Gán `subprocess.run(cmd, ..., timeout=calc_timeout)` và bắt ngoại lệ `subprocess.TimeoutExpired` trả về thông báo lỗi rõ ràng.
+       - **Đặc Tả Chẩn Đoán Lỗi Timeout & Đề Xuất Diff Tối Ưu Hóa TikZ (AI Copilot):**
+         1. *Phát hiện Lỗi Timeout:*
+            - Trong `diagnose_compile_error`, khi `compile_error` chứa các cụm từ `"compilation timed out"`, `"timed out"`, hoặc `"quá thời gian cho phép"`.
+         2. *Phản Hồi & Hướng Dẫn:*
+            - Giải thích nguyên nhân gốc rễ: Đề thi lớn chứa nhiều khối TikZ phức tạp với tham số mật độ điểm mẫu cao `samples=100`.
+            - Thông báo hệ thống đã tự động gia hạn thời gian biên dịch tối đa lên tới $\text{calc\_timeout}$ giây (tối đa 240s).
+            - Gợi ý tối ưu hóa: Đề xuất chuyển `samples=100` xuống `samples=50` (hoặc `samples=60`). Giải thích rõ đường cong vector A4 chỉ cần 50 điểm Bézier là đạt độ trơn mịn hoàn hảo, giảm 50% thời gian tính toán toạ độ của XeTeX.
+         3. *Trích Xuất DiffSuggestion:*
+            - Quét tìm tất cả các dòng chứa `samples=100` (hoặc `samples=\d+` với giá trị $\ge 80$).
+            - Sinh danh sách `diffs: List[DiffSuggestion]` thay thế tương ứng bằng `samples=50`, kèm `diff = diffs[0]` để người dùng thao tác duyệt từng diff hoặc click [Áp dụng tất cả] trên thanh công cụ editor.
+       - **Đặc Tả Trải Nghiệm Giao Diện Người Dùng (Frontend UX):**
+         1. Khi bấm `Biên dịch` (`compile()` trong `app.js`):
+            - Nếu phát hiện đề thi lớn (`this.currentLatex.length > 10000 || tikzCount >= 4`), nhãn `#composer-status-text` hiển thị: `"Đang biên dịch đề thi lớn (nhiều hình TikZ)..."`.
+            - Bật Progressive Status Timer (5s: *"Đang xử lý hình vẽ TikZ & tính toán toạ độ..."*; 15s: *"Đang kết xuất các trang PDF vector qua XeTeX..."*; 35s: *"Đang hoàn tất biên dịch đề thi quy mô lớn..."*), triệt tiêu cảm giác treo màn hình.
+            - Hủy timer dọn dẹp sạch sẽ trong khối `finally`.
+
        ---
 
 ```

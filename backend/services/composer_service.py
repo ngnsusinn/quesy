@@ -829,6 +829,15 @@ def compile_latex_source_to_html(
 # 3. PDF Compilation Execution (Hybrid: Tectonic XeTeX with Chromium Fallback)
 # ---------------------------------------------------------------------------
 
+def compute_compilation_timeout(latex_source: str) -> int:
+    if not latex_source:
+        return 60
+    tikz_count = len(re.findall(r'\\begin\{(?:tikzpicture|tkzTab)\}|\\tkzTabInit', latex_source, re.IGNORECASE))
+    code_len = len(latex_source)
+    calc_timeout = max(60, min(240, 45 + tikz_count * 10 + (code_len // 250)))
+    return calc_timeout
+
+
 def find_tectonic_executable() -> Optional[Path]:
     """Finds tectonic executable in PATH or standard local locations."""
     found = shutil.which("tectonic")
@@ -865,6 +874,7 @@ def compile_with_tectonic(
     output_pdf.parent.mkdir(parents=True, exist_ok=True)
 
     raw = ensure_full_latex_document(latex_source, mode=mode, title=title)
+    calc_timeout = compute_compilation_timeout(raw)
 
     with tempfile.TemporaryDirectory(prefix="tectonic_build_") as tmp_dir:
         tmp_dir_path = Path(tmp_dir)
@@ -904,7 +914,7 @@ def compile_with_tectonic(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=45,
+                timeout=calc_timeout,
                 encoding="utf-8",
                 errors="replace",
                 cwd=str(tmp_dir_path)
@@ -921,7 +931,7 @@ def compile_with_tectonic(
                 err_summary = "\n".join(lines[:10]) if lines else err_output[-800:]
                 return False, err_summary, elapsed_ms
         except subprocess.TimeoutExpired:
-            return False, "Biên dịch Tectonic quá thời gian cho phép (>45 giây).", 0
+            return False, f"Biên dịch Tectonic quá thời gian cho phép (>{calc_timeout} giây).", 0
         except Exception as e:
             return False, f"Lỗi thực thi Tectonic: {e}", 0
 
@@ -1013,9 +1023,10 @@ def compile_with_remote_tectonic_api(
 
     try:
         sanitized_latex = ensure_full_latex_document(latex_source, mode=mode, title=title)
+        calc_timeout = compute_compilation_timeout(sanitized_latex)
         payload = json.dumps({
             "latex_code": sanitized_latex,
-            "timeout_s": 60
+            "timeout_s": calc_timeout
         }).encode("utf-8")
 
         req = urllib.request.Request(
@@ -1024,7 +1035,7 @@ def compile_with_remote_tectonic_api(
             headers={"Content-Type": "application/json"}
         )
 
-        with urllib.request.urlopen(req, timeout=65) as resp:
+        with urllib.request.urlopen(req, timeout=calc_timeout + 15) as resp:
             pdf_bytes = resp.read()
             elapsed_ms = int((time.perf_counter() - start_time) * 1000)
             if len(pdf_bytes) > 500 and pdf_bytes.startswith(b"%PDF"):

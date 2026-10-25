@@ -3931,6 +3931,180 @@ def test_composer_multimodal_css_styling():
     assert ".composer-image-chip:hover .composer-image-chip-remove" in content
 
     # Chat bubble image grid and thumbnail
-    assert ".composer-chat-image-grid" in content
-    assert ".composer-chat-image-thumb" in content
+    assert '.composer-chat-image-grid' in content
+    assert '.composer-chat-image-thumb' in content
+
+
+def test_composer_compute_compilation_timeout_adaptive_scaling():
+    """TC-COMP-34: Verify compute_compilation_timeout dynamic adaptive scaling behavior.
+
+    Validates:
+    1. Empty latex source -> returns minimum floor of 60 seconds.
+    2. Short text without TikZ diagrams -> returns minimum floor of 60 seconds.
+    3. Medium document with some TikZ diagrams -> scales appropriately above 60s.
+    4. Large complex exam with many TikZ / tkz-tab blocks -> scales up towards upper ceiling of 240 seconds.
+    5. Extremely massive document -> strictly clamped to upper limit of 240 seconds.
+    """
+    from backend.services.composer_service import compute_compilation_timeout
+
+    # 1. Empty or whitespace source
+    assert compute_compilation_timeout("") == 60
+    assert compute_compilation_timeout("   \n\t") == 60
+
+    # 2. Short document without TikZ
+    short_plain = "Short plain text without any TikZ block or diagram."
+    assert compute_compilation_timeout(short_plain) == 60
+
+    # 3. Intermediate scaling
+    # 3 TikZ blocks, 2500 chars -> 45 + 30 + 10 = 85s
+    tikz_block = r"\begin{tikzpicture}\draw (0,0) -- (1,1);\end{tikzpicture}" + "\n"
+    mid_doc = (tikz_block * 3) + ("a" * 2500)
+    assert compute_compilation_timeout(mid_doc) == 85
+
+    # 4. Large document with 10 TikZ and tkz-tab blocks
+    tkz_tab_block = r"\begin{tikzpicture}\tkzTabInit{$x$/1}{$1$}\end{tikzpicture}" + "\n"
+    large_doc = (tikz_block * 5) + (tkz_tab_block * 5) + ("x" * 15000)
+    t_large = compute_compilation_timeout(large_doc)
+    assert 180 <= t_large <= 240
+
+    # 5. Massive document hitting the 240s upper clamp ceiling
+    massive_doc = (tikz_block * 25) + ("y" * 50000)
+    assert compute_compilation_timeout(massive_doc) == 240
+
+
+def test_composer_diagnose_compile_error_timeout_and_samples_optimization():
+    """TC-COMP-35: Verify diagnose_compile_error diagnoses 'Compilation timed out'
+    and proposes targeted diffs reducing TikZ samples=100 down to samples=50.
+    """
+    from backend.routers.composer import diagnose_compile_error
+
+    # Scenario A: Timeout error with TikZ plot using samples=100
+    err_timeout = "Error: Compilation timed out after 60 seconds while building document"
+    latex_code = (
+        r"\documentclass{article}" + "\n"
+        r"\usepackage{tikz}" + "\n"
+        r"\begin{document}" + "\n"
+        r"\begin{tikzpicture}" + "\n"
+        r"  \draw[domain=0:5, samples=100] plot(\x, {sin(\x)});" + "\n"
+        r"\end{tikzpicture}" + "\n"
+        r"\end{document}"
+    )
+
+    resp = diagnose_compile_error(err_timeout, latex_code)
+    assert resp is not None
+    assert "Compilation Timed Out" in resp.reply
+    assert "Dynamic Adaptive Compilation Timeout" in resp.reply
+    assert "samples=50" in resp.reply
+    assert resp.diff is not None
+    assert resp.diff.action == "replace"
+    assert "samples=100" in resp.diff.old_text
+    assert "samples=50" in resp.diff.new_text
+    assert len(resp.diffs) == 1
+
+    # Scenario B: Multiple plots with samples >= 80 (e.g. 100, 120)
+    multi_latex = (
+        r"\begin{tikzpicture}" + "\n"
+        r"  \draw[domain=0:5, samples=100] plot(\x, {sin(\x)});" + "\n"
+        r"  \draw[domain=-2:2, samples=120] plot(\x, {cos(\x)});" + "\n"
+        r"\end{tikzpicture}"
+    )
+    resp_multi = diagnose_compile_error("timed out", multi_latex)
+    assert resp_multi is not None
+    assert resp_multi.diff is not None
+    assert len(resp_multi.diffs) == 2
+    assert "samples=50" in resp_multi.diffs[0].new_text
+    assert "samples=50" in resp_multi.diffs[1].new_text
+
+    # Scenario C: Timeout error but no samples >= 80 found
+    no_samples_latex = (
+        r"\begin{tikzpicture}" + "\n"
+        r"  \draw[domain=0:5] plot(\x, {sin(\x)});" + "\n"
+        r"\end{tikzpicture}"
+    )
+    resp_no_samp = diagnose_compile_error("biên dịch quá thời gian quy định", no_samples_latex)
+    assert resp_no_samp is not None
+    assert "Compilation Timed Out" in resp_no_samp.reply
+    assert resp_no_samp.diff is None
+    assert resp_no_samp.diffs == []
+
+
+def test_composer_compile_large_viet_duc_exam_pdf_success(tmp_path):
+    """TC-COMP-36 / Verification: Verify large exam (THPT Việt Đức mid-term 12)
+    with 12 MC, 4 TF, 6 ShortAns and multiple TikZ plots compiles cleanly
+    with dynamic timeout scaling to a valid vector PDF.
+    """
+    import json
+    import urllib.request
+    from unittest.mock import patch, MagicMock
+    from backend.services.composer_service import (
+        compute_compilation_timeout,
+        compile_with_remote_tectonic_api,
+    )
+
+    # 1. Load Viet Duc exam content from local attachment or test fixture
+    attachment_path = Path(r"C:\Users\ngnsusinn\AppData\Local\hermes\attachments\pasted_content_2026-10-25_11-09-13-679_36e9d2.txt")
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "viet_duc_exam.tex"
+
+    if attachment_path.exists():
+        content = attachment_path.read_text(encoding="utf-8")
+    elif fixture_path.exists():
+        content = fixture_path.read_text(encoding="utf-8")
+    else:
+        assert False, "Neither attachment nor fixture viet_duc_exam.tex found"
+
+    assert len(content) > 10000, "Viet Duc exam must be substantial (>10k chars)"
+    assert "TRƯỜNG THPT VIỆT ĐỨC" in content
+    assert "Mã đề thi: 0108" in content
+
+    # 2. Check dynamic adaptive timeout scaling
+    calc_timeout = compute_compilation_timeout(content)
+    # 23k+ chars and 10+ TikZ diagrams must scale to upper limit (240s)
+    assert calc_timeout >= 200, f"Expected calc_timeout >= 200s, got {calc_timeout}s"
+
+    # 3. Verify Remote Tectonic API payload and execution contract
+    out_pdf = tmp_path / "viet_duc_output.pdf"
+
+    # Check if real armbian:8090 service is responsive
+    armbian_alive = False
+    try:
+        with urllib.request.urlopen("http://armbian:8090/health", timeout=0.8) as hresp:
+            if hresp.status == 200:
+                armbian_alive = True
+    except Exception:
+        armbian_alive = False
+
+    if armbian_alive:
+        # Live compilation test against armbian:8090
+        ok, err, ms = compile_with_remote_tectonic_api(content, out_pdf, title="Đề THPT Việt Đức 2026")
+        assert ok is True, f"Live compilation failed: {err}"
+        assert out_pdf.exists(), "Output PDF must exist"
+        pdf_bytes = out_pdf.read_bytes()
+        assert pdf_bytes.startswith(b"%PDF"), "Must be a valid PDF vector header"
+        assert len(pdf_bytes) > 500, f"PDF file size too small: {len(pdf_bytes)} bytes"
+        assert ms > 0
+    else:
+        # CI Runner isolated mock test: verify payload carries timeout_s: calc_timeout and returns valid PDF
+        mock_response = MagicMock()
+        mock_response.read.return_value = b"%PDF-1.5 \n%Fake Valid PDF Content for CI runner testing\n%%EOF"
+        mock_response.__enter__.return_value = mock_response
+
+        with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+            ok, err, ms = compile_with_remote_tectonic_api(content, out_pdf, title="Đề THPT Việt Đức 2026")
+            assert ok is True
+            assert out_pdf.exists()
+            assert out_pdf.read_bytes().startswith(b"%PDF")
+
+            # Verify the request payload sent to the remote API
+            assert mock_urlopen.call_count >= 1
+            sent_req = mock_urlopen.call_args[0][0]
+            assert isinstance(sent_req, urllib.request.Request)
+            assert isinstance(sent_req.data, bytes)
+            payload_data = json.loads(sent_req.data.decode("utf-8"))
+            assert "timeout_s" in payload_data
+            assert payload_data["timeout_s"] == calc_timeout
+            # Also verify socket buffer timeout passed to urlopen
+            socket_timeout = mock_urlopen.call_args[1].get("timeout")
+            assert socket_timeout == calc_timeout + 15
+
+
 

@@ -455,6 +455,24 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Kết quả kỳ vọng:** Không bao giờ ném lỗi 500 khi xử lý ảnh; cả 2 chế độ online và offline fallback đều cung cấp mã nguồn LaTeX/TikZ hợp lệ cho người dùng.
 - **Tự động hóa Pytest:** Đã được kiểm thử tự động tại `tests/test_composer.py::test_composer_chat_api_multimodal_offline_fallback`, `test_composer_chat_api_multimodal_mocked_ai_single_image`, `test_composer_chat_api_multimodal_mocked_ai_multiple_images_and_history`, và `test_composer_chat_api_multimodal_mocked_ai_diff_extraction`.
 
+#### TC-COMP-34: Tính Toán Dynamic Adaptive Compilation Timeout Cho Đề Thi Lớn
+- **Mô tả:** Kiểm tra hàm tính toán timeout động `compute_compilation_timeout(latex_source: str)`:
+  1. *Đề thi nhỏ/rỗng (0 TikZ, < 1000 ký tự):* Timeout trả về mức chặn dưới $60$ giây.
+  2. *Đề thi trung bình (3 TikZ, 8.000 ký tự):* Tính đúng $45 + 3 \times 10 + 8000 // 250 = 107$ giây.
+  3. *Đề thi lớn chuẩn THPT Việt Đức (~24.000 ký tự, 11 TikZ/tkz-tab):* Tính toán chạm mức chặn trên an toàn $240$ giây.
+  4. *Đóng gói payload & socket:* Payload gửi sang Remote Tectonic Docker API có `timeout_s = calc_timeout`, socket `urlopen` có `timeout = calc_timeout + 15`.
+- **Kết quả kỳ vọng:** Hàm tính toán chính xác 100%, trả về giá trị nguyên nằm trong đoạn $[60, 240]$.
+- **Tự động hóa Pytest:** Được kiểm thử tự động tại `tests/test_composer.py::test_composer_compute_compilation_timeout_adaptive_scaling` và `test_composer_compile_large_viet_duc_exam_pdf_success`.
+
+#### TC-COMP-35: Trợ Lý AI Chẩn Đoán Lỗi Timeout & Đề Xuất Diff Tối Ưu Hóa TikZ (samples=100 -> samples=50)
+- **Mô tả:** Kiểm tra chẩn đoán lỗi của `diagnose_compile_error`:
+  1. Khi nhận chuỗi lỗi `compile_error` chứa `"Lỗi Tectonic API: Compilation timed out"` hoặc `"timed out"`.
+  2. Mã nguồn hiện tại chứa các khối đồ thị TikZ với `samples=100`.
+  3. AI Copilot phân tích rõ nguyên nhân do đề thi lớn có nhiều hình vẽ TikZ phức tạp, thông báo hệ thống đã tự động gia hạn thời gian biên dịch.
+  4. Đồng thời sinh `DiffSuggestion` và `diffs` đề xuất chuyển đổi `samples=100` thành `samples=50` để tăng tốc độ biên dịch lên gấp đôi.
+- **Kết quả kỳ vọng:** `diagnose_compile_error` trả về `ChatResponse` với `diff` hợp lệ thay thế `samples=100` thành `samples=50`, kèm danh sách `diffs` đầy đủ cho toàn bộ các đồ thị có mẫu dày.
+- **Tự động hóa Pytest:** Được kiểm thử tự động tại `tests/test_composer.py::test_composer_diagnose_compile_error_timeout_and_samples_optimization`.
+
 #### TC-DEV-01: Quy Chuẩn Quản Trị Nhánh & Không Tự Động Tạo Pull Request (Git Workflow Guardrail)
 - **Mô tả:** Rà soát và xác thực hành vi của các agent và quy trình CI/CD:
   1. Chỉ thực hiện `git commit` và `git push` lên nhánh remote đang làm việc.

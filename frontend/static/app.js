@@ -6638,6 +6638,11 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
       const overlay = document.getElementById('composer-compiling-overlay');
       const statusBadge = document.getElementById('composer-compile-status');
       const statusText = document.getElementById('composer-status-text');
+      const badgeText = document.getElementById('composer-status-badge-text');
+      const updateStatus = (txt) => {
+        if (statusText) statusText.innerText = txt;
+        if (badgeText) badgeText.innerText = txt;
+      };
       const errorDrawer = document.getElementById('composer-error-drawer');
       const errorText = document.getElementById('composer-error-text');
       const editor = document.getElementById('composer-editor-input');
@@ -6650,10 +6655,32 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
       if (errorText) errorText.innerText = '';
 
       if (overlay) overlay.classList.remove('hidden');
-      if (statusText) statusText.innerText = 'Đang biên dịch...';
+
+      const codeLen = (this.currentLatex || '').length;
+      const tikzMatches = (this.currentLatex || '').match(/\\begin\{tikzpicture\}/gi) || [];
+      const isLargeExam = codeLen > 10000 || tikzMatches.length >= 4;
+
+      updateStatus(isLargeExam ? 'Đang biên dịch đề thi lớn (nhiều hình TikZ)...' : 'Đang biên dịch...');
       if (statusBadge) {
         statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-semibold';
       }
+
+      if (this._compileProgressTimer) {
+        clearInterval(this._compileProgressTimer);
+        this._compileProgressTimer = null;
+      }
+
+      const startTime = Date.now();
+      this._compileProgressTimer = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        if (elapsed >= 40) {
+          updateStatus('Đang hoàn tất biên dịch đề thi quy mô lớn...');
+        } else if (elapsed >= 18) {
+          updateStatus('Đang kết xuất các trang PDF vector qua XeTeX...');
+        } else if (elapsed >= 6) {
+          updateStatus('Đang xử lý hình vẽ TikZ & tính toán toạ độ...');
+        }
+      }, 1000);
 
       try {
         const res = await fetch(`${API_BASE_URL}/composer/compile`, {
@@ -6670,6 +6697,11 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
         const data = await res.json();
         if (overlay) overlay.classList.add('hidden');
 
+        if (this._compileProgressTimer) {
+          clearInterval(this._compileProgressTimer);
+          this._compileProgressTimer = null;
+        }
+
         if (res.ok && data.success && data.pdf_url) {
           this.pdfUrl = data.pdf_url;
           this.totalPages = data.total_pages || 1;
@@ -6682,7 +6714,7 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
           this.saveHistoryItem(data.pdf_url);
           this.renderPdfDocument(data.pdf_url);
 
-          if (statusText) statusText.innerText = `Đã cập nhật (${(data.compile_time_ms / 1000).toFixed(1)}s)`;
+          updateStatus(`Đã cập nhật (${(data.compile_time_ms / 1000).toFixed(1)}s)`);
           if (statusBadge) {
             statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold';
           }
@@ -6691,7 +6723,7 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
         } else {
           const errMsg = data.error || 'Biên dịch thất bại';
           this.lastCompileError = errMsg;
-          if (statusText) statusText.innerText = 'Lỗi biên dịch';
+          updateStatus('Lỗi biên dịch');
           if (statusBadge) {
             statusBadge.className = 'flex items-center space-x-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-semibold';
           }
@@ -6701,14 +6733,22 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
           }
         }
       } catch (err) {
+        if (this._compileProgressTimer) {
+          clearInterval(this._compileProgressTimer);
+          this._compileProgressTimer = null;
+        }
         this.lastCompileError = String(err);
         if (overlay) overlay.classList.add('hidden');
-        if (statusText) statusText.innerText = 'Lỗi kết nối';
+        updateStatus('Lỗi kết nối');
         if (errorDrawer && errorText) {
           errorText.innerText = String(err);
           errorDrawer.classList.remove('hidden');
         }
       } finally {
+        if (this._compileProgressTimer) {
+          clearInterval(this._compileProgressTimer);
+          this._compileProgressTimer = null;
+        }
         this.isCompiling = false;
       }
     },

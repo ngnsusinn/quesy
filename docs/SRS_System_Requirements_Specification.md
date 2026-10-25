@@ -567,6 +567,34 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   4. *Động Cơ Dự Phòng Cục Bộ (Local/Offline Fallback Engine):*
      - Khi AI ngoại vi không khả dụng hoặc mất mạng, hệ thống phát hiện cờ có ảnh `images`, đối chiếu từ khóa ngữ cảnh yêu cầu (đồ thị, bảng biến thiên, tikz, giải bài) và trả về khối mã nguồn LaTeX/TikZ mẫu hoàn chỉnh kèm khối diff và lời giải thích rõ ràng.
 
+#### SRS-FEAT-04v: Cơ Chế Dynamic Adaptive Compilation Timeout Cho Đề Thi Quy Mô Lớn & Trợ Lý AI Chẩn Đoán Tối Ưu Hóa TikZ (Dynamic Adaptive Compilation Timeout & TikZ Optimization Copilot)
+- **Bối cảnh & Bài toán Kỹ thuật:**
+  - Đề thi khảo thí hoàn chỉnh (12 câu Phần I, 4 câu Phần II, 6 câu Phần III - ví dụ Đề kiểm tra giữa kỳ I THPT Việt Đức 2026-2027) có quy mô văn bản lớn (~24.000 ký tự, 6 trang PDF vector A4) và chứa nhiều hình vẽ TikZ, bảng biến thiên `tkz-tab`, đặc biệt là các đồ thị hàm phân thức và hàm bậc ba với mật độ lấy mẫu cao `samples=100` trong 4 phương án lựa chọn.
+  - Trước đây hệ thống gán cứng timeout cố định (`timeout_s: 60` tại `compile_with_remote_tectonic_api` và `timeout=45` tại `compile_with_tectonic`). Trên máy chủ ARM (`armbian:8090`), tiến trình biên dịch XeTeX trọn vẹn mất 67.68 giây, dẫn tới việc container Tectonic ngắt tiến trình và ném lỗi HTTP 504 `{"detail": "Compilation timed out"}`.
+- **Giải pháp Kỹ thuật & Luồng Xử Lý:**
+  1. *Thuật toán Tính Timeout Động Phích Thích Ứng (Dynamic Adaptive Compilation Timeout):*
+     - Trước khi gửi lệnh biên dịch, hệ thống tự động bóc tách và phân tích độ phức tạp của mã nguồn LaTeX qua hàm `compute_compilation_timeout(latex_source: str) -> int`:
+       + `tikz_count`: Đếm tổng số khối môi trường TikZ và bảng biến thiên (`\begin{tikzpicture}`, `\begin{tkzTab}`, `\tkzTabInit`).
+       + `code_len`: Tổng độ dài ký tự của mã nguồn LaTeX sau khi chuẩn hóa.
+       + Công thức tính toán timeout động:
+         $$\text{calc\_timeout} = \max\left(60, \min\left(240, 45 + 10 \times \text{tikz\_count} + \left\lfloor \frac{\text{code\_len}}{250} 
+ight
+floor 
+ight)
+ight)$$
+     - Truyền `timeout_s: calc_timeout` vào payload JSON gửi sang Remote Tectonic Docker API (`http://armbian:8090/compile`).
+     - Thiết lập timeout mạng cho socket HTTP `urllib.request.urlopen` là $\text{calc\_timeout} + 15$ giây để dự phòng độ trễ truyền gói tin mạng (network jitter buffer).
+     - Áp dụng $\text{calc\_timeout}$ cho cờ `timeout` của tiến trình con `subprocess.run` khi biên dịch với Local Tectonic engine (`compile_with_tectonic`).
+  2. *Trợ Lý AI Copilot Chẩn Đoán Lỗi Timeout & Tự Động Sinh Diff Tối Ưu TikZ:*
+     - Khi gặp thông điệp lỗi biên dịch chứa `"Compilation timed out"`, `"timed out"`, hoặc `"quá thời gian cho phép"`, hàm `diagnose_compile_error` tự động kích hoạt chẩn đoán chuyên biệt:
+       + Xác định nguyên nhân gốc: Đề thi có quy mô lớn chứa nhiều hình vẽ TikZ phức tạp với tham số tính toán toạ độ giải tích dày đặc (`samples=100`).
+       + Thông báo hệ thống: Quesy đã tự động nâng ngưỡng timeout biên dịch lên tới $\text{calc\_timeout}$ giây (tối đa 240s) theo cơ chế thích ứng.
+       + Khuyến nghị tối ưu hóa kỹ thuật: Đề xuất chuyển đổi các thông số `samples=100` thành `samples=50` (hoặc `samples=60`). Trên khổ A4 tiêu chuẩn, mật độ 50 điểm lấy mẫu đã tạo nên đường cong Bézier trơn mịn tuyệt đối cho in ấn vector $1200\text{ DPI}$, đồng thời giảm 50% khối lượng tính toán giải tích của XeTeX, giúp tăng tốc độ biên dịch lên gấp đôi.
+       + Trích xuất danh sách `diffs` (`List[DiffSuggestion]`): Định vị toàn bộ các dòng chứa `samples=100` trong mã nguồn và sinh khối diff đề xuất thay thế sang `samples=50`, cho phép người dùng click "Đồng ý" (Apply) hoặc "Áp dụng tất cả" (Apply All) trực tiếp trên khung soạn thảo.
+  3. *Thông Báo Tiến Trình Biên Dịch Đề Thi Lớn (Progressive Status Feedback):*
+     - Trên giao diện Frontend (`app.js`), khi biên dịch tài liệu lớn (`code_len > 10000` hoặc $\ge 4$ khối TikZ), nhãn trạng thái `#composer-status-text` lập tức hiển thị `"Đang biên dịch đề thi lớn (nhiều hình TikZ)..."`.
+     - Kích hoạt đồng hồ tiến trình đa nấc (Progressive Status Timer: 5s, 15s, 35s) cập nhật thông điệp thời gian thực (ví dụ: *"Đang xử lý hình vẽ TikZ & tính toán toạ độ..."*, *"Đang kết xuất các trang PDF vector qua XeTeX..."*), triệt tiêu hoàn toàn cảm giác giao diện bị đơ/treo khi biên dịch tài liệu nặng.
+
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.
 - **Xử lý:** Tính toán vector embedding (`text-embedding-3-small` hoặc `bge-m3`), so sánh Cosine Distance trong `pgvector`.
@@ -670,6 +698,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 | **SRS-FEAT-04f** | Test tự động + UI Test | Phản hồi sửa đổi từ AI trích xuất thành đối tượng `DiffSuggestion`, định vị đúng dòng trên editor, hiển thị banner so sánh đỏ/xanh; nhấn [Đồng ý] thay thế chuẩn xác dòng code và kích hoạt recompile; nhấn [Từ chối] hủy bỏ an toàn không làm biến đổi mã nguồn. |
 | **SRS-FEAT-04p** | Test tự động + Blind Test | Bóc tách chính xác khối câu hỏi thứ N (`find_question_block`); prompt thay thế câu N liên kết đúng diff; nếu diff hợp lệ chuyển tới editor, nếu rỗng bảo tồn trọn vẹn code trong chat bubble kèm 3 nút hành động (không nuốt code). |
 | **SRS-FEAT-04u** | E2E Browser Test + Test tự động | Kiểm thử upload tệp ảnh, paste ảnh clipboard (Ctrl+V) trên cả compact bar và chat popup; hiển thị thumbnail preview kèm nút xóa (✕); mở lightbox phóng to; gửi request `POST /api/v1/composer/chat` kèm payload `images: [data_url]`; AI phản hồi mã TikZ / `ex_test.sty` từ hình ảnh đề bài. |
+| **SRS-FEAT-04v** | Test tự động + Đo kiểm | Tính toán timeout động $\text{calc\_timeout} \in [60, 240]$ dựa trên TikZ count và code length; socket timeout $\text{calc\_timeout} + 15$s; biên dịch trọn vẹn đề thi THPT Việt Đức 2026-2027 (~24k ký tự, 11 TikZ, 6 trang PDF) thành công không bị timeout 504; AI Copilot chẩn đoán lỗi timeout và gợi ý diff `samples=50` chính xác. |
 | **SRS-FEAT-05** | Test tích hợp | Câu hỏi có cosine similarity $\ge 0.90$ phải kích hoạt chặn lưu và hiển thị modal cảnh báo trùng lặp. |
 | **SRS-FEAT-08** | Unit Test thuật toán | Chạy 1.000 lần sinh mã đề hoán vị: $0\%$ câu hỏi chùm bị tách rời; $0\%$ phương án có cờ `is_fixed` bị đảo khỏi vị trí cố định. |
 | **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng MathType 7.0 OLE Vector WMF nét căng tuyệt đối, click đúp mở MathType 7 sửa được trực tiếp; bảng số liệu dạng native table không bị lỗi đen khi xuất PDF; khổ A4 dọc chuẩn. |

@@ -90,7 +90,7 @@ quesy/
 │   ├── seed_data.py                   # Bộ dữ liệu mẫu ngân hàng câu hỏi & cây TT 32 (1,122 dòng)
 │   │
 │   ├── routers/                       # Tầng Controller & API Endpoints
-│   │   ├── composer.py                # API Soạn đề LaTeX, Tectonic compile, AI Diff Copilot (479 dòng)
+│   │   ├── composer.py                # API Soạn đề LaTeX, Tectonic compile, AI Diff Copilot, Chẩn đoán timeout & tối ưu TikZ (2,040 dòng)
 │   │   ├── digitize.py                # API Số hóa đề thi 2-Pass, quản lý tiến trình, cắt ảnh (755 dòng)
 │   │   ├── exams.py                   # API Tạo đề thi gốc, quản lý mã đề hoán vị, chấm thi (434 dòng)
 │   │   ├── matrix.py                  # API Ma trận đặc tả đề thi theo YCCĐ (215 dòng)
@@ -100,7 +100,7 @@ quesy/
 │   ├── services/                      # Tầng Domain Business Logic & Processing Engines
 │   │   ├── ai_parser.py               # Engine số hóa đề thi thông minh (Pass 1 Text + Pass 2 TikZ) (918 dòng)
 │   │   ├── ai_provider_service.py     # Adapter kết nối đa nhà cung cấp AI (Gemini, OpenAI...) (833 dòng)
-│   │   ├── composer_service.py        # Dịch vụ biên dịch LaTeX Hybrid 3 tầng & bóc tách ex_test (955 dòng)
+│   │   ├── composer_service.py        # Dịch vụ biên dịch LaTeX Hybrid 3 tầng, Dynamic Adaptive Timeout & bóc tách ex_test (1,264 dòng)
 │   │   ├── crop_service.py            # Dịch vụ cắt và trích xuất ảnh đồ thị/bảng WebP (399 dòng)
 │   │   ├── deduplication.py           # Dịch vụ kiểm soát trùng lặp câu hỏi qua Vector Similarity (97 dòng)
 │   │   ├── docx_exporter.py           # Engine xuất bản Word MathType 7.0 OLE Vector WMF thuần Python (2,977 dòng)
@@ -372,7 +372,7 @@ ight., Environment undefined)
 | **Local Dev** | Python Runtime | Python 3.13 (`C:\Users\ngnsusinn\AppData\Local\Programs\Python\Python313\python.exe`) |
 | **Local Dev** | Node.js Worker | Node.js v20+ điều hành `backend/services/mathjax_worker.js` |
 | **Local Dev** | Web Server | FastAPI / Uvicorn lắng nghe cổng 8000 (auto-failover sang 8001 nếu cổng bận) |
-| **Server Deploy** | Tectonic Docker | Microservice `tectonic-compiler-api` trên host `armbian:8090` |
+| **Server Deploy** | Tectonic Docker | Microservice `tectonic-compiler-api` trên host `armbian:8090` (Dynamic Adaptive Timeout: 60s - 240s) |
 | **Server Deploy** | Cache CTAN | Volume mount `/root/.cache/tectonic` lưu trữ vĩnh viễn 43MB packages |
 | **CI / CD** | GitHub Actions | Runner `ubuntu-latest`, Python 3.13, Node 20. Cổng kiểm soát Pre-Commit CI Gate bắt buộc (100% pass CI mới được commit), nguyên tắc Strict CI Isolation (độc quyền Sub-Agent 3, cấm các sub-agent khác đọc/ghi), và vòng lặp sửa lỗi CI Loop. |
 
