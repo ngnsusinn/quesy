@@ -83,10 +83,7 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 - **BR-02.2 Auto-clipping khống chế tỷ lệ khung hình:** Tự động phát hiện phạm vi hệ trục toạ độ để giới hạn vùng vẽ hàm phân thức có tiệm cận, loại bỏ hoàn toàn hiện tượng vọt toạ độ vô cực gây méo xẹp tỷ lệ đồ thị.
 - **BR-02.3 Hỗ trợ đồ thị trong các phương án trắc nghiệm:** Tự động nhận diện và hiển thị đồ thị độc lập trong từng phương án lựa chọn A, B, C, D dưới dạng thẻ trực quan.
 - **BR-02.4 Bộ 4 quy tắc chuẩn hóa toán học:**
-  1. *Dấu ngoặc kích thước động:* Tự động bọc `\left(...
-ight)`, `\left[...
-ight]`, `\left\{...
-ight\}` (bảo vệ căn `\sqrt[...]` và text mode).
+  1. *Dấu ngoặc kích thước động:* Tự động bọc `\left(...\right)`, `\left[...\right]`, `\left\{...\right\}` (bảo vệ căn `\sqrt[...]` và text mode).
   2. *Số thập phân chuẩn:* Định dạng dấu phẩy `{,}` trong công thức đề bài để KaTeX không tạo khoảng trống (ví dụ `15{,}25`), đồng thời giữ số sạch ở đáp án (`3,9`, `15,25`).
   3. *Phân số chuẩn:* Luôn chuyển sang `\dfrac` giúp công thức hiển thị thoáng đẹp.
   4. *Ký hiệu vectơ:* Chuẩn hóa thành `\overrightarrow{AB}` thay vì `\vec`.

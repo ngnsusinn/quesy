@@ -15,8 +15,7 @@
 ### 1.1. Mục tiêu Kiểm thử
 Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xác các yêu cầu nghiệp vụ và giải quyết trọn vẹn các bài toán kỹ thuật thực tế:
 1. Độ chính xác của AI bóc tách công thức Toán LaTeX, giải mã MathType MTEF, và biên dịch đồ thị vector SVG (TikZ/PGFPlots) có Auto-clipping.
-2. Kiểm tra bộ 4 quy tắc chuẩn hóa toán học (ngoặc `\left`/`
-ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phân số `\dfrac`, vectơ `\overrightarrow`).
+2. Kiểm tra bộ 4 quy tắc chuẩn hóa toán học (ngoặc `\left`/`\right`, số thập phân `{,}` trong đề và số sạch trong đáp án, phân số `\dfrac`, vectơ `\overrightarrow`).
 3. Xác minh thể thức câu hỏi hiện đại: **Trắc nghiệm Đúng/Sai 4 khẳng định tính điểm bậc thang** và **Trắc nghiệm Trả lời ngắn**.
 4. Thuật toán **Trộn đề An toàn (Safe Shuffling)**: Đảm bảo không tách rời câu hỏi chùm và luôn khóa cố định phương án *"Cả A và B đều đúng"* tại vị trí cuối cùng (D).
 5. Chất lượng xuất bản file Word 2 cột với công thức native OMML và bảng điểm Excel UTF-8 BOM.
@@ -405,6 +404,32 @@ ight`, số thập phân `{,}` trong đề và số sạch trong đáp án, phâ
   2. Xác nhận khả năng bóc tách khối diff (thay thế dòng/đổi tiêu đề/câu hỏi) từ phản hồi chuẩn Google Gemini.
   3. Xác nhận xử lý an toàn, tự động kích hoạt Offline Rule-based Fallback khi `AI_API_KEY` rỗng (môi trường CI runner) hoặc khi mạng gặp sự cố.
 - **Kết quả kỳ vọng:** HTTP 200, phản hồi có cấu trúc hợp lệ (`reply`, `diff`, `diffs`), 100% test cases pass trên cả runner CI và máy dev cục bộ.
+
+#### TC-COMP-28: Kiểm Thử Toàn Diện Bộ Form Mẫu Menu THÊM & Biểu Mẫu TEMPLATES Không Lỗi Cú Pháp (Full Template Suite Zero-Error Compilation)
+- **Mô tả:** Kiểm tra toàn bộ 12 form mẫu trong menu `THÊM ▾` (`EX_TEST_TEMPLATES`) và toàn bộ các biểu mẫu trong backend `TEMPLATES`:
+  1. Xác nhận không còn lỗi chuỗi escape `\n` trong JavaScript template strings; chèn vào editor xuống dòng thực tế sạch sẽ, không sinh lệnh `\n{}` làm lỗi XeTeX.
+  2. Xác nhận mẫu `dethi_quocgia_full` sửa sạch lỗi `\rule` (không còn `\nule`), `\choiceTF[1]` (không còn `\choiceTF` thừa `\\` và số 5 vô nghĩa).
+  3. Xác nhận mẫu `dungsai` dùng lệnh chuẩn `\choiceTF[1]`, loại bỏ lệnh nội bộ `\choiceTFt` và thay `\loigiai{...}` bằng `\begin{loigiai}...\end{loigiai}`.
+  4. Xác nhận mẫu `ex_test_standard_exam` sửa triệt để lỗi `\right|_0^2` (không còn mất chữ r thành `ight|_0^2`).
+  5. Biên dịch thử nghiệm lần lượt từng form mẫu qua engine Tectonic XeTeX / Chromium.
+- **Kết quả kỳ vọng:** 100% form mẫu biên dịch thành công (`success = true`), không phát sinh bất kỳ lỗi TeX nào.
+
+#### TC-COMP-29: Kiểm Thử Cơ Chế AI Copilot Đọc Log Lỗi Biên Dịch, Ánh Xạ Dòng Lỗi Preamble-Free & Tự Động Sinh Diff Sửa Lỗi (Compile Error Reading, Line Offset & Syntax Repair)
+- **Mô tả:** Kiểm tra khả năng tiếp nhận và xử lý chuỗi `compile_error` của AI Copilot:
+  1. Gửi request `POST /api/v1/composer/chat` với payload chứa `compile_error` kèm câu lệnh "fix lỗi" hoặc "sửa lỗi giúp tôi".
+  2. Kiểm tra bộ chẩn đoán `diagnose_compile_error`:
+     - Bóc tách chính xác số dòng lỗi `L_comp` từ log compiler (`error: document.tex:(\d+):` hoặc `l\.(\d+)`).
+     - Ánh xạ chính xác vị trí dòng trong editor không preamble: `L_user = L_comp - 11`.
+     - Phân tích chuẩn xác 5 nhóm lỗi kinh điển: `There's no line here to end` (xóa `\\`), `Undefined control sequence` (`\ule` -> `\rule`, `\choiceTFt` -> `\choiceTF[1]`, `ight|` -> `\right|`), `Missing $ inserted` (bọc `$`), `Missing \right.`, và `Environment undefined`.
+  3. Kiểm tra phản hồi `ChatResponse`: trường `reply` giải thích nguyên nhân rõ ràng và trường `diff` chứa lát cắt thay thế chính xác dòng lỗi trong tài liệu hiện tại.
+- **Kết quả kỳ vọng:** AI Copilot đọc hiểu log lỗi 100%, trả về khối diff chính xác khớp vị trí dòng trong editor, bấm [Đồng ý] sửa dứt điểm lỗi biên dịch.
+
+#### TC-COMP-30: Kiểm Thử Chuẩn Mực Câu Hỏi Đúng/Sai \choiceTF[1] Dàn 1 Cột Thẳng Đứng (True/False Single-Column 100% Width & Trailing Backslash Prohibition)
+- **Mô tả:** Kiểm tra quy chuẩn câu hỏi Đúng/Sai theo chuẩn Thông tư 32 & QĐ 764:
+  1. Toàn bộ mã nguồn câu hỏi Đúng/Sai sử dụng lệnh `\choiceTF[1]` với tham số `[1]` bắt buộc.
+  2. Xác nhận tuyệt đối không có dấu `\\` sau các dấu ngoặc nhọn `{...}` của các khẳng định.
+  3. Kiểm tra bộ render HTML preview (`compile_latex_source_to_html`): 4 khẳng định a), b), c), d) hiển thị thành 4 hàng riêng biệt, mỗi hàng chiếm 100% chiều rộng (không chia 2 cột hay 4 cột) kèm nhãn a), b), c), d) và biểu tượng [Đ]/[S].
+- **Kết quả kỳ vọng:** Bố cục đề thi chuẩn mực, 1 cột thẳng đứng rõ ràng, không vỡ layout trên cả bản in PDF và xem trước HTML.
 
 #### TC-DEV-01: Quy Chuẩn Quản Trị Nhánh & Không Tự Động Tạo Pull Request (Git Workflow Guardrail)
 - **Mô tả:** Rà soát và xác thực hành vi của các agent và quy trình CI/CD:

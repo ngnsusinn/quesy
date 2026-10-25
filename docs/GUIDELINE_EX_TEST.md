@@ -70,12 +70,12 @@ Do đó, hàm số đồng biến trên khoảng $(-\infty; -2)$.
 ---
 
 ### 2.2. Phần II: Câu trắc nghiệm Đúng / Sai (4 khẳng định bậc thang QĐ 764)
-Sử dụng lệnh `\choiceTF` cho câu hỏi có 4 ý lựa chọn:
+Sử dụng lệnh `\choiceTF[1]` cho câu hỏi có 4 ý lựa chọn (tham số `[1]` ép buộc hiển thị **1 cột dọc duy nhất**, mỗi khẳng định a, b, c, d nằm trên một dòng riêng biệt, tuyệt đối không chia 4 cột hay 2 cột):
 
 ```latex
 \begin{ex}[Chuyên đề Đạo hàm]
 Cho hàm số $y = f(x) = x^3 - 3x^2 + 2$. Xét tính đúng/sai của các khẳng định sau:
-\choiceTF
+\choiceTF[1]
 {\True Hàm số đạt cực đại tại điểm $x = 0$.}
 {Giá trị cực tiểu của hàm số bằng $2$.}
 {\True Điểm uốn của đồ thị hàm số là $I(1; 0)$.}
@@ -92,9 +92,11 @@ Ta có $y' = 3x^2 - 6x = 3x(x - 2)$. Cho $y' = 0 \Leftrightarrow x = 0$ hoặc $
 \end{ex}
 ```
 
-**Quy tắc:**
-- Ý nào đúng: Đặt `\True` ở đầu nội dung khẳng định.
-- Ý nào sai: Để nội dung khẳng định bình thường (không có `\True`).
+**Quy tắc Chuẩn mực Khảo thí 2025:**
+- **Tham số `[1]` là BẮT BUỘC:** Lệnh `\choiceTF[1]` bảo đảm 4 ý a), b), c), d) luôn dàn trải theo 1 cột thẳng đứng, không tự động co cụm thành 2 cột hay 4 cột ngang gây vỡ bố cục in ấn.
+- **Tuyệt đối KHÔNG thêm `\\`:** Sau mỗi khối ngoặc nhọn `{...}`, không được đặt thêm dấu xuống dòng `\\` (sẽ gây lỗi nghiêm trọng `! LaTeX Error: There's no line here to end`).
+- Ý nào đúng: Đặt `\True` ở đầu nội dung khẳng định (`{\True Nội dung ý đúng}`).
+- Ý nào sai: Để nội dung khẳng định bình thường không có `\True` (`{Nội dung ý sai}`).
 - Môi trường `\begin{itemchoice} \itemch ... \end{itemchoice}` trong `\begin{loigiai}` giúp trình bày lời giải phân tách rành mạch cho từng ý a), b), c), d).
 
 ---
@@ -191,3 +193,18 @@ Ghép mỗi hàm số ở Cột I với tập xác định tương ứng ở C�
 1. **XeTeX Unicode 100%:** Gói `ex_test.sty` được Quesy cấu hình chạy trên nền Tectonic XeTeX với font `CMU Serif` / `Latin Modern Roman`, tự động nhận diện tiếng Việt có dấu mà không cần gói legacy `\usepackage[utf8]{vietnam}`.
 2. **Trích xuất 1-Click vào Ngân hàng:** Trình soạn thảo Quesy tự động nhận diện cấu trúc `\begin{ex} ... \choice`, `\choiceTF`, `\shortans` để bóc tách trực tiếp vào cơ sở dữ liệu ngân hàng câu hỏi.
 3. **Chống sập ảnh thiếu:** Nếu đề bài có `\includegraphics` nhưng chưa nạp file ảnh, Tectonic Microservice tự động bù đắp placeholder trong suốt, bảo đảm đề thi luôn biên dịch thành công.
+
+---
+
+## 6. HỆ THỐNG TRỢ LÝ AI COPILOT CHẨN ĐOÁN & SỬA LỖI BIÊN DỊCH TỰ ĐỘNG
+
+Khi biên dịch đề thi phát sinh lỗi, hệ thống kích hoạt chu trình khép kín:
+1. **Lưu trữ Log Lỗi:** Backend trả về thông báo lỗi compiler chi tiết (`compile_error`). Client lưu trữ tại `this.lastCompileError`.
+2. **Truyền Log vào AI Copilot:** Khi người dùng gửi prompt yêu cầu "sửa lỗi", "fix lỗi", "tại sao lỗi" hoặc click nút SỬA LỖI trên Gemini Dropdown, log lỗi được tự động đính kèm vào payload `POST /api/v1/composer/chat`.
+3. **Ánh xạ Dòng Lỗi (Preamble Line Offset):** Vì trình soạn thảo hoạt động ở chế độ Preamble-free (không chứa 11 dòng preamble chuẩn), động cơ chẩn đoán tự động tính `Dòng_Editor = Dòng_Compiler - 11` để định vị chính xác vị trí dòng lỗi trên màn hình người dùng.
+4. **Các lỗi thường gặp và cách xử lý:**
+   - **`There's no line here to end`:** Do thừa dấu `\\` sau các khối ngoặc nhọn `{...}` của `\choice` hoặc `\choiceTF`. Cách sửa: xóa bỏ dấu `\\`.
+   - **`Undefined control sequence`:** Lệnh không tồn tại (như gõ nhầm `\ule` thay vì `\rule`, `\choiceTFt` thay vì `\choiceTF[1]`, `ight|` thay vì `\right|`, hoặc chuỗi `\n` bị chèn nhầm). Cách sửa: thay thế bằng lệnh chuẩn.
+   - **`Missing $ inserted`:** Thiếu dấu `$` bọc quanh ký hiệu toán học (`_`, `^`, `\alpha`, `\int`). Cách sửa: bọc công thức trong cặp `$ ... $`.
+   - **`Missing \right. inserted`:** Mất cân bằng giữa `\left.` và `\right.`. Cách sửa: hoàn thiện cặp ngoặc co giãn.
+5. **Sinh Diff Thông Minh:** AI trả về khối ```diff``` chỉ chứa dòng cũ và dòng mới, cho phép giáo viên bấm **[Đồng ý]** để sửa trực tiếp trên trình soạn thảo.

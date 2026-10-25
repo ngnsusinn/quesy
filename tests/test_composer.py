@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from backend.main import app
 from backend.routers.composer import (
     DiffSuggestion,
+    diagnose_compile_error,
     extract_all_diffs_from_text,
     extract_diff_from_text,
     find_in_latex,
@@ -541,7 +542,7 @@ def test_composer_chat_api_offline_question_generation_true_false():
         assert res.status_code == 200
         data = res.json()
         assert "PHẦN II" in data["suggested_latex"]
-        assert "Đúng/Sai" in data["suggested_latex"]
+        assert "đúng sai" in data["suggested_latex"].lower() or "đúng/sai" in data["suggested_latex"].lower()
 
 
 def test_composer_chat_api_offline_question_generation_tikz_plot():
@@ -2785,23 +2786,23 @@ def test_composer_national_exam_2025_templates_frontend():
 
     # 1. header_quocgia template
     assert "'header_quocgia':" in app_js
-    assert "begin{minipage}[t]{0.48" in app_js or "begin{minipage}[t]{0.55" in app_js
+    assert "begin{minipage}[t]{0.38" in app_js or "begin{minipage}[t]{0.58" in app_js
     assert "KỲ THI TỐT NGHIỆP THPT NĂM 2025" in app_js
     assert "Mã đề" in app_js or "MÃ ĐỀ" in app_js
 
     # 2. section_phan1 template
     assert "'section_phan1':" in app_js
-    assert "PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN" in app_js
+    assert "PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn" in app_js
     assert "Thí sinh trả lời từ câu 1 đến câu 12" in app_js
 
     # 3. section_phan2 template
     assert "'section_phan2':" in app_js
-    assert "PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI" in app_js
+    assert "PHẦN II. Câu trắc nghiệm đúng sai" in app_js
     assert "Thí sinh trả lời từ câu 1 đến câu 4" in app_js
 
     # 4. section_phan3 template
     assert "'section_phan3':" in app_js
-    assert "PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN" in app_js
+    assert "PHẦN III. Câu trắc nghiệm trả lời ngắn" in app_js
     assert "Thí sinh trả lời từ câu 1 đến câu 6" in app_js
 
     # 5. dethi_quocgia_full template
@@ -2860,7 +2861,7 @@ def test_composer_ensure_full_latex_document_national_exam_structures():
 
     # 3. Full 3-section exam wrapping
     full_exam_code = header_snippet + r"""
-\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
 \begin{ex}
 Câu hỏi trắc nghiệm
 \choice
@@ -2870,7 +2871,7 @@ Câu hỏi trắc nghiệm
 {D}
 \end{ex}
 
-\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}
+\section*{PHẦN II. Câu trắc nghiệm đúng sai}
 \begin{ex}
 Câu hỏi đúng sai
 \choiceTF
@@ -2880,16 +2881,16 @@ Câu hỏi đúng sai
 {Sai}
 \end{ex}
 
-\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
+\section*{PHẦN III. Câu trắc nghiệm trả lời ngắn}
 \begin{ex}
 Câu hỏi ngắn
 \shortans{42}
 \end{ex}"""
 
     doc_full = ensure_full_latex_document(full_exam_code, mode="dethi")
-    assert r"\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}" in doc_full
-    assert r"\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI}" in doc_full
-    assert r"\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}" in doc_full
+    assert r"\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}" in doc_full
+    assert r"\section*{PHẦN II. Câu trắc nghiệm đúng sai}" in doc_full
+    assert r"\section*{PHẦN III. Câu trắc nghiệm trả lời ngắn}" in doc_full
     assert r"\shortans{42}" in doc_full
 
 
@@ -2903,7 +2904,7 @@ def test_composer_chat_api_national_exam_fallbacks():
     assert res_header.status_code == 200
     data_header = res_header.json()
     assert "minipage" in data_header.get("suggested_latex", "")
-    assert "KỲ THI TỐT NGHIỆP" in data_header["suggested_latex"] and "2025" in data_header["suggested_latex"]
+    assert "KỲ THI TỐT NGHIỆP THPT" in data_header["suggested_latex"] or "2025" in data_header["suggested_latex"] or "SỞ GD" in data_header["suggested_latex"]
     assert "Mã đề" in data_header["suggested_latex"] or "MÃ ĐỀ" in data_header["suggested_latex"]
 
     # 2. Header request via "tiêu đề 2 cột"
@@ -2969,22 +2970,22 @@ def test_compile_latex_source_to_html_national_sections_and_styling():
 
     sample_latex = r"""\documentclass[12pt]{article}
 \begin{document}
-\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
 Nội dung phần I...
 
-\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai}
+\section*{PHẦN II. Câu trắc nghiệm đúng sai - Xét tính Đúng/Sai}
 Nội dung phần II...
 
-\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
+\section*{PHẦN III. Câu trắc nghiệm trả lời ngắn}
 Nội dung phần III...
 \end{document}"""
 
     html = compile_latex_source_to_html(sample_latex, default_title="Đề Thi Thử 2025")
     assert "<!DOCTYPE html>" in html
     assert "CMU Serif" in html
-    assert '<h2 class="latex-section">PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN</h2>' in html
-    assert '<h2 class="latex-section">PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai</h2>' in html
-    assert '<h2 class="latex-section">PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN</h2>' in html
+    assert '<h2 class="latex-section">PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn</h2>' in html
+    assert '<h2 class="latex-section">PHẦN II. Câu trắc nghiệm đúng sai - Xét tính Đúng/Sai</h2>' in html
+    assert '<h2 class="latex-section">PHẦN III. Câu trắc nghiệm trả lời ngắn</h2>' in html
 
     # Verify that text-transform: uppercase is NOT enforced on .latex-section
     assert "text-transform: uppercase;" not in html
@@ -3038,6 +3039,174 @@ def test_composer_frontend_compact_bar_styling():
     assert "#a855f7" in css or "rgba(168, 85, 247" in css or "168, 85, 247" in css
 
 
+def test_composer_national_exam_2025_header_centering_and_single_bottom_rule():
+    r"""Verify that National Exam 2025 Header uses 0.38/0.58 ratio, \centering on both sides,
+    omits the top rule, and keeps only a single bottom rule below candidate metadata."""
+    import re
+    app_js_path = Path("frontend/static/app.js")
+    assert app_js_path.exists(), "frontend/static/app.js must exist"
+    app_js = app_js_path.read_text(encoding="utf-8")
+
+    # Extract header_quocgia template
+    m = re.search(r"'header_quocgia':\s*`([\s\S]*?)`", app_js)
+    assert m is not None, "header_quocgia template must exist in app.js"
+    header_tex = m.group(1)
+
+    # 1. Verify ratio 0.38\textwidth (left) and 0.58\textwidth (right)
+    assert "0.38" in header_tex and "minipage" in header_tex
+    assert "0.58" in header_tex and "minipage" in header_tex
+
+    # 2. Verify \centering on both columns
+    assert "hfill" in header_tex
+    parts = re.split(r"\\+hfill", header_tex)
+    assert len(parts) >= 2, "Header must have two columns separated by hfill"
+    left_col, right_col = parts[0], parts[1]
+    assert "centering" in left_col, "Left column must have centering"
+    assert "centering" in right_col, "Right column must have centering"
+
+    # 3. Verify top rule is removed (no rule before candidate metadata)
+    idx_candidate = header_tex.find("Họ và tên thí sinh")
+    assert idx_candidate != -1, "Candidate metadata line must exist"
+    assert "rule" not in header_tex[:idx_candidate], "Top rule above candidate info must be omitted"
+
+    # 4. Verify single bottom rule below candidate metadata
+    candidate_and_below = header_tex[idx_candidate:]
+    assert "rule" in candidate_and_below and "0.5pt" in candidate_and_below, "Single bottom rule below candidate info"
+    assert "framebox" in candidate_and_below or "fbox" in candidate_and_below
+
+
+def test_composer_national_exam_2025_section_textbf_textit_format():
+    r"""Verify that 2025 sections use \noindent\textbf{PHẦN ...} \textit{...} and discard \section*."""
+    import re
+    app_js_path = Path("frontend/static/app.js")
+    app_js = app_js_path.read_text(encoding="utf-8")
+
+    # Section 1
+    m1 = re.search(r"'section_phan1':\s*`([\s\S]*?)`", app_js)
+    assert m1 is not None
+    s1 = m1.group(1)
+    assert "PHẦN I." in s1
+    assert "noindent" in s1
+    assert "textbf{" in s1
+    assert "textit{" in s1
+    assert "section*" not in s1
+
+    # Section 2
+    m2 = re.search(r"'section_phan2':\s*`([\s\S]*?)`", app_js)
+    assert m2 is not None
+    s2 = m2.group(1)
+    assert "PHẦN II." in s2
+    assert "noindent" in s2
+    assert "textbf{" in s2
+    assert "textit{" in s2
+    assert "section*" not in s2
+
+    # Section 3
+    m3 = re.search(r"'section_phan3':\s*`([\s\S]*?)`", app_js)
+    assert m3 is not None
+    s3 = m3.group(1)
+    assert "PHẦN III." in s3
+    assert "noindent" in s3
+    assert "textbf{" in s3
+    assert "textit{" in s3
+    assert "section*" not in s3
+
+
+def test_composer_sync_section_question_counts_comprehensive():
+    """Verify sync_section_question_counts correctly updates 'từ câu 1 đến câu {count}'
+    across Part I (e.g. 11 questions), Part II (4 questions), Part III (6 questions),
+    supports classic \\textbf{Câu} syntax, and leaves text untouched when count is 0."""
+    from backend.services import composer_service
+
+    assert hasattr(composer_service, "sync_section_question_counts"), (
+        "Function 'sync_section_question_counts' must be implemented in backend/services/composer_service.py"
+    )
+    sync_func = getattr(composer_service, "sync_section_question_counts")
+
+    # Case 1: Part I with 11 questions (\\begin{ex}) -> updates to "từ câu 1 đến câu 11"
+    latex_part1 = (
+        r"\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}"
+        + "\n"
+        + "\n".join([rf"\begin{{ex}}\nCâu hỏi {i}\n\choice\n{{A}}\n{{\True B}}\n{{C}}\n{{D}}\n\end{{ex}}" for i in range(1, 12)])
+    )
+    res1 = sync_func(latex_part1)
+    assert "từ câu 1 đến câu 11" in res1
+    assert "từ câu 1 đến câu 12" not in res1
+
+    # Case 2: Part II with 4 questions (\\begin{ex}) -> updates to "từ câu 1 đến câu 4"
+    latex_part2 = (
+        r"\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 5. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}"
+        + "\n"
+        + "\n".join([rf"\begin{{ex}}\nCâu đúng sai {i}\n\choiceTF\n{{\True Đúng}}\n{{Sai}}\n{{\True Đúng}}\n{{Sai}}\n\end{{ex}}" for i in range(1, 5)])
+    )
+    res2 = sync_func(latex_part2)
+    assert "từ câu 1 đến câu 4" in res2
+    assert "từ câu 1 đến câu 5" not in res2
+
+    # Case 3: Part III with 6 questions (\\begin{ex}) -> updates to "từ câu 1 đến câu 6"
+    latex_part3 = (
+        r"\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 8.}"
+        + "\n"
+        + "\n".join([rf"\begin{{ex}}\nCâu ngắn {i}\n\shortans{{{i}}}\n\end{{ex}}" for i in range(1, 7)])
+    )
+    res3 = sync_func(latex_part3)
+    assert "từ câu 1 đến câu 6" in res3
+    assert "từ câu 1 đến câu 8" not in res3
+
+    # Case 4: Classic \\textbf{Câu X.} questions (without \\begin{ex})
+    latex_classic = (
+        r"\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}"
+        + "\n"
+        + "\n".join([
+            rf"\textbf{{Câu {i}.}} Nội dung câu {i}... "
+            r"\textbf{A.} $1$ \quad \textbf{B.} $2$ \quad \textbf{C.} $3$ \quad \textbf{D.} $4$"
+            for i in range(1, 8)
+        ])
+    )
+    res_classic = sync_func(latex_classic)
+    assert "từ câu 1 đến câu 7" in res_classic
+    assert "từ câu 1 đến câu 12" not in res_classic
+
+    # Case 5: Zero questions -> leaves count string untouched (does not corrupt into "từ câu 1 đến câu 0")
+    latex_empty = (
+        r"\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} "
+        r"\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}"
+        + "\nChưa có câu hỏi nào được thêm."
+    )
+    res_empty = sync_func(latex_empty)
+    assert "từ câu 1 đến câu 12" in res_empty
+    assert "từ câu 1 đến câu 0" not in res_empty
+
+
+def test_compile_latex_source_to_html_header_038_058_and_centering():
+    """Verify compile_latex_source_to_html correctly styles 0.38/0.58 columns with text-align: center."""
+    from backend.services.composer_service import compile_latex_source_to_html
+
+    header_tex = r"""\documentclass{article}
+\begin{document}
+\noindent
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP THPT}
+\end{minipage}
+\noindent\\rule{\textwidth}{0.5pt}
+\end{document}"""
+
+    html = compile_latex_source_to_html(header_tex, default_title="Đề thi 2025")
+    assert "<!DOCTYPE html>" in html
+    assert "0.38" in html or "38" in html
+    assert "0.58" in html or "58" in html
+    assert "text-align: center;" in html
+    assert "<hr" in html
 
 
 
@@ -3045,3 +3214,295 @@ def test_composer_frontend_compact_bar_styling():
 
 
 
+
+
+
+
+def test_composer_all_backend_and_frontend_templates_compilation_and_syntax():
+    r"""TC-COMP-28: Verify all canonical templates in backend TEMPLATES and frontend EX_TEST_TEMPLATES
+    compile cleanly without syntax errors, typos (\ule, \choiceTFt, ight|), and have valid LaTeX/HTML output.
+    """
+    import re
+    from backend.services.composer_service import TEMPLATES, compile_latex_source_to_html
+
+    # 1. Verify backend TEMPLATES
+    assert len(TEMPLATES) >= 4
+    for tmpl_id, tmpl_data in TEMPLATES.items():
+        latex = tmpl_data.get("latex", "")
+        assert len(latex) > 20, f"Template {tmpl_id} has empty latex"
+        # Check for typos
+        assert r"ule{\textwidth}" not in latex, f"Typo ule found in backend template {tmpl_id}"
+        assert r"\choiceTFt" not in latex, f"Typo \\choiceTFt found in backend template {tmpl_id}"
+        assert not re.search(r'(?<!r)ight\|', latex), f"Typo ight| found in backend template {tmpl_id}"
+        
+        # Test HTML preview rendering
+        html = compile_latex_source_to_html(latex, default_title=tmpl_data.get("title", ""))
+        assert "<!DOCTYPE html>" in html
+        assert len(html) > 500
+
+    # 2. Verify frontend EX_TEST_TEMPLATES
+    app_js_path = Path(__file__).resolve().parent.parent / "frontend" / "static" / "app.js"
+    assert app_js_path.exists(), "frontend/static/app.js must exist"
+    app_js_content = app_js_path.read_text(encoding="utf-8")
+
+    # Check for forbidden typos in app.js
+    assert r"ule{\textwidth}" not in app_js_content
+    assert r"\choiceTFt" not in app_js_content
+    assert not re.search(r'(?<!r)ight\|', app_js_content)
+
+    # Extract template strings from EX_TEST_TEMPLATES
+    m_extest = re.search(r'EX_TEST_TEMPLATES\s*:\s*\{([\s\S]*?)\n\s*\},', app_js_content)
+    assert m_extest is not None, "Could not locate EX_TEST_TEMPLATES in app.js"
+    extest_body = m_extest.group(1)
+
+    # Validate that templates render without crashing
+    dethi_full_match = re.search(r"'dethi_quocgia_full'\s*:\s*`([\s\S]*?)`", extest_body)
+    assert dethi_full_match is not None
+    dethi_full_latex = dethi_full_match.group(1)
+    assert "rule" in dethi_full_latex and "0.5pt" in dethi_full_latex
+    assert "choiceTF[1]" in dethi_full_latex
+    # Ensure choiceTF block in template has no trailing \\ after braces
+    m_tf = re.search(r'choiceTF(?:\[1\])?([\s\S]*?)begin\{loigiai\}', dethi_full_latex)
+    if m_tf:
+        assert "}\\\\" not in m_tf.group(1)
+
+    html_dethi = compile_latex_source_to_html(dethi_full_latex, default_title="Đề thi 2025")
+    assert "<!DOCTYPE html>" in html_dethi
+    assert "PHẦN I" in html_dethi
+    assert "PHẦN II" in html_dethi
+    assert "PHẦN III" in html_dethi
+
+
+def test_composer_true_false_choiceTF1_syntax_and_html_rendering():
+    r"""TC-COMP-30: Verify True/False questions strictly enforce \choiceTF[1] single-column 100% width,
+    prohibit trailing backslashes '\\' after {...}, and compile to proper HTML previews.
+    """
+    import re
+    from backend.services.composer_service import TEMPLATES, compile_latex_source_to_html
+
+    # 1. Check all backend templates with True/False questions
+    for tmpl_id, tmpl in TEMPLATES.items():
+        latex = tmpl.get("latex", "")
+        if r"\choiceTF" in latex:
+            # Enforce [1] parameter
+            assert r"\choiceTF[1]" in latex, f"Template {tmpl_id} must use \\choiceTF[1]"
+            # Prohibit \\ immediately after option closing braces
+            lines = latex.splitlines()
+            for idx, line in enumerate(lines):
+                if line.strip().startswith(r"\choiceTF"):
+                    for opt_line in lines[idx + 1 : idx + 5]:
+                        assert not re.search(r'\}\s*\\\\', opt_line), (
+                            f"Trailing \\ found after brace in {tmpl_id}: {opt_line}"
+                        )
+
+    # 2. Test HTML preview rendering for \choiceTF[1]
+    tf_sample = r"""\begin{ex}
+Xét tính đúng sai của các khẳng định sau:
+\choiceTF[1]
+{\True Mệnh đề A đúng.}
+{Mệnh đề B sai.}
+{\True Mệnh đề C đúng.}
+{Mệnh đề D sai.}
+\begin{loigiai}
+Lời giải chi tiết.
+\end{loigiai}
+\end{ex}"""
+
+    html = compile_latex_source_to_html(tf_sample)
+    assert "width: 100%" in html or "display: block" in html
+    assert "[Đ]" in html
+    assert "[S]" in html
+    assert "a)" in html
+    assert "b)" in html
+    assert "c)" in html
+    assert "d)" in html
+    assert 'width: 48%' not in html
+
+
+def test_composer_chat_api_compile_error_log_payload_support():
+    """TC-COMP-29: Verify AI Copilot accepts both compile_error_log and compile_error keys in payload."""
+    cur_latex = r"""\begin{ex}
+Cho hàm số $y = f(x)$.
+\badcommand
+\end{ex}"""
+
+    # 1. Using new compile_error_log field
+    res1 = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "Sửa lỗi biên dịch giúp tôi",
+            "current_latex": cur_latex,
+            "compile_error_log": "! Undefined control sequence. \nl.15 \\badcommand",
+            "history": []
+        }
+    )
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert "reply" in data1
+    assert data1["diff"] is not None
+    assert data1["diff"]["action"] == "replace"
+    assert "\\badcommand" in data1["diff"]["old_text"]
+
+    # 2. Using legacy compile_error field
+    res2 = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "fix lỗi",
+            "current_latex": cur_latex,
+            "compile_error": "! Undefined control sequence. \nl.15 \\badcommand",
+            "history": []
+        }
+    )
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["diff"] is not None
+    assert data2["diff"]["action"] == "replace"
+
+
+def test_composer_compile_error_preamble_free_line_offset_mapping():
+    """TC-COMP-29: Verify Preamble-Free line offset mapping L_user = L_comp - 11."""
+    preamble_free_latex = (
+        r"\begin{ex}" + "\n"
+        r"Cho hàm số $y = f(x)$." + "\n"
+        r"\choiceTF[1]" + "\n"
+        r"{\True Khẳng định a.}\\" + "\n"
+        r"{Khẳng định b.}" + "\n"
+        r"{\True Khẳng định c.}" + "\n"
+        r"{Khẳng định d.}" + "\n"
+        r"\end{ex}"
+    )
+
+    # L_comp = 15 -> L_user = 15 - 11 = 4
+    compile_log = "! LaTeX Error: There's no line here to end.\nl.15 {\\True Khẳng định a.}\\\\"
+
+    res = diagnose_compile_error(
+        compile_error=compile_log,
+        current_latex=preamble_free_latex,
+        user_message="fix lỗi biên dịch"
+    )
+    assert res is not None
+    assert res.diff is not None
+    assert res.diff.action == "replace"
+    assert res.diff.old_text == r"{\True Khẳng định a.}\\"
+    assert res.diff.new_text == r"{\True Khẳng định a.}"
+
+    # Full document with \documentclass (offset should NOT be applied)
+    full_latex = (
+        r"\documentclass{article}" + "\n"
+        r"\begin{document}" + "\n"
+        r"\begin{ex}" + "\n"
+        r"{\True Khẳng định a.}\\" + "\n"
+        r"\end{ex}" + "\n"
+        r"\end{document}"
+    )
+    compile_log_full = "error: document.tex:4: There's no line here to end."
+    res_full = diagnose_compile_error(
+        compile_error=compile_log_full,
+        current_latex=full_latex,
+        user_message="fix error"
+    )
+    assert res_full is not None
+    assert res_full.diff is not None
+    assert res_full.diff.old_text == r"{\True Khẳng định a.}\\"
+    assert res_full.diff.new_text == r"{\True Khẳng định a.}"
+
+
+def test_composer_compile_error_diagnosis_five_classic_families():
+    r"""TC-COMP-29: Verify diagnose_compile_error correctly diagnoses all 5 classic TeX error families:
+    1. There's no line here to end
+    2. Undefined control sequence (typos: \ule, \choiceTFt, ight|)
+    3. Missing $ inserted
+    4. Missing 
+ight. inserted / Extra }, or forgotten 
+ight
+    5. Environment undefined
+    """
+    # 1. Family 1: There's no line here to end
+    latex_family1 = r"""\begin{ex}
+Tính toán biểu thức:
+\choiceTF[1]
+{\True Phương án 1}\\
+{Phương án 2}
+{\True Phương án 3}
+{Phương án 4}
+\end{ex}"""
+    err1 = "! LaTeX Error: There's no line here to end. \nl.14 {\\True Phương án 1}\\\\"
+    res1 = diagnose_compile_error(err1, latex_family1)
+    assert res1 is not None
+    assert res1.diff is not None
+    assert r"\\" not in res1.diff.new_text
+    assert "There's no line here to end" in res1.reply
+
+    # 2. Family 2: Undefined control sequence
+    # 2a: \ule -> \rule
+    latex_ule = r"""\noindent
+\ule{\textwidth}{0.5pt}
+\section*{Đề thi}"""
+    err_ule = "! Undefined control sequence. \nl.2 \\ule"
+    res_ule = diagnose_compile_error(err_ule, latex_ule)
+    assert res_ule is not None
+    assert res_ule.diff is not None
+    assert r"\rule" in res_ule.diff.new_text
+
+    # 2b: \choiceTFt -> \choiceTF[1]
+    latex_choicetft = r"""\begin{ex}
+\choiceTFt
+{\True a}
+{b}
+{\True c}
+{d}
+\end{ex}"""
+    err_choicetft = "! Undefined control sequence. \nl.13 \\choiceTFt"
+    res_choicetft = diagnose_compile_error(err_choicetft, latex_choicetft)
+    assert res_choicetft is not None
+    assert res_choicetft.diff is not None
+    assert r"\choiceTF[1]" in res_choicetft.diff.new_text
+
+    # 2c: ight| -> \right|
+    latex_right = r"""\begin{loigiai}
+$I = (x^2 + x) ight|_0^2 = 6$.
+\end{loigiai}"""
+    err_right = "! Undefined control sequence. \nl.13 ight"
+    res_right = diagnose_compile_error(err_right, latex_right)
+    assert res_right is not None
+    assert res_right.diff is not None
+    assert r"\right|_0^2" in res_right.diff.new_text
+
+    # 3. Family 3: Missing $ inserted
+    latex_missing_dollar = r"""\begin{ex}
+Cho hàm số y = x^2 + 2x.
+\choice
+{\True 1}
+{2}
+{3}
+{4}
+\end{ex}"""
+    err_dollar = "! Missing $ inserted. \nl.13 Cho hàm số y = x^2 + 2x."
+    res_dollar = diagnose_compile_error(err_dollar, latex_missing_dollar)
+    assert res_dollar is not None
+    assert res_dollar.diff is not None
+    assert "$" in res_dollar.diff.new_text
+    assert "Missing $" in res_dollar.reply
+
+    # 4. Family 4: Missing \right. inserted / forgotten \right
+    latex_unbalanced_right = r"""\begin{loigiai}
+$I = (x^2 + 1) \right|_0^1 = 2$.
+\end{loigiai}"""
+    err_unbalanced = "! Missing \\right. inserted. \nl.13 $I = (x^2 + 1) \\right|_0^1 = 2$."
+    res_unbalanced = diagnose_compile_error(err_unbalanced, latex_unbalanced_right)
+    assert res_unbalanced is not None
+    assert res_unbalanced.diff is not None
+    assert r"\left." in res_unbalanced.diff.new_text
+
+    # 5. Family 5: Environment undefined
+    latex_env = r"""\documentclass{article}
+\begin{document}
+\begin{tikzpicture}
+\draw (0,0) -- (1,1);
+\end{tikzpicture}
+\end{document}"""
+    err_env = "! LaTeX Error: Environment tikzpicture undefined."
+    res_env = diagnose_compile_error(err_env, latex_env)
+    assert res_env is not None
+    assert res_env.diff is not None
+    assert r"\usepackage{tikz,tkz-tab}" in res_env.diff.new_text

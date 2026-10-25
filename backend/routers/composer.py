@@ -60,6 +60,7 @@ class ChatRequest(BaseModel):
     message: str = Field(..., description="User query or command for the AI assistant")
     current_latex: Optional[str] = Field("", description="Current editor LaTeX code for context")
     compile_error: Optional[str] = Field(None, description="Recent compile error log if any")
+    compile_error_log: Optional[str] = Field(None, description="Recent compile error log if any")
     history: Optional[List[ChatMessage]] = Field(default_factory=list)
 
 class DiffSuggestion(BaseModel):
@@ -455,16 +456,40 @@ def diagnose_compile_error(
     current_latex: str,
     user_message: str = ""
 ) -> Optional[ChatResponse]:
-    """Analyze LaTeX compilation error log and diagnose the root cause to propose a targeted diff."""
+    r"""Analyze LaTeX compilation error log and diagnose the root cause to propose a targeted diff.
+    Supports Preamble-Free line offset mapping (L_user = L_comp - 11) and 5 classic TeX error families:
+    1. 'There\'s no line here to end' (trailing \\ after {...})
+    2. 'Undefined control sequence' (\ule -> \rule, \choiceTFt -> \choiceTF[1], ight| -> \right|, typos)
+    3. 'Missing $ inserted' (unwrapped math symbols or unclosed inline math)
+    4. 'Missing \\right. inserted' / 'Extra }, or forgotten \\right' (unbalanced \\left/\\right)
+    5. 'Environment undefined' / Missing packages (tikz, ex_test, amsmath)
+    """
     if not compile_error or not current_latex:
         return None
 
     err_lower = compile_error.lower()
     cur_lower = current_latex.lower()
+    doc_lines = current_latex.splitlines()
+
+    # Line offset logic for Preamble-Free mode
+    m_line = re.search(r'(?:document\.tex:(\d+)|l\.(\d+)|\bline\s+(\d+))', compile_error, re.IGNORECASE)
+    L_comp: Optional[int] = None
+    if m_line:
+        L_comp = int(m_line.group(1) or m_line.group(2) or m_line.group(3))
+
+    is_preamble_free = r"\documentclass" not in cur_lower
+    L_user: Optional[int] = None
+    if L_comp is not None:
+        L_user = (L_comp - 11) if is_preamble_free else L_comp
+
+    def _get_target_line_and_idx() -> Tuple[Optional[int], Optional[str]]:
+        if L_user is not None and 1 <= L_user <= len(doc_lines):
+            return L_user - 1, doc_lines[L_user - 1]
+        return None, None
 
     # 1. Bad / invalid command such as \badcommand
     if r"\badcommand" in cur_lower or r"\badcommand" in err_lower:
-        for line in current_latex.splitlines():
+        for line in doc_lines:
             if r"\badcommand" in line:
                 fixed_line = line.replace(r"\badcommand", r"% \badcommand (lệnh lỗi đã vô hiệu hóa)")
                 diff = DiffSuggestion(
@@ -480,7 +505,45 @@ def diagnose_compile_error(
                 )
                 return ChatResponse(reply=reply, diff=diff)
 
-    # 2. Missing tikz / tkz-tab packages
+    # 2. 'There\'s no line here to end'
+    if "there's no line here to end" in err_lower or "no line here to end" in err_lower:
+        target_idx, target_line = None, None
+        if L_user is not None:
+            for offset in (0, -1, 1, -2, 2):
+                idx = (L_user - 1) + offset
+                if 0 <= idx < len(doc_lines):
+                    line = doc_lines[idx]
+                    if r"\\" in line or re.search(r'\}\s*\\\\', line):
+                        target_idx, target_line = idx, line
+                        break
+        if target_idx is None:
+            for idx, line in enumerate(doc_lines):
+                if re.search(r'\}\s*\\\\', line) or line.strip() == r"\\" or line.rstrip().endswith(r"\\"):
+                    target_idx, target_line = idx, line
+                    break
+
+        if target_idx is not None and target_line is not None:
+            fixed_line = re.sub(r'\}\s*\\\\', '}', target_line)
+            if fixed_line == target_line:
+                fixed_line = re.sub(r'\\\\(?:\s*)$', '', target_line)
+            if fixed_line == target_line and target_line.strip() == r"\\":
+                fixed_line = ""
+
+            diff = DiffSuggestion(
+                action="replace",
+                old_text=target_line,
+                new_text=fixed_line,
+                description="Sửa lỗi biên dịch: Xóa dấu \\ thừa gây lỗi 'There\'s no line here to end'"
+            )
+            reply = (
+                "Tôi phát hiện lỗi biên dịch `! LaTeX Error: There's no line here to end`.\n\n"
+                "Nguyên nhân: Thừa dấu `\\` sau cặp ngoặc nhọn `{...}` hoặc ở vị trí không có dòng văn bản để ngắt.\n\n"
+                f"```diff\n- {target_line}\n+ {fixed_line}\n```\n\n"
+                "Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để khắc phục lỗi này."
+            )
+            return ChatResponse(reply=reply, diff=diff)
+
+    # 3. Missing tikz / tkz-tab packages
     if any(k in err_lower for k in ("tikzpicture undefined", "environment tikzpicture undefined", "tkztabinit undefined", "package tikz error")) or \
        ("undefined control sequence" in err_lower and any(cmd in err_lower for cmd in ("\\tkztab", "\\tikzpicture", "tkztabinit", "tkztabline", "tkztabvar"))):
         if r"\usepackage{tikz" not in cur_lower and r"\usepackage[tikz" not in cur_lower:
@@ -501,7 +564,7 @@ def diagnose_compile_error(
                 )
                 return ChatResponse(reply=reply, diff=diff)
         elif "tkz-tab" not in cur_lower:
-            for line in current_latex.splitlines():
+            for line in doc_lines:
                 if "usepackage" in line and "tikz" in line:
                     new_line = line.replace("tikz", "tikz,tkz-tab")
                     diff = DiffSuggestion(
@@ -517,7 +580,7 @@ def diagnose_compile_error(
                     )
                     return ChatResponse(reply=reply, diff=diff)
 
-    # 3. Missing ex_test package
+    # 4. Missing ex_test package
     if any(k in err_lower for k in ("environment ex undefined", "ex_test", "choicetf undefined", "shortans undefined")) or \
        ("undefined control sequence" in err_lower and any(cmd in err_lower for cmd in ("\\choice", "\\choicetf", "\\shortans", "\\immini", "\\itemch"))):
         if "ex_test" not in cur_lower:
@@ -538,7 +601,7 @@ def diagnose_compile_error(
                 )
                 return ChatResponse(reply=reply, diff=diff)
 
-    # 4. Missing amsmath / amssymb package
+    # 5. Missing amsmath / amssymb package
     if "undefined control sequence" in err_lower and any(cmd in err_lower for cmd in ("\\dfrac", "\\mathbb", "\\iint", "\\iiint", "\\align")):
         if "amsmath" not in cur_lower:
             ins = _insert_in_preamble(current_latex, r"\usepackage{amsmath,amssymb}")
@@ -558,9 +621,9 @@ def diagnose_compile_error(
                 )
                 return ChatResponse(reply=reply, diff=diff)
 
-    # 5. Obsolete vietnam package
+    # 6. Obsolete vietnam package
     if "vietnam" in err_lower or "utf8x" in err_lower:
-        for line in current_latex.splitlines():
+        for line in doc_lines:
             if "usepackage" in line and "vietnam" in line:
                 new_line = re.sub(r'\\usepackage(\[[^\]]*\])?\{vietnam\}', r'\\usepackage{fontspec}', line)
                 diff = DiffSuggestion(
@@ -577,13 +640,13 @@ def diagnose_compile_error(
                 )
                 return ChatResponse(reply=reply, diff=diff)
 
-    # 6. Unclosed environment ended by \end{document}
+    # 7. Unclosed environment ended by \end{document}
     m_unclosed = re.search(r'\\begin\{([a-zA-Z0-9_*]+)\}(?:[^\n]*?)ended by \\end\{document\}', compile_error, re.IGNORECASE)
     if not m_unclosed:
         m_unclosed = re.search(r'environment\s+([a-zA-Z0-9_*]+)\s+(?:[^\n]*?)ended by \\end\{document\}', compile_error, re.IGNORECASE)
     if m_unclosed:
         env_name = m_unclosed.group(1)
-        for line in current_latex.splitlines():
+        for line in doc_lines:
             if r"\end{document}" in line:
                 indent = line[: len(line) - len(line.lstrip())]
                 new_line = f"{indent}\\end{{{env_name}}}\n{line}"
@@ -600,31 +663,202 @@ def diagnose_compile_error(
                 )
                 return ChatResponse(reply=reply, diff=diff)
 
-    # 7. Common syntax typos (e.g. \fracc, \begindocument, \choiceft, \vecto)
+    # 8. Common command typos (\ule, \choiceTFt, \choiceft, \night|, \fracc, \begindocument, \vecto)
     typo_mappings = [
+        (r'\ule', r'\rule'),
+        (r'ule{\textwidth}', r'\rule{\textwidth}{0.5pt}'),
+        (r'\choiceTFt', r'\choiceTF[1]'),
+        (r'\choiceft', r'\choiceTF[1]'),
+        (r'\night|', r'\right|'),
         (r'\fracc', r'\dfrac'),
         (r'\begindocument', r'\begin{document}'),
         (r'\enddocument', r'\end{document}'),
         (r'\vecto', r'\overrightarrow'),
-        (r'\choiceft', r'\choiceTF'),
     ]
     for bad_cmd, good_cmd in typo_mappings:
-        if bad_cmd in compile_error or bad_cmd in cur_lower:
-            for line in current_latex.splitlines():
-                if bad_cmd in line:
-                    new_line = line.replace(bad_cmd, good_cmd)
+        if bad_cmd in compile_error or bad_cmd in current_latex or (bad_cmd.lower() in cur_lower):
+            for line in doc_lines:
+                if bad_cmd in line or (bad_cmd.lower() in line.lower() and bad_cmd.startswith('\\')):
+                    fixed_line = line.replace(bad_cmd, good_cmd)
+                    if fixed_line == line:
+                        fixed_line = re.sub(re.escape(bad_cmd), good_cmd, line, flags=re.IGNORECASE)
                     diff = DiffSuggestion(
                         action="replace",
                         old_text=line,
-                        new_text=new_line,
+                        new_text=fixed_line,
                         description=f"Sửa lệnh sai cú pháp '{bad_cmd}' thành '{good_cmd}'"
                     )
                     reply = (
                         f"Phát hiện lệnh sai cú pháp `{bad_cmd}` trong mã nguồn:\n\n"
-                        f"```diff\n- {line}\n+ {new_line}\n```\n\n"
+                        f"```diff\n- {line}\n+ {fixed_line}\n```\n\n"
                         f"Bấm **Đồng ý** để sửa thành `{good_cmd}`."
                     )
                     return ChatResponse(reply=reply, diff=diff)
+
+    # Check ight| without preceding backslash
+    if re.search(r'(?<!r)ight\|', current_latex):
+        for line in doc_lines:
+            if re.search(r'(?<!r)ight\|', line):
+                fixed_line = re.sub(r'(?<!r)ight\|', r'\\right|', line)
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=line,
+                    new_text=fixed_line,
+                    description=r"Sửa lệnh sai cú pháp 'ight|' thành '\right|'"
+                )
+                reply = (
+                    "Phát hiện lệnh sai cú pháp `ight|` thiếu dấu gạch chéo `\\` trong mã nguồn:\n\n"
+                    f"```diff\n- {line}\n+ {fixed_line}\n```\n\n"
+                    r"Bấm **Đồng ý** để sửa thành `\right|`."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+
+    # 9. Missing $ inserted
+    if "missing $ inserted" in err_lower:
+        target_idx, target_line = None, None
+        if L_user is not None and 1 <= L_user <= len(doc_lines):
+            target_idx = L_user - 1
+            target_line = doc_lines[target_idx]
+        else:
+            for idx, line in enumerate(doc_lines):
+                if line.count("$") % 2 != 0:
+                    target_idx, target_line = idx, line
+                    break
+            if target_idx is None:
+                for idx, line in enumerate(doc_lines):
+                    if re.search(r'[_^]|\\[a-zA-Z]+', line) and "$" not in line:
+                        target_idx, target_line = idx, line
+                        break
+
+        if target_idx is not None and target_line is not None:
+            if target_line.count("$") % 2 != 0:
+                fixed_line = target_line.rstrip() + "$"
+            elif "$" not in target_line:
+                fixed_line = f"${target_line.strip()}$"
+            else:
+                fixed_line = target_line.rstrip() + "$"
+            diff = DiffSuggestion(
+                action="replace",
+                old_text=target_line,
+                new_text=fixed_line,
+                description="Sửa lỗi biên dịch: Bổ sung dấu $ cho công thức toán"
+            )
+            reply = (
+                "Tôi phát hiện lỗi biên dịch `! Missing $ inserted` do công thức toán học chưa được đóng hoặc thiếu cặp `$ ... $.\n\n"
+                f"```diff\n- {target_line}\n+ {fixed_line}\n```\n\n"
+                "Bấm **Đồng ý** để sửa lỗi."
+            )
+            return ChatResponse(reply=reply, diff=diff)
+
+    # 10. Missing \right. inserted or Extra }, or forgotten \right
+    if any(k in err_lower for k in ("missing \\right", "forgotten \\right", "missing \\left", "forgotten \\left", "extra }, or forgotten \\right")):
+        target_idx, target_line = None, None
+        if L_user is not None and 1 <= L_user <= len(doc_lines):
+            target_idx = L_user - 1
+            target_line = doc_lines[target_idx]
+        else:
+            for idx, line in enumerate(doc_lines):
+                if (r"\right" in line and r"\left" not in line) or (r"\left" in line and r"\right" not in line):
+                    target_idx, target_line = idx, line
+                    break
+
+        if target_idx is not None and target_line is not None:
+            if r"\right|" in target_line and r"\left." not in target_line:
+                fixed_line = re.sub(r'(\([^\)]+\)\s*\\right\|)', r'\\left. \1', target_line)
+                if fixed_line == target_line:
+                    fixed_line = target_line.replace(r"\right|", r"\left. \right|")
+            elif r"\left." in target_line and r"\right." not in target_line and r"\right|" not in target_line:
+                fixed_line = target_line.rstrip() + r" \right."
+            else:
+                fixed_line = target_line.replace(r"\right|", r"\left. \right|")
+
+            diff = DiffSuggestion(
+                action="replace",
+                old_text=target_line,
+                new_text=fixed_line,
+                description="Sửa lỗi biên dịch: Cân bằng cặp ngoặc \\left. và \\right."
+            )
+            reply = (
+                "Tôi phát hiện lỗi mất cân bằng cặp lệnh `\\left` và `\\right` (`Missing \\right. inserted` hoặc `forgotten \\right`).\n\n"
+                f"```diff\n- {target_line}\n+ {fixed_line}\n```\n\n"
+                "Bấm **Đồng ý** để áp dụng sửa đổi."
+            )
+            return ChatResponse(reply=reply, diff=diff)
+
+    # 11. Generic Undefined control sequence
+    if "undefined control sequence" in err_lower:
+        target_idx, target_line = _get_target_line_and_idx()
+        m_cmd = re.search(r'undefined control sequence[\s\S]*?\\([a-zA-Z]+)', compile_error, re.IGNORECASE)
+        if not m_cmd:
+            m_cmd = re.search(r'l\.\d+\s*\\([a-zA-Z]+)', compile_error)
+        bad_name = m_cmd.group(1) if m_cmd else None
+
+        if bad_name:
+            bad_seq = f"\\{bad_name}"
+            if target_line and bad_seq in target_line:
+                fixed_line = target_line.replace(bad_seq, f"% {bad_seq}")
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=target_line,
+                    new_text=fixed_line,
+                    description=f"Vô hiệu hóa lệnh không xác định '{bad_seq}'"
+                )
+                reply = (
+                    f"Tôi phát hiện lỗi `Undefined control sequence: \\{bad_name}`.\n\n"
+                    f"```diff\n- {target_line}\n+ {fixed_line}\n```\n\n"
+                    "Bấm **Đồng ý** để khắc phục lỗi."
+                )
+                return ChatResponse(reply=reply, diff=diff)
+            for line in doc_lines:
+                if bad_seq in line:
+                    fixed_line = line.replace(bad_seq, f"% {bad_seq}")
+                    diff = DiffSuggestion(
+                        action="replace",
+                        old_text=line,
+                        new_text=fixed_line,
+                        description=f"Vô hiệu hóa lệnh không xác định '{bad_seq}'"
+                    )
+                    reply = (
+                        f"Tôi phát hiện lỗi `Undefined control sequence: \\{bad_name}`.\n\n"
+                        f"```diff\n- {line}\n+ {fixed_line}\n```\n\n"
+                        "Bấm **Đồng ý** để khắc phục lỗi."
+                    )
+                    return ChatResponse(reply=reply, diff=diff)
+
+    # 12. Generic Environment undefined
+    m_env = re.search(r'environment\s+([a-zA-Z0-9_*]+)\s+undefined', compile_error, re.IGNORECASE)
+    if not m_env:
+        m_env = re.search(r'\\begin\{([a-zA-Z0-9_*]+)\}\s+undefined', compile_error, re.IGNORECASE)
+    if m_env:
+        env_name = m_env.group(1)
+        if env_name in ("tikzpicture", "tkzTab"):
+            pkg = r"\usepackage{tikz,tkz-tab}"
+        elif env_name in ("ex", "loigiai", "itemchoice"):
+            pkg = r"\usepackage[dethi]{ex_test}"
+        elif env_name in ("align", "align*", "gather", "gather*"):
+            pkg = r"\usepackage{amsmath,amssymb}"
+        elif env_name in ("tcolorbox",):
+            pkg = r"\usepackage{tcolorbox}"
+        else:
+            pkg = f"\\usepackage{{{env_name}}}"
+
+        if not is_preamble_free:
+            ins = _insert_in_preamble(current_latex, pkg)
+            if ins:
+                old_text, new_text = ins
+                diff = DiffSuggestion(
+                    action="replace",
+                    old_text=old_text,
+                    new_text=new_text,
+                    description=f"Bổ sung gói cho môi trường {env_name}"
+                )
+                reply = (
+                    f"Tôi phát hiện lỗi môi trường `{env_name}` chưa được khai báo.\n\n"
+                    f"Đề xuất bổ sung `{pkg}` vào phần preamble:\n\n"
+                    f"```diff\n- {old_text}\n+ {new_text}\n```\n\n"
+                    "Bấm **Đồng ý** để áp dụng."
+                )
+                return ChatResponse(reply=reply, diff=diff)
 
     return None
 
@@ -997,13 +1231,166 @@ def composer_chat_endpoint(req: ChatRequest):
                 f"Bạn hãy trích xuất khối ```diff với dòng (-) là câu cũ này và dòng (+) là câu mới thay thế, hoặc xuất khối ```latex chứa câu hỏi mới để hệ thống áp dụng thay thế lên trình soạn thảo.\n"
                 f"------------------------------------------------------\n\n"
             )
-    if req.compile_error and req.compile_error.strip():
-        prompt += f"--- LOG LỖI BIÊN DỊCH GẦN NHẤT ---\n{req.compile_error.strip()}\n---------------------------------\n\n"
+    if (req.compile_error_log or req.compile_error) and (req.compile_error_log or req.compile_error).strip():
+        prompt += f"--- LOG LỖI BIÊN DỊCH GẦN NHẤT ---\n{(req.compile_error_log or req.compile_error).strip()}\n---------------------------------\n\n"
     if req.current_latex and req.current_latex.strip():
         ctx = req.current_latex.strip()
         if len(ctx) > 25000:
             ctx = ctx[:12000] + "\n... [đoạn giữa được rút gọn] ...\n" + ctx[-12000:]
         prompt += f"--- NỘI DUNG TÀI LIỆU HIỆN TẠI ---\n{ctx}\n--------------------------------------------\n"
+
+    user_msg_lower = req.message.lower()
+
+    # Fast deterministic canonical 2025 templates router
+    if any(k in user_msg_lower for k in ("3 phần", "chuẩn quốc gia 2025", "trọn bộ", "đề thi chuẩn quốc gia")):
+        full_national_exam = r"""\noindent
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+  \textbf{TRƯỜNG THPT ...}\\
+  \textbf{ĐỀ CHÍNH THỨC}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+  \textbf{MÔN: TOÁN}\\
+  \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+\end{minipage}
+\vspace{0.25cm}
+\noindent
+Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+\vspace{0.1cm}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.3cm}
+
+\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
+\begin{ex}
+Cho hàm số $y = f(x)$ có đạo hàm $f'(x) = x(x-1)^2$. Số điểm cực trị của hàm số là:
+\choice
+{0}
+{\True 2}
+{1}
+{3}
+\begin{loigiai}
+$f'(x) = 0 \Leftrightarrow x = 0$ hoặc $x = 1$. Số điểm cực trị là 1.
+\end{loigiai}
+\end{ex}
+
+\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+
+\begin{ex}
+Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
+\choiceTF
+{\True Hàm số đạt cực đại tại $x = -1$.}\\
+{Giá trị cực tiểu bằng $1$.}\\
+{\True Tiệm cận ngang không có.}\\
+{Đồ thị nhận điểm $I(0;1)$ làm tâm đối xứng.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. $y' = 3x^2 - 3 = 0 \Rightarrow x = \pm 1$. $y(-1) = 3$.
+\itemch Sai. $y(1) = -1$.
+\itemch Đúng. Hàm đa thức không có tiệm cận ngang.
+\itemch Đúng. $y''(0) = 0$ và $y(0) = 1$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}
+
+\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+
+\begin{ex}
+Tìm giá trị lớn nhất của hàm số $y = -x^2 + 4x - 3$ trên đoạn $[0; 3]$.
+\shortans{1}
+\begin{loigiai}
+$y = -(x-2)^2 + 1 \le 1$. Đạt được khi $x = 2$.
+\end{loigiai}
+\end{ex}"""
+        return ChatResponse(
+            reply=f"Đã tạo trọn bộ đề thi chuẩn Quốc Gia 2025 (Header 2 cột & 3 Section):\n```latex\n{full_national_exam}\n```",
+            suggested_latex=full_national_exam
+        )
+
+    if any(k in user_msg_lower for k in ("tạo header", "tạo tiêu đề", "sở giáo dục", "tiêu đề 2 cột")):
+        header_snippet = r"""\noindent
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+  \textbf{TRƯỜNG THPT ...}\\
+  \textbf{ĐỀ CHÍNH THỨC}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+  \textbf{MÔN: TOÁN}\\
+  \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+\end{minipage}
+\vspace{0.25cm}
+\noindent
+Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+\vspace{0.1cm}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.3cm}"""
+        return ChatResponse(
+            reply=f"Đã tạo tiêu đề chuẩn 2 cột:\n```latex\n{header_snippet}\n```",
+            suggested_latex=header_snippet
+        )
+
+    if any(k in user_msg_lower for k in ("phần 1", "phần i")):
+        s1_snippet = r"""\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+\begin{ex}
+Cho hàm số $y = f(x)$...
+\choice
+{\True Phương án A}
+{Phương án B}
+{Phương án C}
+{Phương án D}
+\begin{loigiai}
+Lời giải chi tiết Phần I.
+\end{loigiai}
+\end{ex}"""
+        return ChatResponse(
+            reply=f"Đã tạo Phần I (12 câu trắc nghiệm):\n```latex\n{s1_snippet}\n```",
+            suggested_latex=s1_snippet
+        )
+
+    if any(k in user_msg_lower for k in ("phần 2", "phần ii")):
+        s2_snippet = r"""\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+\begin{ex}
+Cho hàm số $y = f(x)$... Xét tính đúng/sai:
+\choiceTF
+{\True Khẳng định a) đúng.}
+{Khẳng định b) sai.}
+{\True Khẳng định c) đúng.}
+{Khẳng định d) sai.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Lời giải ý a.
+\itemch Lời giải ý b.
+\itemch Lời giải ý c.
+\itemch Lời giải ý d.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}"""
+        return ChatResponse(
+            reply=f"Đã tạo Phần II (Đúng/Sai 4 ý):\n```latex\n{s2_snippet}\n```",
+            suggested_latex=s2_snippet
+        )
+
+    if any(k in user_msg_lower for k in ("phần 3", "phần iii")):
+        s3_snippet = r"""\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+\begin{ex}
+Tính giá trị của biểu thức...
+\shortans{100}
+\begin{loigiai}
+Lời giải chi tiết trả lời ngắn.
+\end{loigiai}
+\end{ex}"""
+        return ChatResponse(
+            reply=f"Đã tạo Phần III (Trả lời ngắn):\n```latex\n{s3_snippet}\n```",
+            suggested_latex=s3_snippet
+        )
 
     # Attempt to query configured AI provider
     try:
@@ -1049,47 +1436,46 @@ def composer_chat_endpoint(req: ChatRequest):
     cur_latex = req.current_latex or ""
 
     # 0. Check if compile error is reported or user asks to fix compile errors
-    if req.compile_error and req.compile_error.strip():
-        diag_resp = diagnose_compile_error(req.compile_error, cur_latex, req.message)
+    if (req.compile_error_log or req.compile_error) and (req.compile_error_log or req.compile_error).strip():
+        diag_resp = diagnose_compile_error((req.compile_error_log or req.compile_error), cur_latex, req.message)
         if diag_resp:
             return diag_resp
 
     if any(k in user_msg_lower for k in ("fix lỗi", "sửa lỗi", "lỗi biên dịch", "compile error", "khắc phục lỗi")):
-        diag_resp = diagnose_compile_error(req.compile_error or req.message, cur_latex, req.message)
+        diag_resp = diagnose_compile_error((req.compile_error_log or req.compile_error) or req.message, cur_latex, req.message)
         if diag_resp:
             return diag_resp
 
     # 0a. Check if prompt requests national exam header or sections
     if any(k in user_msg_lower for k in ("tạo header", "tạo tiêu đề", "sở giáo dục", "tiêu đề 2 cột")):
         header_snippet = r"""\noindent
-\begin{minipage}[t]{0.48\textwidth}
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
   \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
   \textbf{TRƯỜNG THPT ...}\\
   \textbf{ĐỀ CHÍNH THỨC}
 \end{minipage}
 \hfill
-\begin{minipage}[t]{0.48\textwidth}
+\begin{minipage}[t]{0.58\textwidth}
   \centering
   \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
   \textbf{MÔN: TOÁN}\\
   \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
 \end{minipage}
-\vspace{0.2cm}
-\noindent\rule{\textwidth}{0.5pt}
-\vspace{-0.1cm}
+\vspace{0.25cm}
 \noindent
 Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
 \vspace{0.1cm}
-\noindent\rule{\textwidth}{0.5pt}
+\noindent
+\rule{\textwidth}{0.5pt}
 \vspace{0.3cm}"""
         return ChatResponse(
             reply=f"Đã tạo tiêu đề chuẩn 2 cột:\n```latex\n{header_snippet}\n```",
             suggested_latex=header_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 1", "phần i", "trắc nghiệm 4 lựa chọn")):
-        s1_snippet = r"""\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
-\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+    if any(k in user_msg_lower for k in ("phần 1", "phần i")):
+        s1_snippet = r"""\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 \begin{ex}
 Cho hàm số $y = f(x)$...
 \choice
@@ -1106,9 +1492,8 @@ Lời giải chi tiết Phần I.
             suggested_latex=s1_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 2", "phần ii", "đúng/sai", "đúng sai")):
-        s2_snippet = r"""\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai}
-\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+    if any(k in user_msg_lower for k in ("phần 2", "phần ii")):
+        s2_snippet = r"""\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 \begin{ex}
 Cho hàm số $y = f(x)$... Xét tính đúng/sai:
 \choiceTF
@@ -1130,9 +1515,8 @@ Cho hàm số $y = f(x)$... Xét tính đúng/sai:
             suggested_latex=s2_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 3", "phần iii", "trả lời ngắn")):
-        s3_snippet = r"""\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
-\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+    if any(k in user_msg_lower for k in ("phần 3", "phần iii")):
+        s3_snippet = r"""\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
 \begin{ex}
 Tính giá trị của biểu thức...
 \shortans{100}
@@ -1147,24 +1531,29 @@ Lời giải chi tiết trả lời ngắn.
 
     if any(k in user_msg_lower for k in ("3 phần", "chuẩn quốc gia 2025", "trọn bộ", "đề thi chuẩn quốc gia")):
         full_national_exam = r"""\noindent
-\begin{minipage}[t]{0.55\textwidth}
-  \textbf{SỞ GD\&ĐT ...}\\
-  \textbf{TRƯỜNG THPT ...}
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+  \textbf{TRƯỜNG THPT ...}\\
+  \textbf{ĐỀ CHÍNH THỨC}
 \end{minipage}
-\begin{minipage}[t]{0.45\textwidth}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
   \centering
   \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
-  \textbf{Môn thi: TOÁN HỌC}\\
-  \textit{Thời gian làm bài: 90 phút}
+  \textbf{MÔN: TOÁN}\\
+  \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
 \end{minipage}
-\vspace{0.3cm}
-\begin{center}
-  \textbf{MÃ ĐỀ THI: 101}
-\end{center}
+\vspace{0.25cm}
+\noindent
+Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+\vspace{0.1cm}
+\noindent
+\rule{\textwidth}{0.5pt}
 \vspace{0.3cm}
 
-\section*{PHẦN I. TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
-\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
 \begin{ex}
 Cho hàm số $y = f(x)$ có đạo hàm $f'(x) = x(x-1)^2$. Số điểm cực trị của hàm số là:
 \choice
@@ -1177,14 +1566,14 @@ $f'(x) = 0 \Leftrightarrow x = 0$ hoặc $x = 1$. Số điểm cực trị là 1
 \end{loigiai}
 \end{ex}
 
-\section*{PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI - Xét tính Đúng/Sai}
-\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+
 \begin{ex}
 Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
 \choiceTF
-{\True Hàm số đạt cực đại tại $x = -1$.}
-{Giá trị cực tiểu bằng $1$.}
-{\True Tiệm cận ngang không có.}
+{\True Hàm số đạt cực đại tại $x = -1$.}\\
+{Giá trị cực tiểu bằng $1$.}\\
+{\True Tiệm cận ngang không có.}\\
 {Đồ thị nhận điểm $I(0;1)$ làm tâm đối xứng.}
 \begin{loigiai}
 \begin{itemchoice}
@@ -1196,16 +1585,15 @@ Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
 \end{loigiai}
 \end{ex}
 
-\section*{PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN}
-\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+
 \begin{ex}
 Tìm giá trị lớn nhất của hàm số $y = -x^2 + 4x - 3$ trên đoạn $[0; 3]$.
 \shortans{1}
 \begin{loigiai}
 $y = -(x-2)^2 + 1 \le 1$. Đạt được khi $x = 2$.
 \end{loigiai}
-\end{ex}
-"""
+\end{ex}"""
         return ChatResponse(
             reply=f"Đã tạo trọn bộ đề thi chuẩn Quốc Gia 2025 (Header 2 cột & 3 Section):\n```latex\n{full_national_exam}\n```",
             suggested_latex=full_national_exam
@@ -1346,7 +1734,7 @@ Tính tích phân $I = \int_0^1 (2x + 1) \, \mathrm{d}x$.
 {$0$}
 \begin{loigiai}
 Ta có $I = \left. (x^2 + x) 
-ight|_0^1 = (1 + 1) - 0 = 2$.
+\right|_0^1 = (1 + 1) - 0 = 2$.
 \end{loigiai}
 \end{ex}"""
             else:

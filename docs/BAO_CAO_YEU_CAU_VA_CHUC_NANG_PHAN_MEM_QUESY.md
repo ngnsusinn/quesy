@@ -337,11 +337,12 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
      - Neo chính xác theo vị trí con trỏ chuột (`Cursor Anchor`) khi cuộn chuột `Ctrl+Wheel` trên tài liệu, giữ điểm nội dung dưới đầu chuột đứng yên bất biến.
      - Neo theo trọng tâm chính giữa màn hình (`Center Anchor`) khi bấm nút `+` / `-` trên thanh công cụ nổi hoặc phím tắt.
      - Triệt tiêu $100\%$ hiện tượng tài liệu bị giật văng về góc trên cùng bên trái $(0, 0)$ và bảo toàn vị trí cuộn khi vẽ lại vector canvas ở độ phân giải thực.
-  9. **Cấu Trúc Header 2 Cột & Phân Vùng 3 Section Khảo Thí Chuẩn Quốc Gia 2025:**
-     - Tích hợp trọn bộ mẫu cấu trúc đề thi Quốc gia theo chuẩn Bộ Giáo dục & Đào tạo: Header 2 cột cân đối bằng `minipage` (Sở/Bộ GD&ĐT + Đề chính thức vs Kỳ thi THPT 2025 + Môn Toán + Thời gian 90 phút), hàng thông tin thí sinh với `\dotfill` kèm khung mã đề `\framebox{\textbf{Mã đề: 0102}}`.
-     - Phân vùng 3 Section khảo thí chuẩn mực: Phần I (12 câu trắc nghiệm 4 lựa chọn), Phần II (4 câu Đúng/Sai 4 khẳng định theo Quyết định 764), và Phần III (6 câu trắc nghiệm điền kết quả ngắn).
-     - Cho phép chèn nhanh từ nhóm menu `THÊM ▾` trên thanh công cụ, gọi qua Quick Actions trên Compact Bar hoặc ra lệnh trực tiếp bằng giọng nói/văn bản cho AI Copilot.
-     - Engine biên dịch hỗ trợ toàn diện `minipage`, `\rule`, `\dotfill`, `\framebox` và bảo toàn định dạng chữ thường của tiêu đề Section trên cả Tectonic XeTeX và Chromium Vector Engine.
+  9. **Cấu Trúc Header 2 Cột Căn Giữa (0.38/0.58), Phân Vùng 3 Section textbf/textit & Tự Động Nhận Diện Số Lượng Câu Hỏi Chuẩn Quốc Gia 2025:**
+     - Tích hợp trọn bộ mẫu cấu trúc đề thi Quốc gia theo chuẩn Bộ Giáo dục & Đào tạo: Header 2 cột cân đối bằng `minipage` (tỉ lệ 0.38\textwidth cột trái và 0.58\textwidth cột phải, có `\centering` cả 2 bên), bỏ nét liền phía trên và chỉ giữ đường nét liền đơn `\rule{\textwidth}{0.5pt}` phía dưới dòng thông tin thí sinh với `\dotfill` kèm khung mã đề `\framebox{\textbf{Mã đề: 0102}}`.
+     - Phân vùng 3 Section khảo thí chuẩn mực với `\noindent\textbf{PHẦN ...}` và `\textit{...}` (thay thế hoàn toàn `\section*{...}`): Phần I (Câu trắc nghiệm nhiều phương án lựa chọn), Phần II (Câu trắc nghiệm đúng sai theo Quyết định 764), và Phần III (Câu trắc nghiệm trả lời ngắn).
+     - Động cơ đồng bộ hai tầng (Two-Tier Sync) với `sync_section_question_counts` (backend) và `syncSectionQuestionCounts` (frontend) tự động nhận diện số câu hỏi (\begin{ex}, \begin{bt}, \textbf{Câu ...}) và cập nhật chính xác mẫu "từ câu 1 đến câu {count}" theo thời gian thực khi biên dịch hoặc gõ phím.
+     - Cho phép chèn nhanh từ nhóm menu `THÊM ▾` trên thanh công cụ, gọi qua Quick Actions trên Compact Bar hoặc ra lệnh trực tiếp cho AI Copilot.
+     - Engine biên dịch hỗ trợ toàn diện `minipage` (38%/58%), `\centering`, `\textbf`, `\textit`, `\rule`, `\dotfill`, `\framebox` trên cả Tectonic XeTeX và Chromium Vector Engine.
 
 ---
 

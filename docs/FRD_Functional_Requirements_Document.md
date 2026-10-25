@@ -177,14 +177,21 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   5. *Song Hành Cùng Banner Đỉnh:* Duy trì banner cố định trên đầu editor (`#composer-pending-diff-banner`) đóng vai trò thanh thông báo tổng quan với đầy đủ bộ đếm động, nút duyệt tuần tự, Keep/Undo và nút [Áp dụng tất cả], đồng bộ trạng thái 100% với Inline Overlay.
   6. *Quy Tắc Bubble Chat Thuần Túy:* Bubble chat của trợ lý chỉ hiển thị phản hồi lời văn (text explanation), hướng dẫn sư phạm hoặc phân tích nguyên nhân lỗi, hoàn toàn không chèn widget diff hay nút duyệt diff lặp lại.
 
-### 2.4.4. FR-02.6: Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding & Diagnostics)
+### 2.4.4. FR-02.6: Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding & Line-Offset Diagnostics)
 - **Mục tiêu:** Hỗ trợ giáo viên khắc phục lỗi cú pháp LaTeX / Tectonic tức thì mà không cần tự đọc log lỗi dòng lệnh phức tạp.
 - **Luồng Dữ Liệu:**
   1. *Ghi nhận Lỗi Biên dịch:* Khi biên dịch `POST /api/v1/composer/compile` trả về lỗi (`success = false`), client tự động bắt lấy thông điệp lỗi `errMsg = data.error` và lưu trữ bền vững vào `app.composer.lastCompileError`.
-  2. *Chuyển tiếp Tự động:* Khi người dùng gửi prompt kế tiếp (nhất là câu lệnh yêu cầu sửa lỗi như "sửa lỗi", "tại sao lỗi"), payload gửi đến `POST /api/v1/composer/chat` tự động đính kèm trường `compile_error_log: this.lastCompileError`.
+  2. *Chuyển tiếp Tự động:* Khi người dùng gửi prompt kế tiếp (nhất là câu lệnh yêu cầu sửa lỗi như "sửa lỗi", "fix lỗi", "tại sao lỗi", hoặc nhấn nút SỬA LỖI), payload gửi đến `POST /api/v1/composer/chat` tự động đính kèm trường `compile_error: this.lastCompileError`.
   3. *Chẩn đoán & Sinh Diff Sửa Lỗi Phía Server:*
-     - API `composer.py` trích xuất thông tin lỗi từ log (ví dụ: `! Undefined control sequence \badcommand`, `! Missing $ inserted`, `l.18 ...`).
-     - AI Copilot phân tích ngữ cảnh `current_latex`, khoanh vùng dòng mã gây lỗi, và tự động tạo khối `diff` đề xuất phương án sửa: thay thế bằng lệnh chuẩn, thêm gói lệnh thiếu vào preamble, hoặc đóng chú thích `%` để loại bỏ lỗi.
+     - API `composer.py` trích xuất thông tin lỗi từ log (ví dụ: `error: document.tex:24: Undefined control sequence`, `! Missing $ inserted`, `l.24 ...`).
+     - **Thuật toán ánh xạ dòng lỗi (Line-Offset Mapping):** Vì trình soạn thảo hoạt động ở chế độ Preamble-Free, hệ thống tự động tính dòng tương ứng trong editor `L_user = L_comp - 11` (với 11 dòng Canonical Preamble nhúng ngầm).
+     - **Bộ Chẩn đoán Cục bộ 5 Nhóm Lỗi (Local Diagnostics Engine):**
+       + *Nhóm 1 (No line here to end):* Phát hiện lỗi thừa `\\` sau các khối ngoặc nhọn `{...}` hoặc ở đầu dòng → Tự động xóa `\\`.
+       + *Nhóm 2 (Undefined control sequence):* Tự động sửa các lệnh sai chính tả (`\ule` → `\rule`, `\choiceTFt` → `\choiceTF[1]`, `ight|` / `\night|` → `\right|`, `\fracc` → `\dfrac`, `\n` → xuống dòng thật).
+       + *Nhóm 3 (Missing $ inserted):* Tự động bọc cặp dấu `$ ... $` quanh công thức toán học bị thiếu.
+       + *Nhóm 4 (Missing \right. inserted):* Tự động hoàn thiện khối ngoặc co giãn `\left.` và `\right.`.
+       + *Nhóm 5 (Environment undefined):* Tự động đề xuất bổ sung gói còn thiếu vào preamble.
+     - AI Copilot tạo khối `diff` đề xuất phương án sửa: chỉ chứa dòng cũ và dòng mới để người dùng bấm **[Đồng ý]** là mã nguồn được cập nhật ngay lập tức.
   4. *Thiết lập Lại Trạng Thái:* Khi bản biên dịch tiếp theo thành công, `lastCompileError` tự động reset về `null`.
 
 ### 2.4.5. FR-02.7: Tối Ưu Hóa Hiệu Năng Gửi Prompt & Box Chat Mượt Mà (Fast Prompt Dispatch & Smooth Chat Micro-Interactions)
@@ -373,65 +380,118 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
      - Tác vụ `Tải mã nguồn TeX (.tex)`:
        + Khi người dùng chọn xuất file TeX, nếu mã nguồn đang ở dạng không preamble, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi tạo file tải xuống (`.tex`), đảm bảo giáo viên có thể mở và biên dịch độc lập ngay lập tức trên máy tính cá nhân.
 
-### 2.4.14. FR-02.16: Cấu Trúc Header 2 Cột & Phân Vùng Section Khảo Thí Chuẩn Quốc Gia 2025
-- **Mục tiêu Nghiệp vụ:** Cung cấp bộ khung cấu trúc đề thi chính thức chuẩn hóa theo mẫu của Bộ Giáo dục & Đào tạo (Kỳ thi Tốt nghiệp THPT 2025). Cho phép giáo viên tạo lập ngay lập tức qua menu thanh công cụ `THÊM ▾`, gọi mẫu qua Quick Action Menu trên Compact Bar, hoặc giao tiếp ngôn ngữ tự nhiên với AI Copilot.
+### 2.4.14. FR-02.16: Cấu Trúc Header 2 Cột Căn Giữa (0.38/0.58), Section textbf/textit & Tự Động Nhận Diện Số Lượng Câu Hỏi Từng Phần
+- **Mục tiêu Nghiệp vụ:** Cung cấp bộ khung cấu trúc đề thi chính thức chuẩn hóa theo mẫu mới nhất của Bộ Giáo dục & Đào tạo (Kỳ thi Tốt nghiệp THPT 2025). Tối ưu hóa tỷ lệ 2 cột minipage (0.38\textwidth bên trái và 0.58\textwidth bên phải, căn giữa `\centering` cả 2 bên), loại bỏ đường kẻ liền trên và chỉ giữ đường nét liền đơn dưới thông tin thí sinh. Loại bỏ hoàn toàn `\section*{...}`, thay thế bằng định dạng in đậm `\noindent\textbf{PHẦN ...}` và in nghiêng `\textit{...}`. Đồng thời tích hợp thuật toán đồng bộ hai tầng (Two-Tier Sync) tự động nhận diện số lượng câu hỏi và cập nhật câu hướng dẫn của từng phần.
 - **Quy cách Chi tiết Cấu trúc Đề thi Chuẩn Quốc Gia 2025:**
-  1. *Header 2 Cột Đối Xứng Minipage:*
-     - Cột Trái (độ rộng `0.42\textwidth`):
+  1. *Header 2 Cột Đối Xứng Minipage (Tỉ lệ 0.38/0.58, Căn Giữa Cả 2 Cột):*
+     - Cột Trái (độ rộng `0.38\textwidth`, căn giữa nội dung):
        ```latex
        \noindent
-       \begin{minipage}[t]{0.42\textwidth}
-       \begin{center}
-       \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
-       \textbf{ĐỀ CHÍNH THỨC}\\
-       
-ule{2.8cm}{0.6pt}
-       \end{center}
-       \end{minipage}%
-       ```
-     - Cột Phải (độ rộng `0.54\textwidth`):
-       ```latex
-       \hfill
-       \begin{minipage}[t]{0.54\textwidth}
-       \begin{center}
-       \textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG NĂM 2025}\\
-       \textbf{Môn: TOÁN HỌC}\\
-       \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
-       \end{center}
+       \begin{minipage}[t]{0.38\textwidth}
+         \centering
+         \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+         \textbf{TRƯỜNG THPT ...}\\
+         \textbf{ĐỀ CHÍNH THỨC}
        \end{minipage}
        ```
-  2. *Hàng Thông Tin Thí Sinh & Khung Mã Đề:*
-     - Phân định rõ ràng Họ tên, SBD với chấm lửng tự co giãn `\dotfill` và khung bao mã đề nổi bật:
+     - Cột Phải (độ rộng `0.58\textwidth`, căn giữa nội dung):
        ```latex
-       \vspace{0.3cm}
-       \noindent
-       \textbf{Họ, tên thí sinh:} \dotfill\ \textbf{Số báo danh:} \dotfill\ \framebox{\textbf{Mã đề: 0102}}
-       \vspace{0.4cm}
+       \hfill
+       \begin{minipage}[t]{0.58\textwidth}
+         \centering
+         \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+         \textbf{MÔN: TOÁN}\\
+         \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+       \end{minipage}
        ```
-  3. *3 Phân Vùng Section Khảo Thí Chuẩn Bộ GD&ĐT 2025:*
+  2. *Hàng Thông Tin Thí Sinh & Khung Mã Đề (Chỉ Giữ Nét Liền Đơn Phía Dưới):*
+     - Bỏ hoàn toàn đường nét liền `\rule{\textwidth}{0.5pt}` phía trên dòng thông tin thí sinh.
+     - Duy trì khoảng đệm dọc `\vspace{0.25cm}`, dòng thông tin thí sinh kèm khung mã đề `\framebox`, khoảng đệm `\vspace{0.1cm}`, và đường nét liền đơn `\rule{\textwidth}{0.5pt}` phía dưới:
+       ```latex
+       \vspace{0.25cm}
+       \noindent
+       Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+       \vspace{0.1cm}
+       \noindent\rule{\textwidth}{0.5pt}
+       \vspace{0.3cm}
+       ```
+  3. *3 Phân Vùng Section Khảo Thí Chuẩn Bộ GD&ĐT 2025 (Thay \section* bằng \textbf + \textit):*
      - **PHẦN I (Trắc nghiệm nhiều lựa chọn):**
-       `\section*{PHẦN I. Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}`
-     - **PHẦN II (Trắc nghiệm Đúng/Sai 4 khẳng định):**
-       `\section*{PHẦN II. Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}`
+       ```latex
+       \noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+       ```
+     - **PHẦN II (Trắc nghiệm Đúng/Sai 4 khẳng định theo QĐ 764):**
+       ```latex
+       \noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+       ```
      - **PHẦN III (Trắc nghiệm trả lời ngắn):**
-       `\section*{PHẦN III. Thí sinh trả lời từ câu 1 đến câu 6. Mỗi câu hỏi thí sinh chỉ điền kết quả vào ô trả lời.}`
-  4. *Tích Hợp Giao Diện Menu THÊM ▾ & Quick Actions:*
-     - Giao diện dropdown `THÊM ▾` trên thanh công cụ chia làm 2 phân vùng:
-       + Nhóm *CẤU TRÚC ĐỀ THI QUỐC GIA 2025*: Header 2 Cột & Mã đề, Phần I, Phần II, Phần III, Trọn bộ Đề thi Quốc Gia.
+       ```latex
+       \noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+       ```
+  4. *Thuật Toán Tự Động Nhận Diện Số Lượng Câu Hỏi Từng Phần (Two-Tier Dynamic Sync):*
+     - **Backend Tier (`backend/services/composer_service.py`):**
+       + Hàm `sync_section_question_counts(latex_code: str) -> str`:
+         * Tìm vị trí bắt đầu các phần bằng regex: `(?:^|\n)\s*(?:\\noindent\s*)?(?:\\textbf\{|\\section\*?\{)?\s*PHẦN\s+(I{1,3}|IV|V|[1-9])\b` (cờ `re.IGNORECASE`).
+         * Tách nội dung văn bản thành các block tương ứng với từng phần.
+         * Đếm số câu hỏi trong từng phần:
+           - Ưu tiên 1 (chuẩn gói `ex_test.sty`): `len(re.findall(r'\\begin\{(?:ex|bt|vd)\}', sec_content))`.
+           - Ưu tiên 2 (cú pháp kinh điển): Loại bỏ chuỗi hướng dẫn (tránh đếm nhầm "câu 1" / "câu 12" trong "từ câu 1 đến câu X"), sau đó đếm `\textbf{Câu \d+}` hoặc các câu đặt ở đầu dòng `(?:^|\n)\s*(?:\\noindent\s*)?(?:Câu|Bài)\s*\d+[\.:]`.
+         * Nếu `count > 0`: Thay thế mẫu `([Tt]ừ\s+câu\s+1\s+đến\s+câu\s+)\d+` thành `\g<1>{count}` (giới hạn `count=1` trên câu hướng dẫn).
+         * Tích hợp tự động vào `ensure_full_latex_document`, endpoint `compile`, và các luồng export TeX.
+     - **Frontend Tier (`frontend/static/app.js`):**
+       + Hàm `syncSectionQuestionCounts(latexCode)`:
+         * Ánh xạ chính xác giải thuật backend trên client bằng ES6 JavaScript.
+         * Tự động đồng bộ nội dung trên ô soạn thảo `#composer-editor-input` khi người dùng bấm nút **BIÊN DỊCH** (`app.composer.compile(true)`), khi nhấn tổ hợp phím tắt `Ctrl+S` / `Cmd+S`, khi kết thúc thời gian debounce gõ phím (800ms), hoặc khi nhấn tải file TeX (`downloadTex`).
+  5. *Tích Hợp Giao Diện Menu THÊM ▾ & Quick Actions:*
+     - Giao diện dropdown `THÊM ▾` trên thanh công cụ cập nhật:
+       + Nhóm *CẤU TRÚC ĐỀ THI QUỐC GIA 2025*: Header 2 Cột Căn Giữa (0.38/0.58), Phần I (Trắc nghiệm nhiều phương án - Tự động đếm), Phần II (Đúng/Sai QĐ 764 - Tự động đếm), Phần III (Trả lời ngắn - Tự động đếm), Trọn bộ Đề thi Quốc Gia.
        + Nhóm *MẪU LỆNH EX_TEST*: Trắc nghiệm, Đúng/Sai, Trả lời ngắn, Tự luận, Hình TikZ, Hình cạnh chữ, Lời giải.
-     - Quick Action Menu (`#composer-compact-quick-menu`) trang bị 2 shortcut:
-       * *Tạo Header đề thi chuẩn Quốc gia 2 cột & mã đề*
-       * *Tạo khung 3 Phần đề thi chuẩn Bộ GD&ĐT 2025*
-  5. *Động Cơ Render HTML/PDF Hỗ Trợ Đầy Đủ Các Lệnh:*
+     - Quick Action Menu (`#composer-compact-quick-menu`) và AI Prompt Handling (`system_prompt` và fallback) cập nhật cú pháp Header và Section mới.
+  6. *Động Cơ Render HTML/PDF Hỗ Trợ Đầy Đủ Các Lệnh:*
      - Xử lý mượt mà trên cả Tectonic XeTeX engine lẫn Chromium HTML fallback:
-       + Biên dịch `minipage` thành cấu trúc inline-block / flexbox cân đối.
-       + Biên dịch `
-ule{...}{...}` thành đường kẻ divider ngang căn giữa.
+       + Chuyển đổi `\begin{minipage}[t]{0.38\textwidth}` thành thẻ div inline-block có `width: 38.0%` và `text-align: center;`.
+       + Chuyển đổi `\begin{minipage}[t]{0.58\textwidth}` thành thẻ div inline-block có `width: 58.0%` và `text-align: center;`.
+       + Chuyển đổi `\noindent\textbf{...}` và `\textit{...}` thành `<strong>` và `<em>` tương ứng chuẩn HTML5.
+       + Biên dịch `\rule{...}{...}` thành đường kẻ divider ngang (`<hr>`).
        + Biên dịch `\dotfill` thành đường kẻ chấm co giãn linh hoạt.
-       + Biên dịch `\framebox` / `\fbox` thành thẻ viền chữ nhật bao quanh mã đề.
-       + Bảo toàn chữ thường không ép uppercase trên `.latex-section`.
+       - Biên dịch `\framebox` / `\fbox` thành thẻ viền chữ nhật bao quanh mã đề.
 
----
+       ### 2.4.15. FR-02.17: Quy Chuẩn Mẫu Câu Hỏi Đúng/Sai \choiceTF[1] Dàn 1 Cột Thẳng Đứng & Rà Soát Toàn Diện Mẫu Lệnh Form Mẫu
+       - **Mục tiêu Nghiệp vụ:** Loại bỏ hoàn toàn tình trạng các ý câu hỏi Đúng/Sai bị co cụm thành 2 cột hoặc 4 cột ngang; chuẩn hóa toàn diện 100% mẫu lệnh trong menu `THÊM ▾` và kho biểu mẫu hệ thống.
+       - **Quy Cách Chi Tiết:**
+       1. *Lệnh `\choiceTF[1]` Ép 1 Cột Thẳng Đứng:*
+       - Khẳng định a), b), c), d) bắt buộc phải nằm trên 4 dòng riêng biệt dọc theo chiều đứng (mỗi ý 1 dòng, độ rộng 100%), không chia thành 2 cột hay 4 cột.
+       - Tham số `[1]` trong `\choiceTF[1]` là bắt buộc đối với gói lệnh `ex_test.sty` v3.3 để kích hoạt `\extest@choiceFixedStart{1}`.
+       - Tuyệt đối cấm sử dụng `\\` sau các dấu đóng ngoặc nhọn `{...}` (nguyên nhân gây lỗi TeX `There's no line here to end`).
+       2. *Cấu Trúc Khảo Thí Chuẩn:*
+       ```latex
+       \begin{ex}
+       Cho hàm số... Xét tính đúng/sai của các khẳng định sau:
+       \choiceTF[1]
+       {\True Khẳng định a đúng.}
+       {Khẳng định b sai.}
+       {\True Khẳng định c đúng.}
+       {Khẳng định d sai.}
+       \begin{loigiai}
+       \begin{itemchoice}
+       \itemch Đúng. Giải thích ý a.
+       \itemch Sai. Giải thích ý b.
+       \itemch Đúng. Giải thích ý c.
+       \itemch Sai. Giải thích ý d.
+       \end{itemchoice}
+       \end{loigiai}
+       \end{ex}
+       ```
+       3. *Loại Bỏ Lỗi Escape Newline Chuỗi (`\n`) Trong Template Frontend:*
+       - Sửa toàn bộ các mẫu `tracnghiem`, `dungsai`, `traloingan`, `tuluan`, `hinhtikz`, `hinhcanhchu`, `loigiai` trong `EX_TEST_TEMPLATES` từ chuỗi escape `\n` thành ký tự dòng mới thực tế trong template string JavaScript.
+       - Sửa lỗi lệnh nội bộ `\choiceTFt` thành `\choiceTF[1]`.
+       - Sửa macro `\loigiai{...}` thành môi trường chuẩn `\begin{loigiai} ... \end{loigiai}`.
+       - Sửa lỗi gõ nhầm `\nule` thành `\rule{\textwidth}{0.5pt}` trong `dethi_quocgia_full`.
+       4. *Đồng Bộ Bộ Render HTML Preview (`compile_latex_source_to_html`):*
+       - Bộ render HTML nhận diện `\choiceTF[1]` (hoặc `\choiceTF`), bóc tách 4 đối số `{...}` và cờ `\True`.
+       - Hiển thị thành 4 khối div dạng danh sách dọc (`width: 100%; display: block; margin-bottom: 4px;`) kèm nhãn a), b), c), d) và biểu tượng [Đ] / [S] chuẩn khảo thí.
+
+       ---
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
