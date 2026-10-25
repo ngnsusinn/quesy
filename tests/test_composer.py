@@ -4082,29 +4082,43 @@ def test_composer_compile_large_viet_duc_exam_pdf_success(tmp_path):
         assert pdf_bytes.startswith(b"%PDF"), "Must be a valid PDF vector header"
         assert len(pdf_bytes) > 500, f"PDF file size too small: {len(pdf_bytes)} bytes"
         assert ms > 0
-    else:
-        # CI Runner isolated mock test: verify payload carries timeout_s: calc_timeout and returns valid PDF
-        mock_response = MagicMock()
-        mock_response.read.return_value = b"%PDF-1.5 \n%Fake Valid PDF Content for CI runner testing\n%%EOF"
-        mock_response.__enter__.return_value = mock_response
+        # Clean up out_pdf before mock test verification
+        out_pdf.unlink(missing_ok=True)
 
-        with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
-            ok, err, ms = compile_with_remote_tectonic_api(content, out_pdf, title="Đề THPT Việt Đức 2026")
-            assert ok is True
-            assert out_pdf.exists()
-            assert out_pdf.read_bytes().startswith(b"%PDF")
+    # CI Runner isolated mock test: verify payload carries timeout_s: calc_timeout and returns valid PDF
+    mock_response = MagicMock()
+    mock_response.status = 200
+    fake_pdf = b"%PDF-1.5 \n%Fake Valid PDF Content for CI runner testing\n" + b"X" * 600 + b"\n%%EOF"
+    mock_response.read.return_value = fake_pdf
+    mock_response.__enter__.return_value = mock_response
 
-            # Verify the request payload sent to the remote API
-            assert mock_urlopen.call_count >= 1
-            sent_req = mock_urlopen.call_args[0][0]
-            assert isinstance(sent_req, urllib.request.Request)
-            assert isinstance(sent_req.data, bytes)
-            payload_data = json.loads(sent_req.data.decode("utf-8"))
-            assert "timeout_s" in payload_data
-            assert payload_data["timeout_s"] == calc_timeout
-            # Also verify socket buffer timeout passed to urlopen
-            socket_timeout = mock_urlopen.call_args[1].get("timeout")
-            assert socket_timeout == calc_timeout + 15
+    with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+        ok, err, ms = compile_with_remote_tectonic_api(
+            content,
+            out_pdf,
+            title="Đề THPT Việt Đức 2026",
+            api_url="http://armbian:8090/compile",
+        )
+        assert ok is True, f"Mock compilation failed: {err}"
+        assert out_pdf.exists(), "Output PDF must exist after mock compilation"
+        written_bytes = out_pdf.read_bytes()
+        assert written_bytes.startswith(b"%PDF")
+        assert len(written_bytes) > 500
+        assert written_bytes == fake_pdf
+
+        # Verify the request payload sent to the remote API
+        assert mock_urlopen.call_count >= 1
+        sent_req = mock_urlopen.call_args[0][0]
+        assert isinstance(sent_req, urllib.request.Request)
+        assert isinstance(sent_req.data, bytes)
+        payload_data = json.loads(sent_req.data.decode("utf-8"))
+        assert "timeout_s" in payload_data
+        assert payload_data["timeout_s"] == calc_timeout
+        assert payload_data["timeout_s"] >= 200
+        # Also verify socket buffer timeout passed to urlopen
+        socket_timeout = mock_urlopen.call_args[1].get("timeout")
+        assert socket_timeout == calc_timeout + 15
+        assert socket_timeout >= 215
 
 
 

@@ -1002,13 +1002,15 @@ def compile_with_remote_tectonic_api(
     latex_source: str,
     output_pdf: Path,
     title: str = "Tài Liệu Soạn Thảo",
-    mode: str = "dethi"
+    mode: str = "dethi",
+    api_url: Optional[str] = None,
 ) -> Tuple[bool, str, int]:
     """Compiles LaTeX using remote Tectonic Docker microservice (e.g. on armbian)."""
     start_time = time.perf_counter()
-    api_url = os.environ.get("LATEX_API_URL") or os.environ.get("TECTONIC_API_URL")
+    if not api_url:
+        api_url = os.environ.get("LATEX_API_URL") or os.environ.get("TECTONIC_API_URL")
 
-    # If not explicitly configured in env, check armbian default
+    # If not explicitly configured in env or argument, check armbian default
     if not api_url:
         try:
             req_check = urllib.request.Request("http://armbian:8090/health")
