@@ -3919,8 +3919,7 @@ Họ và tên thí sinh: \\dotfill\\ Số báo danh: \\dotfill\\ \\hfill \\frame
 \\noindent
 Họ và tên thí sinh: \\dotfill\\ Số báo danh: \\dotfill\\ \\hfill \\framebox{\\textbf{Mã đề: 0102}}
 \\vspace{0.1cm}
-\\noindent\
-ule{\\textwidth}{0.5pt}
+\\noindent\\rule{\\textwidth}{0.5pt}
 \\vspace{0.3cm}
 
 \\noindent\\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
@@ -3941,10 +3940,10 @@ $f'(x) = 0 \\Leftrightarrow x = 0$ hoặc $x = 1$. Số điểm cực trị là 
 
 \\begin{ex}
 Cho hàm số $y = x^3 - 3x + 1$. Xét tính đúng/sai:
-\\choiceTF
-{\\True Hàm số đạt cực đại tại $x = -1$.}\\\\
-{Giá trị cực tiểu bằng $1$.}\\\\
-{\\True Tiệm cận ngang không có.5}\\\\
+\\choiceTF[1]
+{\\True Hàm số đạt cực đại tại $x = -1$.}
+{Giá trị cực tiểu bằng $1$.}
+{\\True Tiệm cận ngang không có.}
 {Đồ thị nhận điểm $I(0;1)$ làm tâm đối xứng.}
 \\begin{loigiai}
 \\begin{itemchoice}
@@ -3966,13 +3965,73 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
 \\end{loigiai}
 \\end{ex}
 `,
-      'tracnghiem': `\\begin{ex}\\n\\n\\choice\\n{}\\n{}\\n{}\\n{}\\n\\loigiai{\\n\\n}\\n\\end{ex}\\n`,
-      'dungsai': `\\begin{ex}\\n\\n\\choiceTFt\\n{}\\n{}\\n{}\\n{}\\n\\loigiai{\\n\\begin{itemchoice}\\n\\itemch\\n\\itemch\\n\\itemch\\n\\itemch\\n\\end{itemchoice}\\n}\\n\\end{ex}\\n`,
-      'traloingan': `\\begin{ex}\\n\\n\\par\\n\\shortans[oly]{}\\n\\loigiai{\\n\\n}\\n\\end{ex}\\n`,
-      'tuluan': `\\begin{bt}\\n\\n\\begin{enumerate}[a]\\n\\item \\n\\item \\n\\end{enumerate}\\n\\loigiai{\\n\\begin{enumerate}[a]\\n\\item \\n\\item \\n\\end{enumerate}\\n}\\n\\end{bt}\\n`,
-      'hinhtikz': `\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]\\n\\n\\end{tikzpicture}\\n`,
-      'hinhcanhchu': `\\immini[thm]{}{\\n\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]\\n\\n\\end{tikzpicture}\\n}\\n`,
-      'loigiai': `\\loigiai{\\n\\n}\\n`
+      'tracnghiem': `\\begin{ex}
+
+\\choice
+{}
+{}
+{}
+{}
+\\begin{loigiai}
+
+\\end{loigiai}
+\\end{ex}
+`,
+      'dungsai': `\\begin{ex}
+
+\\choiceTF[1]
+{}
+{}
+{}
+{}
+\\begin{loigiai}
+\\begin{itemchoice}
+\\itemch 
+\\itemch 
+\\itemch 
+\\itemch 
+\\end{itemchoice}
+\\end{loigiai}
+\\end{ex}
+`,
+      'traloingan': `\\begin{ex}
+
+\\shortans{}
+\\begin{loigiai}
+
+\\end{loigiai}
+\\end{ex}
+`,
+      'tuluan': `\\begin{bt}
+
+\\begin{enumerate}[a]
+\\item 
+\\item 
+\\end{enumerate}
+\\begin{loigiai}
+\\begin{enumerate}[a]
+\\item 
+\\item 
+\\end{enumerate}
+\\end{loigiai}
+\\end{bt}
+`,
+      'hinhtikz': `\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]
+
+\\end{tikzpicture}
+`,
+      'hinhcanhchu': `\\immini{
+
+}{
+\\begin{tikzpicture}[scale=1, line join=round, line cap=round, >=stealth]
+
+\\end{tikzpicture}
+}
+`,
+      'loigiai': `\\begin{loigiai}
+
+\\end{loigiai}
+`
     },
 
     SNIPPETS: {

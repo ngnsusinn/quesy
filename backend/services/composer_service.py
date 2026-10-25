@@ -101,7 +101,7 @@ Tại $x = -2$, $f'(x)$ đổi dấu từ dương sang âm và $f(-2) = 4$. Do �
 
 \begin{ex}
 Cho hàm số $y = f(x) = x^3 - 3x^2 + 2$. Xét tính đúng sai của các khẳng định sau:
-\choiceTF
+\choiceTF[1]
 {\True Hàm số đạt cực đại tại điểm $x = 0$.}
 {Giá trị cực tiểu của hàm số bằng $2$.}
 {\True Điểm uốn của đồ thị hàm số là $I(1; 0)$.}
@@ -124,8 +124,7 @@ Ta có $y' = 3x^2 - 6x = 3x(x - 2)$.
 Một vật thể chuyển động với vận tốc $v(t) = 3t^2 + 2t$ (m/s). Tính quãng đường vật đi được từ thời điểm $t = 0$ (s) đến $t = 2$ (s).
 \shortans{12}
 \begin{loigiai}
-$s = \int_{0}^{2} (3t^2 + 2t)\,\mathrm{d}t = \left. (t^3 + t^2) 
-ight|_0^2 = 12\text{ (m)}$.
+$s = \int_{0}^{2} (3t^2 + 2t)\,\mathrm{d}t = \left. (t^3 + t^2) \right|_0^2 = 12\text{ (m)}$.
 \end{loigiai}
 \end{ex}
 """
@@ -188,7 +187,7 @@ Cho hàm số $y = f(x)$ có bảng biến thiên như sau:
 
 \begin{ex}
 Cho hàm số bậc ba $y = f(x) = ax^3 + bx^2 + cx + d$ ($a \neq 0$). Xét tính Đúng/Sai của các khẳng định sau:
-\choiceTF
+\choiceTF[1]
 {\True Đồ thị hàm số bậc ba luôn có tâm đối xứng là điểm uốn.}
 {Nếu hàm số có hai điểm cực trị thì tích các giá trị cực trị luôn âm.}
 {\True Hàm số luôn có đạo hàm cấp hai liên tục trên $\mathbb{R}$.}
@@ -608,6 +607,34 @@ def compile_latex_source_to_html(
         body,
         flags=re.DOTALL
     )
+
+    # 6. Parse choice and choiceTF into HTML
+    def _render_choice(m):
+        opts = [m.group(i).strip() for i in range(1, 5)]
+        html_opts = []
+        for idx, opt in enumerate(opts):
+            lbl = chr(65 + idx)
+            is_correct = r"\True" in opt
+            clean_opt = re.sub(r'\\True\s*', '', opt).strip()
+            style = "font-weight: bold; color: #0071e3;" if is_correct else ""
+            html_opts.append(f'<div style="display: inline-block; width: 48%; margin-bottom: 4px; {style}"><strong>{lbl}.</strong> {clean_opt}</div>')
+        return f'<div style="display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0;">{"".join(html_opts)}</div>'
+
+    body = re.sub(r'\\choice(?:\[[^\]]*\])?\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}', _render_choice, body)
+
+    def _render_choicetf(m):
+        opts = [m.group(i).strip() for i in range(1, 5)]
+        html_opts = []
+        for idx, opt in enumerate(opts):
+            lbl = chr(97 + idx)
+            is_true = r"\True" in opt
+            clean_opt = re.sub(r'\\True\s*', '', opt).strip()
+            clean_opt = re.sub(r'^[a-d]\)\s*', '', clean_opt).strip()
+            badge = '<span style="color: #16a34a; font-weight: bold; margin-right: 4px;">[Đ]</span>' if is_true else '<span style="color: #dc2626; font-weight: bold; margin-right: 4px;">[S]</span>'
+            html_opts.append(f'<div style="display: block; width: 100%; margin-bottom: 4px;">{badge}<strong>{lbl})</strong> {clean_opt}</div>')
+        return f'<div style="display: block; margin: 6px 0;">{"".join(html_opts)}</div>'
+
+    body = re.sub(r'\\choiceTF(?:\[[^\]]*\])?\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}\s*\{([\s\S]*?)\}', _render_choicetf, body)
 
     # 6. Parse sections and structure
     body = re.sub(r'\\section\*?\{([^}]+)\}', r'<h2 class="latex-section">\1</h2>', body)

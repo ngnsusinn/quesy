@@ -177,14 +177,21 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   5. *Song Hành Cùng Banner Đỉnh:* Duy trì banner cố định trên đầu editor (`#composer-pending-diff-banner`) đóng vai trò thanh thông báo tổng quan với đầy đủ bộ đếm động, nút duyệt tuần tự, Keep/Undo và nút [Áp dụng tất cả], đồng bộ trạng thái 100% với Inline Overlay.
   6. *Quy Tắc Bubble Chat Thuần Túy:* Bubble chat của trợ lý chỉ hiển thị phản hồi lời văn (text explanation), hướng dẫn sư phạm hoặc phân tích nguyên nhân lỗi, hoàn toàn không chèn widget diff hay nút duyệt diff lặp lại.
 
-### 2.4.4. FR-02.6: Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding & Diagnostics)
+### 2.4.4. FR-02.6: Cơ Chế Chuyển Tiếp & Phân Tích Log Lỗi Biên Dịch LaTeX (Compile Error Forwarding & Line-Offset Diagnostics)
 - **Mục tiêu:** Hỗ trợ giáo viên khắc phục lỗi cú pháp LaTeX / Tectonic tức thì mà không cần tự đọc log lỗi dòng lệnh phức tạp.
 - **Luồng Dữ Liệu:**
   1. *Ghi nhận Lỗi Biên dịch:* Khi biên dịch `POST /api/v1/composer/compile` trả về lỗi (`success = false`), client tự động bắt lấy thông điệp lỗi `errMsg = data.error` và lưu trữ bền vững vào `app.composer.lastCompileError`.
-  2. *Chuyển tiếp Tự động:* Khi người dùng gửi prompt kế tiếp (nhất là câu lệnh yêu cầu sửa lỗi như "sửa lỗi", "tại sao lỗi"), payload gửi đến `POST /api/v1/composer/chat` tự động đính kèm trường `compile_error_log: this.lastCompileError`.
+  2. *Chuyển tiếp Tự động:* Khi người dùng gửi prompt kế tiếp (nhất là câu lệnh yêu cầu sửa lỗi như "sửa lỗi", "fix lỗi", "tại sao lỗi", hoặc nhấn nút SỬA LỖI), payload gửi đến `POST /api/v1/composer/chat` tự động đính kèm trường `compile_error: this.lastCompileError`.
   3. *Chẩn đoán & Sinh Diff Sửa Lỗi Phía Server:*
-     - API `composer.py` trích xuất thông tin lỗi từ log (ví dụ: `! Undefined control sequence \badcommand`, `! Missing $ inserted`, `l.18 ...`).
-     - AI Copilot phân tích ngữ cảnh `current_latex`, khoanh vùng dòng mã gây lỗi, và tự động tạo khối `diff` đề xuất phương án sửa: thay thế bằng lệnh chuẩn, thêm gói lệnh thiếu vào preamble, hoặc đóng chú thích `%` để loại bỏ lỗi.
+     - API `composer.py` trích xuất thông tin lỗi từ log (ví dụ: `error: document.tex:24: Undefined control sequence`, `! Missing $ inserted`, `l.24 ...`).
+     - **Thuật toán ánh xạ dòng lỗi (Line-Offset Mapping):** Vì trình soạn thảo hoạt động ở chế độ Preamble-Free, hệ thống tự động tính dòng tương ứng trong editor `L_user = L_comp - 11` (với 11 dòng Canonical Preamble nhúng ngầm).
+     - **Bộ Chẩn đoán Cục bộ 5 Nhóm Lỗi (Local Diagnostics Engine):**
+       + *Nhóm 1 (No line here to end):* Phát hiện lỗi thừa `\\` sau các khối ngoặc nhọn `{...}` hoặc ở đầu dòng → Tự động xóa `\\`.
+       + *Nhóm 2 (Undefined control sequence):* Tự động sửa các lệnh sai chính tả (`\ule` → `\rule`, `\choiceTFt` → `\choiceTF[1]`, `ight|` / `\night|` → `\right|`, `\fracc` → `\dfrac`, `\n` → xuống dòng thật).
+       + *Nhóm 3 (Missing $ inserted):* Tự động bọc cặp dấu `$ ... $` quanh công thức toán học bị thiếu.
+       + *Nhóm 4 (Missing \right. inserted):* Tự động hoàn thiện khối ngoặc co giãn `\left.` và `\right.`.
+       + *Nhóm 5 (Environment undefined):* Tự động đề xuất bổ sung gói còn thiếu vào preamble.
+     - AI Copilot tạo khối `diff` đề xuất phương án sửa: chỉ chứa dòng cũ và dòng mới để người dùng bấm **[Đồng ý]** là mã nguồn được cập nhật ngay lập tức.
   4. *Thiết lập Lại Trạng Thái:* Khi bản biên dịch tiếp theo thành công, `lastCompileError` tự động reset về `null`.
 
 ### 2.4.5. FR-02.7: Tối Ưu Hóa Hiệu Năng Gửi Prompt & Box Chat Mượt Mà (Fast Prompt Dispatch & Smooth Chat Micro-Interactions)
@@ -447,9 +454,44 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
        + Chuyển đổi `\noindent\textbf{...}` và `\textit{...}` thành `<strong>` và `<em>` tương ứng chuẩn HTML5.
        + Biên dịch `\rule{...}{...}` thành đường kẻ divider ngang (`<hr>`).
        + Biên dịch `\dotfill` thành đường kẻ chấm co giãn linh hoạt.
-       + Biên dịch `\framebox` / `\fbox` thành thẻ viền chữ nhật bao quanh mã đề.
+       - Biên dịch `\framebox` / `\fbox` thành thẻ viền chữ nhật bao quanh mã đề.
 
----
+       ### 2.4.15. FR-02.17: Quy Chuẩn Mẫu Câu Hỏi Đúng/Sai \choiceTF[1] Dàn 1 Cột Thẳng Đứng & Rà Soát Toàn Diện Mẫu Lệnh Form Mẫu
+       - **Mục tiêu Nghiệp vụ:** Loại bỏ hoàn toàn tình trạng các ý câu hỏi Đúng/Sai bị co cụm thành 2 cột hoặc 4 cột ngang; chuẩn hóa toàn diện 100% mẫu lệnh trong menu `THÊM ▾` và kho biểu mẫu hệ thống.
+       - **Quy Cách Chi Tiết:**
+       1. *Lệnh `\choiceTF[1]` Ép 1 Cột Thẳng Đứng:*
+       - Khẳng định a), b), c), d) bắt buộc phải nằm trên 4 dòng riêng biệt dọc theo chiều đứng (mỗi ý 1 dòng, độ rộng 100%), không chia thành 2 cột hay 4 cột.
+       - Tham số `[1]` trong `\choiceTF[1]` là bắt buộc đối với gói lệnh `ex_test.sty` v3.3 để kích hoạt `\extest@choiceFixedStart{1}`.
+       - Tuyệt đối cấm sử dụng `\\` sau các dấu đóng ngoặc nhọn `{...}` (nguyên nhân gây lỗi TeX `There's no line here to end`).
+       2. *Cấu Trúc Khảo Thí Chuẩn:*
+       ```latex
+       \begin{ex}
+       Cho hàm số... Xét tính đúng/sai của các khẳng định sau:
+       \choiceTF[1]
+       {\True Khẳng định a đúng.}
+       {Khẳng định b sai.}
+       {\True Khẳng định c đúng.}
+       {Khẳng định d sai.}
+       \begin{loigiai}
+       \begin{itemchoice}
+       \itemch Đúng. Giải thích ý a.
+       \itemch Sai. Giải thích ý b.
+       \itemch Đúng. Giải thích ý c.
+       \itemch Sai. Giải thích ý d.
+       \end{itemchoice}
+       \end{loigiai}
+       \end{ex}
+       ```
+       3. *Loại Bỏ Lỗi Escape Newline Chuỗi (`\n`) Trong Template Frontend:*
+       - Sửa toàn bộ các mẫu `tracnghiem`, `dungsai`, `traloingan`, `tuluan`, `hinhtikz`, `hinhcanhchu`, `loigiai` trong `EX_TEST_TEMPLATES` từ chuỗi escape `\n` thành ký tự dòng mới thực tế trong template string JavaScript.
+       - Sửa lỗi lệnh nội bộ `\choiceTFt` thành `\choiceTF[1]`.
+       - Sửa macro `\loigiai{...}` thành môi trường chuẩn `\begin{loigiai} ... \end{loigiai}`.
+       - Sửa lỗi gõ nhầm `\nule` thành `\rule{\textwidth}{0.5pt}` trong `dethi_quocgia_full`.
+       4. *Đồng Bộ Bộ Render HTML Preview (`compile_latex_source_to_html`):*
+       - Bộ render HTML nhận diện `\choiceTF[1]` (hoặc `\choiceTF`), bóc tách 4 đối số `{...}` và cờ `\True`.
+       - Hiển thị thành 4 khối div dạng danh sách dọc (`width: 100%; display: block; margin-bottom: 4px;`) kèm nhãn a), b), c), d) và biểu tượng [Đ] / [S] chuẩn khảo thí.
+
+       ---
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐

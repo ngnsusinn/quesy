@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from backend.main import app
 from backend.routers.composer import (
     DiffSuggestion,
+    diagnose_compile_error,
     extract_all_diffs_from_text,
     extract_diff_from_text,
     find_in_latex,
@@ -3039,7 +3040,7 @@ def test_composer_frontend_compact_bar_styling():
 
 
 def test_composer_national_exam_2025_header_centering_and_single_bottom_rule():
-    """Verify that National Exam 2025 Header uses 0.38/0.58 ratio, \centering on both sides,
+    r"""Verify that National Exam 2025 Header uses 0.38/0.58 ratio, \centering on both sides,
     omits the top rule, and keeps only a single bottom rule below candidate metadata."""
     import re
     app_js_path = Path("frontend/static/app.js")
@@ -3075,7 +3076,7 @@ def test_composer_national_exam_2025_header_centering_and_single_bottom_rule():
 
 
 def test_composer_national_exam_2025_section_textbf_textit_format():
-    """Verify that 2025 sections use \noindent\textbf{PHẦN ...} \textit{...} and discard \section*."""
+    r"""Verify that 2025 sections use \noindent\textbf{PHẦN ...} \textit{...} and discard \section*."""
     import re
     app_js_path = Path("frontend/static/app.js")
     app_js = app_js_path.read_text(encoding="utf-8")
@@ -3215,3 +3216,293 @@ def test_compile_latex_source_to_html_header_038_058_and_centering():
 
 
 
+
+
+def test_composer_all_backend_and_frontend_templates_compilation_and_syntax():
+    r"""TC-COMP-28: Verify all canonical templates in backend TEMPLATES and frontend EX_TEST_TEMPLATES
+    compile cleanly without syntax errors, typos (\ule, \choiceTFt, ight|), and have valid LaTeX/HTML output.
+    """
+    import re
+    from backend.services.composer_service import TEMPLATES, compile_latex_source_to_html
+
+    # 1. Verify backend TEMPLATES
+    assert len(TEMPLATES) >= 4
+    for tmpl_id, tmpl_data in TEMPLATES.items():
+        latex = tmpl_data.get("latex", "")
+        assert len(latex) > 20, f"Template {tmpl_id} has empty latex"
+        # Check for typos
+        assert r"ule{\textwidth}" not in latex, f"Typo ule found in backend template {tmpl_id}"
+        assert r"\choiceTFt" not in latex, f"Typo \\choiceTFt found in backend template {tmpl_id}"
+        assert not re.search(r'(?<!r)ight\|', latex), f"Typo ight| found in backend template {tmpl_id}"
+        
+        # Test HTML preview rendering
+        html = compile_latex_source_to_html(latex, default_title=tmpl_data.get("title", ""))
+        assert "<!DOCTYPE html>" in html
+        assert len(html) > 500
+
+    # 2. Verify frontend EX_TEST_TEMPLATES
+    app_js_path = Path(__file__).resolve().parent.parent / "frontend" / "static" / "app.js"
+    assert app_js_path.exists(), "frontend/static/app.js must exist"
+    app_js_content = app_js_path.read_text(encoding="utf-8")
+
+    # Check for forbidden typos in app.js
+    assert r"ule{\textwidth}" not in app_js_content
+    assert r"\choiceTFt" not in app_js_content
+    assert not re.search(r'(?<!r)ight\|', app_js_content)
+
+    # Extract template strings from EX_TEST_TEMPLATES
+    m_extest = re.search(r'EX_TEST_TEMPLATES\s*:\s*\{([\s\S]*?)\n\s*\},', app_js_content)
+    assert m_extest is not None, "Could not locate EX_TEST_TEMPLATES in app.js"
+    extest_body = m_extest.group(1)
+
+    # Validate that templates render without crashing
+    dethi_full_match = re.search(r"'dethi_quocgia_full'\s*:\s*`([\s\S]*?)`", extest_body)
+    assert dethi_full_match is not None
+    dethi_full_latex = dethi_full_match.group(1)
+    assert "rule" in dethi_full_latex and "0.5pt" in dethi_full_latex
+    assert "choiceTF[1]" in dethi_full_latex
+    # Ensure choiceTF block in template has no trailing \\ after braces
+    m_tf = re.search(r'choiceTF(?:\[1\])?([\s\S]*?)begin\{loigiai\}', dethi_full_latex)
+    if m_tf:
+        assert "}\\\\" not in m_tf.group(1)
+
+    html_dethi = compile_latex_source_to_html(dethi_full_latex, default_title="Đề thi 2025")
+    assert "<!DOCTYPE html>" in html_dethi
+    assert "PHẦN I" in html_dethi
+    assert "PHẦN II" in html_dethi
+    assert "PHẦN III" in html_dethi
+
+
+def test_composer_true_false_choiceTF1_syntax_and_html_rendering():
+    r"""TC-COMP-30: Verify True/False questions strictly enforce \choiceTF[1] single-column 100% width,
+    prohibit trailing backslashes '\\' after {...}, and compile to proper HTML previews.
+    """
+    import re
+    from backend.services.composer_service import TEMPLATES, compile_latex_source_to_html
+
+    # 1. Check all backend templates with True/False questions
+    for tmpl_id, tmpl in TEMPLATES.items():
+        latex = tmpl.get("latex", "")
+        if r"\choiceTF" in latex:
+            # Enforce [1] parameter
+            assert r"\choiceTF[1]" in latex, f"Template {tmpl_id} must use \\choiceTF[1]"
+            # Prohibit \\ immediately after option closing braces
+            lines = latex.splitlines()
+            for idx, line in enumerate(lines):
+                if line.strip().startswith(r"\choiceTF"):
+                    for opt_line in lines[idx + 1 : idx + 5]:
+                        assert not re.search(r'\}\s*\\\\', opt_line), (
+                            f"Trailing \\ found after brace in {tmpl_id}: {opt_line}"
+                        )
+
+    # 2. Test HTML preview rendering for \choiceTF[1]
+    tf_sample = r"""\begin{ex}
+Xét tính đúng sai của các khẳng định sau:
+\choiceTF[1]
+{\True Mệnh đề A đúng.}
+{Mệnh đề B sai.}
+{\True Mệnh đề C đúng.}
+{Mệnh đề D sai.}
+\begin{loigiai}
+Lời giải chi tiết.
+\end{loigiai}
+\end{ex}"""
+
+    html = compile_latex_source_to_html(tf_sample)
+    assert "width: 100%" in html or "display: block" in html
+    assert "[Đ]" in html
+    assert "[S]" in html
+    assert "a)" in html
+    assert "b)" in html
+    assert "c)" in html
+    assert "d)" in html
+    assert 'width: 48%' not in html
+
+
+def test_composer_chat_api_compile_error_log_payload_support():
+    """TC-COMP-29: Verify AI Copilot accepts both compile_error_log and compile_error keys in payload."""
+    cur_latex = r"""\begin{ex}
+Cho hàm số $y = f(x)$.
+\badcommand
+\end{ex}"""
+
+    # 1. Using new compile_error_log field
+    res1 = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "Sửa lỗi biên dịch giúp tôi",
+            "current_latex": cur_latex,
+            "compile_error_log": "! Undefined control sequence. \nl.15 \\badcommand",
+            "history": []
+        }
+    )
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert "reply" in data1
+    assert data1["diff"] is not None
+    assert data1["diff"]["action"] == "replace"
+    assert "\\badcommand" in data1["diff"]["old_text"]
+
+    # 2. Using legacy compile_error field
+    res2 = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "fix lỗi",
+            "current_latex": cur_latex,
+            "compile_error": "! Undefined control sequence. \nl.15 \\badcommand",
+            "history": []
+        }
+    )
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["diff"] is not None
+    assert data2["diff"]["action"] == "replace"
+
+
+def test_composer_compile_error_preamble_free_line_offset_mapping():
+    """TC-COMP-29: Verify Preamble-Free line offset mapping L_user = L_comp - 11."""
+    preamble_free_latex = (
+        r"\begin{ex}" + "\n"
+        r"Cho hàm số $y = f(x)$." + "\n"
+        r"\choiceTF[1]" + "\n"
+        r"{\True Khẳng định a.}\\" + "\n"
+        r"{Khẳng định b.}" + "\n"
+        r"{\True Khẳng định c.}" + "\n"
+        r"{Khẳng định d.}" + "\n"
+        r"\end{ex}"
+    )
+
+    # L_comp = 15 -> L_user = 15 - 11 = 4
+    compile_log = "! LaTeX Error: There's no line here to end.\nl.15 {\\True Khẳng định a.}\\\\"
+
+    res = diagnose_compile_error(
+        compile_error=compile_log,
+        current_latex=preamble_free_latex,
+        user_message="fix lỗi biên dịch"
+    )
+    assert res is not None
+    assert res.diff is not None
+    assert res.diff.action == "replace"
+    assert res.diff.old_text == r"{\True Khẳng định a.}\\"
+    assert res.diff.new_text == r"{\True Khẳng định a.}"
+
+    # Full document with \documentclass (offset should NOT be applied)
+    full_latex = (
+        r"\documentclass{article}" + "\n"
+        r"\begin{document}" + "\n"
+        r"\begin{ex}" + "\n"
+        r"{\True Khẳng định a.}\\" + "\n"
+        r"\end{ex}" + "\n"
+        r"\end{document}"
+    )
+    compile_log_full = "error: document.tex:4: There's no line here to end."
+    res_full = diagnose_compile_error(
+        compile_error=compile_log_full,
+        current_latex=full_latex,
+        user_message="fix error"
+    )
+    assert res_full is not None
+    assert res_full.diff is not None
+    assert res_full.diff.old_text == r"{\True Khẳng định a.}\\"
+    assert res_full.diff.new_text == r"{\True Khẳng định a.}"
+
+
+def test_composer_compile_error_diagnosis_five_classic_families():
+    r"""TC-COMP-29: Verify diagnose_compile_error correctly diagnoses all 5 classic TeX error families:
+    1. There's no line here to end
+    2. Undefined control sequence (typos: \ule, \choiceTFt, ight|)
+    3. Missing $ inserted
+    4. Missing 
+ight. inserted / Extra }, or forgotten 
+ight
+    5. Environment undefined
+    """
+    # 1. Family 1: There's no line here to end
+    latex_family1 = r"""\begin{ex}
+Tính toán biểu thức:
+\choiceTF[1]
+{\True Phương án 1}\\
+{Phương án 2}
+{\True Phương án 3}
+{Phương án 4}
+\end{ex}"""
+    err1 = "! LaTeX Error: There's no line here to end. \nl.14 {\\True Phương án 1}\\\\"
+    res1 = diagnose_compile_error(err1, latex_family1)
+    assert res1 is not None
+    assert res1.diff is not None
+    assert r"\\" not in res1.diff.new_text
+    assert "There's no line here to end" in res1.reply
+
+    # 2. Family 2: Undefined control sequence
+    # 2a: \ule -> \rule
+    latex_ule = r"""\noindent
+\ule{\textwidth}{0.5pt}
+\section*{Đề thi}"""
+    err_ule = "! Undefined control sequence. \nl.2 \\ule"
+    res_ule = diagnose_compile_error(err_ule, latex_ule)
+    assert res_ule is not None
+    assert res_ule.diff is not None
+    assert r"\rule" in res_ule.diff.new_text
+
+    # 2b: \choiceTFt -> \choiceTF[1]
+    latex_choicetft = r"""\begin{ex}
+\choiceTFt
+{\True a}
+{b}
+{\True c}
+{d}
+\end{ex}"""
+    err_choicetft = "! Undefined control sequence. \nl.13 \\choiceTFt"
+    res_choicetft = diagnose_compile_error(err_choicetft, latex_choicetft)
+    assert res_choicetft is not None
+    assert res_choicetft.diff is not None
+    assert r"\choiceTF[1]" in res_choicetft.diff.new_text
+
+    # 2c: ight| -> \right|
+    latex_right = r"""\begin{loigiai}
+$I = (x^2 + x) ight|_0^2 = 6$.
+\end{loigiai}"""
+    err_right = "! Undefined control sequence. \nl.13 ight"
+    res_right = diagnose_compile_error(err_right, latex_right)
+    assert res_right is not None
+    assert res_right.diff is not None
+    assert r"\right|_0^2" in res_right.diff.new_text
+
+    # 3. Family 3: Missing $ inserted
+    latex_missing_dollar = r"""\begin{ex}
+Cho hàm số y = x^2 + 2x.
+\choice
+{\True 1}
+{2}
+{3}
+{4}
+\end{ex}"""
+    err_dollar = "! Missing $ inserted. \nl.13 Cho hàm số y = x^2 + 2x."
+    res_dollar = diagnose_compile_error(err_dollar, latex_missing_dollar)
+    assert res_dollar is not None
+    assert res_dollar.diff is not None
+    assert "$" in res_dollar.diff.new_text
+    assert "Missing $" in res_dollar.reply
+
+    # 4. Family 4: Missing \right. inserted / forgotten \right
+    latex_unbalanced_right = r"""\begin{loigiai}
+$I = (x^2 + 1) \right|_0^1 = 2$.
+\end{loigiai}"""
+    err_unbalanced = "! Missing \\right. inserted. \nl.13 $I = (x^2 + 1) \\right|_0^1 = 2$."
+    res_unbalanced = diagnose_compile_error(err_unbalanced, latex_unbalanced_right)
+    assert res_unbalanced is not None
+    assert res_unbalanced.diff is not None
+    assert r"\left." in res_unbalanced.diff.new_text
+
+    # 5. Family 5: Environment undefined
+    latex_env = r"""\documentclass{article}
+\begin{document}
+\begin{tikzpicture}
+\draw (0,0) -- (1,1);
+\end{tikzpicture}
+\end{document}"""
+    err_env = "! LaTeX Error: Environment tikzpicture undefined."
+    res_env = diagnose_compile_error(err_env, latex_env)
+    assert res_env is not None
+    assert res_env.diff is not None
+    assert r"\usepackage{tikz,tkz-tab}" in res_env.diff.new_text

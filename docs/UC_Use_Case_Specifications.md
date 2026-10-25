@@ -250,7 +250,7 @@
 3. Người dùng nhấn phím **`Enter`** (hoặc nhấp chuột vào **Nút Gửi Mũi Tên Tròn**):
    - **Cơ chế Xóa Sạch Lạc Quan (Optimistic Input Reset $\le 0\text{ms}$):** Hệ thống lập tức xóa trắng cả 2 ô nhập (`compactInput.value = ''` và `chatInput.value = ''`), loại bỏ hoàn toàn hiện tượng text chat cũ còn kẹt trong ô nhập (Ảnh 1).
    - Giao diện phản hồi tức thì (Optimistic Fast Dispatch $\le 16$ms): mở bung full Popup Trợ lý Soạn thảo (`#composer-ai-popup`), ẩn thanh compact bar, đưa tin nhắn vào lịch sử phiên hiện tại và cuộn mượt đến đáy.
-   - Nếu lần biên dịch trước đó gặp lỗi từ XeTeX/Tectonic, hệ thống tự động đính kèm `compile_error_log` vào payload gửi đến `POST /api/v1/composer/chat`.
+   - Nếu lần biên dịch trước đó gặp lỗi từ XeTeX/Tectonic, hệ thống tự động đính kèm `compile_error` vào payload gửi đến `POST /api/v1/composer/chat`. Phía máy chủ tự động ánh xạ số dòng lỗi trừ đi 11 dòng preamble chuẩn để khoanh vùng chính xác dòng lỗi trên ô soạn thảo.
 4. Phía máy chủ AI Copilot phân tích yêu cầu cùng tài liệu hiện tại và log lỗi biên dịch (nếu có), chẩn đoán nguyên nhân và bóc tách toàn bộ đề xuất sửa đổi thành cấu trúc đa diff `ChatResponse(reply, diff, diffs)`:
    - Trường `diffs`: Danh sách toàn bộ các khối `DiffSuggestion(action, old_text, new_text, description)` trích xuất được (Ảnh 3).
    - Trường `diff`: Khối diff đầu tiên phục vụ tương thích ngược.

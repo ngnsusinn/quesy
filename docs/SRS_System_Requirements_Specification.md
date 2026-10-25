@@ -313,9 +313,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
      - Trang bị `ResizeObserver` (kèm lắng nghe sự kiện `resize` của cửa sổ) giám sát kích thước khung xem trước (`#composer-preview-canvas` / `#composer-pdf-scroll-container`).
      - Khi bề rộng container thay đổi (do kéo thanh splitter `#composer-col-splitter`, mở rộng/thu gọn panel, hoặc đổi kích thước cửa sổ):
        + Nếu `isAutoFit === true`: Hệ thống tự động tính toán lại tỷ lệ phóng thu tối ưu:
-         $$\text{fitZoom} = \max\left(0.3, \min\left(2.5, \frac{\text{availableWidth}}{\text{basePageWidth}}
-ight)
-ight)$$
+         $$\text{fitZoom} = \max\left(0.3, \min\left(2.5, \frac{\text{availableWidth}}{\text{basePageWidth}}\right)\right)$$
          (với $\text{availableWidth} = \text{clientWidth} - 48\text{px}$ để bảo toàn khoảng đệm padding thẩm mỹ hai bên).
        + Cập nhật tức thì kích thước CSS hiển thị của thẻ trang và canvas (60 FPS trong lúc kéo), sau đó kích hoạt render lại vector sắc nét có chống rung (debounced 100ms).
      - Khi người dùng chủ động zoom thủ công (Ctrl+wheel hoặc bấm nút `+` / `-`), cờ `isAutoFit` được chuyển sang `false` để tôn trọng tỷ lệ xem người dùng đã chọn; khi đó thanh cuộn ngang `overflow-x-auto` đảm bảo người dùng có thể cuộn xem mọi góc của trang mà không bị cắt cụt.
@@ -412,15 +410,13 @@ ight)$$
   2. *Bộ Chuẩn Hóa Tài Liệu Hai Chế Độ (Smart Dual-Mode Document Normalizer):*
      - Khi nhận mã nguồn từ editor, hệ thống tự động kiểm tra sự tồn tại của thẻ `\documentclass`:
        + **Nhánh 1 - Mã thuần câu hỏi (Preamble-Free Question Body - Mặc định):** Nếu không có `\documentclass`, hệ thống tự động tiêm Canonical Preamble, bọc phần thân trong `\begin{document}...\end{document}` trước khi chuyển tới Tectonic XeTeX hoặc Chromium Fallback.
-       + **Nhánh 2 - Tài liệu toàn vẹn (Full Document - Tương thích ngược):** Nếu người dùng dán toàn bộ tài liệu TeX cũ có sẵn `\documentclass`, hệ thống giữ nguyên cấu trúc, tự động hiện đại hóa `vietnam` $
-ightarrow$ `fontspec`, bổ sung các gói lệnh thiếu (`tcolorbox`, `xparse`, `tikz`, `tkz-tab`, `ex_test`) và đồng bộ option `[dethi]` / `[loigiai]` theo cờ chế độ được yêu cầu.
+       + **Nhánh 2 - Tài liệu toàn vẹn (Full Document - Tương thích ngược):** Nếu người dùng dán toàn bộ tài liệu TeX cũ có sẵn `\documentclass`, hệ thống giữ nguyên cấu trúc, tự động hiện đại hóa `vietnam` $\rightarrow$ `fontspec`, bổ sung các gói lệnh thiếu (`tcolorbox`, `xparse`, `tikz`, `tkz-tab`, `ex_test`) và đồng bộ option `[dethi]` / `[loigiai]` theo cờ chế độ được yêu cầu.
   3. *Điều Khiển Chế Độ Đề Thi / Lời Giải Không Phụ Thuộc Mã Nguồn Editor:*
      - API `POST /api/v1/composer/compile` bổ sung trường `mode: "loigiai" | "dethi"` (mặc định `"loigiai"`).
      - Khi người dùng gạt công tắc `LỜI GIẢI` trên thanh công cụ xem trước, hệ thống truyền cờ `mode` tương ứng. Động cơ tự động thay thế `[dethi]` thành `[loigiai]` trong Canonical Preamble ngầm, hoàn toàn không cần chỉnh sửa hoặc chèn ép thêm text vào ô soạn thảo của giáo viên.
      - Khóa đệm cache biên dịch được tạo từ `md5(latex_code + "::" + title + "::" + mode)` đảm bảo hai chế độ `[dethi]` và `[loigiai]` luôn có bản cache riêng biệt, tức thì và độc lập, không bị xung đột hiển thị.
   4. *Xuất Bản File TeX Hoàn Chỉnh (Full TeX Source Packaging on Export):*
-     - Khi giáo viên nhấn menu `XUẤT FILE ▾` $
-ightarrow$ `Tải mã nguồn TeX (.tex)`, nếu nội dung hiện tại là dạng tinh gọn không preamble, hệ thống tự động bọc Canonical Preamble đầy đủ và `\begin{document}...\end{document}` vào tệp tải về để đảm bảo tệp `.tex` có thể biên dịch thành công 100% ngay lập tức trên các trình soạn thảo TeX bên ngoài (TeXShop, TeXstudio, Overleaf).
+     - Khi giáo viên nhấn menu `XUẤT FILE ▾` $\rightarrow$ `Tải mã nguồn TeX (.tex)`, nếu nội dung hiện tại là dạng tinh gọn không preamble, hệ thống tự động bọc Canonical Preamble đầy đủ và `\begin{document}...\end{document}` vào tệp tải về để đảm bảo tệp `.tex` có thể biên dịch thành công 100% ngay lập tức trên các trình soạn thảo TeX bên ngoài (TeXShop, TeXstudio, Overleaf).
   5. *Định Hướng Trợ Lý AI Copilot:*
      - Prompt hệ thống của Quesy Copilot được chỉ dẫn rõ: môi trường làm việc đã tích hợp sẵn Canonical Preamble của `ex_test.sty` v3.3. Khi giáo viên yêu cầu tạo câu hỏi, AI chỉ sinh phần thân câu hỏi `\begin{ex}...\end{ex}` và tiêu đề cần thiết, tuyệt đối không xuất các đoạn preamble thừa thãi làm ô nhiễm khung soạn thảo.
 
@@ -467,7 +463,7 @@ ightarrow$ `Tải mã nguồn TeX (.tex)`, nếu nội dung hiện tại là d�
        Chứa các câu hỏi trắc nghiệm chuẩn lệnh `\begin{ex} ... \choice{A}{\True B}{C}{D} ... \end{ex}`.
      - **PHẦN II (Trắc nghiệm Đúng/Sai 4 khẳng định, QĐ 764/QĐ-BGDĐT):**
        `\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}`
-       Chứa các câu hỏi trắc nghiệm Đúng/Sai với lệnh `\choiceTF` và barem bậc thang `\begin{itemchoice}\itemch...\end{itemchoice}`.
+       Chứa các câu hỏi trắc nghiệm Đúng/Sai với lệnh `\choiceTF[1]` (tham số `[1]` bắt buộc ép 4 khẳng định a, b, c, d hiển thị theo **1 cột dọc duy nhất**, mỗi ý 1 dòng, không chia 4 cột hay 2 cột; tuyệt đối không thêm `\\` sau các dấu ngoặc nhọn `{}`) và barem bậc thang `\begin{itemchoice}\itemch...\end{itemchoice}`.
      - **PHẦN III (Trắc nghiệm trả lời ngắn):**
        `\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}`
        Chứa các câu hỏi điền kết quả số/phân số với lệnh `\shortans`.
@@ -493,7 +489,52 @@ ightarrow$ `Tải mã nguồn TeX (.tex)`, nếu nội dung hiện tại là d�
        + `\rule{...}{...}` $\rightarrow$ Thẻ divider đường kẻ đen mảnh (`<hr>`).
        + `\dotfill` $\rightarrow$ Thẻ co giãn đường chấm dotted baseline.
        + `\framebox{...}` / `\fbox{...}` $\rightarrow$ Khung viền đen 1.5px bọc mã đề.
-       + **Kiến trúc Pipeline Tránh Lỗi Over-Escaping:** Các macro layout (`minipage`, `hfill`, `rule`, `dotfill`, `framebox`, `fbox`) và khối `loigiai` được phân giải trực tiếp trên `final_body` **SAU** khi bước bóc tách đoạn văn và render công thức toán `render_math_html` hoàn tất. Cơ chế này bảo vệ các thẻ HTML thực tế (`<div>`, `<span>`, `<hr>`) không bị chuyển hóa nhầm thành text thô đã escape (`&lt;div...&gt;`, `&lt;span...&gt;`). Regex `\rule` chuẩn hóa tuyệt đối với `r'\\rule\{([^}]+)\}\{([^}]+)\}'`.
+       + **Kiến trúc Pipeline Tránh Lỗi Over-Escaping:** Các macro layout (`minipage`, `hfill`, `rule`, `dotfill`, `framebox`, `fbox`) và khối `loigiai` được phân giải trực tiếp trên `final_body` **SAU** khi bước bóc tách đoạn văn và render công thức toán `render_math_html` hoàn tất. Cơ chế này bảo vệ các thẻ HTML thực tế (`<div>`, `<span>`, `<hr>`) không bị chuyển hóa nhầm thành text thô đã escape (`&lt;div...&gt;`, `&lt;span...&gt;`). Regex `\rule` chuẩn hóa tuyệt đối với `r'\\\\rule\\{([^}]+)\\}\\{([^}]+)\\}'`.
+
+#### SRS-FEAT-04s: Trợ Lý AI Chẩn Đoán Lỗi Biên Dịch LaTeX Thông Minh & Ánh Xạ Dòng Lỗi Preamble-Free (AI Compiler Error Diagnostics & Line-Offset Mapping)
+- **Mô tả:** Hệ thống hỗ trợ giáo viên tự động đọc, phân tích và sửa lỗi biên dịch TeX/XeTeX/Tectonic trong phân hệ Soạn đề (`/composer`).
+- **Luồng Dữ Liệu Khép Kín:**
+  1. *Lưu trữ Log Lỗi:* Khi biên dịch `POST /api/v1/composer/compile` thất bại (`success = false`), client tự động ghi nhận chuỗi log lỗi đầy đủ vào `app.composer.lastCompileError`.
+  2. *Chuyển tiếp Tự động sang Trợ Lý AI:* Khi người dùng gửi prompt yêu cầu (hoặc kích hoạt từ menu AI "SỬA LỖI"), payload gửi đến `POST /api/v1/composer/chat` tự động truyền trường `compile_error`.
+  3. *Động Cơ Chẩn Đoán Log Lỗi Hai Tầng:*
+     - **Tầng LLM:** System prompt huấn luyện AI Copilot đọc hiểu cấu trúc log TeX, trích xuất số dòng và nguyên nhân lỗi, phản hồi phân tích ngắn gọn kèm khối ```diff``` sửa lỗi chính xác.
+     - **Tầng Cục Bộ (Local Diagnostic Engine - `diagnose_compile_error`):** Hoạt động độc lập và tức thì kể cả khi offline hoặc AI Provider chưa cấu hình:
+       + *Trích xuất số dòng compiler:* Regex bóc tách số dòng `L_comp` từ các thông báo lỗi Tectonic/XeTeX (`error: document.tex:(\d+):`, `l\.(\d+)`).
+       + *Tính toán độ lệch dòng (Preamble Line Offset):* Với tài liệu Preamble-Free, hệ thống tự động trừ đi 11 dòng preamble chuẩn: `L_user = L_comp - 11` để định vị chính xác 100% dòng lỗi trên màn hình của người dùng.
+       + *Phân tích 5 nhóm lỗi kinh điển:*
+         1. `There's no line here to end`: Thừa dấu `\\` sau ngoặc nhọn `{...}` hoặc ở đầu dòng → Tự động xóa `\\`.
+         2. `Undefined control sequence`: Nhận diện các lệnh gõ sai phổ biến (`\ule` → `\rule`, `\choiceTFt` → `\choiceTF[1]`, `ight|` / `\night|` → `\right|`, `\fracc` → `\dfrac`, `\n` → xuống dòng thực).
+         3. `Missing $ inserted`: Ký hiệu toán học ngoài môi trường math → Tự động bọc cặp dấu `$ ... $`.
+         4. `Missing \right. inserted` hoặc `Extra }, or forgotten \right`: Mất cân bằng cặp `\left.` và `\right.` → Hoàn thiện khối ngoặc.
+         5. `Environment undefined` / Thiếu gói lệnh: Tự động đề xuất bổ sung gói vào preamble hoặc sửa tên môi trường.
+       + *Trả về `ChatResponse(reply, diff)`:* Chứa phân tích nguyên nhân và khối diff chuẩn để người dùng bấm **[Đồng ý]** là mã nguồn được cập nhật ngay lập tức.
+
+#### SRS-FEAT-04t: Quy Chuẩn Mẫu Câu Hỏi Đúng/Sai \choiceTF[1] 1 Cột Thẳng Đứng & Rà Soát Toàn Diện Mẫu Lệnh Form Mẫu
+- **Mô tả:** Đảm bảo toàn bộ các biểu mẫu đề thi trong hệ thống (Menu `THÊM ▾`, `EX_TEST_TEMPLATES`, `SNIPPETS`, `TEMPLATES`, và bộ render HTML) tuân thủ 100% chuẩn mực khảo thí và không chứa lỗi cú pháp TeX.
+- **Quy Chuẩn Định Dạng Đúng/Sai (`\choiceTF[1]`):**
+  1. *Ép buộc 1 Cột Duy Nhất:* Tham số `[1]` là bắt buộc đối với lệnh `\choiceTF[1]`. Bốn khẳng định a), b), c), d) luôn hiển thị thẳng hàng dọc từ trên xuống dưới (chiếm 100% chiều rộng mỗi dòng), không chia thành 2 cột hay 4 cột.
+  2. *Cú pháp Chuẩn Tuyệt Đối:*
+     ```latex
+     \begin{ex}
+     Nội dung câu hỏi... Xét tính đúng/sai của các khẳng định sau:
+     \choiceTF[1]
+     {\True Khẳng định a đúng.}
+     {Khẳng định b sai.}
+     {\True Khẳng định c đúng.}
+     {Khẳng định d sai.}
+     \begin{loigiai}
+     \begin{itemchoice}
+     \itemch Đúng. Giải thích ý a.
+     \itemch Sai. Giải thích ý b.
+     \itemch Đúng. Giải thích ý c.
+     \itemch Sai. Giải thích ý d.
+     \end{itemchoice}
+     \end{loigiai}
+     \end{ex}
+     ```
+  3. *Tuyệt đối không chứa `\\`:* Cấm hoàn toàn dấu `\\` sau các dấu ngoặc nhọn `{...}`.
+  4. *Khử Lỗi Chuỗi Ký Tự Newline (`\n`) trong JavaScript:* Toàn bộ các template string trong frontend JavaScript dùng dòng mới thực tế thay vì ký tự escape `\\n`, loại bỏ triệt để hiện tượng XeTeX sinh lỗi `\n{}` hoặc `There's no line here to end`.
+  5. *Đồng bộ Bộ Render HTML Preview (`compile_latex_source_to_html`):* Bộ render HTML chuyển đổi `\choiceTF[1]` thành 4 hàng dọc `display: block; width: 100%; margin-bottom: 4px;` kèm nhãn a), b), c), d) và trạng thái đúng/sai.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.

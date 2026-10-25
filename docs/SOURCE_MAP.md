@@ -260,14 +260,15 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
        │         │
        │         ▼
        │    [GỬI REQUEST POST /api/v1/composer/chat]
-       │    - Payload: { message, current_latex, compile_error_log, history }
+       │    - Payload: { message, current_latex, compile_error, history }
        │    - Chuyển tiếp tự động `lastCompileError` từ lần compile XeTeX/Tectonic gần nhất
        │         │
        │         ▼
        │    [FASTAPI BACKEND: composer.py & composer_service.py]
-       │    - Phân tích ngữ cảnh LaTeX + Log lỗi biên dịch + System Prompt ex_test.sty
-       │    - extract_diff_from_text: Bóc tách khối diff (unified diff, search/replace, old/new, syntax diagnostics)
-       │    - Đóng gói ChatResponse { reply, diff: DiffSuggestion(action, old_text, new_text, description) }
+       │    - Phân tích ngữ cảnh LaTeX + Log lỗi biên dịch (compile_error) + System Prompt ex_test.sty v3.3
+       │    - diagnose_compile_error: Trích xuất số dòng lỗi compiler (L_comp), tự động trừ 11 dòng preamble chuẩn (L_user = L_comp - 11), chẩn đoán 5 nhóm lỗi (No line here to end, Undefined control sequence, Missing $, Missing \right., Environment undefined)
+       │    - extract_all_diffs_from_text: Bóc tách khối diff đa tầng (unified diff, search/replace, old/new, syntax diagnostics)
+       │    - Đóng gói ChatResponse { reply, diff, diffs: List[DiffSuggestion], suggested_latex }
        │         │
        │         ▼
        │    [FRONTEND CLIENT: app.js -> showPendingDiff(diff)]
