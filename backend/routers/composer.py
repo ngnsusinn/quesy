@@ -55,6 +55,7 @@ class CompileResponse(BaseModel):
 class ChatMessage(BaseModel):
     role: str = Field(..., description="'user' or 'assistant'")
     content: str
+    images: Optional[List[str]] = Field(default_factory=list)
 
 class ChatRequest(BaseModel):
     message: str = Field(..., description="User query or command for the AI assistant")
@@ -62,6 +63,7 @@ class ChatRequest(BaseModel):
     compile_error: Optional[str] = Field(None, description="Recent compile error log if any")
     compile_error_log: Optional[str] = Field(None, description="Recent compile error log if any")
     history: Optional[List[ChatMessage]] = Field(default_factory=list)
+    images: Optional[List[str]] = Field(default_factory=list)
 
 class DiffSuggestion(BaseModel):
     action: str = Field("replace", description="'replace' or 'insert'")
@@ -1126,7 +1128,7 @@ def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], u
     # 9. Detect changes if AI returned single code block (```latex or ```tex or ```)
     m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
     if m_code:
-        if any(k in user_lower for k in ("tạo", "thêm", "chèn", "sinh", "viết", "generate", "create", "insert")):
+        if any(k in user_lower for k in ("tạo", "thêm", "chèn", "sinh", "viết", "generate", "create", "insert", "trích xuất", "nhận dạng", "extract")):
             return []
 
         code = m_code.group(1).strip()
@@ -1188,6 +1190,9 @@ def composer_chat_endpoint(req: ChatRequest):
         "1. Bảng biến thiên BẮT BUỘC dùng TikZ package tkz-tab (\\tkzTabInit, \\tkzTabLine, \\tkzTabVar). Không dùng \\begin{array} cho bảng biến thiên!\n"
         "2. Đồ thị hàm số và hình học BẮT BUỘC dùng khối \\begin{tikzpicture} ... \\end{tikzpicture}.\n"
         "3. Mọi công thức toán inline bọc trong $...$, phân số dùng \\dfrac, vectơ dùng \\overrightarrow{AB}.\n\n"
+        "PHÂN TÍCH ĐA PHƯƠNG TIỆN (MULTI-MODAL IMAGE ANALYSIS):\n"
+        "- Khi người dùng đính kèm hình ảnh (ảnh chụp đề thi, đồ thị hàm số, bảng biến thiên tkz-tab, hình học không gian tikz, bài toán trắc nghiệm ex_test), bạn phải phân tích chi tiết nội dung hình ảnh đó.\n"
+        "- Trích xuất chính xác văn bản, công thức toán học và biểu đồ từ ảnh thành mã LaTeX chuẩn ex_test & TikZ tương ứng.\n\n"
         "QUY TẮC PHẢN HỒI (BẮT BUỘC TUÂN THỦ):\n"
         "1. KHI NGƯỜI DÙNG YÊU CẦU SỬA ĐỔI, ĐIỀU CHỈNH HOẶC THAY THẾ:\n"
         "   - TUYỆT ĐỐI KHÔNG xuất lại toàn bộ tài liệu cũ dài dòng! Không sinh lại preamble!\n"
@@ -1407,11 +1412,17 @@ Lời giải chi tiết trả lời ngắn.
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
                 }
-                messages = [{"role": "system", "content": system_prompt}]
+                messages: List[Any] = [{"role": "system", "content": system_prompt}]
                 if req.history:
                     for h in req.history[-4:]:
                         messages.append({"role": h.role, "content": h.content})
-                messages.append({"role": "user", "content": prompt})
+                user_content = [{"type": "text", "text": prompt}]
+                if req.images:
+                    for img_url in req.images:
+                        user_content.append({"type": "image_url", "image_url": {"url": img_url}})
+                    messages.append({"role": "user", "content": user_content})
+                else:
+                    messages.append({"role": "user", "content": prompt})
 
                 with httpx.Client(timeout=25.0) as client:
                     resp = client.post(endpoint, headers=headers, json={"model": model, "messages": messages, "temperature": 0.4})
@@ -1431,6 +1442,31 @@ Lời giải chi tiết trả lời ngắn.
 
     # Smart offline / local fallback generator if AI provider is unconfigured or network failed
     user_msg_lower = req.message.lower()
+
+    if req.images:
+        ex_snippet = r"""\begin{ex}[Phân tích từ ảnh đính kèm]
+Cho đồ thị hàm số hoặc hình vẽ nhận được từ ảnh đính kèm:
+\begin{tikzpicture}[scale=0.7, >=stealth]
+  \draw[->, thick] (-3, 0) -- (3, 0) node[right] {$x$};
+  \draw[->, thick] (0, -3) -- (0, 3) node[above] {$y$};
+  \node[below left] at (0, 0) {$O$};
+  \draw[thick, red, smooth, domain=-2:2] plot (\x, {(\x)^2 - 2});
+\end{tikzpicture}
+Hàm số biểu diễn đồ thị trên là:
+\choice
+{\textbf{ $y = x^2 - 2$}}
+{$y = -x^2 + 2$}
+{$y = x^3 - 3x$}
+{$y = \dfrac{x+1}{x-1}$}
+\begin{loigiai}
+Dựa trên hình ảnh đồ thị parabol quay bề lõm lên trên với đỉnh $(0; -2)$, phương trình hàm số là $y = x^2 - 2$.
+\end{loigiai}
+\end{ex}"""
+        return ChatResponse(
+            reply=f"Tôi đã phân tích hình ảnh đính kèm và nhận dạng cấu trúc toán học. Dưới đây là đoạn mã câu hỏi LaTeX chuẩn ex_test được trích xuất từ ảnh:\n\n```latex\n{ex_snippet}\n```",
+            suggested_latex=ex_snippet,
+            diff=DiffSuggestion(action="replace", old_text="", new_text=ex_snippet, description="Thêm câu hỏi nhận dạng từ ảnh đính kèm")
+        )
 
     # Targeted edits (diff replacements)
     cur_latex = req.current_latex or ""

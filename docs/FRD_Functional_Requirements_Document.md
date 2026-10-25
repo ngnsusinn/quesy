@@ -491,6 +491,29 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
        - Bộ render HTML nhận diện `\choiceTF[1]` (hoặc `\choiceTF`), bóc tách 4 đối số `{...}` và cờ `\True`.
        - Hiển thị thành 4 khối div dạng danh sách dọc (`width: 100%; display: block; margin-bottom: 4px;`) kèm nhãn a), b), c), d) và biểu tượng [Đ] / [S] chuẩn khảo thí.
 
+       ### 2.4.16. FR-02.18: Trợ Lý AI Copilot Đa Phương Tiện: Đính Kèm, Dán Clipboard (Ctrl+V) & Kéo Thả Phân Tích Hình Ảnh (Multi-Modal Image Input & Visual Reasoning)
+       - **Mô tả Chức năng:** Cung cấp trải nghiệm nhập liệu đa phương tiện toàn diện trong phân hệ Soạn đề (`/composer`). Giáo viên có thể gửi hình ảnh chụp đề thi, đồ thị hàm số, bảng biến thiên, hình học không gian hoặc bản nháp viết tay cho Trợ lý AI Copilot thông qua 3 phương thức: Nút đính kèm ảnh (Image picker), Dán ảnh từ bộ nhớ tạm (Clipboard Paste qua `Ctrl+V` / `Cmd+V`), hoặc Kéo thả trực tiếp tệp ảnh (Drag & Drop) vào vùng chat.
+       - **Chi Tiết Giao Diện & Tương Tác Vi Mô (Apple HIG):**
+         1. *Đính kèm từ Thanh Compact (#composer-ai-compact-bar):*
+            - Bổ sung nút bấm icon ảnh `image` tinh tế.
+            - Khi người dùng dán ảnh (`Ctrl+V`) trong lúc con trỏ ở `#composer-compact-input` hoặc chọn file ảnh qua nút: Giao diện tự động mở bung popup trợ lý lớn (`#composer-ai-popup`), chuyển con trỏ sang ô nhập chat lớn `#composer-chat-input`, đưa ảnh vào mảng `attachedImages` và hiển thị khay thumbnail.
+         2. *Khay Thumbnail Đính Kèm (#composer-attached-images-container):*
+            - Nằm bên trong `#composer-chat-input-container`, ngay phía trên textarea `#composer-chat-input`.
+            - Hiển thị hàng ngang các thẻ thumbnail (54px x 54px, bo góc `rounded-xl`, viền mờ `border-white/15`, ảnh `object-cover`).
+            - Nút xóa ảnh tròn 18px x 18px ở góc trên bên phải (✕): hover đỏ, phản hồi xúc giác co nhẹ `active:scale-90`.
+            - Khi nhấp vào thumbnail (ngoài nút xóa): Kích hoạt Modal Phóng to Lightbox (`#composer-image-lightbox`) với nền tối mờ `backdrop-blur-sm`, phím `Esc` hoặc nhấp nền để đóng nhanh.
+         3. *Thanh Công Cụ Chat Lớn (#composer-chat-input-container):*
+            - Cạnh nút `+` (Quick Actions), bổ sung nút icon ảnh đính kèm kèm tooltip hướng dẫn.
+            - Hỗ trợ sự kiện kéo thả tệp (`dragover`, `dragleave`, `drop`): Kích hoạt viền tím sáng `border-purple-500/80` và nền sáng tím nhẹ khi kéo tệp ảnh qua vùng nhập.
+         4. *Bong Bóng Tin Nhắn Người Dùng (#composer-chat-messages):*
+            - Render trực tiếp danh sách ảnh đính kèm bên trong bubble chat của user dạng thumbnail bo góc `rounded-lg`, nhấp để xem lightbox phóng to.
+            - Lưu trữ mảng Base64 Data URL vào lịch sử phiên (`quesy_composer_chat_sessions`).
+       - **Đặc Tả Hợp Đồng Backend & Xử Lý Đa Phương Tiện:**
+         1. Bổ sung trường `images: Optional[List[str]] = Field(default_factory=list)` vào schema `ChatRequest` và `ChatMessage`.
+         2. Khi gọi OpenAI/Gemini/OpenRouter: Tự động chuyển đổi payload thành cấu trúc message đa phương tiện: `[{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": data_url}}]`.
+         3. System prompt chuyên sâu: Định hướng mô hình nhận diện đề bài, chuyển đổi công thức toán học chuẩn Thông tư 32, tái tạo đồ thị và hình học bằng mã TikZ, tái tạo bảng biến thiên bằng `tkz-tab`, bao bọc chuẩn `ex_test.sty`.
+         4. Động cơ Local Fallback: Khi mất mạng hoặc không có API key ngoại vi, hệ thống nhận diện từ khóa (đồ thị, bảng biến thiên, tikz, giải bài) và trả về mã nguồn LaTeX/TikZ hoàn chỉnh phù hợp ngữ cảnh kèm diff để người dùng áp dụng trực tiếp.
+
        ---
 
 ```
@@ -680,17 +703,23 @@ Hệ thống hỗ trợ 5 thể thức khảo thí:
 
 ### 3.3. API Trợ Lý Soạn Thảo & Đề Xuất Sửa Đổi Diff (AI Copilot Chat Endpoint)
 - **Endpoint:** `POST /api/v1/composer/chat`
-- **Mô tả:** Tiếp nhận yêu cầu prompt từ giáo viên (từ thanh compact hoặc chat popup), phân tích cùng ngữ cảnh LaTeX hiện tại, bóc tách đề xuất sửa đổi thành cấu trúc `DiffSuggestion` để hiển thị trên editor.
+- **Mô tả:** Tiếp nhận yêu cầu prompt từ giáo viên (từ thanh compact hoặc chat popup), phân tích cùng ngữ cảnh LaTeX hiện tại, nhật ký lỗi biên dịch (nếu có) và danh sách hình ảnh đính kèm (base64 Data URL), bóc tách đề xuất sửa đổi thành cấu trúc `DiffSuggestion` để hiển thị trên editor.
 - **Content-Type:** `application/json`
 - **Request Body Payload:**
   ```json
   {
-    "message": "Đổi cỡ chữ toàn tài liệu sang 12pt",
-    "current_latex": "\\documentclass[11pt,a4paper]{article}\n\\usepackage{fontspec}\n\\begin{document}\n\\end{document}",
+    "message": "Trích xuất bài toán từ ảnh và vẽ lại đồ thị hàm số bằng TikZ",
+    "current_latex": "\\begin{ex}\nCho hàm số $y = f(x)$...\n\\end{ex}",
+    "compile_error": null,
+    "compile_error_log": null,
+    "images": [
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    ],
     "history": [
       {
         "role": "user",
-        "content": "Chào trợ lý"
+        "content": "Chào trợ lý",
+        "images": []
       },
       {
         "role": "assistant",
@@ -702,14 +731,22 @@ Hệ thống hỗ trợ 5 thể thức khảo thí:
 - **Response Payload (`200 OK`):**
   ```json
   {
-    "reply": "Tôi đề xuất thay đổi cỡ chữ toàn tài liệu từ `11pt` sang `12pt` tại dòng khai báo `\\documentclass`:\n\n```diff\n- \\documentclass[11pt,a4paper]{article}\n+ \\documentclass[12pt,a4paper]{article}\n```\n\nBấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này.",
+    "reply": "Dựa trên hình ảnh bạn cung cấp, đây là bài toán nhận diện đồ thị hàm số bậc ba $y = x^3 - 3x + 1$. Tôi đề xuất thêm khối câu hỏi chuẩn `ex_test.sty` kèm mã dựng đồ thị TikZ nét đen chuẩn in ấn:\n\n```diff\n+ \\begin{ex}\n+ Cho hàm số $y = x^3 - 3x + 1$ có đồ thị như hình vẽ bên.\n+ \\immini{\n+   Số điểm cực trị của hàm số là:\n+   \\choice\n+   {0}\n+   {\\True 2}\n+   {1}\n+   {3}\n+ }{\n+   \\begin{tikzpicture}[scale=0.5, font=\\footnotesize, >=stealth]\n+     \\draw[->] (-2.5,0) -- (2.5,0) node[right] {$x$};\n+     \\draw[->] (0,-2) -- (0,4) node[above] {$y$};\n+     \\node[below left] at (0,0) {$O$};\n+     \\draw[thick, black, smooth, domain=-2.1:2.1] plot (\\x, {(\\x)^3 - 3*(\\x) + 1});\n+   \\end{tikzpicture}\n+ }\n+ \\begin{loigiai}\n+ Đồ thị hàm số có 2 điểm cực trị tại $x = -1$ và $x = 1$.\n+ \\end{loigiai}\n+ \\end{ex}\n```\n\nBấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để chèn câu hỏi này.",
     "suggested_latex": null,
     "diff": {
-      "action": "replace",
-      "old_text": "\\documentclass[11pt,a4paper]{article}",
-      "new_text": "\\documentclass[12pt,a4paper]{article}",
-      "description": "Đổi cỡ chữ toàn tài liệu sang 12pt"
-    }
+      "action": "insert",
+      "old_text": "",
+      "new_text": "\\begin{ex}\nCho hàm số $y = x^3 - 3x + 1$ có đồ thị như hình vẽ bên...\n\\end{ex}",
+      "description": "Thêm câu hỏi đồ thị hàm số bậc ba tái tạo từ ảnh bằng TikZ"
+    },
+    "diffs": [
+      {
+        "action": "insert",
+        "old_text": "",
+        "new_text": "\\begin{ex}\nCho hàm số $y = x^3 - 3x + 1$ có đồ thị như hình vẽ bên...\n\\end{ex}",
+        "description": "Thêm câu hỏi đồ thị hàm số bậc ba tái tạo từ ảnh bằng TikZ"
+      }
+    ]
   }
   ```
 - **Mô tả chi tiết Schema `DiffSuggestion`:**
@@ -717,3 +754,5 @@ Hệ thống hỗ trợ 5 thể thức khảo thí:
   - `old_text` (`string`, required): Đoạn mã LaTeX cũ cần tìm và thay thế trong tài liệu hiện tại.
   - `new_text` (`string`, required): Đoạn mã LaTeX mới thay thế tương ứng.
   - `description` (`string`, required): Chuỗi tóm tắt mục đích sửa đổi để hiển thị trên huy hiệu banner editor.
+- **Mô tả chi tiết Trường `images`:**
+  - Danh sách chuỗi Data URL Base64 (`data:image/{png|jpeg|webp|gif};base64,...`), hỗ trợ tải lên nhiều ảnh bài toán/đồ thị trong một lượt hỏi. Phía máy chủ tự động chuyển tiếp tới LLM đa phương tiện hoặc kích hoạt động cơ nhận diện cục bộ.

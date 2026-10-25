@@ -431,6 +431,30 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
   3. Kiểm tra bộ render HTML preview (`compile_latex_source_to_html`): 4 khẳng định a), b), c), d) hiển thị thành 4 hàng riêng biệt, mỗi hàng chiếm 100% chiều rộng (không chia 2 cột hay 4 cột) kèm nhãn a), b), c), d) và biểu tượng [Đ]/[S].
 - **Kết quả kỳ vọng:** Bố cục đề thi chuẩn mực, 1 cột thẳng đứng rõ ràng, không vỡ layout trên cả bản in PDF và xem trước HTML.
 
+#### TC-COMP-31: Đính Kèm, Dán Clipboard (Ctrl+V) & Kéo Thả Ảnh vào Trợ Lý AI Copilot (Client-Side Image Attachment & UX)
+- **Mô tả:** Kiểm tra các phương thức nhập ảnh vào giao diện AI Copilot trên trình duyệt:
+  1. *Đính kèm từ Compact Bar:* Nhấp nút icon ảnh hoặc dán ảnh clipboard (`Ctrl+V`) vào `#composer-compact-input`: Kiểm tra hệ thống tự động mở bung popup lớn `#composer-ai-popup`, đưa ảnh vào khay thumbnail `#composer-attached-images-container` và focus vào ô chat lớn `#composer-chat-input`.
+  2. *Đính kèm từ Chat Popup:* Nhấp nút đính kèm ảnh trên toolbar của chat card, chọn 1 hoặc nhiều ảnh (`.png`, `.jpg`, `.webp`); hoặc nhấn `Ctrl+V` dán ảnh chụp màn hình; hoặc kéo thả file ảnh vào vùng chat (kiểm tra class viền sáng tím `.composer-drag-over`).
+  3. *Tương tác Khay Thumbnail:* Mỗi ảnh hiển thị card bo góc tròn với kích thước 54px x 54px; nhấp nút (✕) gỡ bỏ ảnh thành công; nhấp vào ảnh mở modal Lightbox xem phóng to; bấm Esc hoặc click nền đóng Lightbox.
+  4. *Render Bubble Chat & Reset Ô Nhập:* Khi bấm gửi, khay thumbnail được xóa sạch, bong bóng chat của user hiển thị tin nhắn kèm các ảnh đính kèm; lưu trữ bền vững vào lịch sử phiên `localStorage`.
+- **Kết quả kỳ vọng:** Thao tác dán/upload/xóa ảnh mượt mà 60 FPS, không lỗi console, đúng chuẩn Apple HIG và vi tương tác Emil Kowalski.
+- **Tự động hóa Pytest:** Đã được kiểm thử tự động tại `tests/test_composer.py::test_composer_multimodal_frontend_dom_elements`, `test_composer_multimodal_frontend_app_js_methods_and_flow`, và `test_composer_multimodal_css_styling`.
+
+#### TC-COMP-32: Tính Toàn Vẹn Hợp Đồng API Chat Đa Phương Tiện (Multimodal Payload & Pydantic Schema)
+- **Mô tả:** Kiểm tra schema và phản hồi của endpoint `POST /api/v1/composer/chat`:
+  1. Gửi request có trường `images` chứa danh sách chuỗi Data URL Base64 (`data:image/png;base64,...`).
+  2. Kiểm tra Pydantic model `ChatRequest` và `ChatMessage` tiếp nhận trường `images` mà không phát sinh lỗi validation 422.
+  3. Kiểm tra tính tương thích ngược khi request không có trường `images` (mặc định rỗng `[]`), hệ thống vẫn xử lý bình thường.
+- **Kết quả kỳ vọng:** API trả về mã trạng thái `200 OK`, bảo toàn cấu trúc `ChatResponse(reply, diff, diffs, suggested_latex)`.
+- **Tự động hóa Pytest:** Đã được kiểm thử tự động tại `tests/test_composer.py::test_composer_pydantic_models_images_field` và `test_composer_chat_api_multimodal_empty_images_backward_compatibility`.
+
+#### TC-COMP-33: Trợ Lý AI Phân Tích Hình Ảnh (TikZ / Bảng Biến Thiên) & Động Cơ Dự Phòng Offline Fallback
+- **Mô tả:** Kiểm tra khả năng xử lý hình ảnh của AI Copilot:
+  1. *Khi có AI Provider (Online Multi-modal):* Payload gửi tới external provider được đóng gói dưới dạng mảng các block `[{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": img}}]`. AI nhận diện đề bài, xuất mã câu hỏi `ex_test.sty` và khối dựng đồ thị TikZ nét đen hoặc bảng biến thiên `tkz-tab`.
+  2. *Khi ở chế độ Offline / Local Fallback (hoặc mất mạng):* Gửi request kèm `images` và prompt yêu cầu tạo đồ thị/bảng biến thiên/giải toán: Hệ thống nhận diện sự hiện diện của ảnh, phản hồi lời giải thích đã nhận ảnh thành công và tạo khối mã LaTeX/TikZ hoàn chỉnh để giáo viên chèn hoặc duyệt diff trực tiếp.
+- **Kết quả kỳ vọng:** Không bao giờ ném lỗi 500 khi xử lý ảnh; cả 2 chế độ online và offline fallback đều cung cấp mã nguồn LaTeX/TikZ hợp lệ cho người dùng.
+- **Tự động hóa Pytest:** Đã được kiểm thử tự động tại `tests/test_composer.py::test_composer_chat_api_multimodal_offline_fallback`, `test_composer_chat_api_multimodal_mocked_ai_single_image`, `test_composer_chat_api_multimodal_mocked_ai_multiple_images_and_history`, và `test_composer_chat_api_multimodal_mocked_ai_diff_extraction`.
+
 #### TC-DEV-01: Quy Chuẩn Quản Trị Nhánh & Không Tự Động Tạo Pull Request (Git Workflow Guardrail)
 - **Mô tả:** Rà soát và xác thực hành vi của các agent và quy trình CI/CD:
   1. Chỉ thực hiện `git commit` và `git push` lên nhánh remote đang làm việc.

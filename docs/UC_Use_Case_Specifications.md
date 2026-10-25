@@ -329,3 +329,18 @@
      - Backend tự động nhận diện chế độ toàn vẹn, bảo toàn cấu trúc tài liệu của người dùng, nâng cấp các gói lệnh tương thích XeTeX và đồng bộ tùy chọn `[dethi]` / `[loigiai]`.
   6. Khi người dùng chọn menu `XUẤT FILE ▾` -> `Tải mã nguồn TeX (.tex)`:
      - Hệ thống tự động kiểm tra: nếu mã trong editor là dạng tinh gọn không preamble, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi lưu tệp tải về, đảm bảo giáo viên có thể biên dịch độc lập ngay trên TeXLive / Overleaf.
+- **Luồng 6k - Đính kèm, Dán Clipboard (Ctrl+V) & Kéo Thả Phân Tích Hình Ảnh (Multi-Modal Image Input, Clipboard Paste & Visual Reasoning):**
+  1. *Đính kèm từ Compact Bar:*
+     - Người dùng nhấp vào nút icon ảnh trên thanh `#composer-ai-compact-bar` để chọn một hoặc nhiều file ảnh từ máy tính, HOẶC dán ảnh trực tiếp từ clipboard (`Ctrl+V` / `Cmd+V`) khi đang gõ tại `#composer-compact-input`.
+     - Hệ thống kích hoạt Fast Dispatch: Tự động mở bung popup trợ lý lớn `#composer-ai-popup`, ẩn thanh compact bar, chuyển con trỏ vào ô nhập `#composer-chat-input`, đưa ảnh vào mảng `attachedImages` và hiển thị khay thumbnail đính kèm ngay trên ô chat.
+  2. *Thao tác trên Khung Chat Lớn (#composer-chat-input-container):*
+     - Người dùng có thể: (a) Nhấp vào nút icon ảnh trên toolbar của chat card; (b) Nhấn tổ hợp phím `Ctrl+V` / `Cmd+V` để dán ảnh chụp màn hình; (c) Kéo và thả file ảnh trực tiếp vào khung chat (vùng dropzone phát sáng viền tím `border-purple-500/80 bg-purple-500/10`).
+     - Khay thumbnail `#composer-attached-images-container` hiển thị danh sách các ảnh đã chọn (kích thước 54px x 54px, bo góc mượt mà).
+     - Người dùng có thể nhấp vào nút (✕) ở góc trên mỗi thumbnail để gỡ ảnh ra khỏi danh sách đính kèm, hoặc nhấp vào ảnh để mở Lightbox xem trước cỡ lớn.
+  3. *Gửi yêu cầu và Hiển thị:*
+     - Người dùng gõ thêm câu lệnh yêu cầu (ví dụ: *"Trích xuất đề bài từ ảnh và vẽ lại đồ thị hàm số bằng TikZ"*) và nhấn `Enter` hoặc nhấp nút tròn mũi tên gửi.
+     - Hệ thống đóng gói mảng Base64 Data URL vào trường `images` trong payload `POST /api/v1/composer/chat`.
+     - Bong bóng chat của người dùng lập tức hiển thị nội dung câu hỏi cùng các thumbnail ảnh đính kèm; sau đó khay thumbnail đính kèm được dọn sạch (`attachedImages = []`).
+  4. *Phản hồi từ AI Copilot:*
+     - AI Copilot đa phương tiện (hoặc Offline Fallback) đọc ảnh, nhận diện đề bài, phân tích đồ thị/bảng biến thiên, sinh ra khối mã LaTeX `ex_test.sty` và khối TikZ tương ứng.
+     - Phản hồi trả về kèm khối diff hoặc suggested_latex để giáo viên 1-click chèn hoặc thay thế trực tiếp vào trình soạn thảo đề thi.

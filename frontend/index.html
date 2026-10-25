@@ -677,6 +677,10 @@
                 </div>
                 <!-- Right Controls (Matching Image 2) -->
                 <div class="flex items-center space-x-2 shrink-0">
+                  <button type="button" onclick="document.getElementById('composer-compact-image-input').click()" class="p-1 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer" title="Đính kèm ảnh">
+                    <i data-lucide="image" class="w-4 h-4"></i>
+                  </button>
+                  <input type="file" id="composer-compact-image-input" accept="image/*" class="hidden" multiple onchange="app.composer.handleImageFileSelect(event)" />
                   <div class="relative">
                     <button type="button" onclick="app.composer.toggleCompactQuickMenu(event)" class="p-1 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer" title="Mẫu câu lệnh nhanh">
                       <i data-lucide="plus" class="w-4 h-4"></i>
@@ -788,42 +792,51 @@
                 <!-- Bottom Large Input Card (Matching Image 3) -->
                 <div id="composer-chat-input-container" class="px-3 pb-3 pt-1 shrink-0 bg-[#18181b]">
                   <div class="rounded-2xl bg-[#242426] border border-white/10 p-2.5 shadow-lg flex flex-col space-y-2">
+                    <!-- Attached Images Thumbnail Tray -->
+                    <div id="composer-attached-images-container" class="hidden flex items-center space-x-2 pb-2 overflow-x-auto select-none"></div>
+
                     <!-- Input Textarea -->
                     <textarea id="composer-chat-input" rows="2" placeholder="Yêu cầu AI sinh câu hỏi, vẽ hình TikZ, sửa lỗi LaTeX..." onkeydown="app.composer.handleChatInputKey(event)" class="composer-chat-input w-full text-xs bg-transparent border-none p-0 resize-none focus:ring-0 text-[#f1f5f9] placeholder-slate-400 outline-none leading-relaxed font-sans" style="color: #f1f5f9 !important; caret-color: #c084fc !important; background-color: transparent !important;"></textarea>
                     
                     <!-- Bottom Toolbar of the Input Card -->
                     <div class="flex items-center justify-between pt-1 border-t border-white/5 text-xs">
-                      <!-- Left: Quick Action '+' Button -->
-                      <div class="relative">
-                        <button type="button" onclick="app.composer.toggleQuickPromptMenu(event)" class="p-1 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center space-x-1" title="Chèn nhanh mẫu yêu cầu">
-                          <i data-lucide="plus" class="w-4 h-4"></i>
-                        </button>
-                        <!-- Quick Prompts Dropdown -->
-                        <div id="composer-quick-prompts-menu" class="hidden absolute bottom-full mb-2 left-0 z-50 w-56 bg-[#1f1f23] border border-white/15 rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs">
-                          <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-white/10 mb-1">
-                            Gợi ý tác vụ AI
+                      <!-- Left: Quick Action '+' Button & Image Attach -->
+                      <div class="flex items-center space-x-1">
+                        <div class="relative">
+                          <button type="button" onclick="app.composer.toggleQuickPromptMenu(event)" class="p-1 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer flex items-center space-x-1" title="Chèn nhanh mẫu yêu cầu">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                          </button>
+                          <!-- Quick Prompts Dropdown -->
+                          <div id="composer-quick-prompts-menu" class="hidden absolute bottom-full mb-2 left-0 z-50 w-56 bg-[#1f1f23] border border-white/15 rounded-xl shadow-2xl text-slate-200 py-1.5 text-xs">
+                            <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-white/10 mb-1">
+                              Gợi ý tác vụ AI
+                            </div>
+                            <button type="button" onclick="app.composer.applyQuickPrompt('Đổi cỡ chữ toàn tài liệu sang 12pt')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                              <span class="text-purple-400 font-bold">●</span>
+                              <span>Đổi cỡ chữ sang 12pt</span>
+                            </button>
+                            <button type="button" onclick="app.composer.applyQuickPrompt('Tạo một câu hỏi trắc nghiệm 4 lựa chọn về hàm số')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                              <span class="text-blue-400 font-bold">●</span>
+                              <span>Trắc nghiệm 4 lựa chọn</span>
+                            </button>
+                            <button type="button" onclick="app.composer.applyQuickPrompt('Tạo câu hỏi Đúng/Sai 4 ý theo Quyết định 764')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                              <span class="text-emerald-400 font-bold">●</span>
+                              <span>Đúng/Sai 4 ý QĐ 764</span>
+                            </button>
+                            <button type="button" onclick="app.composer.applyQuickPrompt('Vẽ bảng biến thiên hàm bậc 3 bằng tkz-tab')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                              <span class="text-amber-400 font-bold">●</span>
+                              <span>Bảng biến thiên tkz-tab</span>
+                            </button>
+                            <button type="button" onclick="app.composer.applyQuickPrompt('Kiểm tra và sửa lỗi cú pháp LaTeX toàn bộ đề thi')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200 border-t border-white/10 mt-1 pt-1.5">
+                              <span class="text-rose-400 font-bold">●</span>
+                              <span>Sửa lỗi cú pháp LaTeX</span>
+                            </button>
                           </div>
-                          <button type="button" onclick="app.composer.applyQuickPrompt('Đổi cỡ chữ toàn tài liệu sang 12pt')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
-                            <span class="text-purple-400 font-bold">●</span>
-                            <span>Đổi cỡ chữ sang 12pt</span>
-                          </button>
-                          <button type="button" onclick="app.composer.applyQuickPrompt('Tạo một câu hỏi trắc nghiệm 4 lựa chọn về hàm số')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
-                            <span class="text-blue-400 font-bold">●</span>
-                            <span>Trắc nghiệm 4 lựa chọn</span>
-                          </button>
-                          <button type="button" onclick="app.composer.applyQuickPrompt('Tạo câu hỏi Đúng/Sai 4 ý theo Quyết định 764')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
-                            <span class="text-emerald-400 font-bold">●</span>
-                            <span>Đúng/Sai 4 ý QĐ 764</span>
-                          </button>
-                          <button type="button" onclick="app.composer.applyQuickPrompt('Vẽ bảng biến thiên hàm bậc 3 bằng tkz-tab')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
-                            <span class="text-amber-400 font-bold">●</span>
-                            <span>Bảng biến thiên tkz-tab</span>
-                          </button>
-                          <button type="button" onclick="app.composer.applyQuickPrompt('Kiểm tra và sửa lỗi cú pháp LaTeX toàn bộ đề thi')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200 border-t border-white/10 mt-1 pt-1.5">
-                            <span class="text-rose-400 font-bold">●</span>
-                            <span>Sửa lỗi cú pháp LaTeX</span>
-                          </button>
                         </div>
+                        <button type="button" onclick="document.getElementById('composer-chat-image-input').click()" class="p-1 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer" title="Đính kèm ảnh">
+                          <i data-lucide="image" class="w-4 h-4"></i>
+                        </button>
+                        <input type="file" id="composer-chat-image-input" accept="image/*" class="hidden" multiple onchange="app.composer.handleImageFileSelect(event)" />
                       </div>
 
                       <!-- Right: Circle Send Button -->
@@ -836,6 +849,14 @@
                   </div>
                 </div>
 
+              </div>
+
+              <!-- Lightbox Modal for Large Image View -->
+              <div id="composer-image-lightbox" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onclick="app.composer.closeLightbox(event)">
+                <div class="relative max-w-5xl max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
+                  <button type="button" onclick="app.composer.closeLightbox()" class="absolute -top-10 right-0 w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center font-bold text-sm transition-all cursor-pointer" title="Đóng (Esc)">✕</button>
+                  <img id="composer-lightbox-img" src="" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-white/20 bg-black" alt="Lightbox Image">
+                </div>
               </div>
 
             </div>

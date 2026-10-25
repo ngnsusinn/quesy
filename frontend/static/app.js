@@ -3868,6 +3868,7 @@
     aiPaneCollapsed: false,
     showSolution: true,
     chatHistory: [],
+    attachedImages: [],
     sessions: [],
     currentSessionId: null,
     compilationHistory: [],
@@ -5953,6 +5954,7 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
 
       this.renderChatMessages();
       this.renderHistoryList();
+      this.setupPasteAndDropListeners();
 
       if (!this._quickMenuDocClickBound) {
         this._quickMenuDocClickBound = true;
@@ -5969,6 +5971,138 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
       }
     },
 
+    setupPasteAndDropListeners() {
+      const chatInput = document.getElementById('composer-chat-input');
+      const compactInput = document.getElementById('composer-compact-input');
+      const inputContainer = document.getElementById('composer-chat-input-container');
+
+      const handleFiles = (files) => {
+        if (!files || !files.length) return;
+        for (const file of files) {
+          if (file.type && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              this.addAttachedImage(evt.target.result, file.name || 'image.png');
+            };
+            reader.readAsDataURL(file);
+          }
+        }
+      };
+
+      [chatInput, compactInput, inputContainer].forEach((el) => {
+        if (!el) return;
+        el.addEventListener('paste', (e) => {
+          const items = e.clipboardData && e.clipboardData.items;
+          if (!items) return;
+          for (const item of items) {
+            if (item.type.startsWith('image/')) {
+              e.preventDefault();
+              const file = item.getAsFile();
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                  this.addAttachedImage(evt.target.result, file.name || 'pasted_image.png');
+                };
+                reader.readAsDataURL(file);
+              }
+            }
+          }
+        });
+      });
+
+      if (inputContainer) {
+        inputContainer.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          inputContainer.classList.add('composer-drag-over');
+        });
+        inputContainer.addEventListener('dragleave', (e) => {
+          e.preventDefault();
+          inputContainer.classList.remove('composer-drag-over');
+        });
+        inputContainer.addEventListener('drop', (e) => {
+          e.preventDefault();
+          inputContainer.classList.remove('composer-drag-over');
+          if (e.dataTransfer && e.dataTransfer.files) {
+            handleFiles(e.dataTransfer.files);
+          }
+        });
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.closeLightbox();
+        }
+      });
+    },
+
+    handleImageFileSelect(e) {
+      const files = e.target.files;
+      if (!files || !files.length) return;
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            this.addAttachedImage(evt.target.result, file.name || 'image.png');
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+      e.target.value = '';
+    },
+
+    addAttachedImage(dataUrl, name) {
+      if (!this.attachedImages) this.attachedImages = [];
+      const id = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      this.attachedImages.push({ id, dataUrl, name });
+      if (!this.isAIPopupOpen) {
+        this.openAIPopup();
+      }
+      this.renderAttachedImages();
+      showToast(`Đã đính kèm ảnh: ${name}`, 'success');
+    },
+
+    removeAttachedImage(id) {
+      if (!this.attachedImages) return;
+      this.attachedImages = this.attachedImages.filter(img => img.id !== id);
+      this.renderAttachedImages();
+    },
+
+    renderAttachedImages() {
+      const container = document.getElementById('composer-attached-images-container');
+      if (!container) return;
+      if (!this.attachedImages || this.attachedImages.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+      }
+      container.classList.remove('hidden');
+      container.innerHTML = this.attachedImages.map(img => `
+        <div class="composer-image-chip" onclick="app.composer.openLightbox('${img.dataUrl}')" title="${escapeHtml(img.name)}">
+          <img src="${img.dataUrl}" alt="${escapeHtml(img.name)}" />
+          <button type="button" onclick="event.stopPropagation(); app.composer.removeAttachedImage('${img.id}')" class="composer-image-chip-remove" title="Xóa ảnh">✕</button>
+        </div>
+      `).join('');
+    },
+
+    openLightbox(src) {
+      const lightbox = document.getElementById('composer-image-lightbox');
+      const img = document.getElementById('composer-lightbox-img');
+      if (lightbox && img) {
+        img.src = src;
+        lightbox.classList.remove('hidden');
+      }
+    },
+
+    closeLightbox(e) {
+      if (e && e.target && e.target.id !== 'composer-image-lightbox' && !e.target.closest('button')) {
+        return;
+      }
+      const lightbox = document.getElementById('composer-image-lightbox');
+      if (lightbox) {
+        lightbox.classList.add('hidden');
+      }
+    },
+
     renderChatMessages() {
       const container = document.getElementById('composer-chat-messages');
       if (!container) return;
@@ -5978,8 +6112,9 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
         if (isUser) {
           return `
             <div class="flex items-start justify-end space-x-2">
-              <div class="bg-[#27272a] text-white border border-white/10 rounded-2xl rounded-tr-xs p-2.5 max-w-[85%] shadow-md leading-relaxed text-xs">
-                ${escapeHtml(msg.content)}
+              <div class="bg-[#272f42] text-white border border-white/10 rounded-2xl rounded-tr-xs p-2.5 max-w-[85%] shadow-md leading-relaxed text-xs space-y-2">
+                ${(msg.images && msg.images.length > 0) ? `<div class="composer-chat-image-grid">${msg.images.map(src => `<img src="${src}" class="composer-chat-image-thumb" onclick="app.composer.openLightbox('${src}')" alt="User attached image">`).join('')}</div>` : ''}
+                <div>${escapeHtml(msg.content)}</div>
               </div>
             </div>
           `;
@@ -6219,10 +6354,19 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
         compactInput.value = '';
       }
 
+      const attachedImagesCopy = this.attachedImages ? [...this.attachedImages] : [];
+      const imagePayloads = attachedImagesCopy.map(img => img.dataUrl);
+      this.attachedImages = [];
+      this.renderAttachedImages();
+
       if (!this.isAIPopupOpen) {
         this.openAIPopup();
       }
-      this.chatHistory.push({ role: 'user', content: promptText });
+      this.chatHistory.push({
+        role: 'user',
+        content: promptText,
+        images: imagePayloads.length ? imagePayloads : undefined
+      });
       this.archiveCurrentSession();
       this.renderChatMessages();
       this.renderHistoryList();
@@ -6258,7 +6402,8 @@ $y = -(x-2)^2 + 1 \\le 1$. Đạt được khi $x = 2$.
             message: promptText,
             current_latex: this.currentLatex,
             compile_error: activeCompileError || undefined,
-            history: this.chatHistory.slice(-4)
+            history: this.chatHistory.slice(-4),
+            images: imagePayloads.length ? imagePayloads : undefined
           })
         });
 

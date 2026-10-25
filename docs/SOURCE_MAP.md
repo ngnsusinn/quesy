@@ -212,7 +212,7 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 | Phương thức | Đường dẫn API | Chức năng nghiệp vụ | Router Module |
 | :--- | :--- | :--- | :--- |
 | **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (hỗ trợ Preamble-Free Question Editor, Canonical Preamble Injection, mode: dethi/loigiai) | `composer.py` |
-| **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, chẩn đoán log lỗi biên dịch LaTeX (compile_error_log), đề xuất Smart Inline Diff | `composer.py` |
+| **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, chẩn đoán log lỗi biên dịch LaTeX (compile_error_log), hỗ trợ đính kèm/dán ảnh đa phương tiện (images), đề xuất Smart Inline Diff | `composer.py` |
 | **GET** | `/api/v1/composer/pdf/{doc_id}.pdf` | Stream trực tiếp tệp PDF xem trước | `composer.py` |
 | **GET** | `/api/v1/composer/templates` | Danh mục mẫu đề thi chuẩn quốc gia (`ex_test.sty` v3.3) | `composer.py` |
 | **POST/GET** | `/api/v1/composer/export` | Xuất file .tex độc lập hoàn chỉnh có canonical preamble chuẩn in ấn | `composer.py` |
@@ -249,6 +249,7 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
   - :focus-within State: Nổi bật tức thì viền tím neon (border-color rgba(168,85,247,0.75)), quầng sáng tỏa box-shadow Apple Glow, nhấc nhẹ 1px, icon sparkles phát sáng
   - Click vào thanh -> Chỉ focus ô nhập, giữ nguyên text cursor, KHÔNG mở popup
   - Giáo viên gõ/dán prompt tùy ý hoặc chọn mẫu Header 2 Cột / Khung 3 Phần Bộ GD&ĐT 2025
+  - Đính kèm ảnh (Image button), dán ảnh từ clipboard (Ctrl+V), kéo thả ảnh -> Kích hoạt Fast Dispatch mở bung popup trợ lý, hiển thị khay thumbnail đính kèm
        │
        ├──> Nhấn ENTER hoặc click Nút Gửi (Icon mũi tên tròn arrow-up)
        │         │
@@ -256,17 +257,21 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
        │    [KÍCH HOẠT MỞ RỘNG GIAO DIỆN FULL TRỢ LÝ SOẠN THẢO (OPTIMISTIC FAST DISPATCH)]
        │    - Mở bung bottom sheet popup (#composer-ai-popup, height 56% / 78% / 92% qua hardware transition)
        │    - Ẩn thanh compact bar, đồng bộ text vào ô chat chính trong <= 16ms
+       │    - Hiển thị khay thumbnail ảnh đính kèm (#composer-attached-images-container) kèm nút xóa ✕ và lightbox phóng to
        │    - Hiển thị hiệu ứng loading (composer-typing-indicator)
        │         │
        │         ▼
        │    [GỬI REQUEST POST /api/v1/composer/chat]
-       │    - Payload: { message, current_latex, compile_error, history }
+       │    - Payload: { message, current_latex, compile_error, history, images: [data_url] }
        │    - Chuyển tiếp tự động `lastCompileError` từ lần compile XeTeX/Tectonic gần nhất
        │         │
        │         ▼
        │    [FASTAPI BACKEND: composer.py & composer_service.py]
-       │    - Phân tích ngữ cảnh LaTeX + Log lỗi biên dịch (compile_error) + System Prompt ex_test.sty v3.3
-       │    - diagnose_compile_error: Trích xuất số dòng lỗi compiler (L_comp), tự động trừ 11 dòng preamble chuẩn (L_user = L_comp - 11), chẩn đoán 5 nhóm lỗi (No line here to end, Undefined control sequence, Missing $, Missing \right., Environment undefined)
+       │    - Phân tích ngữ cảnh LaTeX + Log lỗi biên dịch (compile_error) + Mảng ảnh đa phương tiện (images) + System Prompt ex_test.sty v3.3
+       │    - Đóng gói cấu trúc Multi-modal Blocks [{"type": "text", ...}, {"type": "image_url", ...}] cho external AI provider (Gemini/OpenAI/OpenRouter)
+       │    - Offline Fallback Engine: Nhận diện ảnh bài toán, đồ thị, bảng biến thiên, sinh mã TikZ / ex_test.sty tương ứng
+       │    - diagnose_compile_error: Trích xuất số dòng lỗi compiler (L_comp), tự động trừ 11 dòng preamble chuẩn (L_user = L_comp - 11), chẩn đoán 5 nhóm lỗi (No line here to end, Undefined control sequence, Missing $, Missing 
+ight., Environment undefined)
        │    - extract_all_diffs_from_text: Bóc tách khối diff đa tầng (unified diff, search/replace, old/new, syntax diagnostics)
        │    - Đóng gói ChatResponse { reply, diff, diffs: List[DiffSuggestion], suggested_latex }
        │         │

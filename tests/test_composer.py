@@ -8,6 +8,9 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.routers.composer import (
+    ChatMessage,
+    ChatRequest,
+    ChatResponse,
     DiffSuggestion,
     diagnose_compile_error,
     extract_all_diffs_from_text,
@@ -3506,3 +3509,428 @@ $I = (x^2 + 1) \right|_0^1 = 2$.
     assert res_env is not None
     assert res_env.diff is not None
     assert r"\usepackage{tikz,tkz-tab}" in res_env.diff.new_text
+
+
+# ===========================================================================
+# TC-COMP-30 to TC-COMP-38: Multi-modal AI Chat with Image Attachment
+# ===========================================================================
+
+def test_composer_pydantic_models_images_field():
+    """TC-COMP-30: Verify Pydantic models ChatMessage and ChatRequest support the 'images' field.
+    Tests default factory, explicit empty list, single and multiple base64 data URLs.
+    """
+    # 1. ChatMessage defaults and customizations
+    msg_default = ChatMessage(role="user", content="Hello AI")
+    assert msg_default.images == []
+    assert msg_default.role == "user"
+    assert msg_default.content == "Hello AI"
+
+    msg_empty = ChatMessage(role="assistant", content="Reply", images=[])
+    assert msg_empty.images == []
+
+    sample_b64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    msg_with_img = ChatMessage(role="user", content="Analyze this chart", images=[sample_b64])
+    assert msg_with_img.images is not None
+    assert len(msg_with_img.images) == 1
+    assert msg_with_img.images[0] == sample_b64
+
+    msg_multi_img = ChatMessage(
+        role="user",
+        content="Two images",
+        images=["data:image/png;base64,img1", "data:image/jpeg;base64,img2"]
+    )
+    assert msg_multi_img.images is not None
+    assert len(msg_multi_img.images) == 2
+    assert msg_multi_img.images[0] == "data:image/png;base64,img1"
+    assert msg_multi_img.images[1] == "data:image/jpeg;base64,img2"
+
+    # 2. ChatRequest defaults, serialization, and history preservation
+    req_default = ChatRequest(message="Generate question")
+    assert req_default.images == []
+    assert req_default.history == []
+
+    req_with_img = ChatRequest(
+        message="Extract formula from image",
+        current_latex=r"\begin{document}\end{document}",
+        images=[sample_b64]
+    )
+    assert req_with_img.images is not None
+    assert len(req_with_img.images) == 1
+    assert req_with_img.images[0].startswith("data:image/png;base64,")
+
+    req_full = ChatRequest(
+        message="Follow-up on previous problem",
+        history=[msg_with_img, ChatMessage(role="assistant", content="Here is the question")],
+        images=["data:image/png;base64,img_step2"]
+    )
+    assert req_full.history is not None
+    assert len(req_full.history) == 2
+    assert req_full.history[0].images == [sample_b64]
+    assert req_full.images is not None
+    assert req_full.images == ["data:image/png;base64,img_step2"]
+
+    # Model dump / JSON serialization check
+    dumped = req_full.model_dump()
+    assert "images" in dumped
+    assert dumped["images"] == ["data:image/png;base64,img_step2"]
+    assert dumped["history"][0]["images"] == [sample_b64]
+
+
+def test_composer_chat_api_multimodal_offline_fallback():
+    """TC-COMP-31: Verify POST /api/v1/composer/chat offline fallback when images are attached.
+    Ensures smart offline generator recognizes image presence and produces an ex_test question
+    with TikZ graph or variation table snippet.
+    """
+    sample_b64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    payload = {
+        "message": "Trích xuất câu hỏi trắc nghiệm từ ảnh đồ thị đính kèm",
+        "current_latex": r"\begin{document}" + "\n" + r"\end{document}",
+        "images": [sample_b64]
+    }
+
+    # Force AI provider to None to test local / offline deterministic fallback
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post("/api/v1/composer/chat", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+
+        assert "reply" in data
+        assert "phân tích hình ảnh đính kèm" in data["reply"].lower()
+        assert r"\begin{ex}[Phân tích từ ảnh đính kèm]" in data["reply"]
+        assert "tikzpicture" in data["reply"]
+        assert r"\choice" in data["reply"]
+        assert r"\begin{loigiai}" in data["reply"]
+
+        # Verify suggested_latex
+        assert data["suggested_latex"] is not None
+        assert r"\begin{ex}[Phân tích từ ảnh đính kèm]" in data["suggested_latex"]
+
+        # Verify diff suggestion
+        assert data["diff"] is not None
+        assert data["diff"]["action"] == "replace"
+        assert r"\begin{ex}[Phân tích từ ảnh đính kèm]" in data["diff"]["new_text"]
+        assert "ảnh đính kèm" in data["diff"]["description"].lower()
+
+
+def test_composer_chat_api_multimodal_mocked_ai_single_image():
+    """TC-COMP-32: Verify POST /api/v1/composer/chat with 1 image when calling AI Provider.
+    Checks that user message content is formatted as multi-modal content blocks:
+    [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": img_url}}].
+    """
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-multimodal-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    ai_generated_latex = r"""\begin{ex}
+Cho hàm số $y = x^2 - 2x$ có đồ thị parabol như trong ảnh. Đỉnh của parabol là:
+\choice
+{\True $(1; -1)$}
+{$(0; 0)$}
+{$(2; 0)$}
+{$(-1; 3)$}
+\begin{loigiai}
+Toạ độ đỉnh $I(-\frac{b}{2a}; -\frac{\Delta}{4a}) = (1; -1)$.
+\end{loigiai}
+\end{ex}"""
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": f"Dưới đây là câu hỏi chuẩn hoá từ ảnh đồ thị:\n\n```latex\n{ai_generated_latex}\n```"
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    test_image_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    payload = {
+        "message": "Trích xuất câu hỏi từ ảnh",
+        "current_latex": r"\begin{document}\end{document}",
+        "images": [test_image_url]
+    }
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post("/api/v1/composer/chat", json=payload)
+            assert res.status_code == 200
+            data = res.json()
+
+            # Verify client.post was called with multi-modal content payload
+            assert mock_client.post.called
+            call_args, call_kwargs = mock_client.post.call_args
+            sent_json = call_kwargs["json"]
+            assert sent_json["model"] == "gpt-4o"
+            assert "messages" in sent_json
+
+            # Find user message in sent payload
+            user_msg = next((m for m in sent_json["messages"] if m["role"] == "user"), None)
+            assert user_msg is not None
+            assert isinstance(user_msg["content"], list), "User content must be a multimodal list of blocks"
+            assert len(user_msg["content"]) == 2
+
+            # Block 0: Text prompt
+            assert user_msg["content"][0]["type"] == "text"
+            assert "Yêu cầu của giáo viên: Trích xuất câu hỏi từ ảnh" in user_msg["content"][0]["text"]
+
+            # Block 1: Image URL block
+            assert user_msg["content"][1]["type"] == "image_url"
+            assert user_msg["content"][1]["image_url"]["url"] == test_image_url
+
+            # Verify response parsing
+            assert data["suggested_latex"] is not None
+            assert "y = x^2 - 2x" in data["suggested_latex"]
+
+
+def test_composer_chat_api_multimodal_mocked_ai_multiple_images_and_history():
+    """TC-COMP-33: Verify POST /api/v1/composer/chat handles multiple images and preserves conversation history.
+    Checks multi-modal content array with 1 text block + N image_url blocks.
+    """
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-gemini-key"
+    mock_service.provider = "gemini"
+    mock_service.model = "gemini-2.0-flash"
+    mock_service.base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": "Đã tổng hợp 2 ảnh thành câu hỏi so sánh 2 đồ thị."
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    img1 = "data:image/png;base64,firstImageData"
+    img2 = "data:image/jpeg;base64,secondImageData"
+    payload = {
+        "message": "So sánh 2 đồ thị hàm số từ 2 ảnh này",
+        "current_latex": r"\begin{document}\end{document}",
+        "history": [
+            {"role": "user", "content": "Ảnh 1 là hàm gì?"},
+            {"role": "assistant", "content": "Ảnh 1 là hàm bậc ba."}
+        ],
+        "images": [img1, img2]
+    }
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post("/api/v1/composer/chat", json=payload)
+            assert res.status_code == 200
+
+            call_args, call_kwargs = mock_client.post.call_args
+            sent_messages = call_kwargs["json"]["messages"]
+
+            # Check history preservation
+            roles = [m["role"] for m in sent_messages]
+            assert "system" in roles
+            assert roles[-3] == "user" and sent_messages[-3]["content"] == "Ảnh 1 là hàm gì?"
+            assert roles[-2] == "assistant" and sent_messages[-2]["content"] == "Ảnh 1 là hàm bậc ba."
+
+            # Check active user message has 1 text block + 2 image_url blocks
+            last_msg = sent_messages[-1]
+            assert last_msg["role"] == "user"
+            content = last_msg["content"]
+            assert isinstance(content, list)
+            assert len(content) == 3
+            assert content[0]["type"] == "text"
+            assert content[1]["type"] == "image_url" and content[1]["image_url"]["url"] == img1
+            assert content[2]["type"] == "image_url" and content[2]["image_url"]["url"] == img2
+
+
+def test_composer_chat_api_multimodal_empty_images_backward_compatibility():
+    """TC-COMP-34: Verify POST /api/v1/composer/chat when images list is empty or omitted.
+    Ensures message content remains a plain string for backward compatibility with text-only prompts.
+    """
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-openai-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o-mini"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": "Chào bạn, tôi sẵn sàng hỗ trợ."}}]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    # Explicit images=[]
+    payload = {
+        "message": "Viết câu hỏi lượng giác đơn giản",
+        "current_latex": r"\begin{document}\end{document}",
+        "images": []
+    }
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post("/api/v1/composer/chat", json=payload)
+            assert res.status_code == 200
+
+            call_args, call_kwargs = mock_client.post.call_args
+            sent_messages = call_kwargs["json"]["messages"]
+            last_msg = sent_messages[-1]
+            assert last_msg["role"] == "user"
+            assert isinstance(last_msg["content"], str), "When no images are provided, content must be a plain string"
+
+
+def test_composer_chat_api_multimodal_mocked_ai_diff_extraction():
+    """TC-COMP-35: Verify POST /api/v1/composer/chat extracts diffs accurately when AI responds
+    to image replacement requests with a diff block.
+    """
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o-mini"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    current_latex = r"""\begin{ex}
+Câu hỏi cũ cần thay thế.
+\end{ex}"""
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": (
+                        "Tôi đã thay thế câu hỏi cũ bằng câu hỏi trích xuất từ ảnh:\n\n"
+                        "```diff\n"
+                        "- \\begin{ex}\n"
+                        "- Câu hỏi cũ cần thay thế.\n"
+                        "- \\end{ex}\n"
+                        "+ \\begin{ex}[Trích xuất từ ảnh]\n"
+                        "+ Câu hỏi mới từ ảnh đồ thị.\n"
+                        "+ \\end{ex}\n"
+                        "```"
+                    )
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    payload = {
+        "message": "Thay thế câu hỏi này bằng câu hỏi trong ảnh",
+        "current_latex": current_latex,
+        "images": ["data:image/png;base64,sample"]
+    }
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post("/api/v1/composer/chat", json=payload)
+            assert res.status_code == 200
+            data = res.json()
+
+            assert data["diff"] is not None
+            assert data["diff"]["action"] == "replace"
+            assert "Câu hỏi cũ cần thay thế" in data["diff"]["old_text"]
+            assert "Trích xuất từ ảnh" in data["diff"]["new_text"]
+            assert len(data["diffs"]) >= 1
+
+
+def test_composer_multimodal_frontend_dom_elements():
+    """TC-COMP-36: Verify existence and attributes of all image attachment DOM elements in frontend/index.html.
+    Checks image thumbnail tray, file input, attach button, and image lightbox modal.
+    """
+    html_path = Path("frontend/index.html")
+    assert html_path.exists(), "frontend/index.html must exist"
+    content = html_path.read_text(encoding="utf-8")
+
+    # 1. Attached images thumbnail container
+    assert 'id="composer-attached-images-container"' in content
+    assert 'class="hidden flex items-center space-x-2 pb-2 overflow-x-auto select-none"' in content
+
+    # 2. Hidden file input for image upload
+    assert 'id="composer-chat-image-input"' in content
+    assert 'type="file"' in content
+    assert 'accept="image/*"' in content
+    assert 'multiple' in content
+    assert 'onchange="app.composer.handleImageFileSelect(event)"' in content
+
+    # 3. Attach button triggering file input click
+    assert "document.getElementById('composer-chat-image-input').click()" in content
+    assert 'data-lucide="image"' in content
+
+    # 4. Lightbox Modal for enlarged view
+    assert 'id="composer-image-lightbox"' in content
+    assert 'id="composer-lightbox-img"' in content
+    assert "app.composer.closeLightbox(event)" in content
+    assert "app.composer.closeLightbox()" in content
+
+
+def test_composer_multimodal_frontend_app_js_methods_and_flow():
+    """TC-COMP-37: Verify all JavaScript multi-modal image methods and event handling in frontend/static/app.js.
+    Checks state initialization, file select, rendering, lightbox, submit payload, and key listeners.
+    """
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists(), "frontend/static/app.js must exist"
+    content = js_path.read_text(encoding="utf-8")
+
+    # 1. State initialization
+    assert "attachedImages: []" in content
+
+    # 2. Core handler methods
+    assert "handleImageFileSelect(e)" in content
+    assert "addAttachedImage(dataUrl, name)" in content
+    assert "removeAttachedImage(id)" in content
+    assert "renderAttachedImages()" in content
+    assert "openLightbox(src)" in content
+    assert "closeLightbox(e)" in content
+
+    # 3. Payload construction in submitChat()
+    assert "attachedImagesCopy.map(img => img.dataUrl)" in content
+    assert "this.attachedImages = [];" in content
+    assert "images: imagePayloads" in content or "images: imagePayloads.length ? imagePayloads : undefined" in content
+
+    # 4. Chat history rendering with image thumbnail grid
+    assert "composer-chat-image-grid" in content
+    assert "composer-chat-image-thumb" in content
+    assert "app.composer.openLightbox" in content
+
+    # 5. Keyboard shortcut listener for Esc key closing lightbox
+    assert "e.key === 'Escape'" in content
+    assert "this.closeLightbox();" in content
+
+
+def test_composer_multimodal_css_styling():
+    """TC-COMP-38: Verify CSS classes and styles for multi-modal image chips and lightboxes in frontend/static/style.css."""
+    css_path = Path("frontend/static/style.css")
+    assert css_path.exists(), "frontend/static/style.css must exist"
+    content = css_path.read_text(encoding="utf-8")
+
+    # Scrollbar customization
+    assert "#composer-attached-images-container::-webkit-scrollbar" in content
+
+    # Image chip thumbnail
+    assert ".composer-image-chip" in content
+    assert ".composer-image-chip img" in content
+    assert ".composer-image-chip-remove" in content
+    assert ".composer-image-chip:hover .composer-image-chip-remove" in content
+
+    # Chat bubble image grid and thumbnail
+    assert ".composer-chat-image-grid" in content
+    assert ".composer-chat-image-thumb" in content
+

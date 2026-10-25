@@ -536,6 +536,37 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   4. *Khử Lỗi Chuỗi Ký Tự Newline (`\n`) trong JavaScript:* Toàn bộ các template string trong frontend JavaScript dùng dòng mới thực tế thay vì ký tự escape `\\n`, loại bỏ triệt để hiện tượng XeTeX sinh lỗi `\n{}` hoặc `There's no line here to end`.
   5. *Đồng bộ Bộ Render HTML Preview (`compile_latex_source_to_html`):* Bộ render HTML chuyển đổi `\choiceTF[1]` thành 4 hàng dọc `display: block; width: 100%; margin-bottom: 4px;` kèm nhãn a), b), c), d) và trạng thái đúng/sai.
 
+#### SRS-FEAT-04u: Trợ Lý AI Copilot Đa Phương Tiện: Đính Kèm, Dán Clipboard (Ctrl+V) & Kéo Thả Phân Tích Hình Ảnh (Multi-Modal Image Input, Clipboard Paste & Visual Reasoning)
+- **Mô tả:** Mở rộng năng lực phân hệ Soạn đề (`/composer`) cho phép giáo viên tải lên hình ảnh trực tiếp qua nút đính kèm, kéo thả tệp ảnh (Drag & Drop), hoặc dán ảnh trực tiếp từ bộ nhớ tạm (Clipboard Paste qua `Ctrl+V` / `Cmd+V`) vào thanh prompt thu gọn (`#composer-compact-input`) hoặc ô chat lớn (`#composer-chat-input`) để Trợ lý AI Copilot phân tích đề bài, trích xuất LaTeX, vẽ lại đồ thị hàm số và bảng biến thiên TikZ.
+- **Quy chuẩn Tương tác Người dùng & Giao diện (Apple HIG & Emil Kowalski):**
+  1. *Đính kèm từ Compact Bar:*
+     - Thanh compact bar trang bị nút biểu tượng hình ảnh (`<i data-lucide="image"></i>`), nhấp vào sẽ kích hoạt hộp thoại chọn file ảnh ẩn (`#composer-compact-image-input`, `accept="image/*"`).
+     - Khi dán ảnh (`Ctrl+V`) hoặc chọn file từ compact bar: Hệ thống tự động chuyển tiếp ảnh vào danh sách đính kèm, mở bung popup trợ lý lớn (`#composer-ai-popup`), chuyển tiêu điểm focus vào `#composer-chat-input`, hiển thị chip thumbnail ảnh và giữ nguyên trải nghiệm liền mạch.
+  2. *Đính kèm & Dán trên Khung Chat Popup:*
+     - Khung chat lớn trang bị nút đính kèm ảnh tinh tế trong toolbar con cạnh nút `+` (Quick Actions) kèm input file ẩn (`#composer-chat-image-input`).
+     - Hỗ trợ sự kiện dán ảnh (`paste` event) trực tiếp trên `#composer-chat-input` và toàn bộ khung chat: Trích xuất tự động `image/*` từ clipboard dạng Base64 Data URL (`data:image/...;base64,...`).
+     - Hỗ trợ kéo thả ảnh (Drag & Drop): Khi kéo file ảnh vào vùng chat, khung viền chuyển hiệu ứng highlight tím sáng `border-purple-500/80 bg-purple-500/10` (active dropzone), thả file sẽ tự động nạp ảnh vào khay đính kèm.
+  3. *Khay Hiển Thị Thumbnail Đính Kèm (#composer-attached-images-container):*
+     - Nằm ngay phía trên ô nhập liệu `#composer-chat-input`.
+     - Mỗi ảnh được hiển thị dưới dạng card thumbnail bo góc tròn `rounded-xl`, kích thước 54px x 54px, viền mờ `border-white/15`, ảnh bên trong `object-cover`.
+     - Góc trên bên phải thumbnail trang bị nút xóa (✕) với vi tương tác co nhẹ `active:scale-90`, hover chuyển đỏ.
+     - Nhấp trực tiếp vào thumbnail mở Modal Xem trước Phóng to (Image Lightbox) với nền mờ `backdrop-blur-sm` mà không làm gián đoạn luồng soạn thảo.
+  4. *Hiển thị Tin nhắn Phía Người Dùng (#composer-chat-messages):*
+     - Khi tin nhắn được gửi đi, bong bóng chat của user hiển thị đồng thời văn bản câu hỏi và các thumbnail ảnh đính kèm (bo góc `rounded-lg`, click mở lightbox phóng to).
+     - Lịch sử phiên (`quesy_composer_chat_sessions`) lưu trữ đồng bộ mảng ảnh `images`.
+- **Hợp Đồng API & Xử Lý Phía Máy Chủ (`POST /api/v1/composer/chat`):**
+  1. *Cập nhật Schema Request:* Bổ sung trường `images: Optional[List[str]] = Field(default_factory=list)` vào cả `ChatRequest` và `ChatMessage`.
+  2. *Cấu trúc Message Đa Phương Tiện (Multi-Modal LLM Formatting):*
+     - Khi kết nối nhà cung cấp AI bên ngoài (OpenAI GPT-4o, Google Gemini Flash, OpenRouter): Đóng gói payload user content thành mảng các khối đối tượng:
+       `[{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": img_base64_data_url}}]`.
+  3. *Định hướng System Prompt & Năng lực Phân tích Ảnh:*
+     - Nhận diện đề thi, bảng biến thiên, đồ thị hàm số (bậc ba, phân thức, bậc bốn), hình học không gian hoặc chữ viết tay trong ảnh.
+     - Tái tạo đồ thị hàm số và hình học thành mã TikZ (`\begin{tikzpicture}...\end{tikzpicture}`) hoặc `\immini`.
+     - Tái tạo bảng biến thiên bằng gói `tkz-tab` (`\tkzTabInit...`).
+     - Đóng gói câu hỏi chuẩn `ex_test.sty` (`\begin{ex}...\choice / \choiceTF / \shortans...\loigiai...\end{ex}`).
+  4. *Động Cơ Dự Phòng Cục Bộ (Local/Offline Fallback Engine):*
+     - Khi AI ngoại vi không khả dụng hoặc mất mạng, hệ thống phát hiện cờ có ảnh `images`, đối chiếu từ khóa ngữ cảnh yêu cầu (đồ thị, bảng biến thiên, tikz, giải bài) và trả về khối mã nguồn LaTeX/TikZ mẫu hoàn chỉnh kèm khối diff và lời giải thích rõ ràng.
+
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.
 - **Xử lý:** Tính toán vector embedding (`text-embedding-3-small` hoặc `bge-m3`), so sánh Cosine Distance trong `pgvector`.
@@ -638,6 +669,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 | **SRS-FEAT-04e** | E2E Browser Test | Click chuột vào Compact Bar chân editor: con trỏ focus ô nhập text bình thường, không mở popup. Nhấn Enter hoặc nút mũi tên: mở bung full popup trợ lý và gửi prompt. |
 | **SRS-FEAT-04f** | Test tự động + UI Test | Phản hồi sửa đổi từ AI trích xuất thành đối tượng `DiffSuggestion`, định vị đúng dòng trên editor, hiển thị banner so sánh đỏ/xanh; nhấn [Đồng ý] thay thế chuẩn xác dòng code và kích hoạt recompile; nhấn [Từ chối] hủy bỏ an toàn không làm biến đổi mã nguồn. |
 | **SRS-FEAT-04p** | Test tự động + Blind Test | Bóc tách chính xác khối câu hỏi thứ N (`find_question_block`); prompt thay thế câu N liên kết đúng diff; nếu diff hợp lệ chuyển tới editor, nếu rỗng bảo tồn trọn vẹn code trong chat bubble kèm 3 nút hành động (không nuốt code). |
+| **SRS-FEAT-04u** | E2E Browser Test + Test tự động | Kiểm thử upload tệp ảnh, paste ảnh clipboard (Ctrl+V) trên cả compact bar và chat popup; hiển thị thumbnail preview kèm nút xóa (✕); mở lightbox phóng to; gửi request `POST /api/v1/composer/chat` kèm payload `images: [data_url]`; AI phản hồi mã TikZ / `ex_test.sty` từ hình ảnh đề bài. |
 | **SRS-FEAT-05** | Test tích hợp | Câu hỏi có cosine similarity $\ge 0.90$ phải kích hoạt chặn lưu và hiển thị modal cảnh báo trùng lặp. |
 | **SRS-FEAT-08** | Unit Test thuật toán | Chạy 1.000 lần sinh mã đề hoán vị: $0\%$ câu hỏi chùm bị tách rời; $0\%$ phương án có cờ `is_fixed` bị đảo khỏi vị trí cố định. |
 | **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng MathType 7.0 OLE Vector WMF nét căng tuyệt đối, click đúp mở MathType 7 sửa được trực tiếp; bảng số liệu dạng native table không bị lỗi đen khi xuất PDF; khổ A4 dọc chuẩn. |
