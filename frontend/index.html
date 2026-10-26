@@ -946,10 +946,13 @@
             </div>
 
             <!-- Bottom Distinct Standalone Blue BIÊN DỊCH Button Container -->
-            <div class="p-2.5 bg-white border-t border-slate-200/80 shrink-0">
-              <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="w-full py-2.5 px-6 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.98] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-md rounded-xl cursor-pointer flex items-center justify-center space-x-2 select-none" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
+            <div class="p-2.5 bg-white border-t border-slate-200/80 shrink-0 flex items-center space-x-2">
+              <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="flex-1 py-2.5 px-4 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.98] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-md rounded-xl cursor-pointer flex items-center justify-center space-x-1.5 select-none" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
                 <i data-lucide="play" class="w-4 h-4 fill-current"></i>
                 <span id="composer-compile-btn-text">BIÊN DỊCH</span>
+              </button>
+              <button id="composer-compile-partial-btn" type="button" onclick="app.composer.compileCurrentQuestion()" class="py-2.5 px-3 bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white font-bold text-center text-xs sm:text-sm tracking-wide transition-all shadow-md rounded-xl cursor-pointer flex items-center space-x-1 select-none" title="Biên dịch nhanh câu hỏi tại con trỏ (Ctrl+Shift+S)">
+                <span>⚡ CÂU HIỆN TẠI</span>
               </button>
             </div>
 

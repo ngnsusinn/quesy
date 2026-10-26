@@ -4321,4 +4321,156 @@ def test_composer_templates_centered_diagrams_no_immini():
     assert "samples=50" in fallback_code
 
 
+def test_composer_paste_event_isolation_and_deduplication():
+    """Verify that frontend/static/app.js has paste event isolation, stopPropagation,
+    target boundary checks, deduplication check, and 500ms debounce to prevent image doubling.
+    """
+    app_js_path = Path(__file__).resolve().parent.parent / "frontend" / "static" / "app.js"
+    assert app_js_path.exists(), "frontend/static/app.js must exist"
+    code = app_js_path.read_text(encoding="utf-8")
 
+    # 1. Check _pasteListenersBound guard
+    assert "this._pasteListenersBound" in code
+    assert "if (this._pasteListenersBound) return;" in code
+    assert "this._pasteListenersBound = true;" in code
+
+    # 2. Check e.stopPropagation() on paste event
+    assert "e.stopPropagation();" in code
+
+    # 3. Check e.target boundary check on inputContainer
+    assert "e.target === chatInput || e.target === compactInput" in code
+
+    # 4. Check deduplication check in addAttachedImage
+    assert "this.attachedImages.some(img => img.dataUrl === dataUrl)" in code
+
+    # 5. Check 500ms debounce logic
+    assert "this._lastAttachedSig" in code
+    assert "< 500" in code
+
+
+def test_composer_section_counter_reset_and_large_removal():
+    """Verify that ensure_full_latex_document automatically strips \\large/\\Large/\\LARGE,
+    automatically inserts \\setcounter{ex}{0} before Part II, Part III,
+    and compilation produces valid PDF.
+    """
+    from backend.services.composer_service import ensure_full_latex_document
+
+    sample_latex = r"""
+\noindent\large\textbf{PHẦN I. CÂU TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+\begin{ex}
+Giải phương trình $2^x = 4$.
+\choice
+{$x = 1$}
+{\True $x = 2$}
+{$x = 4$}
+{$x = 0$}
+\end{ex}
+
+\noindent\Large\textbf{PHẦN II. CÂU TRẮC NGHIỆM ĐÚNG/SAI}
+\begin{ex}
+Cho hàm số $y = f(x)$.
+\choiceTF[1]
+{\True Mệnh đề A đúng}
+{Mệnh đề B sai}
+{\True Mệnh đề C đúng}
+{Mệnh đề D sai}
+\end{ex}
+
+\noindent\LARGE\textbf{PHẦN III. CÂU TRẮC NGHIỆM TRẢ LỜI NGẮN}
+\begin{ex}
+Giá trị lớn nhất của hàm số là bao nhiêu?
+\shortans{10}
+\end{ex}
+    """
+
+    doc = ensure_full_latex_document(sample_latex, mode="dethi", title="Đề kiểm tra")
+
+    # 1. Verify \\large, \\Large, \\LARGE are removed
+    assert r"\large" not in doc, "\\large should be stripped"
+    assert r"\Large" not in doc, "\\Large should be stripped"
+    assert r"\LARGE" not in doc, "\\LARGE should be stripped"
+
+    # 2. Verify \\setcounter{ex}{0} is automatically inserted for Phần II and Phần III
+    assert r"\setcounter{ex}{0}" in doc
+    assert doc.count(r"\setcounter{ex}{0}") >= 2
+
+    part2_idx = doc.find("PHẦN II")
+    assert part2_idx != -1
+    part2_slice = doc[part2_idx:]
+    assert r"\setcounter{ex}{0}" in part2_slice[:part2_slice.find(r"\begin{ex}")]
+
+    part3_idx = doc.find("PHẦN III")
+    assert part3_idx != -1
+    part3_slice = doc[part3_idx:]
+    assert r"\setcounter{ex}{0}" in part3_slice[:part3_slice.find(r"\begin{ex}")]
+
+    # 3. Verify PDF compilation with this LaTeX succeeds
+    res = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": doc, "title": "Đề thi reset counter"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["pdf_url"].startswith("/api/v1/composer/pdf/")
+
+
+def test_composer_compile_partial_endpoint_and_draft_mode():
+    """Verify POST /api/v1/composer/compile-partial renders single question snippet
+    and /compile endpoint supports draft_mode=True.
+    """
+    snippet = r"""\begin{ex}
+    Giải phương trình $2^x = 4$.
+    \choice
+    {$x = 1$}
+    {\True $x = 2$}
+    {$x = 4$}
+    {$x = 0$}
+    \begin{loigiai}
+    Ta có $2^x = 4 \Leftrightarrow 2^x = 2^2 \Leftrightarrow x = 2$.
+    \end{loigiai}
+    \end{ex}
+    """
+    res = client.post(
+        "/api/v1/composer/compile-partial",
+        json={
+            "snippet_code": snippet,
+            "title": "Câu hỏi test partial",
+            "mode": "dethi",
+            "question_num": 1
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["pdf_url"].startswith("/api/v1/composer/pdf/")
+    assert data["total_pages"] >= 1
+    assert data["compile_time_ms"] >= 0
+
+    # Also test solution mode for compile-partial
+    res_sol = client.post(
+        "/api/v1/composer/compile-partial",
+        json={
+            "snippet_code": snippet,
+            "title": "Câu hỏi test partial loigiai",
+            "mode": "loigiai",
+            "question_num": 1
+        }
+    )
+    assert res_sol.status_code == 200
+    data_sol = res_sol.json()
+    assert data_sol["success"] is True
+
+    # Test draft_mode=True on /compile
+    res_draft = client.post(
+        "/api/v1/composer/compile",
+        json={
+            "latex_code": snippet,
+            "title": "Đề thi draft",
+            "mode": "dethi",
+            "draft_mode": True
+        }
+    )
+    assert res_draft.status_code == 200
+    data_draft = res_draft.json()
+    assert data_draft["success"] is True

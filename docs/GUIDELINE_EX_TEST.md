@@ -40,8 +40,19 @@ Theo mẫu khảo thí mới nhất của Bộ Giáo dục & Đào tạo:
   * Định dạng: `Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: ...}}`
 - **Đường nét liền phân cách duy nhất:**
   * Chỉ sử dụng **DUY NHẤT một đường nét liền đơn** `\noindent\rule{\textwidth}{0.5pt}` nằm ngay phía dưới dòng thông tin thí sinh (tuyệt đối KHÔNG có đường kẻ liền bên trên).
-- **Định dạng phân đoạn đề thi (Sections):**
-  * Sử dụng chuẩn in đậm và in nghiêng: `\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}` (tương tự cho PHẦN II và PHẦN III). Tuyệt đối không dùng `\section*{...}` (gây thụt lề và khoảng trắng thừa lớn) hoặc `\large`.
+- **Định dạng phân đoạn đề thi (Sections) & Reset Số Thứ Tự Câu Hỏi:**
+  * Sử dụng chuẩn in đậm và in nghiêng:
+    ```latex
+    \noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+    ```
+  * **QUY TẮC RESET THỨ TỰ CÂU HỎI VỀ 1 (\setcounter{ex}{0}):**
+    Theo chuẩn đề thi Quốc gia (QĐ 764), Phần II (Đúng/Sai) và Phần III (Trả lời ngắn) bắt buộc phải đếm lại từ **Câu 1** (không được đếm nối tiếp thành Câu 13 hay Câu 17). Trong gói `ex_test.sty`, môi trường `ex` sử dụng bộ đếm LaTeX `ex`. Do đó, ngay sau tiêu đề của PHẦN II, PHẦN III (và PHẦN IV nếu có), BẮT BUỘC chèn lệnh:
+    ```latex
+    \setcounter{ex}{0}
+    ```
+    (Lệnh này reset bộ đếm về 0, để câu `\begin{ex}` kế tiếp sẽ bắt đầu chính xác là "Câu 1.").
+  * **NGHIÊM CẤM THẺ \large & \section\*:**
+    Tuyệt đối **KHÔNG sử dụng thẻ `\large`, `\Large`, `\LARGE`** trong tiêu đề phần (thẻ `\large` đẩy cỡ chữ lên 14pt, làm vỡ giãn cách dọc và sai chuẩn khảo thí). Tiêu đề phần chỉ sử dụng cỡ chữ 12pt thông thường: `\noindent\textbf{PHẦN ...}` `\textit{...}`. Đồng thời tuyệt đối không dùng `\section*{...}` (gây thụt lề lớn và khoảng trắng thừa).
 
 ---
 
@@ -83,9 +94,14 @@ Do đó, hàm số đồng biến trên khoảng $(-\infty; -2)$.
 ---
 
 ### 2.2. Phần II: Câu trắc nghiệm Đúng / Sai (4 khẳng định bậc thang QĐ 764)
-Sử dụng lệnh `\choiceTF[1]` cho câu hỏi có 4 ý lựa chọn (tham số `[1]` ép buộc hiển thị **1 cột dọc duy nhất**, mỗi khẳng định a, b, c, d nằm trên một dòng riêng biệt, tuyệt đối không chia 4 cột hay 2 cột):
+Sử dụng lệnh `\choiceTF[1]` cho câu hỏi có 4 ý lựa chọn (tham số `[1]` ép buộc hiển thị **1 cột dọc duy nhất**, mỗi khẳng định a, b, c, d nằm trên một dòng riêng biệt, tuyệt đối không chia 4 cột hay 2 cột).
+
+**Lưu ý bắt buộc:** Ngay sau dòng tiêu đề Phần II, phải có lệnh `\setcounter{ex}{0}` để câu hỏi bắt đầu lại từ Câu 1:
 
 ```latex
+\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+\setcounter{ex}{0}
+
 \begin{ex}[Chuyên đề Đạo hàm]
 Cho hàm số $y = f(x) = x^3 - 3x^2 + 2$. Xét tính đúng/sai của các khẳng định sau:
 \choiceTF[1]
@@ -116,9 +132,14 @@ Ta có $y' = 3x^2 - 6x = 3x(x - 2)$. Cho $y' = 0 \Leftrightarrow x = 0$ hoặc $
 ---
 
 ### 2.3. Phần III: Câu trắc nghiệm Trả lời ngắn
-Sử dụng lệnh `\shortans{<kết_quả>}`:
+Sử dụng lệnh `\shortans{<kết_quả>}`.
+
+**Lưu ý bắt buộc:** Ngay sau dòng tiêu đề Phần III, phải có lệnh `\setcounter{ex}{0}` để câu hỏi bắt đầu lại từ Câu 1:
 
 ```latex
+\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+\setcounter{ex}{0}
+
 \begin{ex}[Tích phân ứng dụng]
 Một vật thể chuyển động với vận tốc $v(t) = 3t^2 + 2t$ (m/s). Tính quãng đường vật đi được từ thời điểm $t = 0$ (s) đến thời điểm $t = 2$ (s).
 \shortans{12}
@@ -235,3 +256,24 @@ Khi biên dịch đề thi phát sinh lỗi, hệ thống kích hoạt chu trìn
    - **`Missing $ inserted`:** Thiếu dấu `$` bọc quanh ký hiệu toán học (`_`, `^`, `\alpha`, `\int`). Cách sửa: bọc công thức trong cặp `$ ... $`.
    - **`Missing \right. inserted`:** Mất cân bằng giữa `\left.` và `\right.`. Cách sửa: hoàn thiện cặp ngoặc co giãn.
 5. **Sinh Diff Thông Minh:** AI trả về khối ```diff``` chỉ chứa dòng cũ và dòng mới, cho phép giáo viên bấm **[Đồng ý]** để sửa trực tiếp trên trình soạn thảo.
+
+---
+
+## 7. QUY TRÌNH BIÊN DỊCH NHANH & TỐI ƯU HÓA THỜI GIAN SOẠN THẢO (FAST COMPILATION WORKFLOW)
+
+Khi soạn thảo đề thi quy mô lớn (22 câu, nhiều hình TikZ), việc biên dịch lại toàn bộ tài liệu qua XeTeX có thể mất 40s - 65s. Quesy hỗ trợ quy trình biên dịch thông minh 3 tầng:
+
+1. **Xem trước Tức thì (Instant Live Preview - 0.2s):**
+   - Nhấp chọn chế độ *"Xem trước Tức thì (HTML)"* trên thanh điều khiển xem trước.
+   - MathJax hiển thị công thức toán tức thì; các hình TikZ không thay đổi được nạp trực tiếp từ Disk Cache MD5 trong 10ms.
+   - Trải nghiệm gõ phím và xem trước không độ trễ.
+
+2. **Biên dịch Nhanh Câu Đang Sửa (Focus / Partial Question Quick Compile - 1.5s):**
+   - Đặt con trỏ chuột bên trong câu hỏi cần xem trước, hoặc bôi đen khối `\begin{ex}...\end{ex}`.
+   - Nhấn nút **`⚡ BIÊN DỊCH CÂU NÀY`** hoặc tổ hợp phím **`Ctrl+Shift+S`** (`Cmd+Shift+S`).
+   - Hệ thống tự động bọc riêng câu hỏi đó vào preamble chuẩn và biên dịch PDF trong vòng 1-2 giây.
+
+3. **Chế độ Nháp (Draft Mode - Giảm 70% thời gian biên dịch toàn đề):**
+   - Bật cờ *"Chế độ Nháp (Draft Mode)"* khi kiểm tra bố cục tổng thể.
+   - Hệ thống tự động hạ `samples=35` cho toàn bộ các đường cong TikZ, giúp biên dịch trọn bộ 22 câu trong 12 - 18 giây thay vì 65s.
+   - Khi chuẩn bị in ấn chính thức: Tắt Chế độ Nháp và nhấn **`BIÊN DỊCH`** (`Ctrl+S`) để xuất bản bản in vector 1200 DPI chất lượng cao nhất.

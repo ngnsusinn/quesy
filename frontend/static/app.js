@@ -3899,8 +3899,10 @@ Họ và tên thí sinh: \\dotfill\\ Số báo danh: \\dotfill\\ \\hfill \\frame
       'section_phan1': `\\noindent\\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 `,
       'section_phan2': `\\noindent\\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+\\setcounter{ex}{0}
 `,
       'section_phan3': `\\noindent\\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+\\setcounter{ex}{0}
 `,
       'dethi_quocgia_full': `\\noindent
 \\begin{minipage}[t]{0.38\\textwidth}
@@ -6020,6 +6022,9 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     },
 
     setupPasteAndDropListeners() {
+      if (this._pasteListenersBound) return;
+      this._pasteListenersBound = true;
+
       const chatInput = document.getElementById('composer-chat-input');
       const compactInput = document.getElementById('composer-compact-input');
       const inputContainer = document.getElementById('composer-chat-input-container');
@@ -6037,9 +6042,31 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
         }
       };
 
-      [chatInput, compactInput, inputContainer].forEach((el) => {
+      [chatInput, compactInput].forEach((el) => {
         if (!el) return;
         el.addEventListener('paste', (e) => {
+          const items = e.clipboardData && e.clipboardData.items;
+          if (!items) return;
+          for (const item of items) {
+            if (item.type.startsWith('image/')) {
+              e.preventDefault();
+              e.stopPropagation();
+              const file = item.getAsFile();
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                  this.addAttachedImage(evt.target.result, file.name || 'pasted_image.png');
+                };
+                reader.readAsDataURL(file);
+              }
+            }
+          }
+        });
+      });
+
+      if (inputContainer) {
+        inputContainer.addEventListener('paste', (e) => {
+          if (e.target === chatInput || e.target === compactInput) return;
           const items = e.clipboardData && e.clipboardData.items;
           if (!items) return;
           for (const item of items) {
@@ -6056,7 +6083,7 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
             }
           }
         });
-      });
+      }
 
       if (inputContainer) {
         inputContainer.addEventListener('dragover', (e) => {
@@ -6080,6 +6107,10 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
         if (e.key === 'Escape') {
           this.closeLightbox();
         }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+          e.preventDefault();
+          this.compileCurrentQuestion();
+        }
       });
     },
 
@@ -6100,13 +6131,89 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
 
     addAttachedImage(dataUrl, name) {
       if (!this.attachedImages) this.attachedImages = [];
-      const id = 'img_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      if (this.attachedImages.some(img => img.dataUrl === dataUrl)) {
+        return;
+      }
+      const sig = (dataUrl.slice(0, 120) + '_' + dataUrl.length);
+      const now = Date.now();
+      if (this._lastAttachedSig === sig && (now - (this._lastAttachedTime || 0)) < 500) {
+        return;
+      }
+      this._lastAttachedSig = sig;
+      this._lastAttachedTime = now;
+
+      const id = 'img_' + now + '_' + Math.random().toString(36).substring(2, 7);
       this.attachedImages.push({ id, dataUrl, name });
       if (!this.isAIPopupOpen) {
         this.openAIPopup();
       }
       this.renderAttachedImages();
       showToast(`Đã đính kèm ảnh: ${name}`, 'success');
+    },
+
+    async compileCurrentQuestion() {
+      const editor = document.getElementById('composer-editor-input');
+      if (!editor) {
+        showToast('Không tìm thấy trình soạn thảo', 'error');
+        return;
+      }
+      const text = editor.value;
+      const cursorPos = editor.selectionStart || 0;
+
+      const regex = /\\begin\{(ex|bt)\}[\s\S]*?\\end\{(ex|bt)\}/g;
+      let match;
+      let targetSnippet = '';
+      let qNum = 1;
+      let qIdx = 0;
+
+      while ((match = regex.exec(text)) !== null) {
+        qIdx++;
+        const start = match.index;
+        const end = match.index + match[0].length;
+        if (cursorPos >= start && cursorPos <= end) {
+          targetSnippet = match[0];
+          qNum = qIdx;
+          break;
+        }
+      }
+
+      if (!targetSnippet) {
+        const firstExMatch = text.match(/\\begin\{(ex|bt)\}[\s\S]*?\\end\{(ex|bt)\}/);
+        if (firstExMatch) {
+          targetSnippet = firstExMatch[0];
+          qNum = 1;
+        } else {
+          targetSnippet = text.slice(0, 3000);
+          qNum = 1;
+        }
+      }
+
+      showToast(`⚡ Đang biên dịch nhanh Câu ${qNum}...`, 'info');
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/composer/compile-partial`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            snippet_code: targetSnippet,
+            title: `${this.activeTitle} - Câu ${qNum}`,
+            mode: this.showSolution ? 'loigiai' : 'dethi',
+            question_num: qNum
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success && data.pdf_url) {
+          this.pdfUrl = data.pdf_url;
+          this.totalPages = data.total_pages || 1;
+          this.currentPage = 1;
+          this.renderPdfDocument(data.pdf_url);
+          showToast(`⚡ Đã biên dịch xong Câu ${qNum} (${(data.compile_time_ms / 1000).toFixed(1)}s)`, 'success');
+        } else {
+          showToast(`Lỗi biên dịch nhanh: ${data.error || 'Thất bại'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Lỗi kết nối biên dịch nhanh: ${String(err)}`, 'error');
+      }
     },
 
     removeAttachedImage(id) {

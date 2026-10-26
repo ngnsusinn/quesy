@@ -344,3 +344,18 @@
   4. *Phản hồi từ AI Copilot:*
      - AI Copilot đa phương tiện (hoặc Offline Fallback) đọc ảnh, nhận diện đề bài, phân tích đồ thị/bảng biến thiên, sinh ra khối mã LaTeX `ex_test.sty` và khối TikZ tương ứng.
      - Phản hồi trả về kèm khối diff hoặc suggested_latex để giáo viên 1-click chèn hoặc thay thế trực tiếp vào trình soạn thảo đề thi.
+- **Luồng 6l - Dán Ảnh Clipboard Chuẩn Xác Không Nhân Đôi (Event Isolation & Debounce Paste):**
+  1. Người dùng sao chép một ảnh chụp màn hình vào Clipboard và nhấn `Ctrl+V` (hoặc `Cmd+V`) vào ô chat `#composer-chat-input`.
+  2. Cơ chế Event Isolation kích hoạt: Gọi đồng thời `e.preventDefault()` và `e.stopPropagation()`, ngăn chặn hiện tượng sự kiện dán bị nổi bọt lên container cha `#composer-chat-input-container`.
+  3. Cơ chế Debounce 500ms và Deduplication kiểm tra chữ ký ảnh: Nếu ảnh vừa được thêm vào trong vòng 500ms hoặc đã có trong danh sách `attachedImages`, hệ thống từ chối thêm trùng.
+  4. Khay thumbnail hiển thị chính xác **duy nhất 1 ảnh**, thông báo toast xuất hiện duy nhất 1 lần, triệt tiêu hoàn toàn lỗi 1 ảnh dán thành 2 ảnh.
+- **Luồng 6m - Chuẩn Hóa Khảo Thí 2025: Reset Thứ Tự Câu Hỏi Về 1 Ở Mỗi Phần (\setcounter{ex}{0}) & Loại Bỏ \large:**
+  1. Người dùng biên dịch hoặc nạp mẫu đề thi chuẩn Quốc gia gồm PHẦN I, PHẦN II, PHẦN III.
+  2. Tại đầu mỗi phần mới (PHẦN II, PHẦN III), hệ thống tự động kiểm tra và chèn lệnh `\setcounter{ex}{0}` ngay sau tiêu đề/hướng dẫn.
+  3. Khi biên dịch PDF qua Tectonic/XeTeX hoặc xem trước HTML, PHẦN II tự động bắt đầu lại từ **Câu 1 đến Câu 4**; PHẦN III tự động bắt đầu lại từ **Câu 1 đến Câu 6** (không bị đếm nối tiếp thành Câu 13, 17...).
+  4. Nếu trong mã nguồn có các thẻ `\large`, `\Large` ở tiêu đề phần (do người dùng vô tình dán vào), bộ tiền xử lý tự động bóc tách sạch sẽ, đưa tiêu đề về dạng chuẩn 12pt in đậm `\noindent\textbf{PHẦN ...}` `\textit{...}`.
+- **Luồng 6n - Quy Trình Biên Dịch Nhanh Đa Tầng (Instant Preview 0.2s, Focus Quick Compile 1.5s & Draft Mode 15s):**
+  1. *Xem trước Tức thì (Instant Live Preview):* Khi đang soạn thảo gõ chữ, hệ thống tự động kích hoạt chế độ xem trước HTML/SVG với độ trễ 0.2s, nạp lại các hình TikZ cũ từ MD5 Disk Cache trong 10ms.
+  2. *Biên dịch Nhanh Câu Đang Sửa (Focus Quick Compile):* Khi giáo viên vừa sửa 1 câu hỏi cụ thể, bấm nút `⚡ BIÊN DỊCH CÂU NÀY` hoặc nhấn `Ctrl+Shift+S`. Hệ thống chỉ biên dịch duy nhất câu hỏi tại con trỏ sang PDF vector trong 1.0 - 1.8 giây để kiểm tra ngay bố cục.
+  3. *Chế độ Nháp (Draft Mode):* Khi cần biên dịch toàn bộ đề nhưng muốn tiết kiệm thời gian, giáo viên bật cờ \"Chế độ Nháp\". Hệ thống tự động giảm `samples=35` cho toàn bộ đồ thị TikZ, hoàn thành biên dịch toàn bộ 22 câu trong 12 - 18 giây thay vì 65 giây.
+  4. *Xuất bản Chính thức:* Khi đề thi hoàn thiện, tắt Chế độ Nháp và nhấn `BIÊN DỊCH` (`Ctrl+S`) để xuất bản bản in chất lượng cao 1200 DPI.

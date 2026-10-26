@@ -211,7 +211,9 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
 
 | Phương thức | Đường dẫn API | Chức năng nghiệp vụ | Router Module |
 | :--- | :--- | :--- | :--- |
-| **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (hỗ trợ Preamble-Free Question Editor, Canonical Preamble Injection, mode: dethi/loigiai) | `composer.py` |
+| **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (hỗ trợ Preamble-Free Question Editor, Canonical Preamble Injection, mode: dethi/loigiai, draft_mode, focus_mode) | `composer.py` |
+| **POST** | `/api/v1/composer/compile-partial` | Biên dịch nhanh câu hỏi hiện tại / phân đoạn (Focus Compile trong 1-2s) | `composer.py` |
+| **POST** | `/api/v1/composer/preview-html` | Trả về HTML xem trước tức thì (0.2s) kèm TikZ Disk Cache và MathJax | `composer.py` |
 | **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, chẩn đoán log lỗi biên dịch LaTeX (compile_error_log), hỗ trợ đính kèm/dán ảnh đa phương tiện (images), đề xuất Smart Inline Diff | `composer.py` |
 | **GET** | `/api/v1/composer/pdf/{doc_id}.pdf` | Stream trực tiếp tệp PDF xem trước | `composer.py` |
 | **GET** | `/api/v1/composer/templates` | Danh mục mẫu đề thi chuẩn quốc gia (`ex_test.sty` v3.3) | `composer.py` |
@@ -249,7 +251,7 @@ Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
   - :focus-within State: Nổi bật tức thì viền tím neon (border-color rgba(168,85,247,0.75)), quầng sáng tỏa box-shadow Apple Glow, nhấc nhẹ 1px, icon sparkles phát sáng
   - Click vào thanh -> Chỉ focus ô nhập, giữ nguyên text cursor, KHÔNG mở popup
   - Giáo viên gõ/dán prompt tùy ý hoặc chọn mẫu Header 2 Cột / Khung 3 Phần Bộ GD&ĐT 2025
-  - Đính kèm ảnh (Image button), dán ảnh từ clipboard (Ctrl+V), kéo thả ảnh -> Kích hoạt Fast Dispatch mở bung popup trợ lý, hiển thị khay thumbnail đính kèm
+  - Đính kèm ảnh (Image button), dán ảnh từ clipboard (Ctrl+V) kèm Event Isolation (e.stopPropagation() + debounce 500ms chống nhân đôi ảnh), kéo thả ảnh -> Kích hoạt Fast Dispatch mở bung popup trợ lý, hiển thị khay thumbnail đính kèm
        │
        ├──> Nhấn ENTER hoặc click Nút Gửi (Icon mũi tên tròn arrow-up)
        │         │
@@ -290,22 +292,26 @@ ight., Environment undefined)
        │       - Bảo đảm tỷ lệ thành công 100%, triệt tiêu lỗi "Không tìm thấy dòng cũ tương ứng"
        │       - Đóng diff overlay/banner, tự động gọi compile(true)
        │
-       └──> Khi sửa mã xong -> Debounce 800ms -> Gửi POST /api/v1/composer/compile (latex_code, title, mode)
-                 │
-                 ├──> [Smart Dual-Mode Document Normalizer]
-                 │         ├── Nếu KHÔNG CÓ \documentclass: Tiêm Canonical Preamble (fontspec, tikz, tkz-tab, tcolorbox, ex_test[mode], A4)
-                 │         └── Nếu ĐÃ CÓ \documentclass: Bảo toàn cấu trúc, chuẩn hóa fontspec & đồng bộ option [mode]
-                 │
-                 ├──> [Tầng 1] Remote Tectonic Docker (http://armbian:8090/compile)
-                 │         ├── Tự động nhúng ex_test.sty v3.3.6
-                 │         ├── Tự động map fontspec (chống lỗi vietnam 8-bit)
-                 │         └── Nếu lỗi: Trả về compile_error_log -> Client lưu vào lastCompileError
-                 │
-                 ├──> [Tầng 2] Local Tectonic CLI (nếu server Tectonic ngoại mạng gián đoạn)
-                 │
-                 └──> [Tầng 3] Chromium Headless + MathJax SVG + TikZ Renderer
+       └──> Khi sửa mã xong -> Hỗ trợ 3 Cơ Chế Biên Dịch Tăng Tốc:
+                 ├──> [Cơ chế 1] Instant Live Preview (0.2s): compile_latex_source_to_html + TikZ MD5 Disk Cache + MathJax
+                 ├──> [Cơ chế 2] Focus Quick Compile (1-2s): Biên dịch riêng câu hỏi con trỏ đang đứng / selection
+                 └──> [Cơ chế 3] XeTeX Standard / Draft Mode (15s - 60s):
                            │
-                           └──> Trả về PDF Vector `%PDF-` -> Stream lên Live Preview Pane (PDF.js Canvas)
+                           ├──> [Smart Dual-Mode Document Normalizer]
+                           │         ├── Tiêm Canonical Preamble (fontspec, tikz, tkz-tab, tcolorbox, ex_test[mode], A4)
+                           │         ├── Tự động loại bỏ triệt để thẻ \large ở tiêu đề phần (\noindent\textbf{PHẦN ...})
+                           │         └── Tự động reset câu hỏi về 1 ở mỗi phần (\setcounter{ex}{0} cho PHẦN II, III...)
+                           │
+                           ├──> [Tầng 1] Remote Tectonic Docker (http://armbian:8090/compile)
+                           │         ├── Tự động nhúng ex_test.sty v3.3.6
+                           │         ├── Tự động map fontspec (chống lỗi vietnam 8-bit)
+                           │         └── Nếu lỗi: Trả về compile_error_log -> Client lưu vào lastCompileError
+                           │
+                           ├──> [Tầng 2] Local Tectonic CLI (nếu server Tectonic ngoại mạng gián đoạn)
+                           │
+                           └──> [Tầng 3] Chromium Headless + MathJax SVG + TikZ Renderer
+                                     │
+                                     └──> Trả về PDF Vector `%PDF-` -> Stream lên Live Preview Pane (PDF.js Canvas)
 ```
 
 ### 5.2. Phân hệ Xuất bản Đề thi Thuần Vector PDF (Tectonic XeTeX & ReportLab Engine)

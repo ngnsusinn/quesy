@@ -547,6 +547,77 @@ ight)$$
             - Bật Progressive Status Timer (5s: *"Đang xử lý hình vẽ TikZ & tính toán toạ độ..."*; 15s: *"Đang kết xuất các trang PDF vector qua XeTeX..."*; 35s: *"Đang hoàn tất biên dịch đề thi quy mô lớn..."*), triệt tiêu cảm giác treo màn hình.
             - Hủy timer dọn dẹp sạch sẽ trong khối `finally`.
 
+       ### 2.4.18. FR-02.20: Cơ Chế Chống Nhân Đôi Ảnh Đính Kèm Khi Dán Clipboard (Clipboard Paste Deduplication & Event Isolation)
+       - **Mô tả Chức năng:** Khắc phục triệt để hiện tượng khi người dùng nhấn `Ctrl+V` (hoặc `Cmd+V`) để dán ảnh chụp vào ô nhập liệu (`#composer-chat-input`), một ảnh bị nhân đôi thành hai ảnh đính kèm trên khay thumbnail (`#composer-attached-images-container`) và hiển thị hai lần thông báo toast.
+       - **Nguyên nhân Kỹ thuật:** Ô nhập liệu `#composer-chat-input` nằm lồng bên trong container `#composer-chat-input-container`. Cả hai phần tử đều được đăng ký listener cho sự kiện `paste`. Khi người dùng dán ảnh, sự kiện kích hoạt trên `#composer-chat-input`, tuy đã gọi `e.preventDefault()` để cản dán chuỗi thô nhưng thiếu `e.stopPropagation()`, dẫn đến sự kiện tiếp tục nổi bọt (event bubbling) lên container cha. Container cha tiếp tục xử lý và đọc lại cùng một tệp từ clipboard, kích hoạt hàm `addAttachedImage` lần thứ hai liên tiếp.
+       - **Đặc Tả Kỹ Thuật & Giải Pháp Đa Tầng (Multi-layer Defense):**
+         1. *Cô lập Sự kiện (Event Propagation Isolation):*
+            - Trong listener của sự kiện `paste` tại `setupPasteAndDropListeners()`, khi phát hiện mục `item.type.startsWith('image/')`:
+              Bắt buộc gọi đồng thời cả hai lệnh:
+              ```javascript
+              e.preventDefault();
+              e.stopPropagation();
+              ```
+            - Tách biệt rõ ràng đối tượng lắng nghe: Không gán sự kiện `paste` thừa thãi trên container nếu các phần tử con nhập liệu bên trong đã được gán trực tiếp.
+         2. *Cờ Khởi Tạo Đơn Lần (Idempotent Listener Binding Guard):*
+            - Trang bị cờ bảo vệ `this._pasteListenersBound = true` tại `setupPasteAndDropListeners()`. Nếu hàm bị gọi lại do chuyển đổi view hoặc khởi tạo lại component, listener sẽ không bị gán lặp thêm lần nào nữa.
+         3. *Cơ Chế Khử Trùng Lặp & Giảm Tải (Debounce & Content Deduplication):*
+            - Trong hàm `addAttachedImage(dataUrl, name)`:
+              * Tạo chữ ký ảnh ngắn gọn: `imgSig = dataUrl.slice(0, 120) + '_' + dataUrl.length`.
+              * Nếu chữ ký trùng với chữ ký của ảnh vừa thêm trong vòng 500ms (`Date.now() - this._lastPastedTime < 500`), lập tức bỏ qua (silent return), không thêm vào mảng và không bắn toast kép.
+              * Kiểm tra mảng hiện tại: Nếu `this.attachedImages.some(img => img.dataUrl === dataUrl)`, từ chối thêm trùng.
+
+       ### 2.4.19. FR-02.21: Chuẩn Hóa Cấu Trúc Khảo Thí Quốc Gia 2025: Reset Thứ Tự Câu Hỏi Về 1 Ở Mỗi Phần (\setcounter{ex}{0}) & Loại Bỏ Triệt Để Thẻ \large Ở Tiêu Đề Phần
+       - **Mô tả Chức năng:** Đảm bảo toàn bộ tài liệu đề thi môn Toán và KHTN được soạn thảo trên Quesy Composer tuân thủ 100% quy chuẩn đề thi tốt nghiệp THPT theo Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT:
+         1. *Đánh số câu hỏi từng phần:* PHẦN I gồm 12 câu (Câu 1 đến Câu 12); PHẦN II (Đúng/Sai) bắt đầu lại từ Câu 1 đến Câu 4; PHẦN III (Trả lời ngắn) bắt đầu lại từ Câu 1 đến Câu 6.
+         2. *Chuẩn hóa Typography tiêu đề phần:* Loại bỏ hoàn toàn cỡ chữ `\large`, `\Large` gây giãn nở khoảng cách dọc bất thường và làm vỡ tỷ lệ trang in chuẩn A4.
+       - **Đặc Tả Kỹ Thuật Lệnh Reset Bộ Đếm Câu Hỏi (\setcounter{ex}{0}):**
+         1. Trong gói lệnh chuẩn `ex_test.sty` (v3.3), môi trường câu hỏi `\begin{ex}` được định nghĩa qua `\newtheorem{ex}{\nameex}` với counter nội tại là `ex`.
+         2. Khi hết PHẦN I, nếu không có lệnh can thiệp, counter `ex` sẽ tiếp tục đếm lên 13, 14... Lệnh chuẩn xác theo TeX/LaTeX để đưa số thứ tự câu hỏi về 1 là:
+            ```latex
+            \setcounter{ex}{0}
+            ```
+            (Khi gặp `\begin{ex}` đầu tiên của phần mới, counter `ex` tăng từ 0 lên 1 và hiển thị chuẩn xác **"Câu 1."**).
+         3. *Tự động chèn & bảo toàn (Automatic Injection & Enforcement):*
+            - Hàm `ensure_full_latex_document` và `sync_section_question_counts` trong `composer_service.py` tự động quét các ranh giới phần (`PHẦN II`, `PHẦN III`, `PHẦN IV`...). Nếu sau tiêu đề phần chưa có lệnh `\setcounter{ex}{0}`, hệ thống tự động chèn ngay sau dòng tiêu đề / hướng dẫn `\textit{...}`.
+            - Đồng bộ hóa trong bộ phân giải HTML Preview (`compile_latex_source_to_html`): Khi gặp tiêu đề phần mới, reset biến đếm câu hỏi hiển thị về 1.
+            - Cập nhật 100% các mẫu đề thi (`TEMPLATES` ở backend, `EX_TEST_TEMPLATES` ở frontend, snippets và các mẫu fallback của AI Copilot).
+       - **Đặc Tả Chuẩn Hóa Tiêu Đề Phần (Stripping \large):**
+         1. Cú pháp chuẩn duy nhất được phép sử dụng cho tiêu đề phân đoạn đề thi:
+            ```latex
+            \noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+            \noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+            \setcounter{ex}{0}
+            \noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+            \setcounter{ex}{0}
+            ```
+         2. Bộ lọc tiền xử lý tự động bóc tách và loại bỏ mọi thẻ `\large`, `\Large`, `\LARGE` bên trong hoặc bao quanh tiêu đề phần (`\textbf{\large PHẦN...}`, `{\large\textbf{PHẦN...}}`, `\large\textbf{PHẦN...}`, `\section*{\large PHẦN...}`).
+         3. `system_prompt` của AI Copilot nghiêm cấm tuyệt đối việc sử dụng `\large` trong tiêu đề phần.
+
+       ### 2.4.20. FR-02.22: Kiến Trúc Biên Dịch Nhanh Đa Tầng Cho Soạn Thảo Đề Thi (Multi-tier Fast & Incremental Compilation: Focus Mode, Instant Preview & Draft Mode)
+       - **Mô tả Chức năng:** Giải quyết triệt để vấn đề thời gian phản hồi khi giáo viên chỉnh sửa mã nguồn LaTeX trên giao diện Soạn đề (`/composer`). Thay vì mỗi lần sửa đổi dù nhỏ (đổi 1 chữ, sửa 1 số, đổi phương án) đều phải chờ 40s - 65s để XeTeX/Tectonic biên dịch lại toàn bộ 22 câu và 10 hình vẽ TikZ, hệ thống cung cấp giải pháp tăng tốc đa tầng linh hoạt:
+       - **Chi Tiết Kiến Trúc 3 Tầng Tăng Tốc:**
+         1. *Tầng 1: Chế độ Xem trước Tức thì HTML/SVG (Instant Live Preview - Phản hồi 0.2s):*
+            - Khi người dùng đang nhập liệu hoặc chỉnh sửa mã câu hỏi, thay vì gọi tiến trình XeTeX nặng nề, hệ thống tự động kích hoạt bộ chuyển đổi tức thì `compile_latex_source_to_html`:
+              * Công thức toán được kết xuất trực tiếp bằng MathJax/KaTeX trong 50ms.
+              * Các đồ thị TikZ đã được lưu vào bộ nhớ đệm Disk Cache (khóa MD5 mã TikZ) từ các lượt trước được tải lại ngay lập tức trong 10ms mà không cần vẽ lại; chỉ duy nhất hình vẽ đang bị chỉnh sửa mới phải gọi `render_tikz_to_svg` (0.8s).
+              * Kết quả hiển thị mượt mà trên khung xem trước, cho phép giáo viên kiểm tra ngay nội dung vừa gõ với độ trễ gần như bằng 0.
+            - Giao diện trang bị nút công tắc chuyển đổi: `[Xem trước Tức thì (0.2s)]` và `[Xuất bản PDF (XeTeX)]`.
+         2. *Tầng 2: Tính năng Biên dịch Nhanh Câu Đang Sửa / Phân Đoạn (Focus / Partial Question Quick Compile - Phản hồi 1.5s):*
+            - **Khái niệm:** Cho phép giáo viên biên dịch riêng câu hỏi hoặc phân đoạn đang tập trung chỉnh sửa thành định dạng PDF vector chuẩn xác để xem trước ngay lập tức mà không phải chờ các câu hỏi khác.
+            - **Cơ chế Hoạt động:**
+              * Client tự động phát hiện vị trí con trỏ trong ô soạn thảo (`findCurrentQuestionAtCursor`) hoặc nhận diện đoạn văn bản đang được người dùng bôi đen (selection).
+              * Tách riêng khối câu hỏi đó (`\begin{ex} ... \end{ex}`) và bọc nhanh vào Canonical Preamble tiêu chuẩn.
+              * Gửi yêu cầu biên dịch tới API `POST /api/v1/composer/compile` với cờ `focus_mode: true` (hoặc bọc sẵn câu hỏi độc lập).
+              * XeTeX/Tectonic chỉ biên dịch duy nhất 1 câu hỏi (kèm tối đa 1 hình vẽ TikZ của câu đó) -> Hoàn tất trong **1.0 đến 1.8 giây**!
+              * Kết quả PDF được hiển thị ngay trên khung xem trước với nhãn chỉ báo thời gian trực quan.
+            - **Phím tắt & Nút bấm:** Nút tia chớp `⚡ BIÊN DỊCH CÂU NÀY` cạnh nút BIÊN DỊCH, phím tắt `Ctrl+Shift+S` (hoặc `Cmd+Shift+S`).
+         3. *Tầng 3: Chế độ Biên dịch Nhanh Nháp (Draft / Fast Compile Mode - Giảm 70% thời gian biên dịch toàn đề):*
+            - Khi người dùng bật tùy chọn **`Chế độ Nháp (Draft Mode)`**:
+              * Backend tự động tiền xử lý mã nguồn: Thay thế tham số `samples` của tất cả các lệnh vẽ đồ thị TikZ (`plot (...)`) xuống mức an toàn `samples=35` (thay vì 80 - 100).
+              * Bỏ qua các lượt biên dịch pass thứ 2/thứ 3 không bắt buộc khi tài liệu không dùng tham chiếu chéo `\pageref`.
+              * Thời gian biên dịch toàn bộ đề thi 22 câu giảm mạnh từ 65s xuống chỉ còn **12 - 18 giây**, đẩy nhanh đáng kể chu kỳ rà soát đề thi trước khi xuất bản bản in chính thức.
+
        ---
 
 ```

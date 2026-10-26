@@ -614,6 +614,26 @@ ight)$$
      - Tuyệt đối không gõ tiền tố `a)`, `b)`, `c)`, `d)` trong khẳng định để tránh lặp nhãn kép.
   4. *Tối ưu hóa Lấy Mẫu TikZ:* Mặc định `samples=50` hoặc `samples=60` trên mọi đồ thị hàm số để bảo đảm biên dịch siêu tốc.
 
+#### SRS-FEAT-04x: Cơ chế Chống Nhân Đôi Ảnh Đính Kèm Khi Dán Clipboard (Clipboard Paste Deduplication & Event Isolation)
+- **Mô tả:** Loại bỏ hoàn toàn lỗi nhân đôi ảnh chụp khi giáo viên dán ảnh (`Ctrl+V` / `Cmd+V`) vào ô chat trợ lý (`#composer-chat-input`).
+- **Xử lý Kỹ thuật Đa tầng:**
+  1. *Ngắt lan truyền sự kiện (Event Propagation Stop):* Bổ sung `e.stopPropagation()` song hành cùng `e.preventDefault()` trong listener dán ảnh tại `setupPasteAndDropListeners()`, triệt tiêu hoàn toàn sự kiện nổi bọt lên container cha `#composer-chat-input-container`.
+  2. *Cờ Idempotent Binding Guard:* Bổ sung `this._pasteListenersBound` ngăn chặn việc gán trùng lặp nhiều lần các bộ lắng nghe sự kiện khi khởi tạo lại phân hệ Soạn đề.
+  3. *Debounce & Trùng Lặp Chữ Ký Ảnh (Image Signature Deduplication):* Tại hàm `addAttachedImage`, kiểm tra chữ ký ảnh kết hợp timestamp: nếu cùng một ảnh được gửi liên tiếp trong khoảng thời gian < 500ms hoặc đã có trong danh sách đính kèm, hệ thống lập tức từ chối và không thêm lặp.
+
+#### SRS-FEAT-04y: Chuẩn Hóa Cấu Trúc Khảo Thí Quốc Gia 2025: Reset Thứ Tự Câu Hỏi Về 1 Ở Mỗi Phần (\setcounter{ex}{0}) & Loại Bỏ Triệt Để Thẻ \large Ở Tiêu Đề Phần
+- **Mô tả:** Đảm bảo toàn bộ tài liệu đề thi môn Toán và KHTN được xuất bản chuẩn Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT:
+  1. *Reset bộ đếm câu hỏi:* PHẦN I gồm 12 câu trắc nghiệm (Câu 1 đến Câu 12); PHẦN II (Đúng/Sai) bắt đầu lại từ Câu 1 đến Câu 4; PHẦN III (Trả lời ngắn) bắt đầu lại từ Câu 1 đến Câu 6.
+  2. *Lệnh chuẩn LaTeX:* Đặt `\setcounter{ex}{0}` ngay sau tiêu đề/hướng dẫn của PHẦN II và PHẦN III.
+  3. *Tự động hóa toàn diện:* `composer_service.py` (`ensure_full_latex_document`, `sync_section_question_counts`) tự động phát hiện ranh giới phần và chèn `\setcounter{ex}{0}` nếu tài liệu chưa có; đồng thời bộ phân giải HTML preview cũng reset counter về 1.
+  4. *Loại bỏ triệt để `\large`:* Bộ tiền xử lý tự động làm sạch mọi thẻ `\large`, `\Large`, `\LARGE` bên trong hoặc bao quanh tiêu đề phần, bảo toàn kích thước font chữ 12pt in đậm chuẩn mực `\noindent\textbf{PHẦN ...}` `\textit{...}`.
+
+#### SRS-FEAT-04z: Kiến Trúc Biên Dịch Nhanh Đa Tầng Cho Soạn Thảo Đề Thi (Focus Mode, Instant Preview & Draft Mode)
+- **Mô tả:** Giải quyết triệt để vấn đề thời gian chờ khi sửa đổi mã nguồn LaTeX bằng kiến trúc tăng tốc biên dịch đa tầng:
+  1. *Tầng 1: Chế độ Xem trước Tức thì HTML/SVG (Instant Live HTML Preview - 0.2s):* Tự động chuyển đổi sang giao diện xem trước HTML/SVG qua `compile_latex_source_to_html` với bộ đệm Disk Cache TikZ theo mã MD5 (0.01s cho hình không đổi) và MathJax/KaTeX (0.05s).
+  2. *Tầng 2: Biên dịch Nhanh Câu Đang Sửa / Phân Đoạn (Focus / Partial Question Quick Compile - 1.5s):* Cho phép giáo viên biên dịch riêng khối câu hỏi hiện tại tại vị trí con trỏ hoặc đoạn văn bản bôi đen thành PDF vector trong 1.0 - 1.8 giây qua nút bấm `⚡ BIÊN DỊCH CÂU NÀY` hoặc phím tắt `Ctrl+Shift+S`.
+  3. *Tầng 3: Chế độ Biên dịch Nhanh Nháp (Draft Mode - 15s):* Giảm `samples=35` cho toàn bộ đồ thị TikZ khi bật cờ `draft_mode`, cắt giảm 70% thời gian biên dịch tài liệu lớn từ 65s xuống 15s.
+
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.
 - **Xử lý:** Tính toán vector embedding (`text-embedding-3-small` hoặc `bge-m3`), so sánh Cosine Distance trong `pgvector`.

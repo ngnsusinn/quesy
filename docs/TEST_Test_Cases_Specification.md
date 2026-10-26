@@ -473,7 +473,32 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Kết quả kỳ vọng:** `diagnose_compile_error` trả về `ChatResponse` với `diff` hợp lệ thay thế `samples=100` thành `samples=50`, kèm danh sách `diffs` đầy đủ cho toàn bộ các đồ thị có mẫu dày.
 - **Tự động hóa Pytest:** Được kiểm thử tự động tại `tests/test_composer.py::test_composer_diagnose_compile_error_timeout_and_samples_optimization`.
 
-#### TC-DEV-01: Quy Chuẩn Quản Trị Nhánh & Không Tự Động Tạo Pull Request (Git Workflow Guardrail)
+#### TC-COMP-34: Kiểm Thử Chống Nhân Đôi Ảnh Đính Kèm Khi Dán Clipboard (Ctrl+V Paste Event Isolation & Debounce)
+- **Mô tả:** Kiểm tra hành vi dán ảnh clipboard (`Ctrl+V` / `Cmd+V`) vào ô chat `#composer-chat-input`:
+  1. Kích hoạt sự kiện `paste` với một ảnh giả lập (Data URL) tại `#composer-chat-input`.
+  2. Xác nhận `e.stopPropagation()` được gọi để chặn sự kiện nổi bọt lên container `#composer-chat-input-container`.
+  3. Kiểm tra mảng `app.composer.attachedImages`: chỉ có **duy nhất 1 phần tử ảnh** được thêm vào.
+  4. Kiểm tra DOM khay thumbnail `#composer-attached-images-container`: hiển thị đúng 1 chip thumbnail, không nhân đôi thành 2 ảnh.
+  5. Thử nghiệm dán liên tiếp 2 lần cùng 1 ảnh trong < 500ms: Xác nhận cơ chế Debounce & Deduplication loại bỏ ảnh thứ hai, thông báo toast chỉ bắn duy nhất 1 lần.
+- **Kết quả kỳ vọng:** 1 ảnh dán chỉ sinh ra duy nhất 1 ảnh đính kèm, triệt tiêu hoàn toàn lỗi nhân đôi.
+
+#### TC-COMP-35: Kiểm Thử Chuẩn Hóa Cấu Trúc Khảo Thí Quốc Gia 2025: Reset Thứ Tự Câu Hỏi Về 1 (\setcounter{ex}{0}) & Loại Bỏ Thẻ \large Ở Tiêu Đề Phần
+- **Mô tả:** Kiểm tra logic tiền xử lý và biên dịch đề thi có nhiều phần (PHẦN I, PHẦN II, PHẦN III):
+  1. Gửi mã LaTeX đề thi 3 phần chuẩn Quốc gia tới `ensure_full_latex_document` và `sync_section_question_counts`:
+     - Kiểm tra tại vị trí bắt đầu PHẦN II và PHẦN III, hệ thống tự động chèn lệnh `\setcounter{ex}{0}` nếu tài liệu chưa có.
+     - Kiểm tra nếu tiêu đề có thẻ `\large` (ví dụ `\textbf{\large PHẦN I...}` hoặc `\large\textbf{PHẦN II...}`), hệ thống tự động bóc bỏ `\large`, đưa về chuẩn `\noindent\textbf{PHẦN ...}`.
+  2. Kiểm tra biên dịch qua `compile_latex_source_to_html`:
+     - Xác nhận số thứ tự câu hỏi ở PHẦN II được reset về Câu 1 (không phải Câu 13).
+     - Xác nhận số thứ tự câu hỏi ở PHẦN III được reset về Câu 1 (không phải Câu 17).
+  3. Kiểm tra các template trong `composer_service.py` (`TEMPLATES`) và `app.js` (`EX_TEST_TEMPLATES`): Xác nhận đã chứa sẵn `\setcounter{ex}{0}` ở PHẦN II, PHẦN III và không chứa thẻ `\large`.
+- **Kết quả kỳ vọng:** Đề thi hiển thị đúng thứ tự câu hỏi bắt đầu từ Câu 1 ở mỗi phần và typography tiêu đề phần đồng nhất 12pt in đậm.
+
+#### TC-COMP-36: Kiểm Thử Giải Pháp Biên Dịch Nhanh Đa Tầng (Focus Partial Compile, Instant Preview & Draft Mode)
+- **Mô tả:** Kiểm tra các cơ chế tăng tốc biên dịch:
+  1. *Focus Partial Compile:* Gửi yêu cầu biên dịch riêng 1 câu hỏi tại con trỏ tới `/api/v1/composer/compile-partial` (hoặc `/compile` với `focus_mode=True`), xác nhận tài liệu được bọc preamble tối giản, biên dịch thành công PDF trong < 2.0 giây.
+  2. *Instant Live Preview (HTML):* Gọi `compile_latex_source_to_html`, xác nhận công thức toán và đồ thị TikZ được chuyển đổi mượt mà, tái sử dụng Disk Cache của các hình không đổi trong < 200ms.
+  3. *Draft Mode Compile:* Gửi yêu cầu biên dịch toàn bộ tài liệu nặng kèm `draft_mode=True`, xác nhận backend tự động tối ưu `samples=35` cho các đường cong TikZ, hoàn thành biên dịch toàn bộ 22 câu trong < 20 giây.
+- **Kết quả kỳ vọng:** Các chế độ biên dịch nhanh hoạt động ổn định, giảm đáng kể thời gian chờ đợi của giáo viên khi soạn thảo.
 - **Mô tả:** Rà soát và xác thực hành vi của các agent và quy trình CI/CD:
   1. Chỉ thực hiện `git commit` và `git push` lên nhánh remote đang làm việc.
   2. Tuyệt đối không tự động kích hoạt `gh pr create` hoặc các API tương đương để tạo mới hay cập nhật Pull Request khi người dùng chưa ra lệnh trực tiếp bằng lời nói.

@@ -44,6 +44,13 @@ class CompileRequest(BaseModel):
     title: str = Field("Đề Thi Soạn Thảo", description="Document title")
     mode: Optional[str] = Field("dethi", description="'dethi' (hide solution) or 'loigiai' (show solution)")
     show_solution: Optional[bool] = Field(None, description="Flag for solution visibility")
+    draft_mode: Optional[bool] = Field(False, description="Draft mode for fast compilation")
+
+class PartialCompileRequest(BaseModel):
+    snippet_code: str = Field(..., description="LaTeX code snippet (e.g. single question)")
+    title: str = Field("Câu hỏi", description="Title for partial compile")
+    mode: Optional[str] = Field("dethi", description="Compilation mode")
+    question_num: Optional[int] = Field(None, description="Question number for counter reset")
 
 class CompileResponse(BaseModel):
     success: bool
@@ -132,7 +139,7 @@ def compile_latex_endpoint(req: CompileRequest):
         raise HTTPException(status_code=400, detail="Mã LaTeX không được để trống")
 
     mode = req.mode or ("loigiai" if req.show_solution else "dethi")
-    full_latex = ensure_full_latex_document(clean_code, mode=mode, title=req.title)
+    full_latex = ensure_full_latex_document(clean_code, mode=mode, title=req.title, draft_mode=bool(req.draft_mode))
 
     code_hash = hashlib.md5((full_latex + req.title + mode).encode("utf-8")).hexdigest()
     out_pdf = STORAGE_COMPOSER_CACHE / f"{code_hash}.pdf"
@@ -160,6 +167,53 @@ def compile_latex_endpoint(req: CompileRequest):
             total_pages=1,
         )
 
+    return CompileResponse(
+        success=True,
+        pdf_url=f"/api/v1/composer/pdf/{code_hash}.pdf",
+        compile_time_ms=elapsed_ms,
+        error=None,
+        title=req.title,
+        total_pages=count_pdf_pages(out_pdf),
+    )
+
+
+@router.post("/compile-partial", response_model=CompileResponse, summary="Compile partial LaTeX snippet (e.g. single question)")
+def compile_partial_endpoint(req: PartialCompileRequest):
+    clean_code = req.snippet_code.strip()
+    if not clean_code:
+        raise HTTPException(status_code=400, detail="Mã snippet không được để trống")
+    
+    mode = req.mode or "dethi"
+    full_latex = ensure_full_latex_document(clean_code, mode=mode, title=req.title, draft_mode=True)
+    
+    if req.question_num and req.question_num > 1:
+        offset_num = req.question_num - 1
+        full_latex = full_latex.replace(r'\begin{document}', r'\begin{document}' + f'\n\\setcounter{{ex}}{{{offset_num}}}\n', 1)
+    
+    code_hash = hashlib.md5((full_latex + req.title + mode + str(req.question_num)).encode("utf-8")).hexdigest()
+    out_pdf = STORAGE_COMPOSER_CACHE / f"{code_hash}.pdf"
+    
+    if out_pdf.exists() and out_pdf.stat().st_size > 1000:
+        return CompileResponse(
+            success=True,
+            pdf_url=f"/api/v1/composer/pdf/{code_hash}.pdf",
+            compile_time_ms=15,
+            error=None,
+            title=req.title,
+            total_pages=count_pdf_pages(out_pdf),
+        )
+        
+    success, err_msg, elapsed_ms = compile_latex_to_pdf(full_latex, out_pdf, title=req.title, mode=mode)
+    if not success:
+        return CompileResponse(
+            success=False,
+            pdf_url="",
+            compile_time_ms=elapsed_ms,
+            error=err_msg,
+            title=req.title,
+            total_pages=1,
+        )
+        
     return CompileResponse(
         success=True,
         pdf_url=f"/api/v1/composer/pdf/{code_hash}.pdf",

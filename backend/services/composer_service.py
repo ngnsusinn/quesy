@@ -400,7 +400,8 @@ def ensure_full_latex_document(
     latex_source: str = "",
     mode: str = "dethi",
     title: str = "Tài Liệu Soạn Thảo",
-    latex_code: Optional[str] = None
+    latex_code: Optional[str] = None,
+    draft_mode: bool = False
 ) -> str:
     r"""Wraps preamble-free LaTeX question code with standard exam preamble
     including fontspec, amsmath, amssymb, amsfonts, geometry a4 1.5cm margin,
@@ -472,6 +473,27 @@ def ensure_full_latex_document(
     body = re.sub(r'\\tcbuselibrary\{[^}]*\}', '', body)
     body = re.sub(r'\\begin\{document\}', '', body).strip()
     body = re.sub(r'\\end\{document\}', '', body).strip()
+
+    # Automatically clean \large, \Large, \LARGE in or around section titles
+    body = re.sub(r'\\(?:large|Large|LARGE)\s*', '', body)
+
+    # Automatically insert \setcounter{ex}{0} after section headers for PHẦN II, PHẦN III, PHẦN IV... if not present
+    parts = re.split(r'((?:\\noindent\s*)?\\textbf\{PHẦN\s+(?:II|III|IV|V|VI)[^}]*\}|(?:\\section\*?\{PHẦN\s+(?:II|III|IV|V|VI)[^}]*\})|PHẦN\s+(?:II|III|IV|V|VI)\.[^\n]*)', body, flags=re.IGNORECASE)
+    if len(parts) > 1:
+        reconstructed = [parts[0]]
+        for j in range(1, len(parts), 2):
+            header = parts[j]
+            content = parts[j+1] if j+1 < len(parts) else ""
+            if r'\setcounter{ex}{0}' not in content[:300]:
+                if r'\begin{ex}' in content:
+                    content = content.replace(r'\begin{ex}', r'\setcounter{ex}{0}' + '\n' + r'\begin{ex}', 1)
+                else:
+                    content = r'\setcounter{ex}{0}' + '\n' + content
+            reconstructed.append(header + content)
+        body = "".join(reconstructed)
+
+    if draft_mode:
+        body = re.sub(r'samples=\d+', 'samples=35', body)
 
     body = fix_immini_choice_nesting(body)
 
