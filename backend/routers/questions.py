@@ -168,7 +168,7 @@ def list_questions(
     lesson_id: Optional[str] = None,
     keyword: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
-    limit: int = 50,
+    limit: int = Query(1000, le=5000),
     offset: int = 0,
     db: Session = Depends(get_db)
 ):

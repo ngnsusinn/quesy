@@ -137,6 +137,7 @@ ightarrow$ Lesson $
 ightarrow$ Learning Outcome (YCCĐ).
 - **Secondary Filters:** Filter by Problem Archetype, Cognitive Level (Recognition, Comprehension, Application, High Application), Item Format (Single Choice, True/False, Short Answer), and debounced keyword search.
 - **Full Production CRUD Operations:**
+  - **100% Persistent SQLite Storage & Zero Mock Overwrite:** Real exam questions are persistently stored in SQLite (`storage/quesy.db`, 230+ pre-seeded & user-authored items). On server restart and browser reloads (F5), the frontend directly loads full persistent data via `GET /api/v1/questions?limit=1000`. Mock data overrides on startup are eliminated, guaranteeing zero data loss.
   - **Create Modal:** Add new questions manually supporting all 3 Decision 764 formats, live KaTeX preview, quick math symbol insertion, AI auto-tagging, and duplicate checking.
   - **Detail View Modal:** Render equations, TikZ vector graphs, variation tables, progressive True/False barems, and item psychometrics ($p, D$).
   - **Edit Modal:** In-place modification of stems, options, True/False statements, short answers, tolerances, and learning outcomes.
@@ -178,14 +179,17 @@ Located in `backend/routers/matrix.py`, `backend/services/matrix_solver.py` & `f
 
 ### 12. Safe Exam Shuffling, In-Place Item Swap & Bundled ZIP Publishing
 
-Located in `backend/routers/exams.py`, `backend/services/shuffling_engine.py` & `frontend/` (`/shuffler`):
-- **Step 1 - Master Exam & In-Place Item Swap:** Generates Master Exam from matrix via constraint satisfaction solver; renders questions with full KaTeX formulas and TikZ plots; enables teachers to replace any question with an equivalent question from the bank (same YCCĐ, cognitive tier, and format).
+Located in `backend/routers/exams.py`, `backend/services/docx_exporter.py`, `backend/services/shuffling_engine.py` & `frontend/` (`/shuffler`):
+- **Step 1 - Master Exam, Matrix Import & In-Place Item Swap:**
+  - **Master Exam Source Toolbar:** Select existing Master Exams from the system or pick any Assessment Matrix and immediately assemble a new Master Exam via `⚡ Sinh Đề Gốc từ Ma Trận Này` or sync from current active matrix.
+  - Generates Master Exam from matrix via constraint satisfaction solver; renders questions with full KaTeX formulas and TikZ plots; enables teachers to replace any question with an equivalent question from the bank (same YCCĐ, cognitive tier, and format).
 - **Step 2 - 4 Safe Shuffling Principles (Decision 764):**
   1. *Section Integrity:* Shuffles items strictly within their respective format sections (Part I, Part II, Part III).
   2. *Passage Integrity:* Preserves stimulus reading passages and dependent sub-questions as indivisible atomic blocks.
   3. *Option Anchor Rule (100% Guaranteed):* Automatically detects position-dependent options (*\"All of the above\"*, *\"Both A and B\"*, *\"None of the above\"*) and locks them to choice D across all generated variants.
   4. *Answer Key Matrix:* Generates a cross-variant permutation matrix comparing Master Exam and all shuffled codes (101, 102, 103, 104).
-- **Step 3 - Single PDF Download & Publication Bundle (.ZIP):**
+- **Step 3 - Pure LaTeX Vector PDF & Publication Bundle (.ZIP):**
+  - **Authentic LaTeX Vector PDF Publishing via Tectonic XeTeX Engine:** Both standalone variant PDFs (`De_{code}.pdf`) and detailed step-by-step solution guides (`LoiGiai_{code}.pdf`) are compiled directly from national standard LaTeX (`ex_test.sty` v3.3, 2-column header, `\choice`, `\choiceTF[1]`, `\shortans`, and `\begin{loigiai}`) via the Tectonic XeTeX Engine (`armbian:8090` / local binary with Chromium CMU Serif vector fallback) — producing 100% identical typographic quality to the Exam Composer.
   - Download standalone vector PDF for any variant code (`GET /api/v1/exams/{id}/export-pdf?variant_code=101`).
   - Download bundled exam publication archive (`.ZIP`) containing `De_{code}.pdf`, `LoiGiai_{code}.pdf`, `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), and official `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 

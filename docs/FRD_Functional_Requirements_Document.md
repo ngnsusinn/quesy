@@ -731,9 +731,14 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
   - Tự động gọi `suggest_auto_tagging` gán nhãn môn, lớp và YCCĐ nếu thiếu.
   - Kiểm tra phát hiện trùng lặp AI và trả về kết quả số lượng câu nạp thành công.
 
-### 2.8.5. FR-04.7: Đồng Bộ Huy Hiệu Số Lượng Ngân Hàng (#bank-count-badge)
-- Badge hiển thị số lượng câu hỏi trên thanh điều hướng (`#bank-count-badge`) phản ánh chính xác số lượng câu hỏi hiện hữu trong CSDL.
-- Tự động kích hoạt truy vấn `GET /api/v1/questions/count` (hoặc độ dài mảng) và cập nhật số hiển thị sau mỗi thao tác: Thêm mới câu hỏi, Chỉnh sửa, Xóa, Nhập tệp, hoặc Lưu đề từ Composer.
+### 2.8.5. FR-04.7: Đồng Bộ Huy Hiệu Số Lượng Ngân Hàng (#bank-count-badge) & Lưu Trữ Bền Vững SQLite 100%
+- **Lưu Trữ Thực Tế & Bền Vững 100% CSDL SQLite:**
+  * Toàn bộ câu hỏi được lưu trữ trong CSDL SQLite `storage/quesy.db` (230+ câu hỏi chuẩn hóa).
+  * Khi tải ứng dụng hoặc F5, client thực hiện `fetchQuestionsFromDB()` với `limit=1000` nạp trọn vẹn dữ liệu từ SQLite vào `state.itemBank`.
+  * Tuyệt đối không gọi `seedInitialQuestions()` làm mất dữ liệu SQLite sau khi fetch. Dữ liệu tĩnh chỉ dùng khi CSDL hoàn toàn rỗng hoặc offline.
+- **Đồng Bộ Badge Thời Gian Thực:**
+  * Badge hiển thị số lượng câu hỏi trên thanh điều hướng (`#bank-count-badge`) và bộ đếm trong Dashboard phản ánh chính xác số lượng câu hỏi thực tế trong CSDL SQLite.
+  * Tự động kích hoạt truy vấn `GET /api/v1/questions` và cập nhật số hiển thị sau mỗi thao tác: Thêm mới câu hỏi, Chỉnh sửa, Xóa, Nhập tệp, hoặc Lưu đề từ Composer.
 
 ---
 
@@ -797,8 +802,15 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.10. FR-06.1: Đề Thi Gốc (Master Exam) & Động cơ Đổi Câu Tương Đương (In-Place Item Swap)
+### 2.10. FR-06.1: Đề Thi Gốc (Master Exam), Thanh Nguồn Đề Gốc & Đổi Câu Tương Đương (In-Place Item Swap)
 - **Màn hình:** `SCR-SHUFFLER` (Route: `/shuffler`, tab: `#tab-shuffler` - Bước 1)
+- **Thanh Nguồn Đề Thi Gốc & Nhập từ Ma Trận (Master Exam Source Toolbar):**
+  * Tích hợp thanh công cụ trực quan phía trên danh sách câu hỏi:
+    + *Menu Chọn Đề Gốc Đã Lưu:* Thẻ `<select id="shuffler-select-master-exam">` nạp danh sách đề thi gốc có sẵn từ API `GET /api/v1/exams`. Khi chuyển đổi, client gọi `GET /api/v1/exams/{id}` nạp lại toàn bộ câu hỏi.
+    + *Menu Chọn Ma Trận Đề:* Thẻ `<select id="shuffler-select-matrix">` nạp danh sách ma trận đặc tả từ API `GET /api/v1/matrix`.
+    + *Nút Hành Động Sinh Đề Gốc:* Nút bấm **`⚡ Sinh Đề Gốc từ Ma Trận Này`** (`#btn-generate-from-matrix`) kích hoạt API `POST /api/v1/exams/generate` với `matrix_id` đã chọn, tự động lắp ghép câu hỏi từ ngân hàng thỏa mãn ma trận và nạp ngay vào Shuffler.
+    + *Nút Đồng Bộ Ma Trận Hiện Tại:* Nút bấm **`🔄 Đồng bộ từ Ma trận hiện tại`** lấy cấu hình ma trận đang chỉnh sửa trong tab `/matrix` để tạo đề gốc.
+    + *Thanh Thẻ Thông Tin Đề Gốc:* Hiển thị Tên đề, Môn học, Khối lớp, Thời gian thi, Tổng số câu hỏi và Thang điểm 10.0đ.
 - **Thuật toán Sinh Đề Gốc theo Ràng buộc Ma trận (CSP Solver):**
   - **Đầu vào:** `matrix_id`, `title`, cờ `exclude_30d` (loại trừ câu hỏi đã thi trong 30 ngày qua), `allow_partial`.
   - **Xử lý:** Lọc câu hỏi `status = 'APPROVED'`, `is_defective == False` từ CSDL; ưu tiên câu hỏi có độ phân biệt $D \ge 0.3$ và độ khó cân đối $p \approx 0.55$.
@@ -837,15 +849,20 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.12. FR-07.1: Xuất bản Đề thi Đơn lẻ & Đóng gói Trọn gói Ấn phẩm Khảo thí (.ZIP)
+### 2.12. FR-07.1: Xuất bản Đề thi Đơn lẻ & Đóng gói Trọn gói Ấn phẩm Khảo thí (.ZIP) Thuần Vector PDF LaTeX
+- **Động Cơ Biên Dịch Thuần Vector PDF LaTeX (Tectonic XeTeX Engine):**
+  * Tích hợp thống nhất cùng kiến trúc biên dịch của phân hệ Soạn đề (`/composer`): Hàm `generate_variant_latex(variant, is_solution)` tự động chuyển hóa mô hình `ExamVariant` thành tài liệu LaTeX chuẩn Bộ GD&ĐT (gói lệnh `ex_test.sty` v3.3).
+  * Biên dịch qua Tectonic XeTeX Engine (`compile_latex_to_pdf`) với `mode="dethi"` cho mã đề thi và `mode="loigiai"` cho hướng dẫn giải chi tiết.
+  * Cấu trúc văn bản: Header 2 cột cân đối `minipage` (0.38 / 0.58 căn giữa), dòng thí sinh & khung mã đề `\framebox{\textbf{Mã đề: ...}}`, đường nét liền `
+ule{\textwidth}{0.5pt}`, Phần I `\choice`, Phần II `\choiceTF[1]` (reset `\setcounter{ex}{0}`), Phần III `\shortans` (reset `\setcounter{ex}{0}`), đồ thị TikZ và bảng biến thiên `tkz-tab` căn giữa tuyệt đối.
+  * Fallback an toàn: Nếu Tectonic chưa sẵn sàng, tự động chuyển tiếp sang Headless Chromium với phông chữ Computer Modern Unicode (CMU Serif) và MathJax SVG để bảo đảm luôn xuất bản thành công không nghẽn luồng.
 - **Tải file PDF Đơn lẻ cho từng Mã đề:**
   - API: `GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`.
-  - Xuất trực tiếp file `De_Thi_Ma_{code}.pdf` chuẩn Vector PDF A4 Portrait 2 cột theo quy cách Bộ GD&ĐT.
+  - Xuất trực tiếp file `De_Thi_Ma_{code}.pdf` chuẩn Vector PDF A4 Portrait 2 cột sắc nét theo quy cách Bộ GD&ĐT.
 - **Tải Trọn Gói Ấn Phẩm Đề Thi (.ZIP):**
-  - API: `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.
-  - Tự động đóng gói và tải xuống file zip chứa đầy đủ 5 thành phần:
-    1. `De_{code}.pdf` cho toàn bộ các mã đề hoán vị (101, 102, 103, 104): Layout 2 cột, tiêu đề chuẩn Bộ GD&ĐT, font CMU Serif / Times, công thức toán vector sắc nét.
-    2. `LoiGiai_{code}.pdf` cho toàn bộ các mã đề hoán vị: Hướng dẫn giải chi tiết từng bước kèm barem chấm điểm bậc thang QĐ 764.
+  - API: `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.\n  - Tự động đóng gói và tải xuống file zip chứa đầy đủ 5 thành phần:
+    1. `De_{code}.pdf` cho toàn bộ các mã đề hoán vị (101, 102, 103, 104): Layout 2 cột, tiêu đề chuẩn Bộ GD&ĐT, font CMU Serif / Times, công thức toán vector sắc nét 100% biên dịch qua LaTeX engine.
+    2. `LoiGiai_{code}.pdf` cho toàn bộ các mã đề hoán vị: Hướng dẫn giải chi tiết từng bước kèm barem chấm điểm bậc thang QĐ 764 biên dịch qua LaTeX engine.
     3. `BangDapAn_TongHop.pdf`: Bảng ma trận đối chiếu đáp án tổng hợp định dạng PDF in ấn.
     4. `BangDapAn_TongHop.csv`: Bảng ma trận đáp án định dạng CSV có ký tự UTF-8 BOM (`\ufeff`) tương thích 100% Microsoft Excel tiếng Việt.
     5. `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`: Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR Bộ GD&ĐT 2025.

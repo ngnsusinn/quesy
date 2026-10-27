@@ -149,6 +149,24 @@
 
 ---
 
+### UC-05: QUẢN LÝ NGÂN HÀNG CÂU HỎI LƯU TRỮ BỀN VỮNG SQLITE 100% (NO MOCK OVERWRITE)
+- **Mã Use Case:** `UC-05`
+- **Tên Use Case:** Quản lý Ngân hàng Câu hỏi Lưu trữ Bền vững SQLite & Triệt tiêu Ghi đè Mock Data
+- **Tác nhân chính:** Giáo viên, Quản trị viên
+- **Mô tả:** Đảm bảo toàn bộ câu hỏi thực tế trong CSDL SQLite (`storage/quesy.db`, 230+ câu hỏi) được tải đầy đủ lên giao diện khi khởi động hoặc F5, không bị ghi đè dữ liệu mẫu tĩnh, đồng bộ tuyệt đối qua mọi lần khởi động lại máy chủ.
+
+#### Luồng sự kiện chính:
+1. Khi khởi động ứng dụng hoặc F5 tải lại trang, client thực thi `fetchQuestionsFromDB()` gọi API `GET /api/v1/questions?limit=1000`.
+2. Hệ thống nạp toàn bộ danh sách câu hỏi thực tế từ SQLite vào `state.itemBank`.
+3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`) và cập nhật bộ đếm badge thời gian thực.
+4. Hệ thống kiểm tra: Nếu CSDL đã có dữ liệu (`state.itemBank.length > 0`), tuyệt đối KHÔNG kích hoạt `seedInitialQuestions()`, bảo toàn 100% dữ liệu thực.
+5. Khi người dùng thực hiện tạo câu hỏi mới, import LaTeX hàng loạt, chỉnh sửa câu hỏi, xóa câu hỏi hoặc bấm "LƯU VÀO NGÂN HÀNG" từ phân hệ Soạn đề, các thay đổi được ghi trực tiếp vào SQLite và client tự động kích hoạt `fetchQuestionsFromDB()` để đồng bộ lại dữ liệu.
+
+#### Luồng ngoại lệ (Offline Fallback):
+- Khi CSDL SQLite hoàn toàn rỗng hoặc máy chủ Backend chưa được kích hoạt, hệ thống mới kích hoạt `seedInitialQuestions()` làm dữ liệu mẫu dự phòng ngoại tuyến.
+
+---
+
 ### UC-06: THIẾT LẬP MA TRẬN 2D, ÁP DỤNG PRESETS & ĐỐI SOÁT TỒN KHO
 - **Mã Use Case:** `UC-06`
 - **Tên Use Case:** Thiết lập Ma trận Đề thi 2D, Áp dụng Presets, Đối soát Tồn kho & Xuất bản Bản đặc tả
@@ -182,7 +200,7 @@ ightarrow$ Thể thức câu hỏi.
 
 ---
 
-### UC-07: SINH ĐỀ THI GỐC & HOÁN ĐỔI CÂU HỎI TƯƠNG ĐƯƠNG (IN-PLACE ITEM SWAP)
+### UC-07: SINH ĐỀ THI GỐC, NHẬP TỪ MA TRẬN & HOÁN ĐỔI CÂU HỎI TƯƠNG ĐƯƠNG (IN-PLACE ITEM SWAP)
 - **Mã Use Case:** `UC-07`
 - **Tên Use Case:** Sinh Đề thi Gốc từ Ma trận và Hoán đổi Câu hỏi Tương đương
 - **Tác nhân chính:** Giáo viên, Tổ trưởng Chuyên môn
@@ -202,6 +220,11 @@ ightarrow$ Thể thức câu hỏi.
    - Hệ thống gọi API `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates` tìm kiếm các câu hỏi tương đương trong Question Bank (cùng YCCĐ, cùng mức độ Bloom, cùng thể thức, không trùng với đề gốc).
    - Giáo viên chọn câu hỏi thay thế hoặc cho phép hệ thống tự động bốc câu hỏi tối ưu nhất qua `POST /api/v1/exams/{master_id}/items/{item_id}/swap`.
    - Hệ thống cập nhật câu hỏi mới vào đề gốc thời gian thực, hủy bỏ các mã đề hoán vị cũ để đảm bảo tính đồng bộ dữ liệu.
+
+#### Các luồng rẽ nhánh (Thanh Nguồn Đề Gốc trong Shuffler):
+- **Luồng 1a (Chọn Đề Gốc Đã Lưu):** Tại tab `#tab-shuffler`, người dùng mở dropdown `#shuffler-select-master-exam` chọn một đề thi gốc đã lưu trong hệ thống. Hệ thống gọi `GET /api/v1/exams/{id}` và nạp ngay vào không gian làm việc.
+- **Luồng 1b (Sinh Đề Gốc từ Ma Trận Khảo Thí Trực Tiếp):** Người dùng chọn một ma trận từ dropdown `#shuffler-select-matrix` và bấm nút **`⚡ Sinh Đề Gốc từ Ma Trận Này`**. Hệ thống gọi `POST /api/v1/exams/generate` với `matrix_id`, tự động rút đề theo ràng buộc và nạp trực tiếp vào Shuffler.
+- **Luồng 1c (Đồng bộ Ma Trận Hiện Tại):** Người dùng bấm nút **`🔄 Đồng bộ từ Ma trận hiện tại`** để chuyển đổi ngay ma trận đang soạn thảo tại tab `/matrix` thành đề gốc trong Shuffler.
 
 ---
 
@@ -225,17 +248,17 @@ ightarrow$ Thể thức câu hỏi.
 
 ---
 
-### UC-09: XUẤT BẢN ĐỀ THI ĐƠN LẺ & ĐÓNG GÓI ẤN PHẨM KHẢO THÍ (.ZIP)
+### UC-09: XUẤT BẢN ĐỀ THI ĐƠN LẺ & ĐÓNG GÓI ẤN PHẨM KHẢO THÍ (.ZIP) THUẦN VECTOR PDF LATEX
 - **Mã Use Case:** `UC-09`
-- **Tên Use Case:** Xuất bản Đề thi Đơn lẻ (PDF) & Đóng gói Ấn phẩm Khảo thí (.ZIP)
+- **Tên Use Case:** Xuất bản Đề thi Đơn lẻ (PDF) & Đóng gói Ấn phẩm Khảo thí (.ZIP) Thuần Vector PDF LaTeX (Tectonic XeTeX Engine)
 - **Tác nhân chính:** Giáo viên, Cán bộ in sao đề
 
 #### Luồng sự kiện chính:
-1. Người dùng có thể nhấn nút **"Tải PDF Mã {code}"** để tải trực tiếp file đề thi đơn lẻ dạng PDF Vector 2 cột chuẩn Bộ GD&ĐT qua `GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`.
+1. Người dùng có thể nhấn nút **"Tải PDF Mã {code}"** để tải trực tiếp file đề thi đơn lẻ dạng PDF Vector 2 cột chuẩn Bộ GD&ĐT qua `GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`. Hệ thống chuyển đổi mã đề sang LaTeX chuẩn Quốc gia (`ex_test.sty` v3.3) và biên dịch qua Tectonic XeTeX Engine.
 2. Người dùng nhấn nút **"TẢI TRỌN GÓI ĐỀ THI PDF (.ZIP)"** qua `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.
 3. Hệ thống tạo và đóng gói tự động các file sau vào tệp ZIP:
-   - `De_101.pdf`, `De_102.pdf`, `De_103.pdf`, `De_104.pdf`: Đề thi 4 mã đề hoán vị A4 Portrait 2 cột.
-   - `LoiGiai_101.pdf`, `LoiGiai_102.pdf`, `LoiGiai_103.pdf`, `LoiGiai_104.pdf`: Hướng dẫn giải chi tiết kèm barem điểm bậc thang QĐ 764.
+   - `De_101.pdf`, `De_102.pdf`, `De_103.pdf`, `De_104.pdf`: Đề thi 4 mã đề hoán vị A4 Portrait 2 cột biên dịch từ LaTeX XeTeX chuẩn mực.
+   - `LoiGiai_101.pdf`, `LoiGiai_102.pdf`, `LoiGiai_103.pdf`, `LoiGiai_104.pdf`: Hướng dẫn giải chi tiết kèm barem điểm bậc thang QĐ 764 biên dịch từ LaTeX XeTeX chuẩn mực.
    - `BangDapAn_TongHop.pdf`: Bảng ma trận đối chiếu đáp án tổng hợp in ấn dạng PDF.
    - `BangDapAn_TongHop.csv`: Bảng ma trận đối chiếu đáp án định dạng CSV có ký tự UTF-8 BOM (`\ufeff`) tương thích 100% Microsoft Excel tiếng Việt.
    - `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`: Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR 2025.

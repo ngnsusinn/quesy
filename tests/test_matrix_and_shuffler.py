@@ -562,3 +562,112 @@ def test_three_matrix_presets_spec_and_calculations(client):
         m_data = res.json()
         assert m_data["total_points"] == p["expected_points"]
         assert len(m_data["items"]) == len(p["items"])
+
+
+# =========================================================================
+# 9. KIỂM THỬ MASTER EXAM SOURCE TOOLBAR & SHUFFLER VECTOR PDF EXPORT
+# =========================================================================
+
+def test_shuffler_master_exam_source_toolbar_and_frontend_contract(client):
+    """Kiểm thử Master Exam Source Toolbar trong Shuffler:
+    - DOM Elements trong frontend/index.html: #shuffler-select-master-exam, #shuffler-select-matrix,
+      #btn-shuffler-gen-matrix, #btn-shuffler-sync-matrix, #shuffler-exam-meta-bar.
+    - JavaScript methods trong frontend/static/app.js: loadMasterExamsAndMatricesForShuffler,
+      onShufflerMasterExamChange, generateMasterExamFromSelectedMatrix, syncFromCurrentMatrix.
+    - Backend endpoints: GET /exams, GET /matrices, POST /exams/generate.
+    """
+    from pathlib import Path
+
+    # 1. Kiểm tra DOM elements trong frontend/index.html
+    html_path = Path("frontend/index.html")
+    assert html_path.exists()
+    html_content = html_path.read_text(encoding="utf-8")
+    assert 'id="shuffler-select-master-exam"' in html_content
+    assert 'id="shuffler-select-matrix"' in html_content
+    assert 'id="btn-shuffler-gen-matrix"' in html_content
+    assert 'id="btn-shuffler-sync-matrix"' in html_content
+    assert 'id="shuffler-exam-meta-bar"' in html_content
+
+    # 2. Kiểm tra JS methods trong frontend/static/app.js
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists()
+    js_content = js_path.read_text(encoding="utf-8")
+    assert "loadMasterExamsAndMatricesForShuffler" in js_content
+    assert "onShufflerMasterExamChange" in js_content
+    assert "generateMasterExamFromSelectedMatrix" in js_content
+    assert "syncFromCurrentMatrix" in js_content
+
+    # 3. Kiểm tra API endpoints phục vụ Toolbar
+    exams_res = client.get("/api/v1/exams")
+    assert exams_res.status_code == 200
+    assert isinstance(exams_res.json(), list)
+
+    matrices_res = client.get("/api/v1/matrices")
+    assert matrices_res.status_code == 200
+    matrices = matrices_res.json()
+    assert len(matrices) > 0
+    m_id = matrices[0]["id"]
+
+    # 4. Sinh Đề Gốc từ Ma Trận đã chọn
+    gen_res = client.post("/api/v1/exams/generate", json={
+        "matrix_id": m_id,
+        "title": "Đề Khảo Thí Từ Ma Trận Shuffler Toolbar",
+        "allow_partial": True
+    })
+    assert gen_res.status_code in [200, 201]
+    master = gen_res.json()
+    assert "id" in master
+    assert len(master.get("items", [])) > 0
+
+
+def test_shuffler_export_single_variant_and_package_pure_vector_pdf(client):
+    """Kiểm thử xuất bản Vector PDF của Shuffler:
+    - GET /exams/{master_id}/export-pdf?variant_code=101 xuất PDF chuẩn (%PDF).
+    - GET /exams/{master_id}/export-zip xuất trọn bộ gói ZIP với đầy đủ Vector PDF.
+    """
+    # 1. Lấy ma trận và sinh đề gốc
+    m_res = client.get("/api/v1/matrices")
+    assert m_res.status_code == 200
+    matrix_id = m_res.json()[0]["id"]
+
+    gen_res = client.post("/api/v1/exams/generate", json={
+        "matrix_id": matrix_id,
+        "title": "Đề Khảo Thí Xuất Bản Vector PDF",
+        "allow_partial": True
+    })
+    assert gen_res.status_code in [200, 201]
+    master_id = gen_res.json()["id"]
+
+    # 2. Hoán vị 4 mã đề
+    shuf_res = client.post(f"/api/v1/exams/{master_id}/shuffle", json={
+        "variant_codes": ["101", "102", "103", "104"]
+    })
+    assert shuf_res.status_code == 200
+
+    # 3. Kiểm thử xuất đơn lẻ 1 mã đề PDF: GET /exams/{master_id}/export-pdf?variant_code=101
+    pdf_res = client.get(f"/api/v1/exams/{master_id}/export-pdf?variant_code=101")
+    assert pdf_res.status_code == 200
+    assert "application/pdf" in pdf_res.headers.get("content-type", "").lower()
+    assert pdf_res.content.startswith(b"%PDF"), "Mã đề xuất bản đơn lẻ phải là tệp PDF hợp lệ bắt đầu bằng %PDF"
+    assert len(pdf_res.content) > 1000
+
+    # 4. Kiểm thử xuất trọn bộ gói ZIP: GET /exams/{master_id}/export-zip
+    zip_res = client.get(f"/api/v1/exams/{master_id}/export-zip")
+    assert zip_res.status_code == 200
+    assert "application/zip" in zip_res.headers.get("content-type", "").lower()
+
+    with zipfile.ZipFile(io.BytesIO(zip_res.content), "r") as zf:
+        namelist = zf.namelist()
+        for c in ["101", "102", "103", "104"]:
+            de_file = f"De_{c}.pdf"
+            lg_file = f"LoiGiai_{c}.pdf"
+            assert de_file in namelist, f"Gói ZIP phải chứa {de_file}"
+            assert lg_file in namelist, f"Gói ZIP phải chứa {lg_file}"
+            assert zf.read(de_file).startswith(b"%PDF"), f"{de_file} phải có định dạng %PDF"
+            assert zf.read(lg_file).startswith(b"%PDF"), f"{lg_file} phải có định dạng %PDF"
+
+        assert "BangDapAn_TongHop.pdf" in namelist
+        assert zf.read("BangDapAn_TongHop.pdf").startswith(b"%PDF")
+        assert "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf" in namelist
+        assert zf.read("Phieu_Tra_Loi_Trac_Nghiem_2025.pdf").startswith(b"%PDF")
+

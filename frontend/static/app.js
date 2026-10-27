@@ -210,6 +210,7 @@
   // 2. SEED INITIAL DATA (CIRCULAR 32 & QĐ 764 COMPLIANT)
   // ============================================================================
   function seedInitialQuestions() {
+    if (state.itemBank && state.itemBank.length > 0) return;
     const defaultQuestions = [
       {
         id: 1,
@@ -1139,6 +1140,7 @@
       renderMatrixGrid();
     } else if (tabId === 'shuffler') {
       renderMasterExam();
+      loadMasterExamsAndMatricesForShuffler();
     }
 
     if (window.lucide) lucide.createIcons();
@@ -1159,7 +1161,7 @@
 
     const totalEl = document.getElementById('dash-metric-total');
     const approvedEl = document.getElementById('dash-metric-approved');
-    if (totalEl) totalEl.innerText = (1480 + state.itemBank.length - 12).toLocaleString();
+    if (totalEl) totalEl.innerText = state.itemBank.length.toLocaleString();
     if (approvedEl) approvedEl.innerText = `${rate}%`;
 
     const bankBadge = document.getElementById('bank-count-badge');
@@ -3326,6 +3328,103 @@
   // ============================================================================
   // 11. TAB 5: EXAM SHUFFLER & DOCX EXPORT (OPTION ANCHOR RULE ENGINE)
   // ============================================================================
+  async function loadMasterExamsAndMatricesForShuffler() {
+    try {
+      const [examsResp, matricesResp] = await Promise.all([
+        fetch(`${API_BASE_URL}/exams`, { headers: auth.getAuthHeaders() }),
+        fetch(`${API_BASE_URL}/matrix`, { headers: auth.getAuthHeaders() })
+      ]);
+      if (examsResp.ok) {
+        const exams = await examsResp.json();
+        const selExam = document.getElementById('shuffler-select-master-exam');
+        if (selExam) {
+          selExam.innerHTML = '<option value="">-- Chọn đề gốc đã lưu --</option>' + exams.map(e => `<option value="${e.id}">${e.title || ('Đề gốc ' + e.id)} (${e.total_questions || 0} câu)</option>`).join('');
+          if (state.masterExam && state.masterExam.id) {
+            selExam.value = state.masterExam.id;
+          }
+        }
+      }
+      if (matricesResp.ok) {
+        const matrices = await matricesResp.json();
+        const selMat = document.getElementById('shuffler-select-matrix');
+        if (selMat) {
+          selMat.innerHTML = '<option value="">-- Chọn ma trận khảo thí --</option>' + matrices.map(m => `<option value="${m.id}">${m.name || ('Ma trận ' + m.id)}</option>`).join('');
+        }
+      }
+    } catch (err) {
+      console.error("Error loading exams and matrices for shuffler:", err);
+    }
+  }
+
+  async function onShufflerMasterExamChange(examId) {
+    if (!examId) return;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/exams/${examId}`, { headers: auth.getAuthHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        state.masterExam = data;
+        renderMasterExam();
+        const totalEl = document.getElementById('shuffler-meta-total');
+        if (totalEl) totalEl.textContent = data.total_questions || (data.items ? data.items.length : 0);
+        showToast('Đã nạp đề gốc thành công.', 'success');
+      }
+    } catch (err) {
+      console.error("Error loading master exam:", err);
+      showToast('Không thể tải đề gốc.', 'error');
+    }
+  }
+
+  async function generateMasterExamFromSelectedMatrix() {
+    const selMat = document.getElementById('shuffler-select-matrix');
+    const matrixId = selMat ? selMat.value : null;
+    if (!matrixId) {
+      showToast('Vui lòng chọn ma trận khảo thí trước khi sinh đề gốc.', 'warning');
+      return;
+    }
+    try {
+      showToast('Đang sinh đề gốc từ ma trận...', 'info');
+      const resp = await fetch(`${API_BASE_URL}/exams/generate`, {
+        method: 'POST',
+        headers: {
+          ...auth.getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          matrix_id: matrixId,
+          title: 'Đề thi gốc sinh từ ma trận',
+          allow_partial: true
+        })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        state.masterExam = data;
+        renderMasterExam();
+        await loadMasterExamsAndMatricesForShuffler();
+        const selExam = document.getElementById('shuffler-select-master-exam');
+        if (selExam) selExam.value = data.id;
+        const totalEl = document.getElementById('shuffler-meta-total');
+        if (totalEl) totalEl.textContent = data.total_questions || (data.items ? data.items.length : 0);
+        showToast('Sinh đề gốc từ ma trận thành công!', 'success');
+      } else {
+        const errData = await resp.json().catch(() => ({}));
+        showToast('Lỗi sinh đề gốc: ' + (errData.detail || resp.statusText), 'error');
+      }
+    } catch (err) {
+      console.error("Error generating master exam from matrix:", err);
+      showToast('Lỗi kết nối khi sinh đề gốc.', 'error');
+    }
+  }
+
+  async function syncFromCurrentMatrix() {
+    const selMat = document.getElementById('shuffler-select-matrix');
+    if (selMat && selMat.options.length > 1) {
+      if (!selMat.value) selMat.value = selMat.options[1].value;
+      await generateMasterExamFromSelectedMatrix();
+    } else {
+      showToast('Không tìm thấy ma trận nào để đồng bộ.', 'warning');
+    }
+  }
+
   function renderMasterExam() {
     const container = document.getElementById('master-exam-items-list');
     if (!container) return;
@@ -3346,7 +3445,7 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
               <span class="font-bold text-[#0071E3] bg-[#0071E3]/[0.08] px-2 py-0.5 rounded-md border border-[#0071E3]/[0.15]">Câu ${idx + 1}</span>
-              <span class="font-mono text-slate-500">${q.code}</span>
+              <span class="font-mono text-slate-500">${q.code || (q.id ? q.id.slice(0, 8) : '')}</span>
               <span class="font-mono text-[11px] text-slate-700 font-bold">${q.learning_outcome_id}</span>
               ${
                 hasAnchorOption
@@ -3406,33 +3505,37 @@
     if (!modal || !listEl) return;
 
     if (infoEl) {
+      const qCodeDisplay = currentQ.code || (currentQ.id ? currentQ.id.slice(0, 8) : 'Q');
       infoEl.innerHTML = `<div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
         <span class="font-bold text-slate-800">Đang đổi Câu ${masterIdx + 1}:</span>
-        <span class="font-mono text-brand-700 font-semibold ml-1">${currentQ.code}</span>
+        <span class="font-mono text-brand-700 font-semibold ml-1">${qCodeDisplay}</span>
         <span class="text-slate-500 ml-2">&bull; Mã YCCĐ: <code>${currentQ.learning_outcome_id || 'TOAN12.GT.01'}</code></span>
         <span class="text-slate-500 ml-2">&bull; Thể thức: <code>${currentQ.item_format}</code></span>
       </div>`;
     }
 
     // Filter candidate questions from itemBank that are not currentQ
-    let candidates = state.itemBank.filter(q => q.code !== currentQ.code && q.learning_outcome_id === currentQ.learning_outcome_id);
+    const curId = currentQ.id || currentQ.code;
+    let candidates = state.itemBank.filter(q => (q.id || q.code) !== curId && q.learning_outcome_id === currentQ.learning_outcome_id);
     if (candidates.length === 0) {
-      candidates = state.itemBank.filter(q => q.code !== currentQ.code && q.item_format === currentQ.item_format);
+      candidates = state.itemBank.filter(q => (q.id || q.code) !== curId && q.item_format === currentQ.item_format);
     }
     if (candidates.length === 0) {
-      candidates = state.itemBank.filter(q => q.code !== currentQ.code);
+      candidates = state.itemBank.filter(q => (q.id || q.code) !== curId);
     }
 
     let html = '';
     candidates.slice(0, 6).forEach((c) => {
+      const cId = c.id || c.code;
+      const cCodeDisplay = c.code || (c.id ? c.id.slice(0, 8) : 'Q');
       html += `
         <div class="p-3.5 rounded-xl bg-white border border-slate-200 hover:border-brand-500 hover:shadow-xs transition-all space-y-2 text-xs">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-2">
-              <span class="px-2 py-0.5 rounded font-bold bg-brand-50 text-brand-700 text-[10px]">${c.code}</span>
+              <span class="px-2 py-0.5 rounded font-bold bg-brand-50 text-brand-700 text-[10px]">${cCodeDisplay}</span>
               <span class="text-slate-500 text-[11px] font-mono">${c.learning_outcome_id || ''} &bull; ${c.cognitive_level || ''}</span>
             </div>
-            <button onclick="app.selectReplacementCandidate('${c.code}')" class="btn-apple-primary py-1 px-3 text-xs font-semibold">
+            <button onclick="app.selectReplacementCandidate('${cId}')" class="btn-apple-primary py-1 px-3 text-xs font-semibold">
               Chọn câu này
             </button>
           </div>
@@ -3463,14 +3566,15 @@
 
   function selectReplacementCandidate(code) {
     if (activeSwapIndex === null) return;
-    const candidate = state.itemBank.find(q => q.code === code);
+    const candidate = state.itemBank.find(q => (q.id || q.code) === code);
     if (!candidate) return;
 
-    const oldCode = state.masterExam.items[activeSwapIndex]?.code;
+    const oldCode = state.masterExam.items[activeSwapIndex]?.code || state.masterExam.items[activeSwapIndex]?.id;
     state.masterExam.items[activeSwapIndex] = JSON.parse(JSON.stringify(candidate));
     renderMasterExam();
     closeSwapQuestionModal();
-    showToast(`Đã đổi Câu ${activeSwapIndex + 1} sang câu tương đương: ${candidate.code} (${candidate.learning_outcome_id || ''})`, 'success');
+    const candidateDisplay = candidate.code || (candidate.id ? candidate.id.slice(0, 8) : 'Q');
+    showToast(`Đã đổi Câu ${activeSwapIndex + 1} sang câu tương đương: ${candidateDisplay} (${candidate.learning_outcome_id || ''})`, 'success');
   }
 
   /**
@@ -4100,13 +4204,22 @@
 
   async function fetchQuestionsFromDB(syncBadge = true) {
     try {
-      const resp = await fetch(`${API_BASE_URL}/questions`, { headers: auth.getAuthHeaders() });
+      const resp = await fetch(`${API_BASE_URL}/questions?limit=1000`, { headers: auth.getAuthHeaders() });
       if (resp.ok) {
         const list = await resp.json();
         state.itemBank = list;
         renderItemBank();
         if (syncBadge) {
           updateBankCountBadge(list.length);
+        }
+        if ((!state.masterExam.items || state.masterExam.items.length === 0) && list.length > 0) {
+          state.masterExam.items = list.slice(0, 10).map((q, idx) => ({
+            id: q.id,
+            question: q,
+            order_index: idx + 1,
+            cognitive_level: q.cognitive_level,
+            item_format: q.item_format
+          }));
         }
       }
     } catch (err) {
@@ -4527,9 +4640,7 @@
       });
       if (resp.ok) {
         showToast('Đã xóa câu hỏi thành công!', 'success');
-        state.itemBank = state.itemBank.filter(q => String(q.id) !== String(id));
-        renderItemBank();
-        updateBankCountBadge(state.itemBank.length);
+        await fetchQuestionsFromDB();
       } else {
         state.itemBank = state.itemBank.filter(q => String(q.id) !== String(id));
         renderItemBank();
@@ -4550,7 +4661,9 @@
   async function init() {
     auth.init();
     await fetchQuestionsFromDB();
-    seedInitialQuestions();
+    if (!state.itemBank || state.itemBank.length === 0) {
+      seedInitialQuestions();
+    }
     setupPaperDropZone();
 
     // Setup Browser History popstate listener for SPA Router
@@ -8076,6 +8189,10 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     exportDigitizedToPdf,
     exportDigitizedToDocx,
     renderDigitizeStudio,
+    loadMasterExamsAndMatricesForShuffler,
+    onShufflerMasterExamChange,
+    generateMasterExamFromSelectedMatrix,
+    syncFromCurrentMatrix,
     getState: () => state,
   };
 })();

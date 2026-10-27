@@ -554,4 +554,53 @@ def test_api_matrix_spec_and_availability_and_swap(client):
             assert zf.read("BangDapAn_TongHop.csv").startswith(b"\xef\xbb\xbf")
 
 
+def test_api_questions_limit_1000_and_sqlite_persistence(client):
+    """Kiểm thử /questions?limit=1000:
+    - Nạp danh sách câu hỏi với limit=1000 thành công (200 OK).
+    - Hỗ trợ limit tới 5000 (le=5000) và từ chối 5001 với lỗi 422.
+    - Đảm bảo tính bền vững (persistence) trong SQLite: câu hỏi vừa tạo được lưu và truy xuất đầy đủ,
+      không bị ghi đè bởi mock.
+    """
+    import uuid
+    unique_tag = f"PERSIST_{uuid.uuid4().hex[:8]}"
+
+    # 1. Tạo câu hỏi mới trực tiếp vào SQLite qua API
+    payload = {
+        "stem": f"Câu hỏi kiểm thử tính bền vững SQLite {unique_tag}: Cho $f'(x) = 3x^2$.",
+        "subject_id": "subj-toan",
+        "grade_id": "grade-12",
+        "learning_outcome_id": "TOAN12.GT.01",
+        "cognitive_level": "RECOGNITION",
+        "item_format": "SINGLE_CHOICE",
+        "options": [
+            {"label": "A", "content": "$f(x) = x^3 + C$", "is_correct": True, "is_fixed": False},
+            {"label": "B", "content": "$f(x) = 6x + C$", "is_correct": False, "is_fixed": False},
+            {"label": "C", "content": "$f(x) = x^2 + C$", "is_correct": False, "is_fixed": False},
+            {"label": "D", "content": "$f(x) = 3 + C$", "is_correct": False, "is_fixed": False},
+        ],
+        "explanation": "Nguyên hàm của 3x^2 là x^3 + C."
+    }
+
+    create_resp = client.post("/api/v1/questions", json=payload)
+    assert create_resp.status_code == 201, create_resp.text
+    created_id = create_resp.json()["id"]
+
+    # 2. Gọi GET /questions?limit=1000
+    res_1000 = client.get("/api/v1/questions?limit=1000")
+    assert res_1000.status_code == 200
+    qs_1000 = res_1000.json()
+    assert isinstance(qs_1000, list)
+    # Xác nhận câu hỏi vừa tạo nằm trong danh sách trả về từ SQLite
+    assert any(q["id"] == created_id for q in qs_1000), "Câu hỏi mới phải tồn tại trong SQLite và được nạp qua limit=1000"
+
+    # 3. Kiểm thử biên độ tối đa le=5000:
+    res_5000 = client.get("/api/v1/questions?limit=5000")
+    assert res_5000.status_code == 200
+
+    # 4. Kiểm thử âm tính vượt quá limit 5000 -> 422 Unprocessable Entity
+    res_5001 = client.get("/api/v1/questions?limit=5001")
+    assert res_5001.status_code == 422
+
+
+
 

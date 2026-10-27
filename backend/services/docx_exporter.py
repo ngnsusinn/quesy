@@ -26,6 +26,7 @@ from docx.opc.packuri import PackURI
 import lxml.etree as etree
 
 from backend.config import settings
+from backend.services.composer_service import compile_latex_to_pdf
 
 try:
     import matplotlib
@@ -2130,27 +2131,141 @@ def generate_pdf_reportlab(variant: ExamVariant, output_pdf: Path) -> bool:
         return False
 
 
-def generate_variant_pdf(variant: ExamVariant, output_pdf: Path) -> bool:
-    """Generates official PDF using ultra-fast ReportLab engine (35ms) with browser fallback."""
-    if generate_pdf_reportlab(variant, output_pdf):
-        return True
+def generate_variant_latex(variant: ExamVariant, is_solution: bool = False) -> str:
+    items = sorted(variant.items, key=lambda x: x.variant_order_index)
+    
+    sec1 = [it for it in items if (it.question and it.question.item_format == "SINGLE_CHOICE")]
+    sec2 = [it for it in items if (it.question and it.question.item_format == "TRUE_FALSE_GROUP")]
+    sec3 = [it for it in items if (it.question and it.question.item_format == "SHORT_ANSWER")]
+    
+    if not sec1 and not sec2 and not sec3:
+        sec1 = items
 
-    # Tier 2: Browser HTML to PDF
-    temp_html = output_pdf.with_suffix(".temp.html")
+    n1 = len(sec1)
+    n2 = len(sec2)
+    n3 = len(sec3)
+
+    latex_lines = [
+        r"\begin{center}",
+        r"\begin{minipage}{0.38\textwidth}",
+        r"\centering \textbf{TRƯỜNG THPT CHUYÊN}\\ \textbf{ĐỀ THI KHẢO SÁT CHẤT LƯỢNG}",
+        r"\end{minipage}",
+        r"\hfill",
+        r"\begin{minipage}{0.58\textwidth}",
+        r"\centering \textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG}\\ \textbf{NĂM HỌC 2025 - MÔN: TOÁN HỌC}",
+        r"\end{minipage}",
+        r"\end{center}",
+        r"\vspace{0.3em}",
+        r"\begin{center}",
+        r"\textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}",
+        r"\end{center}",
+        r"\vspace{0.3em}",
+        r"\noindent Họ và tên thí sinh: \dotfill Số báo danh: \dotfill \framebox{\textbf{Mã đề: " + variant.variant_code + r"}}",
+        r"\vspace{0.4em}",
+        r"\rule{\textwidth}{0.5pt}",
+        r"\vspace{0.5em}"
+    ]
+
+    if n1 > 0:
+        latex_lines.append(rf"\noindent\textbf{{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.}} \textit{{Thí sinh trả lời từ câu 1 đến câu {n1}. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}}")
+        latex_lines.append(r"\vspace{0.3em}")
+        for it in sec1:
+            q = it.question
+            if not q: continue
+            stem = q.stem or ""
+            latex_lines.append(r"\begin{ex}")
+            latex_lines.append(stem)
+            
+            mapping = it.option_mapping or {"A": "A", "B": "B", "C": "C", "D": "D"}
+            opts = q.options or []
+            choice_parts = []
+            for lbl in ["A", "B", "C", "D"]:
+                orig_lbl = mapping.get(lbl, lbl)
+                opt_obj = next((o for o in opts if o.label == orig_lbl or o.label == lbl), None)
+                content = opt_obj.content if opt_obj else f"Phương án {lbl}"
+                is_corr = opt_obj.is_correct if opt_obj else False
+                prefix = r"\True " if is_corr else ""
+                choice_parts.append(f"{prefix}{content}")
+            
+            if len(choice_parts) >= 4:
+                latex_lines.append(rf"\choice{{{choice_parts[0]}}}{{{choice_parts[1]}}}{{{choice_parts[2]}}}{{{choice_parts[3]}}}")
+            
+            if is_solution:
+                latex_lines.append(r"\begin{loigiai}")
+                latex_lines.append(q.explanation or "Hướng dẫn giải chi tiết đang cập nhật.")
+                latex_lines.append(r"\end{loigiai}")
+            latex_lines.append(r"\end{ex}")
+            latex_lines.append(r"\vspace{0.2em}")
+
+    if n2 > 0:
+        latex_lines.append(r"\setcounter{ex}{0}")
+        latex_lines.append(rf"\noindent\textbf{{PHẦN II. Câu trắc nghiệm đúng sai.}} \textit{{Thí sinh trả lời từ câu 1 đến câu {n2}. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}}")
+        latex_lines.append(r"\vspace{0.3em}")
+        for it in sec2:
+            q = it.question
+            if not q: continue
+            stem = q.stem or ""
+            latex_lines.append(r"\begin{ex}")
+            latex_lines.append(stem)
+            subs = q.sub_statements or []
+            choice_tf_lines = [r"\choiceTF[1]"]
+            for sub in subs:
+                is_t = sub.is_true if hasattr(sub, 'is_true') else True
+                prefix = r"\True " if is_t else ""
+                content = sub.content or ""
+                content = re.sub(r'^[a-d]\)\s*', '', content)
+                choice_tf_lines.append(rf"{prefix}{content}")
+            latex_lines.append("\n".join(choice_tf_lines))
+            
+            if is_solution:
+                latex_lines.append(r"\begin{loigiai}")
+                latex_lines.append(r"\begin{itemchoice}")
+                for sub in subs:
+                    exp = sub.explanation or "Giải thích chi tiết."
+                    latex_lines.append(rf"\itemch {exp}")
+                latex_lines.append(r"\end{itemchoice}")
+                latex_lines.append(r"\end{loigiai}")
+            latex_lines.append(r"\end{ex}")
+            latex_lines.append(r"\vspace{0.2em}")
+
+    if n3 > 0:
+        latex_lines.append(r"\setcounter{ex}{0}")
+        latex_lines.append(rf"\noindent\textbf{{PHẦN III. Câu trắc nghiệm trả lời ngắn.}} \textit{{Thí sinh trả lời từ câu 1 đến câu {n3}.}}")
+        latex_lines.append(r"\vspace{0.3em}")
+        for it in sec3:
+            q = it.question
+            if not q: continue
+            stem = q.stem or ""
+            ans_key = it.answer_key or q.short_answer_key or "0"
+            latex_lines.append(r"\begin{ex}")
+            latex_lines.append(stem)
+            latex_lines.append(rf"\shortans{{{ans_key}}}")
+            
+            if is_solution:
+                latex_lines.append(r"\begin{loigiai}")
+                latex_lines.append(q.explanation or f"Đáp số: {ans_key}")
+                latex_lines.append(r"\end{loigiai}")
+            latex_lines.append(r"\end{ex}")
+            latex_lines.append(r"\vspace{0.2em}")
+
+    latex_lines.append(r"\vspace{1em}")
+    latex_lines.append(r"\begin{center}\textbf{--- HẾT ---}\end{center}")
+    return "\n".join(latex_lines)
+
+
+def generate_variant_pdf(variant: ExamVariant, output_pdf: Path) -> bool:
+    """Generates pure vector LaTeX PDF using Tectonic / Composer service."""
     try:
-        generate_variant_html(variant, temp_html)
-        if convert_html_to_pdf_browser(temp_html, output_pdf):
+        latex_code = generate_variant_latex(variant, is_solution=False)
+        success, err_msg, elapsed = compile_latex_to_pdf(
+            latex_code, output_pdf, title=f"Đề Thi Mã {variant.variant_code}", mode="dethi"
+        )
+        if success and output_pdf.exists() and output_pdf.stat().st_size > 1000:
             return True
     except Exception as e:
-        logger.warning(f"Tier 2 (Browser PDF) failed: {e}")
-    finally:
-        if temp_html.exists():
-            try:
-                temp_html.unlink()
-            except Exception:
-                pass
+        logger.warning(f"LaTeX/Tectonic PDF generation failed: {e}")
 
-    return False
+    return generate_pdf_reportlab(variant, output_pdf)
 
 
 def generate_solution_pdf(variant: ExamVariant, output_pdf: Path) -> bool:

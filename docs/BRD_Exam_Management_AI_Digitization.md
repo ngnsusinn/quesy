@@ -105,6 +105,8 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
   4. `PASSAGE_GROUP`: Câu hỏi chùm (Một đoạn văn bản/ngữ liệu bài đọc chung và các câu hỏi con đi kèm).
   5. `ESSAY`: Câu hỏi tự luận kèm rubric barem chấm điểm theo tiêu chí.
 - **BR-03.4 Kiểm soát trùng lặp bằng AI Vector:** Sử dụng thuật toán Cosine Similarity để so khớp nội dung: Cảnh báo vàng khi trùng $\ge 80\%$, **chặn lưu và cảnh báo đỏ khi trùng $\ge 90\%$** so với các câu hỏi trong ngân hàng.
+- **BR-03.5 Lưu trữ thực tế & Bền vững 100% CSDL SQLite (Persistent Item Bank):** Toàn bộ câu hỏi được lưu trữ thực tế trong SQLite (`storage/quesy.db`, 230+ câu hỏi chuẩn hóa). Khi hệ thống khởi động lại máy chủ hoặc người dùng F5 tải lại trang, client nạp trực tiếp toàn bộ dữ liệu từ CSDL (`limit=1000`), tuyệt đối không ghi đè dữ liệu giả lập (mock data), đảm bảo tính toàn vẹn và bất biến của ngân hàng câu hỏi.
+
 
 ---
 
@@ -155,8 +157,8 @@ ightarrow$ Dạng câu hỏi (Problem Archetype) và Thể thức câu hỏi (It
 ---
 
 ### BR-05: ĐỘNG CƠ SINH & TRỘN ĐỀ THI AN TOÀN (SAFE SHUFFLING ENGINE)
-- **BR-05.1 Đề thi Gốc (Master Exam) & Động cơ Đổi câu hỏi Tương đương (In-Place Question Swap Engine):**
-  - Sinh đề thi gốc từ Ma trận hoặc chọn từ ngân hàng đề thi.
+- **BR-05.1 Đề thi Gốc (Master Exam), Nhập từ Ma Trận & Đổi câu hỏi Tương đương (In-Place Question Swap Engine):**
+  - **Thanh nguồn Đề thi Gốc:** Cho phép chọn đề thi gốc đã lưu trong hệ thống hoặc chọn trực tiếp ma trận đề thi để sinh đề gốc (`⚡ Sinh Đề Gốc từ Ma Trận Này`) ngay trong phân hệ Trộn Đề.
   - Hiển thị danh sách câu hỏi đề gốc với đầy đủ công thức toán KaTeX và đồ thị vector TikZ SVG.
   - Tính năng "Đổi câu khác" (Swap Question): Cho phép giáo viên thay thế một câu hỏi bất kỳ trong đề gốc bằng một câu hỏi tương đương từ ngân hàng câu hỏi (cùng YCCĐ, cùng mức độ nhận thức Bloom, cùng thể thức thi, trạng thái APPROVED, không bị defective).
   - Tự động hủy các mã đề hoán vị cũ khi đề gốc bị thay đổi để đảm bảo tính đồng bộ dữ liệu.
@@ -165,12 +167,12 @@ ightarrow$ Dạng câu hỏi (Problem Archetype) và Thể thức câu hỏi (It
   2. *Nguyên tắc 2 - Passage Integrity (Bảo toàn câu hỏi chùm / ngữ liệu):* Giữ liền mạch khối câu hỏi có chung ngữ liệu bài đọc hoặc hình vẽ; các câu hỏi con luôn nằm liền kề ngay sau đoạn văn bản ngữ liệu chung.
   3. *Nguyên tắc 3 - Option Anchor Rule (Khóa mỏ neo phương án):* Tự động nhận diện các phương án chứa từ ngữ phụ thuộc vị trí ("Cả A và B", "Cả hai đáp án", "Tất cả các đáp án trên", "Tất cả các ý trên", "Không có đáp án nào"...) hoặc cờ `is_fixed = True`. **BẮT BUỘC KHÓA CỐ ĐỊNH phương án này tại vị trí cuối cùng: Vị trí D** trong mọi mã đề hoán vị; chỉ xáo trộn các phương án A, B, C tự do. Đảm bảo tỷ lệ đạt Option Anchor Rule 100%.
   4. *Nguyên tắc 4 - Key Matrix Generator (Ma trận đáp án đối chiếu):* Tự động sinh bảng ma trận đối chiếu đáp án chéo giữa đề gốc và các mã đề hoán vị (101, 102, 103, 104...).
-- **BR-05.3 Xuất bản Đề thi Đơn lẻ & Đóng gói Ấn phẩm Khảo thí (.ZIP):**
+- **BR-05.3 Xuất bản Đề thi Đơn lẻ & Đóng gói Ấn phẩm Khảo thí (.ZIP) Thuần Vector PDF LaTeX:**
   - Hoán vị sinh 4 mã đề chuẩn: 101, 102, 103, 104.
   - Tab xem trước từng mã đề (Mã 101, 102, 103, 104) với huy hiệu xác minh Option Anchor Rule đạt 100%.
   - Bảng ma trận đáp án tổng hợp (Answer Key Matrix table).
-  - Nút tải PDF riêng cho từng mã đề (`export-pdf`).
-  - Nút tải trọn gói ấn phẩm đề thi (.ZIP): Đóng gói đầy đủ `De_{code}.pdf`, `LoiGiai_{code}.pdf`, `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), và `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
+  - Nút tải PDF riêng cho từng mã đề (`export-pdf`): Xuất bản file `De_Thi_Ma_{code}.pdf` chuẩn Vector PDF LaTeX qua Tectonic XeTeX Engine.
+  - Nút tải trọn gói ấn phẩm đề thi (.ZIP): Đóng gói đầy đủ `De_{code}.pdf`, `LoiGiai_{code}.pdf` (chuẩn LaTeX thuần túy tương đồng phân hệ Soạn đề), `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), và `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 
 ---
 

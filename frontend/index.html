@@ -1325,7 +1325,46 @@
           </div>
         </div>
 
-        <!-- Master Exam Review & Shuffling Controls -->
+        <!-- Master Exam Source Toolbar -->
+        <div class="apple-card p-4 space-y-3 bg-gradient-to-r from-slate-50 to-blue-50/30 border border-blue-100">
+          <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-3">
+              <span class="font-bold text-slate-800 flex items-center space-x-1.5">
+                <i data-lucide="database" class="w-4 h-4 text-brand-600"></i>
+                <span>Đề thi gốc sẵn có:</span>
+              </span>
+              <select id="shuffler-select-master-exam" onchange="app.onShufflerMasterExamChange(this.value)" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium text-xs focus:ring-2 focus:ring-brand-500">
+                <option value="">-- Chọn đề gốc đã lưu --</option>
+              </select>
+            </div>
+            <div class="flex items-center space-x-3">
+              <span class="font-bold text-slate-800 flex items-center space-x-1.5">
+                <i data-lucide="grid" class="w-4 h-4 text-brand-600"></i>
+                <span>Ma trận khảo thí:</span>
+              </span>
+              <select id="shuffler-select-matrix" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium text-xs focus:ring-2 focus:ring-brand-500">
+                <option value="">-- Chọn ma trận --</option>
+              </select>
+              <button id="btn-shuffler-gen-matrix" onclick="app.generateMasterExamFromSelectedMatrix()" class="px-3 py-1.5 bg-brand-600 text-white font-semibold rounded-lg hover:bg-brand-700 transition-all flex items-center space-x-1 cursor-pointer">
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                <span>⚡ Sinh Đề Gốc</span>
+              </button>
+            </div>
+            <div>
+              <button id="btn-shuffler-sync-matrix" onclick="app.syncFromCurrentMatrix()" class="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold rounded-lg transition-all flex items-center space-x-1 cursor-pointer">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-brand-600"></i>
+                <span>🔄 Đồng bộ từ Ma trận hiện tại</span>
+              </button>
+            </div>
+          </div>
+          <!-- Meta Bar -->
+          <div id="shuffler-exam-meta-bar" class="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[11px] text-slate-600 font-medium">
+            <span>Môn: <strong>Toán học 12</strong></span>
+            <span>Thời lượng: <strong>90 phút</strong></span>
+            <span>Số câu: <strong id="shuffler-meta-total">0</strong> câu</span>
+            <span>Thang điểm: <strong>10.0đ</strong> (Barem QĐ 764)</span>
+          </div>
+        </div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           <!-- Master Exam Controls (col 1) -->

@@ -106,7 +106,7 @@ quesy/
 │   │   ├── composer_service.py        # Dịch vụ biên dịch LaTeX Hybrid 3 tầng, Dynamic Adaptive Timeout & bóc tách ex_test/câu hỏi đa dạng
 │   │   ├── crop_service.py            # Dịch vụ cắt và trích xuất ảnh đồ thị/bảng WebP (399 dòng)
 │   │   ├── deduplication.py           # Dịch vụ kiểm soát trùng lặp câu hỏi qua Vector Similarity (97 dòng)
-│   │   ├── docx_exporter.py           # Engine xuất bản Word MathType 7.0 OLE Vector WMF thuần Python (2,977 dòng)
+│   │   ├── docx_exporter.py           # Engine xuất bản đề thi hoán vị thuần Vector PDF LaTeX (Tectonic XeTeX & ex_test), Word MathType 7.0 OLE Vector WMF & gói ZIP ấn phẩm (2,980 dòng)
 │   │   ├── docx_export.py             # Dịch vụ tạo tài liệu Word bổ trợ (220 dòng)
 │   │   ├── excel_exporter.py          # Xuất bản danh sách thí sinh và bảng điểm Excel (121 dòng)
 │   │   ├── grading.py                 # Hàm tính điểm Đúng/Sai lũy tiến theo QĐ 764 (15 dòng)
@@ -399,7 +399,7 @@ ight., Environment undefined)
     + Điều khiển giao diện header: Trạng thái chưa đăng nhập (Nút Đăng nhập / Đăng ký Apple HIG); Trạng thái đã đăng nhập (Avatar, Họ tên, Role badge `Giáo viên`/`Học sinh`/`Quản trị`, menu dropdown có chức năng Đăng xuất).
     + Modal Đăng nhập / Đăng ký (`#auth-modal`): Chuyển tab Đăng nhập & Đăng ký mượt mà, tích hợp đăng nhập OAuth Google và GitHub, đăng nhập nhanh tài khoản giáo viên/admin thử nghiệm.
   - `app.matrix`: Quản lý ma trận đề thi 2 chiều, phân bổ số lượng câu theo mức độ nhận thức.
-  - `app.shuffler`: Quản lý thuật toán xáo trộn đề, tạo mã đề hoán vị và xuất bản tài liệu.
+  - `app.shuffler`: Quản lý nguồn đề gốc (chọn đề có sẵn hoặc sinh từ ma trận), thuật toán xáo trộn đề an toàn 4 nguyên tắc, tạo mã đề hoán vị và xuất bản ấn phẩm Vector PDF LaTeX.
   - `app.digitize`: Quản lý tải lên, theo dõi tiến trình WebSocket/Polling (0-100%) và màn hình đối chiếu song song HITL.
 
 ---

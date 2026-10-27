@@ -161,6 +161,15 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 4. `PASSAGE_GROUP`: Câu hỏi chùm (Một đoạn văn bản/ngữ liệu bài đọc cha và các câu hỏi con).
 5. `ESSAY`: Câu hỏi tự luận kèm rubric tiêu chí chấm điểm.
 
+#### SRS-FEAT-04a: Lưu Trữ Thực Tế & Nạp Bền Vững 100% CSDL SQLite Ngân Hàng Câu Hỏi (Persistent SQLite Item Bank)
+- **Mô tả:** Đảm bảo toàn bộ ngân hàng câu hỏi được lưu trữ thực tế, toàn vẹn và bền vững trong CSDL SQLite (`storage/quesy.db`, 230+ câu hỏi chuẩn hóa).
+- **Yêu cầu kỹ thuật:**
+  1. *Khởi động và Nạp Dữ liệu Thực:* Khi khởi động server hoặc tải lại trang F5 trên client, hàm `fetchQuestionsFromDB()` truy vấn toàn bộ câu hỏi qua `GET /api/v1/questions?limit=1000` (không bị giới hạn mặc định 50 câu) để nạp đầy đủ danh sách thực tế vào `state.itemBank`.
+  2. *Triệt Tiêu Hoàn Toàn Ghi Đè Dữ Liệu Giả (Zero Mock Overwrite):* Loại bỏ hoàn toàn việc gọi hàm nạp 12 câu hỏi mẫu giả lập (`seedInitialQuestions()`) sau khi đã nạp dữ liệu từ CSDL. Dữ liệu mock chỉ đóng vai trò dự phòng ngoại tuyến cực hạn (offline fallback) khi CSDL rỗng hoàn toàn hoặc mất kết nối mạng.
+  3. *Đồng bộ Bền vững Sau Mọi Thao tác:* Mọi thao tác thêm mới câu hỏi (thủ công, import LaTeX), chỉnh sửa nội dung, xóa câu hỏi, hoặc lưu trực tiếp từ phân hệ Soạn đề (`POST /api/v1/composer/save-to-bank`) đều thực thi trực tiếp trên SQLite và tự động cập nhật ngay lập tức `state.itemBank` kèm số lượng badge thời gian thực.
+  4. *Bảo toàn Qua Khởi động Lại Server:* File CSDL `storage/quesy.db` bảo toàn nguyên vẹn 100% dữ liệu qua mọi chu kỳ tắt/bật lại máy chủ (`force_reset=False` trong `backend/seed_data.py`).
+
+
 #### SRS-FEAT-04b: Xuất bản PDF Đề thi Trực tiếp từ Số hóa AI theo Chuẩn LaTeX Thuần (LaTeX-grade Digitize PDF Publisher)
 - **Mô tả:** Cho phép giáo viên xuất ngay bộ câu hỏi vừa được AI bóc tách ra tệp PDF chuẩn khảo thí quốc gia (`POST /api/v1/digitize/export-pdf` và `GET /api/v1/digitize/jobs/:job_id/export-pdf`).
 - **Typography & Font Chuẩn $\LaTeX$:**
@@ -695,6 +704,12 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
        * Trạng thái `status = 'APPROVED'` và `is_defective == False`.
        * Loại trừ tất cả các câu hỏi đang có mặt trong đề gốc.
      - `POST /api/v1/exams/{master_id}/items/{item_id}/swap`: Thay thế câu hỏi chỉ định trong đề gốc bằng câu hỏi mới; tự động xóa các mã đề hoán vị cũ (`ExamVariant`) để yêu cầu trộn lại, bảo toàn tính nhất quán tuyệt đối.
+  4. *Thanh Công Cụ Nguồn Đề Thi Gốc & Nhập từ Ma Trận Khảo Thí (Master Exam Source Toolbar):*
+     - Bố trí trực tiếp ở đầu tab `#tab-shuffler` ngay dưới thanh tiến trình:
+       * *Chọn Đề Gốc Đã Có:* Dropdown danh sách các đề thi gốc đã lưu trong hệ thống (`GET /api/v1/exams`). Khi người dùng chọn, tải thông tin và câu hỏi tương ứng.
+       * *Tạo Đề Gốc từ Ma Trận Khảo Thí:* Dropdown danh sách ma trận (`GET /api/v1/matrix`) kèm nút bấm **`⚡ Sinh Đề Gốc từ Ma Trận Này`** (`POST /api/v1/exams/generate`), cho phép sinh đề gốc trực tiếp từ phân hệ Trộn Đề mà không cần thao tác trung gian.
+       * *Đồng bộ Ma Trận Hiện Tại:* Nút bấm **`🔄 Đồng bộ từ Ma trận hiện tại`** cho phép đồng bộ ngay cấu hình ma trận đang mở trong Matrix Studio.
+       * *Thẻ Thông Tin Tổng Quan:* Hiển thị trực quan Tên đề thi, Môn học, Khối lớp, Thời gian làm bài, Tổng số câu hỏi, Thang điểm 10.0đ.
 
 #### SRS-FEAT-08: Thuật toán Trộn Đề & Hoán vị Mã đề An toàn (Safe Shuffling Engine)
 - **Mô tả:** Sinh ra 4 mã đề hoán vị chuẩn (101, 102, 103, 104) từ Đề thi Gốc, tuân thủ nghiêm ngặt 4 nguyên tắc khảo thí an toàn.
@@ -703,11 +718,15 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
   2. **Passage Integrity (Bảo toàn câu hỏi chùm / ngữ liệu):** Ngữ liệu bài đọc chung và các câu hỏi con đi kèm được gom thành một khối nguyên tử (Atomic Block); khi hoán vị, toàn bộ khối nguyên tử di chuyển cùng nhau; các câu hỏi con luôn nằm liền kề ngay sau ngữ liệu.
   3. **Option Anchor Rule (Khóa mỏ neo phương án):** Tự động phát hiện phương án có `is_fixed = True` hoặc chứa từ khóa mỏ neo vị trí ("Cả A và B", "Cả hai đáp án", "Tất cả các đáp án trên", "Tất cả các ý trên", "Không có đáp án nào"...). **BẮT BUỘC KHÓA CỐ ĐỊNH phương án này tại vị trí cuối cùng (Vị trí D)** trong mọi mã đề hoán vị; chỉ hoán vị tự do các phương án còn lại (A, B, C). Đảm bảo tỷ lệ xác minh Option Anchor Rule đạt 100%.
   4. **Key Matrix Generator (Ma trận đáp án đối chiếu):** Tự động lập bảng ma trận đối chiếu đáp án chéo giữa đề gốc và 4 mã đề hoán vị (cho cả 3 thể thức: ký tự đáp án cho Phần I, chuỗi đúng/sai cho Phần II, giá trị số cho Phần III).
-- **Xem trước Mã đề & Đóng gói Xuất bản Ấn phẩm:**
+- **Xem trước Mã đề & Đóng gói Xuất bản Ấn phẩm Thuần Vector PDF LaTeX (Tectonic XeTeX Engine):**
   - Tab xem trước từng mã đề (Mã 101, 102, 103, 104) với huy hiệu xác minh Option Anchor Rule đạt 100%.
   - Bảng ma trận đáp án tổng hợp (Answer Key Matrix Table).
-  - Tải file PDF độc lập cho từng mã đề (`GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`).
-  - Tải trọn gói ấn phẩm đề thi (.ZIP) (`GET /api/v1/exams/{master_id}/export-zip?format=pdf`): Đóng gói đầy đủ `De_{code}.pdf`, `LoiGiai_{code}.pdf`, `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), và `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
+  - **Xuất Bản Thuần Vector PDF LaTeX Chuẩn Quốc Gia (Tectonic XeTeX Engine):**
+    * Thay thế toàn bộ engine PDF đơn giản/ReportLab bằng kiến trúc biên dịch LaTeX thuần túy chuẩn Quốc gia (`ex_test.sty` v3.3) qua Tectonic XeTeX Engine (hoặc Chromium CMU Serif vector fallback) — đồng nhất 100% với phân hệ Soạn đề (`/composer`).
+    * Mã nguồn LaTeX được tổng hợp tự động (`generate_variant_latex`): Header 2 cột cân đối `minipage` (0.38 / 0.58 căn giữa), khung mã đề, dòng thông tin thí sinh `\dotfill`, nét liền đơn `
+ule{\textwidth}{0.5pt}`, Phần I `\choice` hoán vị an toàn, Phần II `\choiceTF[1]` kèm `\setcounter{ex}{0}`, Phần III `\shortans` kèm `\setcounter{ex}{0}`, toàn bộ đồ thị TikZ và bảng biến thiên `tkz-tab` căn giữa trang giấy.
+    * Tải file PDF độc lập cho từng mã đề (`GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`): Kết xuất file `De_Thi_Ma_{code}.pdf` chuẩn Vector PDF LaTeX sắc nét.
+    * Tải trọn gói ấn phẩm đề thi (.ZIP) (`GET /api/v1/exams/{master_id}/export-zip?format=pdf`): Đóng gói đầy đủ `De_{code}.pdf`, `LoiGiai_{code}.pdf` (với barem chấm bậc thang trong `\begin{loigiai}`), `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), và `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 
 ---
 
