@@ -3,7 +3,8 @@
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Cập nhật lần cuối:** Tháng 10/2026  
+> **Phiên bản:** v3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Lưu Đề từ Soạn thảo vào Ngân hàng)  
+> **Cập nhật lần cuối:** Tháng 10/2026
 
 ---
 
@@ -85,22 +86,24 @@ quesy/
 │   ├── config.py                      # Cấu hình hệ thống, biến môi trường, đường dẫn storage (103 dòng)
 │   ├── database.py                    # Kết nối DB Engine, SessionLocal, Dependency get_db (48 dòng)
 │   ├── main.py                        # Khởi tạo FastAPI app, middleware CORS, mount SPA routes (204 dòng)
-│   ├── models.py                      # 19 thực thể CSDL SQLAlchemy ORM chuẩn hóa (490 dòng)
-│   ├── schemas.py                     # Pydantic V2 data validation schemas (597 dòng)
-│   ├── seed_data.py                   # Bộ dữ liệu mẫu ngân hàng câu hỏi & cây TT 32 (1,122 dòng)
+│   ├── models.py                      # 20 thực thể CSDL SQLAlchemy ORM chuẩn hóa (bao gồm User Auth)
+│   ├── schemas.py                     # Pydantic V2 data validation schemas (Auth, Question CRUD, Composer)
+│   ├── seed_data.py                   # Bộ dữ liệu mẫu ngân hàng câu hỏi, cây TT 32 & tài khoản mẫu
 │   │
 │   ├── routers/                       # Tầng Controller & API Endpoints
-│   │   ├── composer.py                # API Soạn đề LaTeX, Tectonic compile, AI Diff Copilot, Chẩn đoán timeout & tối ưu TikZ (2,040 dòng)
-│   │   ├── digitize.py                # API Số hóa đề thi 2-Pass, quản lý tiến trình, cắt ảnh (755 dòng)
-│   │   ├── exams.py                   # API Tạo đề thi gốc, quản lý mã đề hoán vị, chấm thi (434 dòng)
-│   │   ├── matrix.py                  # API Ma trận đặc tả đề thi theo YCCĐ (215 dòng)
-│   │   ├── questions.py               # API Ngân hàng câu hỏi CRUD, preview công thức, lọc (387 dòng)
-│   │   └── taxonomy.py                # API Cây phân cấp kiến thức 6 tầng theo TT 32 (445 dòng)
+│   │   ├── auth.py                    # API Xác thực người dùng: Register, Login JWT, OAuth Google/GitHub, Me, Logout
+│   │   ├── composer.py                # API Soạn đề LaTeX, Tectonic compile, AI Diff Copilot, Chẩn đoán timeout, Save-to-bank đa thể thức
+│   │   ├── digitize.py                # API Số hóa đề thi 2-Pass, quản lý tiến trình, cắt ảnh
+│   │   ├── exams.py                   # API Tạo đề thi gốc, quản lý mã đề hoán vị, chấm thi
+│   │   ├── matrix.py                  # API Ma trận đặc tả đề thi theo YCCĐ
+│   │   ├── questions.py               # API Ngân hàng câu hỏi: CRUD đầy đủ, Lọc 6 tầng TT 32, Xuất PDF/CSV/LaTeX, Nhập câu hỏi, Auto-tag, Duplicate check
+│   │   └── taxonomy.py                # API Cây phân cấp kiến thức 6 tầng theo TT 32
 │   │
 │   ├── services/                      # Tầng Domain Business Logic & Processing Engines
-│   │   ├── ai_parser.py               # Engine số hóa đề thi thông minh (Pass 1 Text + Pass 2 TikZ) (918 dòng)
-│   │   ├── ai_provider_service.py     # Adapter kết nối đa nhà cung cấp AI (Gemini, OpenAI...) (833 dòng)
-│   │   ├── composer_service.py        # Dịch vụ biên dịch LaTeX Hybrid 3 tầng, Dynamic Adaptive Timeout & bóc tách ex_test (1,264 dòng)
+│   │   ├── ai_parser.py               # Engine số hóa đề thi thông minh (Pass 1 Text + Pass 2 TikZ)
+│   │   ├── ai_provider_service.py     # Adapter kết nối đa nhà cung cấp AI (Gemini, OpenAI...)
+│   │   ├── auth_service.py            # Dịch vụ xác thực: Băm mật khẩu an toàn, sinh/kiểm tra JWT HS256, dependencies FastAPI
+│   │   ├── composer_service.py        # Dịch vụ biên dịch LaTeX Hybrid 3 tầng, Dynamic Adaptive Timeout & bóc tách ex_test/câu hỏi đa dạng
 │   │   ├── crop_service.py            # Dịch vụ cắt và trích xuất ảnh đồ thị/bảng WebP (399 dòng)
 │   │   ├── deduplication.py           # Dịch vụ kiểm soát trùng lặp câu hỏi qua Vector Similarity (97 dòng)
 │   │   ├── docx_exporter.py           # Engine xuất bản Word MathType 7.0 OLE Vector WMF thuần Python (2,977 dòng)
@@ -148,9 +151,10 @@ quesy/
 │   ├── factories.py                   # Factory dữ liệu giả lập cho test cases (143 dòng)
 │   ├── test_ai_pipeline.py            # Kiểm thử pipeline AI bóc tách (548 dòng)
 │   ├── test_api_contracts_and_negatives.py # Kiểm thử hợp đồng API & trường hợp biên âm tính (276 dòng)
-│   ├── test_api_endpoints.py          # Kiểm thử các API endpoints cốt lõi (256 dòng)
+│   ├── test_api_endpoints.py          # Kiểm thử các API endpoints cốt lõi, count, export BOM, import, filters & cascade delete
+│   ├── test_auth.py                   # Kiểm thử hệ thống xác thực Auth: PBKDF2 hashing, JWT token, Register, Login, Me, OAuth Google/GitHub, Logout & RBAC
 │   ├── test_cloud_vision_adapter.py   # Kiểm thử adapter cloud vision (97 dòng)
-│   ├── test_composer.py               # Kiểm thử Soạn đề, Tectonic compile, AI Inline Diff, Chat API Contract (1550+ dòng)
+│   ├── test_composer.py               # Kiểm thử Soạn đề, Tectonic compile, AI Inline Diff, Chat API Contract, Save-to-Bank 3 thể thức
 │   ├── test_deduplication.py          # Kiểm thử lọc trùng câu hỏi (84 dòng)
 │   ├── test_digitize_2pass.py         # Kiểm thử pipeline 2-Pass số hóa (273 dòng)
 │   ├── test_digitize_docx_export.py   # Kiểm thử xuất Word từ dữ liệu số hóa (91 dòng)
@@ -173,7 +177,10 @@ quesy/
 
 ## 3. BẢN ĐỒ CƠ SỞ DỮ LIỆU & QUAN HỆ THỰC THỂ (ERD MAP)
 
-Hệ thống quản lý **19 thực thể** chia thành 4 nhóm nghiệp vụ:
+Hệ thống quản lý **20 thực thể** chia thành 5 nhóm nghiệp vụ:
+
+### 3.0. Nhóm Người Dùng & Xác Thực (User & Authentication)
+1. **`User` (Người dùng & Giáo viên):** Quản lý định danh tài khoản, băm mật khẩu bảo mật (`hashed_password`), vai trò RBAC (`role`: `ADMIN`, `TEACHER`, `STUDENT`), liên kết mạng xã hội (`oauth_provider`: `local`, `google`, `github`, `oauth_id`), avatar cá nhân, trạng thái hoạt động (`is_active`).
 
 ### 3.1. Nhóm Cây Kiến Thức (Taxonomy - Chuẩn TT 32/2018)
 1. **`Subject` (Môn học):** Mã môn (`TOAN`, `VATLI`...), tên môn, trạng thái.
@@ -356,6 +363,7 @@ ight., Environment undefined)
 - **Mô hình Single Page Application (SPA):** Điều hướng thuần Client-side trên `frontend/static/app.js` thông qua đối tượng toàn cục `app`:
   - `app.navigate(route)`: Chuyển đổi trạng thái hiển thị giữa các view mà không tải lại trang (`history.pushState`).
   - `app.composer`: Quản lý toàn bộ vòng đời soạn thảo đề thi:
+    + *Nút Chuyên Biệt `📥 LƯU VÀO NGÂN HÀNG` (`#btn-composer-save-to-bank`):* Đặt nổi bật trực tiếp trên thanh công cụ Composer, kích hoạt bóc tách tự động đa thể thức (Trắc nghiệm đơn, Đúng/Sai QĐ 764, Trả lời ngắn, TikZ, BBT tkz-tab), tự động nhận diện môn học, khối lớp, đề xuất gắn nhãn YCCĐ bằng AI, đẩy trực tiếp vào ngân hàng dữ liệu CSDL, đồng bộ lập tức số lượng câu hỏi lên `#bank-count-badge` và làm mới danh sách ngân hàng.
     + *Không gian làm việc co giãn linh hoạt & Split Resizer Chuẩn Apple HIG:* Thanh phân tách ngang `#composer-split-resizer` (class `composer-col-splitter`) được tái thiết kế chuẩn Apple HIG với khoảng cách đệm công thái học `w-3.5` / `w-4` và lề an toàn `mx-1` / `mx-1.5`, trục viên thuốc `w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]` cách đều viền card 6-8px, không đè sát viền box soạn thảo (Ảnh 2). Hỗ trợ kéo thả chuột/cảm ứng tùy biến tỷ lệ từ 25% đến 75% (nháy đúp về 60:40, lưu `quesy_composer_split_ratio`). Khung xem trước PDF tự động co giãn (`fitToWidth`) theo chiều rộng khả dụng trong thời gian thực khi kéo splitter, kết hợp vùng cuộn `overflow-x-auto` loại bỏ triệt để hiện tượng xén mép phải.
     + *Thanh Nhập Lệnh Thu Gọn, Con Trỏ Toàn Chiều (Full Caret) & Nổi Bật Khi Select:* Thanh dạng viên thuốc neo tại chân editor (`#composer-ai-compact-bar`) với độ tương phản chuẩn WCAG 2.1 AA (chữ trắng `#f8fafc`, caret tím sáng `#c084fc` hoặc xanh Apple `#38bdf8`). Chiều cao font và dòng tường minh (`font-size: 13px; line-height: 20px; height: 24px; padding: 1px 0`) đảm bảo con trỏ hiển thị trọn vẹn 100% chiều cao không bị ăn mất/clipping. Khi click vào input, thanh bar kích hoạt pseudo-class `:focus-within` nổi bật rực rỡ với viền tím neon (`rgba(168, 85, 247, 0.75)`), quầng sáng tỏa Apple Glow `0 0 0 3.5px rgba(168, 85, 247, 0.28)`, icon sparkles phát sáng và nút gửi chuyển tím neon. Click chuột chỉ để gõ text bình thường, nhấn Enter hoặc bấm nút gửi mới bung popup trợ lý. Hệ thống thực hiện xóa sạch lập tức cả 2 ô nhập (`compactInput.value = ''` và `chatInput.value = ''`) tại $t = 0\text{ms}$ khi gửi lệnh, triệt tiêu hoàn toàn lỗi text cũ còn kẹt trong ô nhập (Ảnh 1).
     + *Cấu Trúc Header 2 Cột Căn Giữa (0.38/0.58), Phân Vùng 3 Section textbf/textit & Tự Động Nhận Diện Số Lượng Câu Hỏi Chuẩn Quốc Gia 2025:* Tích hợp bộ template chuẩn của Bộ Giáo dục & Đào tạo gồm Header 2 cột đối xứng bằng môi trường `minipage` (tỉ lệ 0.38\textwidth cột trái và 0.58\textwidth cột phải, có `\centering` cả 2 bên), bỏ nét liền phía trên và chỉ giữ đường nét liền đơn `\rule{\textwidth}{0.5pt}` phía dưới dòng thông tin thí sinh `\dotfill` kèm khung mã đề `\framebox{\textbf{Mã đề: 0102}}`. Thay thế hoàn toàn `\section*{...}` bằng `\noindent\textbf{PHẦN ...}` và `\textit{...}`. Hệ thống vận hành thuật toán đồng bộ hai tầng (Two-Tier Sync) với `sync_section_question_counts(latex_code)` ở backend và `syncSectionQuestionCounts(latexCode)` ở frontend, tự động nhận diện số lượng câu hỏi thực tế (\begin{ex}, \begin{bt}, \textbf{Câu ...}) và cập nhật chính xác câu hướng dẫn "từ câu 1 đến câu {count}" theo thời gian thực khi biên dịch hoặc gõ phím. Engine render HTML/PDF hỗ trợ hoàn hảo `minipage` (38%/58%), `\centering`, `\textbf`, `\textit`, `\rule`, `\dotfill`, `\framebox`.
@@ -365,7 +373,23 @@ ight., Environment undefined)
     + *Quản lý Phiên Sạch sẽ & Ngăn kéo Lịch sử:* Mỗi phiên mới bắt đầu sạch sẽ với tin nhắn chào mặc định từ Quesy Copilot; các phiên cũ được lưu trữ vào kho `quesy_composer_chat_sessions` và mở xem lại khi người dùng bấm nút "Lịch sử".
     + *Kiến Trúc Duyệt & Áp Dụng Đa Khối Diff (Multi-Diff 1/N, Apply All):* Loại bỏ hoàn toàn widget diff trùng lặp trong bubble chat của trợ lý; toàn bộ giao diện so sánh `- old_text` / `+ new_text` được hiển thị tập trung trên Editor (Inline Diff Overlay và Top Banner). Hỗ trợ bóc tách đa khối diff (`diffs: List[DiffSuggestion]`), hiển thị bộ đếm động `${currentDiffIndex + 1}/${pendingDiffs.length}`, điều hướng tuần tự (`[< Trước]` / `[Sau >]`), duyệt chấp nhận/từ chối từng khối, và nút **`[Áp dụng tất cả] (Apply All)`** để hợp nhất toàn bộ các thay đổi vào mã nguồn chỉ với 1 cú click (Ảnh 3).
     + *Các tính năng cốt lõi khác:* Động cơ thay thế mờ 6 tầng (6-Tier Fuzzy Line Matcher), undo/redo stack, debounced compiler, AI copilot chat, toggle lời giải `[dethi]` <-> `[loigiai]`, và trình xem trước High-DPI Vector Canvas (PDF.js) đồng bộ 100% tỷ lệ thu phóng.
-  - `app.bank`: Quản lý tìm kiếm câu hỏi, cây bộ lọc 6 tầng, preview công thức toán KaTeX.
+  - `app.bank`: Quản lý toàn diện Ngân hàng câu hỏi:
+    + *Bộ lọc cây kiến thức 6 tầng cascading chuẩn TT 32:* Khối lớp, Môn học, Mạch nội dung, Chủ đề, Bài học, Mã YCCĐ.
+    + *Bộ lọc thứ cấp:* Dạng câu hỏi (Problem Archetype), Mức độ nhận thức (Biết, Hiểu, Vận dụng, Vận dụng cao), Thể thức khảo thí QĐ 764 (Trắc nghiệm đơn, Đúng/Sai 4 ý, Trả lời ngắn), Ô tìm kiếm từ khóa/mã câu.
+    + *Hệ thống Modals CRUD chuẩn Apple HIG:*
+      * Modal Thêm mới câu hỏi (`#question-create-modal`): Hỗ trợ cả 3 thể thức QĐ 764, công cụ chèn nhanh ký hiệu toán học, xem trước KaTeX live, gợi ý YCCĐ AI, kiểm tra trùng lặp trước khi lưu.
+      * Modal Xem chi tiết (`#question-detail-modal`): Xem công thức KaTeX/TikZ sắc nét, barem điểm bậc thang QĐ 764, chỉ số khảo thí trắc nghiệm ($p, D$), cây phân loại chuẩn.
+      * Modal Sửa câu hỏi (`#question-edit-modal`): Cho phép cập nhật toàn diện stem, phương án A-D, cờ khóa neo D, khẳng định a-d, đáp án ngắn, dung sai, YCCĐ và lời giải chi tiết.
+      * Chức năng Xóa câu hỏi: Hộp thoại xác nhận, xóa triệt để cascade CSDL, tự động cập nhật ngay số lượng và làm mới danh sách.
+    + *Xuất & Nhập Ngân hàng Câu hỏi:*
+      * Xuất danh sách: Hỗ trợ xuất sang PDF vector in ấn (khổ A4, Times/CMU Serif), CSV UTF-8 BOM chuẩn Excel tiếng Việt, LaTeX `.tex` thuần gói `ex_test.sty`.
+      * Nhập câu hỏi: Nhập từ file văn bản/mã LaTeX/JSON, tự động phân tích cú pháp, kiểm tra trùng lặp và đẩy vào CSDL.
+    + *Cảnh báo Trùng lặp AI & Auto-tagging:* Tính toán Cosine Similarity ($\ge 0.90$), tự động phân tích và gắn mã YCCĐ theo nội dung câu hỏi.
+    + *Đồng bộ Huy hiệu Số lượng:* Tự động đồng bộ số lượng câu hỏi thực tế trên badge `#bank-count-badge`.
+  - `app.auth`: Quản lý hệ thống xác thực người dùng & phân quyền RBAC:
+    + Quản lý phiên đăng nhập qua JWT HS256 lưu an toàn tại `localStorage` (`quesy_auth_token`), tự động đính kèm header `Authorization: Bearer <token>` vào các API requests.
+    + Điều khiển giao diện header: Trạng thái chưa đăng nhập (Nút Đăng nhập / Đăng ký Apple HIG); Trạng thái đã đăng nhập (Avatar, Họ tên, Role badge `Giáo viên`/`Học sinh`/`Quản trị`, menu dropdown có chức năng Đăng xuất).
+    + Modal Đăng nhập / Đăng ký (`#auth-modal`): Chuyển tab Đăng nhập & Đăng ký mượt mà, tích hợp đăng nhập OAuth Google và GitHub, đăng nhập nhanh tài khoản giáo viên/admin thử nghiệm.
   - `app.matrix`: Quản lý ma trận đề thi 2 chiều, phân bổ số lượng câu theo mức độ nhận thức.
   - `app.shuffler`: Quản lý thuật toán xáo trộn đề, tạo mã đề hoán vị và xuất bản tài liệu.
   - `app.digitize`: Quản lý tải lên, theo dõi tiến trình WebSocket/Polling (0-100%) và màn hình đối chiếu song song HITL.

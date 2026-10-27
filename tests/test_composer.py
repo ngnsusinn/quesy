@@ -4474,3 +4474,116 @@ def test_composer_compile_partial_endpoint_and_draft_mode():
     assert res_draft.status_code == 200
     data_draft = res_draft.json()
     assert data_draft["success"] is True
+
+
+def test_composer_save_to_bank_comprehensive_three_formats_and_counts():
+    """Verify POST /api/v1/composer/save-to-bank extracts and persists all 3 Circular 32/2025 formats:
+    - SINGLE_CHOICE (Trắc nghiệm 4 lựa chọn)
+    - TRUE_FALSE_GROUP (Trắc nghiệm Đúng/Sai 4 khẳng định theo QĐ 764)
+    - SHORT_ANSWER (Trả lời ngắn với short_answer_key & tolerance)
+    and returns exact counts breakdown."""
+    import uuid
+    unique_tag = f"COMPOSER_SAVE_{uuid.uuid4().hex[:6]}"
+
+    latex_document = r"""
+\begin{ex}
+[TAG_PLACEHOLDER] Cho hàm số $y = x^3 - 3x^2 + 2$. Điểm cực đại của hàm số là:
+\choice
+{\True $(0; 2)$}
+{$(2; -2)$}
+{$(1; 0)$}
+{$(0; -2)$}
+\begin{loigiai}
+$y' = 3x^2 - 6x = 0 \Leftrightarrow x=0$ hoặc $x=2$. Điểm cực đại là $(0; 2)$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+[TAG_PLACEHOLDER] Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình vuông. Xét tính đúng sai của các mệnh đề sau:
+\choiceTF
+{\True $AC \perp BD$.}
+{$SA$ luôn vuông góc với đáy $ABCD$.}
+{\True Thể tích khối chóp tính theo công thức $V = \frac{1}{3} S_{ABCD} \cdot h$.}
+{Tam giác $SAB$ luôn là tam giác đều.}
+\begin{loigiai}
+$AC \perp BD$ do $ABCD$ là hình vuông. Công thức thể tích luôn đúng.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+[TAG_PLACEHOLDER] Một vật chuyển động theo quy luật $s(t) = -t^3 + 6t^2 + 9t$. Tìm vận tốc lớn nhất của vật (m/s).
+\shortans{21}
+\begin{loigiai}
+$v(t) = s'(t) = -3t^2 + 12t + 9 = -3(t-2)^2 + 21 \le 21$.
+\end{loigiai}
+\end{ex}
+""".replace("TAG_PLACEHOLDER", unique_tag)
+
+    res = client.post(
+        "/api/v1/composer/save-to-bank",
+        json={"latex_code": latex_document}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["total_saved"] == 3
+    assert data["count"] == 3
+
+    # Check counts breakdown
+    counts = data["counts"]
+    assert counts["single_choice"] == 1
+    assert counts["true_false"] == 1
+    assert counts["short_answer"] == 1
+
+    # Verify message formatting
+    assert "Đã lưu 3 câu hỏi" in data["message"]
+
+    # Verify database persistence
+    from backend.database import SessionLocal
+    from backend.models import Question
+    db = SessionLocal()
+    saved_questions = []
+    try:
+        saved_questions = db.query(Question).filter(Question.stem.contains(unique_tag)).all()
+        assert len(saved_questions) == 3
+
+        formats = {q.item_format for q in saved_questions}
+        assert "SINGLE_CHOICE" in formats
+        assert "TRUE_FALSE_GROUP" in formats
+        assert "SHORT_ANSWER" in formats
+
+        # Verify options on single choice
+        sc_q = next(q for q in saved_questions if q.item_format == "SINGLE_CHOICE")
+        assert len(sc_q.options) == 4
+        assert any(opt.is_correct for opt in sc_q.options)
+
+        # Verify sub-statements on true-false
+        tf_q = next(q for q in saved_questions if q.item_format == "TRUE_FALSE_GROUP")
+        assert len(tf_q.sub_statements) == 4
+        assert sum(1 for sub in tf_q.sub_statements if sub.is_true) == 2
+
+        # Verify short answer key
+        sa_q = next(q for q in saved_questions if q.item_format == "SHORT_ANSWER")
+        assert sa_q.short_answer_key == "21"
+    finally:
+        # Cleanup test questions
+        for q in saved_questions:
+            db.delete(q)
+        db.commit()
+        db.close()
+
+
+def test_composer_save_to_bank_empty_latex_graceful_response():
+    """Verify POST /api/v1/composer/save-to-bank handles empty or invalid LaTeX gracefully."""
+    res = client.post(
+        "/api/v1/composer/save-to-bank",
+        json={"latex_code": "% Just a comment, no questions"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is False
+    assert data["total_saved"] == 0
+    assert data["counts"]["single_choice"] == 0
+    assert data["counts"]["true_false"] == 0
+    assert data["counts"]["short_answer"] == 0
+

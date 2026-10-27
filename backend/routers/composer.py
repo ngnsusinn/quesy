@@ -2077,22 +2077,40 @@ Ta có $\lim_{x \to -1} y = \infty \Rightarrow x = -1$ là đường tiệm cậ
 
 @router.post("/save-to-bank", summary="Extract questions from LaTeX and save to Quesy Question Bank")
 def save_to_question_bank(req: SaveToBankRequest, db: Session = Depends(get_db)):
-    """Parses questions from the active LaTeX document and commits them into the database."""
+    """Parses questions from the active LaTeX document, auto-tags YCCĐ, and commits them into the database."""
     questions_data = extract_questions_from_latex(req.latex_code)
     if not questions_data:
-        return {"success": False, "count": 0, "message": "Không tìm thấy câu hỏi hợp lệ trong định dạng LaTeX (cần dạng \\textbf{Câu X.})."}
+        return {"success": False, "total_saved": 0, "counts": {"single_choice": 0, "true_false": 0, "short_answer": 0}, "message": "Không tìm thấy câu hỏi hợp lệ trong định dạng LaTeX."}
 
+    from backend.services.tagging_service import suggest_auto_tagging
     saved_count = 0
+    counts = {"single_choice": 0, "true_false": 0, "short_answer": 0}
+
     for q_data in questions_data:
         try:
+            fmt = q_data.get("item_format", "SINGLE_CHOICE")
+            stem = q_data["stem"]
+            tags = suggest_auto_tagging(stem=stem, db=db)
+            
+            cognitive_level = q_data.get("cognitive_level") or tags.get("cognitive_level", "RECOGNITION")
+            learning_outcome_id = tags.get("learning_outcome_id")
+
             q = Question(
-                stem=q_data["stem"],
-                item_format=q_data.get("item_format", "SINGLE_CHOICE"),
+                stem=stem,
+                item_format=fmt,
                 short_answer_key=q_data.get("short_answer_value") or q_data.get("short_answer_key"),
                 tolerance=q_data.get("tolerance", 0.0),
-                cognitive_level=q_data.get("cognitive_level", "RECOGNITION"),
-                status="DRAFT"
+                cognitive_level=cognitive_level,
+                learning_outcome_id=learning_outcome_id,
+                status="APPROVED"
             )
+            if fmt == "SINGLE_CHOICE":
+                counts["single_choice"] += 1
+            elif fmt == "TRUE_FALSE_GROUP":
+                counts["true_false"] += 1
+            elif fmt == "SHORT_ANSWER":
+                counts["short_answer"] += 1
+
             if q_data.get("options"):
                 for idx, opt in enumerate(q_data["options"]):
                     q.options.append(QuestionOption(
@@ -2119,6 +2137,8 @@ def save_to_question_bank(req: SaveToBankRequest, db: Session = Depends(get_db))
     db.commit()
     return {
         "success": True,
+        "total_saved": saved_count,
         "count": saved_count,
-        "message": f"Đã lưu thành công {saved_count} câu hỏi vào Ngân hàng câu hỏi của hệ thống."
+        "counts": counts,
+        "message": f"Đã lưu {saved_count} câu hỏi ({counts['single_choice']} trắc nghiệm, {counts['true_false']} đúng/sai, {counts['short_answer']} trả lời ngắn) vào Ngân hàng câu hỏi!"
     }

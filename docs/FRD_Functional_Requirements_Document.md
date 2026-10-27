@@ -2,8 +2,8 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, phân hệ Soạn đề tinh gọn không cần preamble (tự động nhúng ngầm ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn thảo AI copilot thông minh, và quy chuẩn quản trị phát triển Git.
+- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (bóc tách trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (tự động nhúng ngầm ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn thảo AI copilot thông minh, và quy chuẩn quản trị phát triển Git.
 - **Ngày phát hành:** 2026-10-24  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
@@ -31,11 +31,13 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 - **MOD-01:** Phân hệ Tiếp nhận & Số hóa Đề thi bằng AI (AI Ingestion & Parsing)
 - **MOD-02:** Phân hệ Studio Hậu kiểm Đối chiếu Song song (HITL Review Studio)
 - **MOD-03:** Phân hệ Bộ Dựng Đồ Thị Vector SVG & Chuẩn Hóa Toán Học (TikZ & LaTeX Sanitizer)
-- **MOD-04:** Phân hệ Ngân hàng Câu hỏi & Phân loại Dạng bài (Item Bank Management)
+- **MOD-04:** Phân hệ Ngân hàng Câu hỏi & Vòng đời Toàn diện (Item Bank Management & Full CRUD)
 - **MOD-05:** Phân hệ Ma trận Đề thi & Rút đề theo Ràng buộc (Exam Matrix & Solver)
 - **MOD-06:** Phân hệ Động cơ Trộn Mã đề An toàn (Safe Shuffling Engine)
 - **MOD-07:** Phân hệ Xuất bản Đề thi Word OMML & In ấn (Publishing & Export Service)
 - **MOD-08:** Phân hệ Chấm điểm Bậc thang & Quản lý Bảng điểm (Grade & Roster Management)
+- **MOD-09:** Phân hệ Xác thực Người dùng & Quản lý Phân quyền (Authentication, JWT & RBAC)
+- **MOD-10:** Phân hệ Soạn đề LaTeX Trực tiếp & Lưu đề vào Ngân hàng (Composer & Bank Deep Ingestion)
 
 ---
 
@@ -668,6 +670,71 @@ Hệ thống hỗ trợ 5 thể thức khảo thí:
   - $0.80 \le \text{Similarity} < 0.90$: Hiển thị cảnh báo vàng "Câu hỏi tương tự".
   - $\text{Similarity} \ge 0.90$: Bật Modal đỏ chặn lưu: *"Cảnh báo: Trùng lặp 92% với câu hỏi [TOAN12-0452] trong ngân hàng"* kèm bảng so sánh đối đầu trước khi cho phép lưu.
 
+### 2.8.1. FR-04.3: Hệ Thống Thao Tác CRUD Hoàn Chỉnh & Modals Chuẩn Apple HIG
+Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/bank`:
+1. **Thêm mới câu hỏi (+ Thêm câu hỏi thủ công - `#question-create-modal`):**
+   - Hỗ trợ đầy đủ 3 thể thức QĐ 764:
+     + *Trắc nghiệm đơn (SINGLE_CHOICE):* 4 phương án A, B, C, D; chọn 1 đáp án đúng (radio); cờ khóa neo phương án D (`is_fixed`).
+     + *Đúng / Sai 4 khẳng định (TRUE_FALSE_GROUP):* 4 khẳng định a, b, c, d độc lập; mỗi khẳng định có switch chọn ĐÚNG / SAI và ô nhập lời giải con.
+     + *Trả lời ngắn (SHORT_ANSWER):* Ô nhập kết quả đúng (số hoặc chuỗi) và dung sai tính toán $\pm \epsilon$.
+   - Tích hợp thanh công cụ chèn nhanh ký hiệu toán học (`\dfrac{a}{b}`, `\sqrt{x}`, `\overrightarrow{u}`, TikZ BBT tkz-tab, đồ thị).
+   - Vùng xem trước KaTeX Live Preview thời gian thực cho thân câu hỏi và lời giải.
+   - Nút `🔍 Kiểm tra Trùng lặp AI`: So khớp tức thì với CSDL qua `POST /api/v1/questions/check-duplicate`.
+   - Nút `✨ Gợi ý YCCĐ bằng AI`: Tự động nhận diện môn, lớp, đề xuất mã YCCĐ qua `POST /api/v1/questions/auto-tag`.
+   - Gửi request `POST /api/v1/questions` để lưu vào CSDL; tự động làm mới danh sách và cập nhật badge số lượng.
+2. **Xem chi tiết câu hỏi (`#question-detail-modal`):**
+   - Mở khi người dùng click vào thẻ câu hỏi hoặc nút "Xem chi tiết".
+   - Hiển thị đầy đủ công thức toán KaTeX chất lượng cao, đồ thị TikZ SVG độc lập, bảng biến thiên chuẩn xác.
+   - Thể hiện barem tính điểm bậc thang chi tiết theo Quyết định 764/QĐ-BGDĐT.
+   - Cây phân cấp chuẩn 6 tầng (Lớp, Môn, Mạch, Chủ đề, Bài học, Mã YCCĐ) và chỉ số khảo thí $p, D$.
+   - Nút chuyển tiếp nhanh sang chế độ Chỉnh sửa hoặc Xóa.
+3. **Chỉnh sửa câu hỏi (`#question-edit-modal`):**
+   - Điền sẵn toàn bộ dữ liệu hiện tại của câu hỏi.
+   - Cho phép cập nhật linh hoạt nội dung stem, phương án, khẳng định con, đáp án ngắn, YCCĐ, mức độ nhận thức, lời giải chi tiết.
+   - Gửi request `PUT /api/v1/questions/{id}` cập nhật nguyên tử vào CSDL.
+4. **Xóa câu hỏi (`#question-delete-modal`):**
+   - Hộp thoại cảnh báo xác nhận xóa rõ ràng, phòng ngừa thao tác nhầm lẫn.
+   - Gửi request `DELETE /api/v1/questions/{id}`, xóa triệt để cascade trong bảng `question_options` và `sub_statements`.
+   - Cập nhật tức thì giao diện loại bỏ câu hỏi khỏi danh sách, tự động giảm số lượng trên `#bank-count-badge`.
+
+### 2.8.2. FR-04.4: Bộ Lọc Cây Kiến Thức 6 Tầng Cascading & Bộ Lọc Thứ Cấp
+1. **Bộ Lọc Cây Kiến Thức 6 Tầng Chuẩn Thông tư 32/2018/TT-BGDĐT:**
+   - 6 dropdown xếp tầng đồng bộ động (cascading):
+     + *Tầng 1 (Grade):* Lớp 10, Lớp 11, Lớp 12.
+     + *Tầng 2 (Subject):* Toán học, Vật lí, Hóa học, Sinh học...
+     + *Tầng 3 (Strand):* Mạch nội dung theo TT 32 (ví dụ: Số & Đại số, Hình học & Đo lường, Thống kê & Xác suất, Thực hành trải nghiệm).
+     + *Tầng 4 (Topic):* Chủ đề / Chuyên đề học tập.
+     + *Tầng 5 (Lesson):* Bài học cụ thể.
+     + *Tầng 6 (Learning Outcome):* Mã YCCĐ chuẩn quốc gia (e.g. `TOAN12.GT.01`).
+   - Tuyệt đối không phân chia theo bất kỳ bộ sách giáo khoa thương mại nào.
+2. **Bộ Lọc Thứ Cấp Đa Chiều:**
+   - Dạng câu hỏi (Problem Archetype).
+   - Mức độ nhận thức: Nhận biết, Thông hiểu, Vận dụng, Vận dụng cao.
+   - Thể thức câu hỏi: Trắc nghiệm đơn, Đúng/Sai 4 ý, Trả lời ngắn.
+   - Tìm kiếm từ khóa: Nhập từ khóa văn bản hoặc công thức toán học với cơ chế tìm kiếm thời gian thực debounce 300ms.
+
+### 2.8.3. FR-04.5: Xuất Bản Danh Sách Câu Hỏi Ngân Hàng (Vector PDF, CSV UTF-8 BOM, LaTeX)
+- **Endpoint:** `POST /api/v1/questions/export` (hoặc `GET /api/v1/questions/export`)
+- **Tham số:** `format: "pdf" | "csv" | "latex"`, `question_ids: Optional[List[str]]`, tiêu chí lọc (môn, lớp, YCCĐ, mức độ).
+- **Định dạng kết xuất:**
+  1. *PDF Vector In ấn (`format="pdf"`):* Khổ A4 dọc, lề 1.5 cm, font chữ Times New Roman / CMU Serif, hiển thị sắc nét công thức toán và đồ thị vector TikZ, đi kèm barem đáp án và hướng dẫn giải.
+  2. *CSV UTF-8 BOM (`format="csv"`):* Bắt buộc ghi ký tự đánh dấu Byte Order Mark (`\ufeff`) ở đầu luồng dữ liệu, bảo đảm mở trực tiếp trên Microsoft Excel tiếng Việt không bao giờ bị lỗi font mojibake.
+  3. *LaTeX thuần (`format="latex"`):* Tệp `.tex` chuẩn gói lệnh `ex_test.sty` với các khối `\begin{ex}` sẵn sàng biên dịch trực tiếp bằng Tectonic XeTeX.
+
+### 2.8.4. FR-04.6: Nhập Câu Hỏi Hàng Loạt Vào Ngân Hàng
+- **Endpoint:** `POST /api/v1/questions/import`
+- **Phương thức nhập:**
+  1. *Tải lên tệp:* Tệp văn bản `.tex`, `.json`, hoặc `.csv`.
+  2. *Dán trực tiếp văn bản:* Dán đoạn mã đề thi LaTeX chứa các câu hỏi `\begin{ex}` hoặc `\textbf{Câu X.}`.
+- **Xử lý:**
+  - Hệ thống tự động bóc tách các câu hỏi thành danh sách cấu trúc Question/Option/SubStatement.
+  - Tự động gọi `suggest_auto_tagging` gán nhãn môn, lớp và YCCĐ nếu thiếu.
+  - Kiểm tra phát hiện trùng lặp AI và trả về kết quả số lượng câu nạp thành công.
+
+### 2.8.5. FR-04.7: Đồng Bộ Huy Hiệu Số Lượng Ngân Hàng (#bank-count-badge)
+- Badge hiển thị số lượng câu hỏi trên thanh điều hướng (`#bank-count-badge`) phản ánh chính xác số lượng câu hỏi hiện hữu trong CSDL.
+- Tự động kích hoạt truy vấn `GET /api/v1/questions/count` (hoặc độ dài mảng) và cập nhật số hiển thị sau mỗi thao tác: Thêm mới câu hỏi, Chỉnh sửa, Xóa, Nhập tệp, hoặc Lưu đề từ Composer.
+
 ---
 
 ```
@@ -860,3 +927,62 @@ Hệ thống hỗ trợ 5 thể thức khảo thí:
   - `description` (`string`, required): Chuỗi tóm tắt mục đích sửa đổi để hiển thị trên huy hiệu banner editor.
 - **Mô tả chi tiết Trường `images`:**
   - Danh sách chuỗi Data URL Base64 (`data:image/{png|jpeg|webp|gif};base64,...`), hỗ trợ tải lên nhiều ảnh bài toán/đồ thị trong một lượt hỏi. Phía máy chủ tự động chuyển tiếp tới LLM đa phương tiện hoặc kích hoạt động cơ nhận diện cục bộ.
+
+### 3.4. API Lưu Đề Soạn Thảo Vào Ngân Hàng Câu Hỏi
+- **Endpoint:** `POST /api/v1/composer/save-to-bank`
+- **Mô tả:** Trích xuất toàn bộ câu hỏi từ mã LaTeX đang soạn thảo (cú pháp `ex_test.sty` `\begin{ex}` và cú pháp cổ điển `\textbf{Câu X.}`), tự động nhận diện môn học, khối lớp, chạy `suggest_auto_tagging` gán nhãn YCCĐ chuẩn TT 32, lưu nguyên vẹn TikZ, BBT `tkz-tab`, đáp án và lời giải vào CSDL.
+- **Request Body Payload:**
+  ```json
+  {
+    "latex_code": "\\begin{ex}\nCho hàm số $y=f(x)$...\n\\choice\n{A}\n{\\True B}\n{C}\n{D}\n\\begin{loigiai}\nLời giải...\n\\end{loigiai}\n\\end{ex}",
+    "subject_id": "toan",
+    "grade_id": "12"
+  }
+  ```
+- **Response Payload (`200 OK`):**
+  ```json
+  {
+    "success": true,
+    "total_saved": 22,
+    "counts": {
+      "single_choice": 12,
+      "true_false": 4,
+      "short_answer": 6
+    },
+    "message": "Đã lưu thành công 22 câu hỏi vào Ngân hàng câu hỏi (12 Trắc nghiệm đơn, 4 Đúng/Sai 4 ý, 6 Trả lời ngắn)."
+  }
+  ```
+
+### 3.5. API Xác Thực Người Dùng (Auth Endpoints)
+- **1. Đăng ký Tài khoản:**
+  - `POST /api/v1/auth/register`
+  - Request: `{"email": "teacher@school.edu.vn", "password": "secure_password", "full_name": "Nguyễn Văn A", "role": "TEACHER"}`
+  - Response (`201 Created`): `{"access_token": "jwt_token...", "token_type": "bearer", "user": {"id": "uuid", "email": "...", "full_name": "...", "role": "TEACHER"}}`
+- **2. Đăng nhập Tài khoản:**
+  - `POST /api/v1/auth/login`
+  - Request: `{"email": "teacher@school.edu.vn", "password": "secure_password"}`
+  - Response (`200 OK`): `{"access_token": "jwt_token...", "token_type": "bearer", "user": {"id": "uuid", "email": "...", "full_name": "...", "role": "TEACHER"}}`
+- **3. Thông tin Người dùng Hiện tại:**
+  - `GET /api/v1/auth/me`
+  - Header: `Authorization: Bearer <token>`
+  - Response (`200 OK`): `{"id": "uuid", "email": "...", "full_name": "...", "role": "TEACHER", "avatar_url": null, "created_at": "..."}`
+- **4. Đăng nhập Mạng xã hội OAuth (Google / GitHub):**
+  - `POST /api/v1/auth/oauth/google` & `POST /api/v1/auth/oauth/github`
+  - Request: `{"token": "oauth_token", "email": "...", "name": "...", "avatar_url": "..."}`
+  - Response (`200 OK`): `{"access_token": "jwt_token...", "token_type": "bearer", "user": {...}}`
+- **5. Đăng xuất:**
+  - `POST /api/v1/auth/logout`
+  - Response (`200 OK`): `{"message": "Logged out successfully"}`
+
+### 3.6. API Xuất & Nhập Ngân Hàng Câu Hỏi
+- **1. Xuất Câu hỏi:**
+  - `POST /api/v1/questions/export`
+  - Request: `{"format": "pdf" | "csv" | "latex", "question_ids": ["uuid-1", "uuid-2"], "grade_id": "12", "subject_id": "toan"}`
+  - Response: File download stream (PDF binary `%PDF-1.4`, CSV stream có UTF-8 BOM `\ufeff`, hoặc tệp `.tex`).
+- **2. Nhập Câu hỏi:**
+  - `POST /api/v1/questions/import`
+  - Request: `{"source_type": "latex" | "json" | "csv", "content": "\\begin{ex}...\\end{ex}"}`
+  - Response (`200 OK`): `{"success": true, "imported_count": 10, "message": "Đã nhập thành công 10 câu hỏi vào Ngân hàng"}`
+- **3. Số Lượng Thống Kê Huy Hiệu:**
+  - `GET /api/v1/questions/count`
+  - Response (`200 OK`): `{"total": 54, "single_choice": 32, "true_false": 12, "short_answer": 10}`

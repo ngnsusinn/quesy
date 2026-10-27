@@ -123,12 +123,27 @@
             <span id="backend-status-text" class="hidden sm:inline">Online</span>
           </div>
 
-          <!-- Teacher Profile -->
-          <div class="flex items-center space-x-2 pl-1 border-l border-black/[0.06]">
-            <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center">
-              TH
+          <!-- Auth Header Container -->
+          <div id="auth-header-container" class="flex items-center space-x-2 pl-1 border-l border-black/[0.06]">
+            <!-- Unauthenticated: [Đăng nhập] [Đăng ký] -->
+            <div id="auth-guest-controls" class="flex items-center space-x-2">
+              <button onclick="app.auth.openAuthModal('login')" class="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-brand-600 transition-all">Đăng nhập</button>
+              <button onclick="app.auth.openAuthModal('register')" class="px-3 py-1.5 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-xs transition-all">Đăng ký</button>
             </div>
-            <span class="text-xs font-medium text-slate-700 hidden lg:inline">Thầy Hưng</span>
+            <!-- Authenticated -->
+            <div id="auth-user-profile" class="hidden relative flex items-center space-x-2 cursor-pointer" onclick="app.auth.toggleDropdown()">
+              <div id="auth-user-avatar" class="w-7 h-7 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center">TH</div>
+              <span id="auth-user-name" class="text-xs font-medium text-slate-800 hidden lg:inline">Thầy Hưng</span>
+              <span id="auth-user-role-badge" class="px-1.5 py-0.5 bg-brand-50 text-brand-700 text-[10px] font-bold rounded">Giáo viên</span>
+              <!-- Dropdown Menu -->
+              <div id="auth-dropdown-menu" class="hidden absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-50 text-xs font-sans">
+                <div class="px-3 py-2 border-b border-slate-100 text-slate-500 font-medium truncate" id="auth-dropdown-email">teacher@quesy.vn</div>
+                <button onclick="app.auth.logout()" class="w-full text-left px-3 py-2 hover:bg-rose-50 hover:text-rose-600 font-semibold text-slate-700 flex items-center space-x-2">
+                  <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -954,6 +969,10 @@
               <button id="composer-compile-partial-btn" type="button" onclick="app.composer.compileCurrentQuestion()" class="py-2.5 px-3 bg-amber-600 hover:bg-amber-700 active:scale-[0.98] text-white font-bold text-center text-xs sm:text-sm tracking-wide transition-all shadow-md rounded-xl cursor-pointer flex items-center space-x-1 select-none" title="Biên dịch nhanh câu hỏi tại con trỏ (Ctrl+Shift+S)">
                 <span>⚡ CÂU HIỆN TẠI</span>
               </button>
+              <button id="btn-composer-save-to-bank" type="button" onclick="app.composer.saveToBank()" class="py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.98] text-white font-bold text-center text-xs sm:text-sm tracking-wide transition-all shadow-md rounded-xl cursor-pointer flex items-center space-x-1 select-none" title="Lưu tất cả câu hỏi từ đề soạn thảo vào Ngân hàng câu hỏi">
+                <i data-lucide="database" class="w-4 h-4"></i>
+                <span>LƯU NGÂN HÀNG</span>
+              </button>
             </div>
 
           </div>
@@ -1084,17 +1103,29 @@
         </div>
 
         <!-- Bank Results Header & Stats -->
-        <div class="flex items-center justify-between text-xs text-slate-600 px-1">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-600 px-1">
           <div class="flex items-center space-x-2">
             <span>Tìm thấy <strong id="bank-results-count" class="text-brand-700 font-bold">12</strong> câu hỏi phù hợp bộ lọc</span>
             <span>•</span>
             <span class="text-emerald-600 font-medium">Kho sẵn sàng phục vụ Ma trận Đề thi</span>
           </div>
 
-          <div class="flex items-center space-x-2">
-            <button onclick="app.triggerDuplicateCheckDemo()" class="btn-apple-danger py-1 px-3 text-xs">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="app.openCreateQuestionModal()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow-xs transition-all flex items-center space-x-1 cursor-pointer">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Thêm câu hỏi</span>
+            </button>
+            <button onclick="app.openImportQuestionModal()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-xl transition-all flex items-center space-x-1 cursor-pointer">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Nhập câu hỏi</span>
+            </button>
+            <button onclick="app.exportQuestionsDropdown()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-xl transition-all flex items-center space-x-1 cursor-pointer">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+              <span>Xuất ngân hàng</span>
+            </button>
+            <button onclick="app.triggerDuplicateCheckDemo()" class="btn-apple-danger py-1.5 px-3 text-xs cursor-pointer">
               <i data-lucide="copy-check" class="w-3.5 h-3.5"></i>
-              <span>Test Cảnh báo Trùng lặp AI (&ge;90%)</span>
+              <span>Test Trùng lặp AI</span>
             </button>
           </div>
         </div>
@@ -1701,10 +1732,201 @@
     </div>
   </div>
 
+  <!-- ================= AUTH MODAL (APPLE HIG) ================= -->
+  <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs hidden">
+    <div class="apple-card w-full max-w-md mx-4 overflow-hidden shadow-2xl bg-white rounded-2xl flex flex-col">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-sm">Q</div>
+          <h3 id="auth-modal-title" class="text-base font-bold text-slate-900">Xác thực hệ thống QUESY</h3>
+        </div>
+        <button onclick="app.auth.closeAuthModal()" class="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+      </div>
+
+      <!-- Tabs: Đăng nhập / Đăng ký -->
+      <div class="flex border-b border-slate-100 bg-slate-50/50 px-6 pt-2 space-x-4">
+        <button id="auth-tab-login" onclick="app.auth.switchTab('login')" class="pb-2 text-xs font-bold text-brand-600 border-b-2 border-brand-600 transition-all cursor-pointer">Đăng nhập</button>
+        <button id="auth-tab-register" onclick="app.auth.switchTab('register')" class="pb-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-all cursor-pointer">Đăng ký tài khoản</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-4">
+        <form id="auth-form" onsubmit="app.auth.handleSubmit(event)" class="space-y-3.5">
+          <div id="auth-name-field" class="hidden space-y-1">
+            <label class="block text-xs font-semibold text-slate-700">Họ và tên</label>
+            <input type="text" id="auth-input-fullname" placeholder="Thầy Nguyễn Văn Hưng" class="w-full text-xs rounded-xl border border-slate-300 py-2 px-3 bg-white focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-700">Email công vụ / cá nhân</label>
+            <input type="email" id="auth-input-email" required placeholder="teacher@quesy.vn" class="w-full text-xs rounded-xl border border-slate-300 py-2 px-3 bg-white focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold text-slate-700">Mật khẩu</label>
+            <input type="password" id="auth-input-password" required placeholder="••••••••" class="w-full text-xs rounded-xl border border-slate-300 py-2 px-3 bg-white focus:ring-2 focus:ring-brand-500">
+          </div>
+
+          <button type="submit" id="auth-submit-btn" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer">Đăng nhập</button>
+        </form>
+
+        <div class="relative flex py-2 items-center">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="flex-shrink mx-4 text-[11px] text-slate-400 font-medium">Hoặc đăng nhập nhanh</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button type="button" onclick="app.auth.quickLogin('teacher@quesy.vn', 'quesy123456')" class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer">
+            <span>👨‍🏫 Giáo viên mẫu</span>
+          </button>
+          <button type="button" onclick="app.auth.quickLogin('admin@quesy.vn', 'admin123456')" class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer">
+            <span>🛡️ Quản trị viên</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <button type="button" onclick="app.auth.oauthLogin('google')" class="py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-xl border border-rose-200 transition-all flex items-center justify-center space-x-1.5 cursor-pointer">
+            <span>🌐 Google OAuth</span>
+          </button>
+          <button type="button" onclick="app.auth.oauthLogin('github')" class="py-2 px-3 bg-slate-900 hover:bg-black text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer">
+            <span>🐙 GitHub OAuth</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= QUESTION IMPORT MODAL ================= -->
+  <div id="question-import-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs hidden">
+    <div class="apple-card w-full max-w-lg mx-4 overflow-hidden shadow-2xl bg-white rounded-2xl flex flex-col">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <h3 class="text-base font-bold text-slate-900">📥 Nhập Câu Hỏi (LaTeX / JSON)</h3>
+        <button onclick="document.getElementById('question-import-modal').classList.add('hidden')" class="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Dán mã nguồn LaTeX chuẩn `ex_test.sty` (`\begin{ex}...`):</label>
+          <textarea id="import-latex-textarea" rows="8" placeholder="\begin{ex}\nCho hàm số...\n\choice\n{\True A}\n{B}\n{C}\n{D}\n\end{ex}" class="w-full text-xs rounded-xl border border-slate-300 p-3 font-mono bg-slate-50 focus:bg-white"></textarea>
+        </div>
+        <div class="flex items-center justify-end space-x-2">
+          <button type="button" onclick="document.getElementById('question-import-modal').classList.add('hidden')" class="btn-apple-secondary">Hủy</button>
+          <button type="button" onclick="app.submitImportQuestions()" class="btn-apple-primary">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Tiến hành Nhập vào Ngân hàng</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= QUESTION CREATE / EDIT MANUAL MODAL ================= -->
+  <div id="question-create-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs hidden">
+    <div class="apple-card w-full max-w-2xl mx-4 overflow-hidden shadow-2xl bg-white rounded-2xl flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <h3 id="question-modal-title" class="text-base font-bold text-slate-900">+ Thêm Câu Hỏi Thủ Công</h3>
+        <button onclick="document.getElementById('question-create-modal').classList.add('hidden')" class="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-4 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Thể thức câu hỏi</label>
+            <select id="q-create-format" onchange="app.onQuestionFormatChange()" class="w-full rounded-xl border border-slate-300 p-2 bg-white">
+              <option value="SINGLE_CHOICE">Trắc nghiệm 4 lựa chọn (Phần I)</option>
+              <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý (Phần II)</option>
+              <option value="SHORT_ANSWER">Trả lời ngắn (Phần III)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Mức độ nhận thức</label>
+            <select id="q-create-cognitive" class="w-full rounded-xl border border-slate-300 p-2 bg-white">
+              <option value="RECOGNITION">Nhận biết</option>
+              <option value="COMPREHENSION">Thông hiểu</option>
+              <option value="APPLICATION">Vận dụng</option>
+              <option value="HIGH_APPLICATION">Vận dụng cao</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nội dung câu hỏi (Đề bài LaTeX / Markdown)</label>
+          <textarea id="q-create-stem" rows="4" placeholder="Cho hàm số $y = x^3 - 3x + 1$..." class="w-full rounded-xl border border-slate-300 p-2.5 font-mono bg-white"></textarea>
+        </div>
+        <div id="q-create-options-container" class="space-y-2">
+          <!-- Options or sub statements -->
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Lời giải chi tiết</label>
+          <textarea id="q-create-explanation" rows="2" placeholder="Lời giải..." class="w-full rounded-xl border border-slate-300 p-2.5 font-mono bg-white"></textarea>
+        </div>
+      </div>
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end space-x-2">
+        <button type="button" onclick="document.getElementById('question-create-modal').classList.add('hidden')" class="btn-apple-secondary">Hủy</button>
+        <button type="button" onclick="app.submitCreateQuestion()" class="btn-apple-primary">Lưu câu hỏi vào Bank</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Dropdown Menu (Hidden by default) -->
+  <div id="export-dropdown-menu" class="hidden fixed z-50 w-52 bg-white border border-slate-200 rounded-xl shadow-2xl py-1.5 text-xs font-sans">
+    <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Xuất Ngân Hàng</div>
+    <button onclick="app.executeBankExport('pdf')" class="w-full text-left px-3 py-2 hover:bg-brand-50 hover:text-brand-700 font-semibold text-slate-700 flex items-center space-x-2">
+      <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-600"></i>
+      <span>Xuất Vector PDF (A4)</span>
+    </button>
+    <button onclick="app.executeBankExport('csv')" class="w-full text-left px-3 py-2 hover:bg-brand-50 hover:text-brand-700 font-semibold text-slate-700 flex items-center space-x-2">
+      <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600"></i>
+      <span>Xuất Excel CSV (UTF-8)</span>
+    </button>
+    <button onclick="app.executeBankExport('latex')" class="w-full text-left px-3 py-2 hover:bg-brand-50 hover:text-brand-700 font-semibold text-slate-700 flex items-center space-x-2">
+      <i data-lucide="code" class="w-3.5 h-3.5 text-indigo-600"></i>
+      <span>Xuất Mã LaTeX (.tex)</span>
+    </button>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
+  <!-- ================= QUESTION DETAIL MODAL (APPLE HIG) ================= -->
+  <div id="question-detail-modal" class="apple-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <div class="apple-modal-sheet max-w-3xl w-full overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-150 bg-white rounded-2xl shadow-2xl">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-slate-50 border-b border-black/[0.06] flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 id="q-detail-title" class="font-bold text-slate-900 text-sm">Chi Tiết Câu Hỏi Khảo Thí</h3>
+            <p id="q-detail-subtitle" class="text-xs text-slate-500">Chuẩn hóa Thông tư 32/2018/TT-BGDĐT & Barem QĐ 764/QĐ-BGDĐT</p>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('question-detail-modal').classList.add('hidden')" class="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 overflow-y-auto space-y-4 flex-1 text-xs" id="q-detail-content">
+        <!-- Dynamically rendered via app.openQuestionDetailModal -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-black/[0.06] flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-2">
+          <button type="button" id="q-detail-btn-delete" class="btn-apple-danger py-1.5 px-3 text-xs">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Xóa câu hỏi</span>
+          </button>
+          <button type="button" id="q-detail-btn-edit" class="btn-apple-secondary py-1.5 px-3 text-xs">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span>Chỉnh sửa</span>
+          </button>
+        </div>
+        <button type="button" onclick="document.getElementById('question-detail-modal').classList.add('hidden')" class="btn-apple-primary py-1.5 px-4 text-xs">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Logic JS -->
-  <script src="static/app.js?v=2.0.13"></script>
+  <script src="static/app.js?v=2.0.16"></script>
 </body>
 </html>

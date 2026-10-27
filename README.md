@@ -122,9 +122,47 @@ Located in `backend/services/shuffling_engine.py`:
 ### 7. Apple HIG Human-in-the-Loop Studio
 
 Located in `frontend/`:
-- **Single Page Application:** Fast client-side navigation with clean `/path` routing (`/digitize`, `/bank`, `/matrix`, `/shuffler`) registered on FastAPI to prevent 404s on browser reloads.
+- **Single Page Application:** Fast client-side navigation with clean `/path` routing (`/composer`, `/bank`, `/matrix`, `/shuffler`, `/digitize`) registered on FastAPI to prevent 404s on browser reloads.
 - **Dual-Pane Side-by-Side Review:** Compares raw scanned exam pages (left pane) against parsed electronic questions (right pane) in real time.
 - **Tactile Micro-Interactions:** 0.97 active press scale feedback, clean typography, and zero clutter adhering to Apple Human Interface Guidelines.
+
+### 8. Comprehensive Question Item Bank & 6-Tier Cascade Taxonomy
+
+Located in `backend/routers/questions.py` & `frontend/static/app.js`:
+- **6-Tier Cascading Filter Bar:** Filter questions strictly according to Circular 32/2018/TT-BGDĐT: Grade $
+ightarrow$ Subject $
+ightarrow$ Strand $
+ightarrow$ Topic $
+ightarrow$ Lesson $
+ightarrow$ Learning Outcome (YCCĐ).
+- **Secondary Filters:** Filter by Problem Archetype, Cognitive Level (Recognition, Comprehension, Application, High Application), Item Format (Single Choice, True/False, Short Answer), and debounced keyword search.
+- **Full Production CRUD Operations:**
+  - **Create Modal:** Add new questions manually supporting all 3 Decision 764 formats, live KaTeX preview, quick math symbol insertion, AI auto-tagging, and duplicate checking.
+  - **Detail View Modal:** Render equations, TikZ vector graphs, variation tables, progressive True/False barems, and item psychometrics ($p, D$).
+  - **Edit Modal:** In-place modification of stems, options, True/False statements, short answers, tolerances, and learning outcomes.
+  - **Delete Modal:** Safe deletion with cascade cleanup and immediate badge synchronization.
+- **Multi-Format Export & Ingestion:**
+  - **Export:** Export question bank to print-ready Vector PDF (A4), Excel-compatible UTF-8 BOM CSV, and standard `ex_test.sty` LaTeX source.
+  - **Import:** Batch import from LaTeX source files, JSON, or plain text with automated question parsing and AI taxonomy tagging.
+- **Real-Time Badge Sync:** Live synchronization of total question count on navigation badge (`#bank-count-badge`).
+
+### 9. Secure User Authentication & Identity Management
+
+Located in `backend/routers/auth.py` & `backend/services/auth_service.py`:
+- **Zero-Dependency Safe Password Hashing:** PBKDF2-HMAC-SHA256 with 600,000 iterations and 32-byte salt using Python standard library (`hashlib`).
+- **Standard JWT HS256 Authentication:** 7-day token lifecycle, payload encoding user ID, email, full name, and role.
+- **Multi-Provider Social OAuth 2.0:** Integrated Google Identity and GitHub OAuth login flows.
+- **Role-Based Access Control (RBAC):** Strict permission scoping for `ADMIN`, `TEACHER`, and `STUDENT` roles.
+- **Apple HIG Auth Modal:** Segmented Login/Register modal with smooth animations, local storage token persistence (`quesy_auth_token`), and automatic Bearer authorization headers.
+
+### 10. Dedicated 1-Click Save to Bank from Exam Composer
+
+Located in `backend/routers/composer.py` (`POST /api/v1/composer/save-to-bank`):
+- **Prominent Dedicated Button:** Emerald/Blue accent `📥 LƯU VÀO NGÂN HÀNG` button positioned directly on the Composer toolbar.
+- **Multi-Format Extraction:** Automatically parses all questions from LaTeX exam code (`\begin{ex}` and `\textbf{Câu}`): Single Choice (`\choice`), True/False 4-claim (`\choiceTF[1]`), and Short Answer (`\shortans`).
+- **Diagram & Solution Preservation:** Retains TikZ geometry, `tkz-tab` variation tables, and detailed step-by-step solutions (`\begin{loigiai}`).
+- **AI Taxonomy Auto-Tagging:** Automatically detects subject, grade, and assigns official Circular 32 YCCĐ codes via `suggest_auto_tagging`.
+- **Granular Format Breakdown:** Returns total saved counts categorized by question format and immediately updates `#bank-count-badge`.
 
 ---
 
@@ -135,17 +173,21 @@ quesy/
 ├── backend/
 │   ├── config.py                  # Environment config (.env), AI tokens, paths
 │   ├── database.py                # SQLAlchemy engine & session factory
-│   ├── models.py                  # ORM Models (Taxonomy, Question, Exam, Matrix)
-│   ├── schemas.py                 # Strict Pydantic v2 validation contracts
-│   ├── seed_data.py               # Pre-populated Circular 32 Mathematics 12 bank
+│   ├── models.py                  # ORM Models (User, Taxonomy, Question, Exam, Matrix)
+│   ├── schemas.py                 # Strict Pydantic v2 validation contracts (Auth, Question, Composer)
+│   ├── seed_data.py               # Pre-populated Circular 32 Mathematics 12 bank & default users
 │   ├── main.py                    # FastAPI application, CORS, SPA routes
 │   ├── routers/
+│   │   ├── auth.py                # User Authentication (Register, Login, JWT, OAuth)
+│   │   ├── composer.py            # Exam Composer, Tectonic XeTeX, Save to Bank
 │   │   ├── taxonomy.py            # Circular 32 6-level taxonomy tree endpoints
-│   │   ├── questions.py           # Question CRUD, AI Vector deduplication
+│   │   ├── questions.py           # Question Full CRUD, Export (PDF/CSV/LaTeX), Import
 │   │   ├── digitize.py            # AI Ingestion, OCR parsing & PDF export
 │   │   ├── matrix.py              # 2D Assessment blueprint specification
 │   │   └── exams.py               # MasterExam generation, shuffling & scoring
 │   └── services/
+│       ├── auth_service.py        # PBKDF2 password hashing & JWT HS256 lifecycle
+│       ├── composer_service.py    # Hybrid XeTeX compiler & LaTeX question extractor
 │       ├── ai_provider_service.py # Multimodal AI connector (Gemini, OpenAI, Claude)
 │       ├── ai_parser.py           # Document ingestion & OCR parsing pipeline
 │       ├── mathjax_service.py     # Persistent MathJax client, caching & baseline metrics

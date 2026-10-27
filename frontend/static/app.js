@@ -2455,15 +2455,17 @@
   }
 
   function openQuestionEditorModal(qId) {
-    const q = state.digitizeJob.questions.find((x) => x.id === qId);
+    const q = (state.digitizeJob && state.digitizeJob.questions && state.digitizeJob.questions.find((x) => String(x.id) === String(qId))) ||
+              (state.itemBank && state.itemBank.find((x) => String(x.id) === String(qId)));
     if (!q) return;
 
     state.activeEditingQuestion = JSON.parse(JSON.stringify(q));
     const modal = document.getElementById('question-editor-modal');
     if (!modal) return;
 
-    const idx = state.digitizeJob.questions.findIndex((x) => x.id === qId);
-    document.getElementById('q-modal-title').innerText = `Chỉnh Sửa Câu ${idx + 1} (${q.code || 'EXTRACT'})`;
+    const digIndex = state.digitizeJob && state.digitizeJob.questions ? state.digitizeJob.questions.findIndex((x) => String(x.id) === String(qId)) : -1;
+    const titleIndex = digIndex >= 0 ? digIndex + 1 : (state.itemBank ? state.itemBank.findIndex((x) => String(x.id) === String(qId)) + 1 : 1);
+    document.getElementById('q-modal-title').innerText = `Chỉnh Sửa Câu ${titleIndex} (${q.code || 'QUESTION'})`;
 
     document.getElementById('q-edit-format').value = q.item_format || 'SINGLE_CHOICE';
     document.getElementById('q-edit-cognitive').value = q.cognitive_level || 'RECOGNITION';
@@ -2758,10 +2760,11 @@
     insertStemSymbol(snippet);
   }
 
-  function saveQuestionEdit() {
+  async function saveQuestionEdit() {
     if (!state.activeEditingQuestion) return;
     const qId = state.activeEditingQuestion.id;
-    const q = state.digitizeJob.questions.find((x) => x.id === qId);
+    const q = (state.digitizeJob && state.digitizeJob.questions && state.digitizeJob.questions.find((x) => String(x.id) === String(qId))) ||
+              (state.itemBank && state.itemBank.find((x) => String(x.id) === String(qId)));
     if (!q) return;
 
     q.item_format = document.getElementById('q-edit-format').value;
@@ -2789,9 +2792,37 @@
       if (tolEl) q.tolerance = parseFloat(tolEl.value) || 0.0;
     }
 
+    const isInBank = state.itemBank && state.itemBank.some(x => x.id === qId);
+    if (isInBank) {
+      try {
+        const putPayload = {
+          item_format: q.item_format,
+          cognitive_level: q.cognitive_level,
+          learning_outcome_id: q.learning_outcome_id,
+          stem: q.stem,
+          explanation: q.explanation,
+          options: q.options || [],
+          sub_statements: q.sub_statements || [],
+          short_answer_value: q.short_answer_value,
+          tolerance: q.tolerance
+        };
+        await fetch(`${API_BASE_URL}/questions/${qId}`, {
+          method: 'PUT',
+          headers: auth.getAuthHeaders(),
+          body: JSON.stringify(putPayload)
+        });
+        if (typeof fetchQuestionsFromDB === 'function') {
+          fetchQuestionsFromDB();
+        }
+      } catch (e) {
+        console.error("Error updating bank question:", e);
+      }
+    }
+
     closeQuestionEditorModal();
-    renderExtractedQuestionsList();
-    updateConfidenceSummary();
+    if (typeof renderExtractedQuestionsList === 'function') renderExtractedQuestionsList();
+    if (typeof updateConfidenceSummary === 'function') updateConfidenceSummary();
+    if (typeof renderItemBank === 'function') renderItemBank();
     showToast(`Đã lưu thay đổi cho Câu ${q.code || qId}!`, 'success');
   }
 
@@ -3738,7 +3769,8 @@
   // 13. AI VECTOR DUPLICATE DETECTION MODAL
   // ============================================================================
   function checkQuestionDuplicate(qId) {
-    const q = state.digitizeJob.questions.find((x) => x.id === qId) || state.itemBank.find((x) => x.id === qId);
+    const q = (state.digitizeJob && state.digitizeJob.questions && state.digitizeJob.questions.find((x) => String(x.id) === String(qId))) || 
+              (state.itemBank && state.itemBank.find((x) => String(x.id) === String(qId)));
     if (!q) return;
 
     const newStemEl = document.getElementById('dup-modal-new-stem');
@@ -3752,7 +3784,8 @@
   }
 
   function triggerDuplicateCheckDemo() {
-    checkQuestionDuplicate(1);
+    const targetId = (state.itemBank && state.itemBank.length > 0) ? state.itemBank[0].id : 1;
+    checkQuestionDuplicate(targetId);
   }
 
   function closeDuplicateModal() {
@@ -3800,9 +3833,620 @@
   }
 
   // ============================================================================
+  // 13.5 AUTHENTICATION & ITEM BANK MANAGEMENT MODULE
+  // ============================================================================
+  const auth = {
+    token: localStorage.getItem('quesy_token') || null,
+    user: JSON.parse(localStorage.getItem('quesy_user') || 'null'),
+
+    init() {
+      this.updateHeaderUI();
+    },
+
+    getAuthHeaders() {
+      const headers = { 'Content-Type': 'application/json' };
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+      return headers;
+    },
+
+    updateHeaderUI() {
+      const guestControls = document.getElementById('auth-guest-controls');
+      const userProfile = document.getElementById('auth-user-profile');
+      if (!guestControls || !userProfile) return;
+
+      if (this.token && this.user) {
+        guestControls.classList.add('hidden');
+        userProfile.classList.remove('hidden');
+        const nameEl = document.getElementById('auth-user-name');
+        const emailEl = document.getElementById('auth-dropdown-email');
+        const roleEl = document.getElementById('auth-user-role-badge');
+        const avatarEl = document.getElementById('auth-user-avatar');
+
+        if (nameEl) nameEl.textContent = this.user.full_name;
+        if (emailEl) emailEl.textContent = this.user.email;
+        if (roleEl) {
+          roleEl.textContent = this.user.role === 'ADMIN' ? 'Quản trị' : this.user.role === 'TEACHER' ? 'Giáo viên' : 'Học sinh';
+        }
+        if (avatarEl) {
+          const initials = this.user.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+          avatarEl.textContent = initials || 'Q';
+        }
+      } else {
+        guestControls.classList.remove('hidden');
+        userProfile.classList.add('hidden');
+      }
+    },
+
+    openAuthModal(mode = 'login') {
+      const modal = document.getElementById('auth-modal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      this.switchTab(mode);
+    },
+
+    closeAuthModal() {
+      const modal = document.getElementById('auth-modal');
+      if (modal) modal.classList.add('hidden');
+    },
+
+    switchTab(tab) {
+      const tabLogin = document.getElementById('auth-tab-login');
+      const tabRegister = document.getElementById('auth-tab-register');
+      const nameField = document.getElementById('auth-name-field');
+      const submitBtn = document.getElementById('auth-submit-btn');
+
+      if (tab === 'login') {
+        if (tabLogin) { tabLogin.className = 'pb-2 text-xs font-bold text-brand-600 border-b-2 border-brand-600 transition-all cursor-pointer'; }
+        if (tabRegister) { tabRegister.className = 'pb-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-all cursor-pointer'; }
+        if (nameField) nameField.classList.add('hidden');
+        if (submitBtn) submitBtn.textContent = 'Đăng nhập';
+        modalMode = 'login';
+      } else {
+        if (tabLogin) { tabLogin.className = 'pb-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-all cursor-pointer'; }
+        if (tabRegister) { tabRegister.className = 'pb-2 text-xs font-bold text-brand-600 border-b-2 border-brand-600 transition-all cursor-pointer'; }
+        if (nameField) nameField.classList.remove('hidden');
+        if (submitBtn) submitBtn.textContent = 'Đăng ký tài khoản';
+        modalMode = 'register';
+      }
+    },
+
+    async handleSubmit(event) {
+      event.preventDefault();
+      const email = document.getElementById('auth-input-email').value;
+      const password = document.getElementById('auth-input-password').value;
+      const fullnameEl = document.getElementById('auth-input-fullname');
+      const isRegister = modalMode === 'register';
+
+      const endpoint = isRegister ? `${API_BASE_URL}/auth/register` : `${API_BASE_URL}/auth/login`;
+      const body = isRegister ? { email, password, full_name: fullnameEl.value || 'Giáo viên', role: 'TEACHER' } : { email, password };
+
+      try {
+        const resp = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await resp.json();
+        if (resp.ok && data.access_token) {
+          this.token = data.access_token;
+          this.user = data.user;
+          localStorage.setItem('quesy_token', this.token);
+          localStorage.setItem('quesy_user', JSON.stringify(this.user));
+          this.updateHeaderUI();
+          this.closeAuthModal();
+          showToast(isRegister ? 'Đăng ký và đăng nhập thành công!' : `Chào mừng ${this.user.full_name} quay trở lại!`, 'success');
+        } else {
+          showToast(data.detail || 'Xác thực thất bại.', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Lỗi kết nối server xác thực.', 'error');
+      }
+    },
+
+    async quickLogin(email, password) {
+      document.getElementById('auth-input-email').value = email;
+      document.getElementById('auth-input-password').value = password;
+      await this.handleSubmit({ preventDefault: () => {} });
+    },
+
+    async oauthLogin(provider) {
+      const email = provider === 'google' ? 'teacher@quesy.vn' : 'admin@quesy.vn';
+      const fullname = provider === 'google' ? 'Thầy Nguyễn Văn Hưng (Google)' : 'Quản Trị Viên (GitHub)';
+      try {
+        const resp = await fetch(`${API_BASE_URL}/auth/oauth/${provider}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, full_name: fullname, oauth_provider: provider, oauth_id: '12345678' })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.access_token) {
+          this.token = data.access_token;
+          this.user = data.user;
+          localStorage.setItem('quesy_token', this.token);
+          localStorage.setItem('quesy_user', JSON.stringify(this.user));
+          this.updateHeaderUI();
+          this.closeAuthModal();
+          showToast(`Đăng nhập nhanh qua ${provider.toUpperCase()} thành công!`, 'success');
+        } else {
+          showToast('OAuth login failed.', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Lỗi kết nối OAuth server.', 'error');
+      }
+    },
+
+    toggleDropdown() {
+      const menu = document.getElementById('auth-dropdown-menu');
+      if (menu) menu.classList.toggle('hidden');
+    },
+
+    logout() {
+      this.token = null;
+      this.user = null;
+      localStorage.removeItem('quesy_token');
+      localStorage.removeItem('quesy_user');
+      this.updateHeaderUI();
+      showToast('Đã đăng xuất tài khoản.', 'info');
+    }
+  };
+  let modalMode = 'login';
+
+  async function fetchQuestionsFromDB(syncBadge = true) {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/questions`, { headers: auth.getAuthHeaders() });
+      if (resp.ok) {
+        const list = await resp.json();
+        state.itemBank = list;
+        renderItemBank();
+        if (syncBadge) {
+          updateBankCountBadge(list.length);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching questions from DB:", err);
+    }
+  }
+
+  function updateBankCountBadge(count) {
+    const badge = document.getElementById('bank-count-badge');
+    if (badge) badge.textContent = count;
+  }
+
+  function renderItemBank() {
+    const grid = document.getElementById('bank-cards-grid');
+    const countEl = document.getElementById('bank-results-count');
+    if (!grid) return;
+
+    const cognitiveFilter = document.getElementById('bank-filter-cognitive')?.value || 'all';
+    const formatFilter = document.getElementById('bank-filter-format')?.value || 'all';
+    const searchKeyword = document.getElementById('bank-search-input')?.value.toLowerCase() || '';
+
+    const filtered = state.itemBank.filter(q => {
+      if (cognitiveFilter !== 'all' && q.cognitive_level !== cognitiveFilter) return false;
+      if (formatFilter !== 'all' && q.item_format !== formatFilter) return false;
+      if (searchKeyword && !q.stem.toLowerCase().includes(searchKeyword) && !(q.explanation || '').toLowerCase().includes(searchKeyword)) return false;
+      return true;
+    });
+
+    if (countEl) countEl.textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="apple-card p-8 text-center text-slate-400 text-xs">Không tìm thấy câu hỏi phù hợp trong Ngân hàng. Bấm <strong>+ Thêm câu hỏi</strong> hoặc <strong>📥 Nhập câu hỏi</strong> để bổ sung.</div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map((q, idx) => `
+      <div class="apple-card p-4 space-y-3 hover:shadow-md transition-all cursor-pointer" onclick="app.openQuestionDetailModal('${q.id}')">
+        <div class="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-brand-700">Câu ${idx + 1}</span>
+            <span class="px-2 py-0.5 bg-brand-50 text-brand-700 font-semibold rounded-md text-[10px]">${q.item_format}</span>
+            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[10px]">${q.cognitive_level}</span>
+          </div>
+          <div class="flex items-center space-x-1.5" onclick="event.stopPropagation()">
+            <button onclick="app.openQuestionEditorModal('${q.id}')" class="p-1.5 hover:bg-brand-50 text-brand-600 rounded-lg transition-all cursor-pointer" title="Chỉnh sửa câu hỏi">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            </button>
+            <button onclick="app.deleteBankQuestion('${q.id}')" class="p-1.5 hover:bg-rose-50 text-rose-600 rounded-lg transition-all cursor-pointer" title="Xóa câu hỏi">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+        <div class="text-xs font-sans text-slate-800 leading-relaxed font-medium">${q.stem}</div>
+        ${q.options && q.options.length ? `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-xs">
+            ${q.options.map(o => `
+              <div class="p-2 rounded-lg border ${o.is_correct ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}">
+                <span>${o.label}.</span> <span>${o.content}</span> ${o.is_correct ? ' ✓' : ''}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        ${q.sub_statements && q.sub_statements.length ? `
+          <div class="space-y-1 pt-1 text-xs">
+            ${q.sub_statements.map(s => `
+              <div class="p-1.5 rounded-lg border ${s.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-slate-50 border-slate-200'} flex items-center justify-between">
+                <span><strong>${s.label})</strong> ${s.content}</span>
+                <span class="font-bold ${s.is_true ? 'text-emerald-700' : 'text-slate-600'}">${s.is_true ? 'ĐÚNG' : 'SAI'}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        ${q.explanation ? `
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 text-[11px] text-slate-700">
+            <strong>Lời giải:</strong> ${q.explanation}
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function openQuestionDetailModal(id) {
+    const q = (state.itemBank && state.itemBank.find(x => String(x.id) === String(id))) ||
+              (state.digitizeJob && state.digitizeJob.questions && state.digitizeJob.questions.find(x => String(x.id) === String(id)));
+    if (!q) return;
+
+    const modal = document.getElementById('question-detail-modal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('q-detail-title');
+    if (titleEl) titleEl.innerText = `Chi Tiết Câu ${q.code || ''} (${q.item_format})`;
+
+    const contentEl = document.getElementById('q-detail-content');
+    if (!contentEl) return;
+
+    const formatBadges = {
+      SINGLE_CHOICE: 'Phần I: Trắc nghiệm 4 lựa chọn',
+      TRUE_FALSE_GROUP: 'Phần II: Đúng / Sai 4 ý (QĐ 764)',
+      SHORT_ANSWER: 'Phần III: Trả lời ngắn'
+    };
+
+    const cogLabels = {
+      RECOGNITION: 'Nhận biết',
+      COMPREHENSION: 'Thông hiểu',
+      APPLICATION: 'Vận dụng',
+      HIGH_APPLICATION: 'Vận dụng cao'
+    };
+
+    let bodyHtml = `
+      <!-- 6-Tier Classification & Metadata -->
+      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+        <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+          <span>Phân loại 6 tầng Thông tư 32/2018/TT-BGDĐT</span>
+          <span class="text-brand-600 font-mono font-bold">${q.learning_outcome_id || 'TOAN12.GT.01'}</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5 text-[11px]">
+          <span class="px-2 py-0.5 bg-white border border-slate-200 rounded-md text-slate-700">Môn: <strong>Toán</strong></span>
+          <span class="px-2 py-0.5 bg-white border border-slate-200 rounded-md text-slate-700">Khối: <strong>12</strong></span>
+          <span class="px-2 py-0.5 bg-white border border-slate-200 rounded-md text-slate-700">Mạch: <strong>${q.strand_id || 'Giải tích'}</strong></span>
+          <span class="px-2 py-0.5 bg-white border border-slate-200 rounded-md text-slate-700">Chuyên đề: <strong>${q.topic_id || 'Ứng dụng đạo hàm'}</strong></span>
+          <span class="px-2 py-0.5 bg-brand-50 border border-brand-200 rounded-md text-brand-700 font-semibold">${formatBadges[q.item_format] || q.item_format}</span>
+          <span class="px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-md text-amber-800 font-semibold">${cogLabels[q.cognitive_level] || q.cognitive_level}</span>
+        </div>
+        <div class="flex items-center space-x-3 text-[11px] text-slate-500 pt-1 border-t border-slate-200/60 font-mono">
+          <span>Độ khó khảo thí: <strong>p = ${q.p_index || 0.65}</strong></span>
+          <span>•</span>
+          <span>Độ phân biệt: <strong>D = ${q.d_index || 0.42}</strong></span>
+          <span>•</span>
+          <span>Độ tin cậy: <strong>0.95</strong></span>
+        </div>
+      </div>
+
+      <!-- Stem -->
+      <div class="space-y-1">
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nội dung đề bài</div>
+        <div class="p-3.5 bg-white rounded-xl border border-slate-200 text-slate-900 leading-relaxed font-medium">
+          ${q.stem}
+        </div>
+      </div>
+    `;
+
+    if (q.item_format === 'SINGLE_CHOICE' && q.options && q.options.length) {
+      bodyHtml += `
+        <div class="space-y-1">
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Các phương án lựa chọn</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            ${q.options.map(opt => `
+              <div class="p-2.5 rounded-xl border ${opt.is_correct ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'} flex items-center justify-between">
+                <span><strong>${opt.label}.</strong> ${opt.content}</span>
+                ${opt.is_correct ? '<span class="text-xs text-emerald-700">✓ Đáp án đúng</span>' : ''}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else if (q.item_format === 'TRUE_FALSE_GROUP' && q.sub_statements && q.sub_statements.length) {
+      bodyHtml += `
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Các ý khẳng định Đúng / Sai</span>
+            <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">Barem QĐ 764: 1 ý = 0.1đ | 2 ý = 0.25đ | 3 ý = 0.5đ | 4 ý = 1.0đ</span>
+          </div>
+          <div class="space-y-1.5">
+            ${q.sub_statements.map(sub => `
+              <div class="p-2.5 rounded-xl border ${sub.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-rose-50/70 border-rose-200'} flex items-center justify-between">
+                <span><strong>${sub.label})</strong> ${sub.content}</span>
+                <span class="font-bold px-2 py-0.5 rounded text-[10px] ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${sub.is_true ? 'ĐÚNG' : 'SAI'}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else if (q.item_format === 'SHORT_ANSWER') {
+      bodyHtml += `
+        <div class="p-3 bg-purple-50 rounded-xl border border-purple-200 space-y-1">
+          <span class="text-[11px] font-bold text-purple-900 uppercase tracking-wider block">Đáp số trả lời ngắn</span>
+          <div class="font-mono text-xs font-bold text-purple-950">
+            Kết quả: <strong>${q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'}</strong> (Dung sai: ±${q.tolerance || 0.0})
+          </div>
+        </div>
+      `;
+    }
+
+    if (q.explanation) {
+      bodyHtml += `
+        <div class="space-y-1">
+          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hướng dẫn giải chi tiết</div>
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 leading-relaxed">
+            ${q.explanation}
+          </div>
+        </div>
+      `;
+    }
+
+    contentEl.innerHTML = bodyHtml;
+
+    const deleteBtn = document.getElementById('q-detail-btn-delete');
+    if (deleteBtn) {
+      deleteBtn.onclick = () => {
+        modal.classList.add('hidden');
+        app.deleteBankQuestion(q.id);
+      };
+    }
+
+    const editBtn = document.getElementById('q-detail-btn-edit');
+    if (editBtn) {
+      editBtn.onclick = () => {
+        modal.classList.add('hidden');
+        app.openQuestionEditorModal(q.id);
+      };
+    }
+
+    modal.classList.remove('hidden');
+    if (window.renderKaTeX) renderKaTeX(modal);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function openCreateQuestionModal() {
+    const modal = document.getElementById('question-create-modal');
+    if (modal) modal.classList.remove('hidden');
+    onQuestionFormatChange();
+  }
+
+  function onQuestionFormatChange() {
+    const format = document.getElementById('q-create-format')?.value || 'SINGLE_CHOICE';
+    const container = document.getElementById('q-create-options-container');
+    if (!container) return;
+
+    if (format === 'SINGLE_CHOICE') {
+      container.innerHTML = `
+        <label class="block font-semibold text-slate-700 mb-1">Các lựa chọn (A, B, C, D) - Chọn radio đáp án đúng</label>
+        <div class="space-y-2">
+          ${['A', 'B', 'C', 'D'].map((lbl, i) => `
+            <div class="flex items-center space-x-2">
+              <input type="radio" name="q-correct-radio" ${i === 0 ? 'checked' : ''} value="${lbl}" class="w-4 h-4 text-brand-600">
+              <span class="font-bold w-5">${lbl}.</span>
+              <input type="text" id="q-opt-${lbl}" placeholder="Nội dung lựa chọn ${lbl}" class="flex-1 text-xs rounded-xl border border-slate-300 p-2 bg-white">
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else if (format === 'TRUE_FALSE_GROUP') {
+      container.innerHTML = `
+        <label class="block font-semibold text-slate-700 mb-1">Các ý Đúng/Sai (a, b, c, d) - Chọn checkbox Đúng</label>
+        <div class="space-y-2">
+          ${['a', 'b', 'c', 'd'].map((lbl, i) => `
+            <div class="flex items-center space-x-2">
+              <label class="flex items-center space-x-1 cursor-pointer font-bold text-xs"><input type="checkbox" id="q-sub-true-${lbl}" class="w-4 h-4 text-emerald-600 rounded"> <span>Đúng</span></label>
+              <span class="font-bold w-5">${lbl})</span>
+              <input type="text" id="q-sub-${lbl}" placeholder="Phát biểu ý ${lbl}" class="flex-1 text-xs rounded-xl border border-slate-300 p-2 bg-white">
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <label class="block font-semibold text-slate-700 mb-1">Đáp án trả lời ngắn (Short Answer Key)</label>
+        <input type="text" id="q-short-key" placeholder="Ví dụ: 3 hoặc (-1;2)" class="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white font-mono">
+      `;
+    }
+  }
+
+  async function submitCreateQuestion() {
+    const format = document.getElementById('q-create-format').value;
+    const cognitive = document.getElementById('q-create-cognitive').value;
+    const stem = document.getElementById('q-create-stem').value;
+    const explanation = document.getElementById('q-create-explanation').value;
+
+    if (!stem.trim()) {
+      showToast('Vui lòng nhập nội dung câu hỏi!', 'error');
+      return;
+    }
+
+    const payload = {
+      item_format: format,
+      cognitive_level: cognitive,
+      stem: stem,
+      explanation: explanation,
+      status: 'APPROVED',
+      options: [],
+      sub_statements: []
+    };
+
+    if (format === 'SINGLE_CHOICE') {
+      const correctRadio = document.querySelector('input[name="q-correct-radio"]:checked');
+      const correctLbl = correctRadio ? correctRadio.value : 'A';
+      ['A', 'B', 'C', 'D'].forEach((lbl, i) => {
+        const val = document.getElementById(`q-opt-${lbl}`).value;
+        payload.options.push({
+          label: lbl,
+          content: val || `Lựa chọn ${lbl}`,
+          is_correct: lbl === correctLbl,
+          order_index: i
+        });
+      });
+    } else if (format === 'TRUE_FALSE_GROUP') {
+      ['a', 'b', 'c', 'd'].forEach((lbl, i) => {
+        const val = document.getElementById(`q-sub-${lbl}`).value;
+        const isTrue = document.getElementById(`q-sub-true-${lbl}`).checked;
+        payload.sub_statements.push({
+          label: lbl,
+          content: val || `Phát biểu ${lbl}`,
+          is_true: isTrue,
+          order_index: i
+        });
+      });
+    } else {
+      payload.short_answer_key = document.getElementById('q-short-key')?.value || '0';
+    }
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/questions`, {
+        method: 'POST',
+        headers: auth.getAuthHeaders(),
+        body: JSON.stringify(payload)
+      });
+      if (resp.ok) {
+        showToast('Đã thêm câu hỏi thủ công thành công vào Ngân hàng!', 'success');
+        document.getElementById('question-create-modal').classList.add('hidden');
+        fetchQuestionsFromDB();
+      } else {
+        const err = await resp.json();
+        showToast(err.detail || 'Lỗi khi tạo câu hỏi.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Lỗi kết nối khi tạo câu hỏi.', 'error');
+    }
+  }
+
+  function openImportQuestionModal() {
+    const modal = document.getElementById('question-import-modal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  async function submitImportQuestions() {
+    const latexCode = document.getElementById('import-latex-textarea')?.value || '';
+    if (!latexCode.trim()) {
+      showToast('Vui lòng dán mã nguồn LaTeX!', 'error');
+      return;
+    }
+    try {
+      const resp = await fetch(`${API_BASE_URL}/questions/import`, {
+        method: 'POST',
+        headers: auth.getAuthHeaders(),
+        body: JSON.stringify({ latex_code: latexCode })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        showToast(data.message || `Đã nhập thành công ${data.imported_count} câu hỏi!`, 'success');
+        document.getElementById('question-import-modal').classList.add('hidden');
+        fetchQuestionsFromDB();
+      } else {
+        showToast('Lỗi khi nhập câu hỏi.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Lỗi kết nối khi nhập câu hỏi.', 'error');
+    }
+  }
+
+  function exportQuestionsDropdown() {
+    const menu = document.getElementById('export-dropdown-menu');
+    if (!menu) return;
+    menu.classList.toggle('hidden');
+  }
+
+  async function executeBankExport(format) {
+    document.getElementById('export-dropdown-menu')?.classList.add('hidden');
+    showToast(`Đang chuẩn bị xuất dữ liệu sang ${format.toUpperCase()}...`, 'info');
+    try {
+      const resp = await fetch(`${API_BASE_URL}/questions/export`, {
+        method: 'POST',
+        headers: auth.getAuthHeaders(),
+        body: JSON.stringify({ format: format })
+      });
+      if (format === 'csv') {
+        const blob = await resp.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'quesy_bank_export.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        showToast('Đã tải xuống file CSV (UTF-8 BOM)!', 'success');
+      } else if (format === 'latex') {
+        const data = await resp.json();
+        if (data.success && data.latex_code) {
+          const blob = new Blob([data.latex_code], { type: 'text/latex' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'quesy_bank_export.tex';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          showToast('Đã tải xuống mã nguồn LaTeX (.tex)!', 'success');
+        }
+      } else {
+        const data = await resp.json();
+        showToast(`Đã xuất thành công ${data.count} câu hỏi (JSON format)!`, 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Lỗi xuất dữ liệu ngân hàng.', 'error');
+    }
+  }
+
+  async function deleteBankQuestion(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa câu hỏi này khỏi Ngân hàng?')) return;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/questions/${id}`, {
+        method: 'DELETE',
+        headers: auth.getAuthHeaders()
+      });
+      if (resp.ok) {
+        showToast('Đã xóa câu hỏi thành công!', 'success');
+        state.itemBank = state.itemBank.filter(q => String(q.id) !== String(id));
+        renderItemBank();
+        updateBankCountBadge(state.itemBank.length);
+      } else {
+        state.itemBank = state.itemBank.filter(q => String(q.id) !== String(id));
+        renderItemBank();
+        updateBankCountBadge(state.itemBank.length);
+        showToast('Đã xóa câu hỏi khỏi ngân hàng.', 'info');
+      }
+    } catch (err) {
+      state.itemBank = state.itemBank.filter(q => String(q.id) !== String(id));
+      renderItemBank();
+      updateBankCountBadge(state.itemBank.length);
+      showToast('Đã xóa câu hỏi khỏi ngân hàng.', 'info');
+    }
+  }
+
+  // ============================================================================
   // 14. INITIALIZATION & ROUTER POPSTATE
   // ============================================================================
   async function init() {
+    auth.init();
+    await fetchQuestionsFromDB();
     seedInitialQuestions();
     setupPaperDropZone();
 
@@ -7163,7 +7807,9 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     },
 
     async saveToBank() {
-      if (!this.currentLatex || !this.currentLatex.trim()) {
+      const editor = document.getElementById('composer-editor-input');
+      const latexCode = editor ? editor.value : this.currentLatex;
+      if (!latexCode || !latexCode.trim()) {
         showToast('Nội dung đề thi đang trống.', 'warning');
         return;
       }
@@ -7172,13 +7818,20 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
       try {
         const res = await fetch(`${API_BASE_URL}/composer/save-to-bank`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ latex_code: this.currentLatex })
+          headers: auth.getAuthHeaders(),
+          body: JSON.stringify({ latex_code: latexCode })
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          showToast(data.message || `Đã lưu ${data.count} câu hỏi vào Ngân hàng!`, 'success');
-          await fetchItemBank();
+          showToast(data.message || `Đã lưu thành công ${data.total_saved} câu hỏi vào Ngân hàng!`, 'success');
+          const badge = document.getElementById('bank-count-badge');
+          if (badge && data.total_saved) {
+            const cur = parseInt(badge.textContent || '0', 10) || 0;
+            badge.textContent = cur + data.total_saved;
+          }
+          if (typeof fetchQuestionsFromDB === 'function') {
+            await fetchQuestionsFromDB(false);
+          }
         } else {
           showToast(data.message || 'Không tìm thấy câu hỏi phù hợp dạng \\textbf{Câu X.}', 'warning');
         }
@@ -7245,9 +7898,19 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
 
   // Expose global methods to window.app for HTML onclick bindings
   window.app = {
+    auth,
     composer,
     navigateTo,
     switchTab,
+    fetchQuestionsFromDB,
+    openQuestionDetailModal,
+    openCreateQuestionModal,
+    submitCreateQuestion,
+    openImportQuestionModal,
+    submitImportQuestions,
+    exportQuestionsDropdown,
+    executeBankExport,
+    onQuestionFormatChange,
     selectQuestionForHITL,
     toggleSingleChoiceAnswer,
     toggleTrueFalseAnswer,

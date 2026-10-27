@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.
-- **Ngày phát hành:** 2026-10-24  
+- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.
+- **Ngày phát hành:** 2026-10-24
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
 ---
@@ -357,5 +357,83 @@
 - **Luồng 6n - Quy Trình Biên Dịch Nhanh Đa Tầng (Instant Preview 0.2s, Focus Quick Compile 1.5s & Draft Mode 15s):**
   1. *Xem trước Tức thì (Instant Live Preview):* Khi đang soạn thảo gõ chữ, hệ thống tự động kích hoạt chế độ xem trước HTML/SVG với độ trễ 0.2s, nạp lại các hình TikZ cũ từ MD5 Disk Cache trong 10ms.
   2. *Biên dịch Nhanh Câu Đang Sửa (Focus Quick Compile):* Khi giáo viên vừa sửa 1 câu hỏi cụ thể, bấm nút `⚡ BIÊN DỊCH CÂU NÀY` hoặc nhấn `Ctrl+Shift+S`. Hệ thống chỉ biên dịch duy nhất câu hỏi tại con trỏ sang PDF vector trong 1.0 - 1.8 giây để kiểm tra ngay bố cục.
-  3. *Chế độ Nháp (Draft Mode):* Khi cần biên dịch toàn bộ đề nhưng muốn tiết kiệm thời gian, giáo viên bật cờ \"Chế độ Nháp\". Hệ thống tự động giảm `samples=35` cho toàn bộ đồ thị TikZ, hoàn thành biên dịch toàn bộ 22 câu trong 12 - 18 giây thay vì 65 giây.
+  3. *Chế độ Nháp (Draft Mode):* Khi cần biên dịch toàn bộ đề nhưng muốn tiết kiệm thời gian, giáo viên bật cờ "Chế độ Nháp". Hệ thống tự động giảm `samples=35` cho toàn bộ đồ thị TikZ, hoàn thành biên dịch toàn bộ 22 câu trong 12 - 18 giây thay vì 65 giây.
   4. *Xuất bản Chính thức:* Khi đề thi hoàn thiện, tắt Chế độ Nháp và nhấn `BIÊN DỊCH` (`Ctrl+S`) để xuất bản bản in chất lượng cao 1200 DPI.
+
+  ---
+
+  ### UC-09: ĐĂNG KÝ, ĐĂNG NHẬP & QUẢN LÝ PHIÊN LÀM VIỆC (AUTHENTICATION & RBAC)
+
+  - **Tác nhân:** Giáo viên, Học sinh, Quản trị viên (Admin).
+  - **Mục tiêu:** Tạo tài khoản, xác thực danh tính an toàn, bảo vệ dữ liệu khảo thí và phân quyền truy cập.
+  - **Tiền điều kiện:** Người dùng truy cập vào ứng dụng Quesy trên trình duyệt.
+  - **Luồng sự kiện chính (MSS):**
+    1. Người dùng bấm nút `[Đăng nhập]` hoặc `[Đăng ký]` trên góc phải thanh điều hướng header.
+    2. Hệ thống hiển thị Modal Xác thực Apple HIG với 2 tab: Đăng nhập và Đăng ký.
+    3. Khi Đăng ký:
+       - Người dùng nhập Họ tên, Email, Mật khẩu (>= 6 ký tự) và chọn vai trò Giáo viên / Học sinh.
+       - Nhấn `Tạo tài khoản`. Hệ thống băm mật khẩu PBKDF2-HMAC-SHA256, lưu vào bảng `users`, sinh JWT HS256 và trả về.
+    4. Khi Đăng nhập Email/Mật khẩu:
+       - Người dùng nhập Email, Mật khẩu và nhấn `Đăng nhập`.
+       - Hệ thống kiểm tra mật khẩu đã băm, cấp JWT HS256, lưu `quesy_auth_token` vào `localStorage`.
+    5. Khi Đăng nhập Mạng xã hội OAuth (Google / GitHub):
+       - Người dùng bấm nút `Google` hoặc `GitHub`.
+       - Hệ thống xác thực danh tính mạng xã hội, tạo hoặc liên kết tài khoản và trả về JWT.
+    6. Giao diện Header tự động cập nhật: Ẩn nút Đăng nhập/Đăng ký, hiển thị Avatar người dùng, Tên, Role badge và Menu Tài khoản.
+    7. Khi Đăng xuất: Người dùng chọn `Đăng xuất` từ menu tài khoản; hệ thống xóa token khỏi `localStorage` và khôi phục trạng thái ban đầu.
+
+  ---
+
+  ### UC-10: QUẢN TRỊ TOÀN DIỆN NGÂN HÀNG CÂU HỎI (ITEM BANK FULL CRUD & MODALS)
+
+  - **Tác nhân:** Giáo viên, Tổ trưởng chuyên môn.
+  - **Mục tiêu:** Quản trị toàn diện vòng đời câu hỏi trong CSDL khảo thí chuẩn Thông tư 32/2018 và QĐ 764/QĐ-BGDĐT.
+  - **Tiền điều kiện:** Người dùng điều hướng tới tab `/bank`.
+  - **Luồng sự kiện chính (MSS):**
+    1. *Lọc cây kiến thức 6 tầng & Bộ lọc thứ cấp:*
+       - Người dùng chọn Khối lớp -> Môn học -> Mạch nội dung TT 32 -> Chủ đề -> Bài học -> YCCĐ.
+       - Chọn Dạng câu hỏi, Mức độ nhận thức (Biết, Hiểu, Vận dụng, Vận dụng cao), Thể thức (Trắc nghiệm, Đúng/Sai, Trả lời ngắn).
+       - Nhập từ khóa tìm kiếm: Hệ thống tự động lọc danh sách với độ trễ < 150ms.
+    2. *Thêm câu hỏi mới (+ Thêm thủ công):*
+       - Người dùng bấm nút `+ Thêm câu hỏi thủ công`.
+       - Hệ thống mở Modal Thêm mới (`#question-create-modal`).
+       - Chọn thể thức: SINGLE_CHOICE (4 options A-D, radio chọn đáp án đúng, checkbox khóa D), TRUE_FALSE_GROUP (4 ý a-d, switch Đúng/Sai), hoặc SHORT_ANSWER (ô nhập kết quả và dung sai).
+       - Nhập nội dung stem kèm công cụ chèn nhanh công thức toán học và xem trước KaTeX Live.
+       - Nhấn `Gợi ý YCCĐ AI` để tự động đề xuất mã YCCĐ; nhấn `Kiểm tra Trùng lặp AI` để kiểm tra Cosine Similarity.
+       - Nhấn `Lưu vào Ngân hàng`: Hệ thống gọi `POST /api/v1/questions`, cập nhật danh sách và tăng số lượng trên badge `#bank-count-badge`.
+    3. *Xem chi tiết câu hỏi:*
+       - Người dùng bấm vào thẻ câu hỏi hoặc nút `Xem chi tiết`.
+       - Hệ thống mở Modal Chi tiết (`#question-detail-modal`), render công thức toán học KaTeX, đồ thị TikZ SVG, barem điểm bậc thang QĐ 764 và chỉ số $p, D$.
+    4. *Sửa câu hỏi:*
+       - Người dùng bấm nút `Sửa` trên thẻ câu hỏi hoặc trong modal chi tiết.
+       - Hệ thống mở Modal Sửa (`#question-edit-modal`) nạp sẵn dữ liệu câu hỏi.
+       - Chỉnh sửa nội dung, đáp án, lời giải và bấm `Lưu thay đổi`: Hệ thống gọi `PUT /api/v1/questions/{id}` cập nhật CSDL.
+    5. *Xóa câu hỏi:*
+       - Người dùng bấm nút `Xóa` -> Hộp thoại xác nhận an toàn xuất hiện.
+       - Xác nhận xóa -> Hệ thống gọi `DELETE /api/v1/questions/{id}`, xóa cascade options/sub-statements, cập nhật ngay số lượng badge `#bank-count-badge`.
+    6. *Xuất & Nhập Ngân hàng:*
+       - Xuất: Chọn `Xuất ngân hàng` -> Chọn PDF Vector (A4 in ấn), CSV UTF-8 BOM (chuẩn Excel không lỗi font), hoặc LaTeX (`ex_test.sty`).
+       - Nhập: Bấm `Nhập câu hỏi` -> Tải file hoặc dán mã LaTeX -> Hệ thống bóc tách, tự động gắn tag và đẩy vào CSDL.
+
+  ---
+
+  ### UC-11: LƯU TOÀN BỘ ĐỀ THI TỪ SOẠN THẢO VÀO NGÂN HÀNG CÂU HỎI (1-CLICK SAVE FROM COMPOSER)
+
+  - **Tác nhân:** Giáo viên biên soạn đề thi.
+  - **Mục tiêu:** Lưu toàn bộ các câu hỏi từ văn bản LaTeX đang soạn thảo vào Ngân hàng câu hỏi CSDL mà không phải sao chép thủ công.
+  - **Tiền điều kiện:** Giáo viên đang mở phân hệ Soạn đề (`/composer`) và có mã nguồn LaTeX đề thi hợp lệ.
+  - **Luồng sự kiện chính (MSS):**
+    1. Giáo viên hoàn tất soạn thảo đề thi trên LaTeX Editor.
+    2. Giáo viên nhấp nút chuyên biệt **`📥 LƯU VÀO NGÂN HÀNG`** (`#btn-composer-save-to-bank`) trực tiếp trên thanh công cụ Composer.
+    3. Hệ thống hiển thị hiệu ứng loading phản hồi xúc giác.
+    4. Trình duyệt gửi request `POST /api/v1/composer/save-to-bank` với payload `latex_code`.
+    5. Backend thực hiện phân tích:
+       - Bóc tách toàn diện các câu hỏi chuẩn `\begin{ex}` hoặc `\textbf{Câu X.}`.
+       - Trích xuất Trắc nghiệm đơn `\choice` (nhận diện `\True`), Đúng/Sai 4 ý `\choiceTF[1]` (nhận diện `\True` từng ý a, b, c, d), và Trả lời ngắn `\shortans`.
+       - Giữ nguyên vẹn đồ thị TikZ, bảng biến thiên `tkz-tab` và khối lời giải `\begin{loigiai}`.
+       - Tự động nhận diện môn học, khối lớp, chạy `suggest_auto_tagging` gán mã YCCĐ chuẩn Thông tư 32.
+       - Lưu tất cả câu hỏi vào cơ sở dữ liệu `questions`, `question_options`, `sub_statements`.
+    6. Backend phản hồi kết quả chi tiết: Tổng số câu đã lưu kèm số lượng câu của từng thể thức.
+    7. Frontend hiển thị thông báo Toast thành công Apple HIG với thông tin chi tiết: *"Đã lưu thành công 22 câu hỏi vào Ngân hàng câu hỏi (12 Trắc nghiệm đơn, 4 Đúng/Sai 4 ý, 6 Trả lời ngắn)"*.
+    8. Badge số lượng `#bank-count-badge` trên thanh điều hướng lập tức cập nhật số lượng mới.
+    9. Khi giáo viên chuyển sang tab Ngân hàng câu hỏi (`/bank`), danh sách câu hỏi mới đã sẵn sàng hiển thị và phục vụ rút đề ma trận.

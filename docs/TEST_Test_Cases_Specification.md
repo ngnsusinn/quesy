@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Phiên bản:** 3.2 (Phân hệ Xác thực Người dùng Auth, Ngân hàng Câu hỏi Mở rộng & Soạn đề Save-to-Bank)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 146 Tests (100% Passed)  
-- **Ngày lập:** 2026-10-24  
+- **Tổng số kịch bản tự động hóa:** 209 Tests (100% Passed)  
+- **Ngày lập:** 2026-10-27  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
 ---
@@ -34,13 +34,14 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 | **TS-01** | Bóc tách AI, LaTeX & Auto-tagging YCCĐ | BR-01, FR-01, SRS-FEAT-01 | 6 | P0 (Must Have) |
 | **TS-02** | Studio Hậu kiểm Đối chiếu (HITL Studio) | BR-01.5, FR-02, SRS-FEAT-02 | 4 | P0 (Must Have) |
 | **TS-03** | Cây Kiến thức & Chuẩn YCCĐ (TT 32) | BR-02.1, FR-03, SRS-FEAT-03 | 4 | P0 (Must Have) |
-| **TS-04** | Ngân hàng Câu hỏi & Định dạng 2025 | BR-02.4, FR-04, SRS-FEAT-04,05 | 5 | P0 / P1 |
+| **TS-04** | Ngân hàng Câu hỏi & Định dạng 2025 (Count, Export BOM, Import, Cascade) | BR-02.4, FR-04, SRS-FEAT-04,05 | 11 | P0 / P1 |
 | **TS-05** | Ma trận Đề thi theo YCCĐ & Sinh Đề | BR-03, BR-04.1, FR-05, FR-06.1 | 4 | P0 (Must Have) |
 | **TS-06** | Động cơ Trộn Đề Hoán vị An toàn | BR-04.2, FR-06.2, SRS-FEAT-08 | 5 | P0 (Critical) |
 | **TS-07** | Xuất bản File Word 2 Cột & In ấn | BR-05.1, FR-07, SRS-FEAT-09 | 4 | P0 (Must Have) |
 | **TS-08** | Bảo mật, RBAC & Khảo thí Thống kê | BR-05.2, BR-06, FR-08 | 3 | P1 / P2 |
-| **TS-09** | Soạn đề LaTeX AI & Live PDF (Tectonic) | FR-02.1, FR-02.2, NFR-COMP-02 | 15 | P0 (Must Have) |
+| **TS-09** | Soạn đề LaTeX AI, Live PDF & Save-to-Bank 3 Thể Thức | FR-02.1, FR-02.2, NFR-COMP-02 | 118 | P0 (Must Have) |
 | **TS-10** | Quản trị CI/CD & Cổng Pre-Commit Gate | NFR-DEV-01..06, TC-DEV-01..02 | 2 | P0 (Critical) |
+| **TS-11** | Hệ Thống Xác Thực Auth (PBKDF2, JWT, OAuth Google/GitHub, RBAC) | BR-05.2, FR-08, AUTH-01 | 19 | P0 (Critical) |
 
 ---
 
@@ -510,6 +511,42 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
   2. *Vòng lặp sửa lỗi CI (CI Loop):* Nếu CI test thất bại, kích hoạt vòng lặp: sửa code/test/CI -> chạy lại CI cho đến khi 100% test cases đạt mới cho phép commit.
   3. *Nguyên tắc Cô lập CI Tuyệt đối (Strict CI Isolation):* Sub-Agent phụ trách CI (Sub-Agent 3) độc quyền đọc, viết, chỉnh sửa cấu hình CI/CD (`.github/workflows/`); cấm mọi sub-agent khác (Sub-Agent 1, 2, 4...) truy cập và đọc CI; Sub-Agent CI tiếp nhận thông tin từ các sub-agents khác để cập nhật CI đồng bộ ngay khi code có thay đổi.
 - **Kết quả kỳ vọng:** 100% cam kết chất lượng mã nguồn trước khi commit vào kho lưu trữ; ngăn chặn lỗi môi trường runner và rò rỉ phân quyền giữa các sub-agents.
+
+---
+
+### TEST SUITE 11: HỆ THỐNG XÁC THỰC NGƯỜI DÙNG AUTH, PBKDF2, JWT & PHÂN QUYỀN RBAC (AUTH-01)
+
+#### TC-AUTH-01: Băm mật khẩu PBKDF2-HMAC-SHA256 & So khớp An toàn
+- **Mô tả:** Kiểm tra hàm `hash_password` tạo chuỗi băm chuẩn `pbkdf2:sha256:600000$<salt_b64>$<hash_b64>` với salt ngẫu nhiên 32 bytes; kiểm tra `verify_password` kháng tấn công timing qua `hmac.compare_digest`.
+- **Kết quả kỳ vọng:** 2 lần băm cùng mật khẩu cho ra 2 chuỗi khác nhau; xác thực mật khẩu đúng trả về True, sai/rỗng/hỏng trả về False.
+
+#### TC-AUTH-02: Sinh và Giải mã JSON Web Token (JWT HS256)
+- **Mô tả:** Kiểm tra `create_access_token` cấu trúc 3 phần `header.payload.signature` với thuật toán HMAC-SHA256; `decode_access_token` xác minh chữ ký và thời hạn hiệu lực (exp).
+- **Kết quả kỳ vọng:** Token hợp lệ giải mã ra payload chính xác; token bị can thiệp chữ ký, token hết hạn hoặc format sai trả về `None`.
+
+#### TC-AUTH-03: Đăng ký Tài khoản Mới (POST /api/v1/auth/register)
+- **Mô tả:** Kiểm tra luồng đăng ký với email, mật khẩu >= 6 ký tự, họ tên, vai trò; kiểm tra bắt lỗi email trùng (400) và mật khẩu quá ngắn (422).
+- **Kết quả kỳ vọng:** Đăng ký thành công trả về 201 Created + access_token + user profile; trùng email trả về 400 "Email already registered".
+
+#### TC-AUTH-04: Đăng nhập Hệ thống (POST /api/v1/auth/login)
+- **Mô tả:** Kiểm tra đăng nhập với email và mật khẩu; kiểm tra sai mật khẩu (401), email không tồn tại (401) và tài khoản bị vô hiệu hóa `is_active=False` (403).
+- **Kết quả kỳ vọng:** Đăng nhập đúng trả về 200 OK + JWT access_token; sai mật khẩu/email trả về 401 "Invalid email or password"; tài khoản inactive trả về 403.
+
+#### TC-AUTH-05: Lấy Thông tin Tài khoản (GET /api/v1/auth/me)
+- **Mô tả:** Kiểm tra dependency `get_current_active_user` với Bearer token hợp lệ, token giả mạo và không đính kèm header.
+- **Kết quả kỳ vọng:** Token hợp lệ trả về đúng user profile (200); token giả mạo hoặc thiếu Authorization header trả về 401 Unauthorized.
+
+#### TC-AUTH-06: Đăng nhập OAuth Google & GitHub
+- **Mô tả:** Kiểm tra callback OAuth tạo tài khoản mới nếu chưa tồn tại, cập nhật avatar_url và full_name nếu đã tồn tại, phát hành JWT token.
+- **Kết quả kỳ vọng:** Trả về 200 OK kèm access_token và profile người dùng liên kết đúng nhà cung cấp (`google`, `github`).
+
+#### TC-AUTH-07: Đăng xuất & Tài khoản Mặc định Seeded
+- **Mô tả:** Kiểm tra endpoint POST `/api/v1/auth/logout`; kiểm tra đăng nhập thành công với 2 tài khoản seeded: `teacher@quesy.vn` / `quesy123456` (role TEACHER) và `admin@quesy.vn` / `admin123456` (role ADMIN).
+- **Kết quả kỳ vọng:** Logout trả về 200 {"success": True}; cả 2 tài khoản mặc định đăng nhập thành công 100%.
+
+#### TC-AUTH-08: Phân quyền Vai trò RBAC (require_role)
+- **Mô tả:** Kiểm tra dependency phân quyền `require_role("ADMIN")` và `require_role("TEACHER")`.
+- **Kết quả kỳ vọng:** Admin truy cập được mọi vai trò; user thường truy cập tài nguyên Admin bị từ chối 403 "Required role: ADMIN".
 
 ---
 

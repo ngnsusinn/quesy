@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, hệ thống xác thực an toàn (PBKDF2/SHA256, JWT HS256, OAuth 2.0), tốc độ trích xuất lưu đề từ Composer vào Ngân hàng (<= 1.5s), độ trễ truy vấn lọc ngân hàng câu hỏi 6 tầng (P95 <= 150ms), tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
 - **Ngày phát hành:** 2026-10-24
 
 ---
@@ -47,6 +47,8 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 - **NFR-PERF-09 (Độ trễ API thông thường):** Các API truy vấn tìm kiếm câu hỏi theo YCCĐ, lấy danh mục cây bài học/dạng bài có độ trễ $P95 < 200$ ms.
 - **NFR-PERF-10 (Tốc độ Xử lý MathJax Persistent Worker):** Dịch vụ daemon Node.js MathJax chuyển đổi TeX sang MathML / SVG / Vector WMF phải hoàn thành trong **$< 20$ ms/công thức**, bảo đảm không tạo điểm nghẽn (bottleneck) trong tiến trình xuất bản.
 - **NFR-PERF-11 (Thời gian Xuất bản Gói Đề thi ZIP Khảo thí):** Quá trình đóng gói toàn bộ 4 mã đề thi Word kèm bảng đáp án và hướng dẫn giải (khoảng 9 file DOCX) phải hoàn thành trong vòng **$< 10$ giây** (ngân sách NFR).
+- **NFR-PERF-15 (Tốc độ Bóc Tách & Lưu Đề từ Composer Vào Ngân Hàng):** Tiến trình phân tích cú pháp LaTeX, trích xuất 22 câu hỏi (đầy đủ 3 thể thức QĐ 764, TikZ, bảng biến thiên, lời giải), chạy tự động gán nhãn AI `suggest_auto_tagging` và lưu vào CSDL hoàn thành trong vòng $\le 1.5$ giây.
+- **NFR-PERF-16 (Độ Trễ Truy Vấn Lọc Cây Kiến Thức & Tìm Kiếm Ngân Hàng):** Thao tác lọc câu hỏi theo cây 6 tầng TT 32 kết hợp bộ lọc thứ cấp (thể thức, mức độ, dạng bài) và tìm kiếm từ khóa với chỉ mục Index tối ưu đạt độ trễ $P95 \le 150\text{ ms}$ trên tập dữ liệu $\ge 10.000$ câu hỏi.
 - **NFR-QUAL-01 (Độ Sắc nét Tuyệt đối của Công thức MathType - 100% Vector WMF):** Công thức toán trong file Word phải đạt chuẩn Vector WMF (`image/x-wmf`) với APM header, đạt tỷ lệ 100% vector thuần (loại bỏ hoàn toàn fallback raster DIB), giữ nguyên độ nét vector tuyệt đối (zero blur) ở mọi mức thu phóng màn hình và in ấn.
 - **NFR-COMP-01 (Tính Biên tập Hai chiều của MathType OLE - DSMT7 Stream):** Đối tượng OLE nhúng trong file `.docx` bắt buộc phải chứa luồng nhị phân DSMT7 chuẩn với bản ghi `TeX Input Language`, chuẩn hóa embellishment cho toán tử vectơ (`\vec`, `\overrightarrow`), kích hoạt và mở mượt mà trong trình soạn thảo MathType 7 thông qua thao tác double-click của người dùng mà không phát sinh bất kỳ lỗi COM/OLE hay popup cảnh báo thiếu ứng dụng server nào.
 - **NFR-COMP-02 (Kiến trúc Biên dịch LaTeX Tectonic Độc lập Môi trường):** Phân hệ Soạn đề LaTeX hỗ trợ biên dịch đa tầng (Hybrid Multi-tier Compiler Architecture):
@@ -88,7 +90,8 @@ floor))$.
 - **NFR-SEC-04 (Phân quyền RBAC & Data Scoping):**
   - Giáo viên chỉ được xem và sửa đổi các câu hỏi do chính mình tải lên hoặc các câu hỏi trong ngân hàng chung mà tổ bộ môn cho phép truy cập.
   - Ngăn chặn triệt để lỗ hổng truy cập trực tiếp đối tượng (IDOR): Kiểm tra quyền sở hữu trên từng câu hỏi trước khi trả về dữ liệu.
-- **NFR-SEC-05 (Bảo mật Mật khẩu):** Mật khẩu người dùng được băm bằng thuật toán **Argon2id** (hoặc Bcrypt với work factor tối thiểu 12), kết hợp Salt ngẫu nhiên cho từng tài khoản.
+- **NFR-SEC-05 (Bảo mật Mật khẩu & Token JWT):** Mật khẩu người dùng được băm bằng thuật toán **PBKDF2-HMAC-SHA256** với 600.000 vòng lặp kết hợp Salt 32 bytes ngẫu nhiên độc lập cho từng tài khoản (không phụ thuộc C runtime ngoài). Phiên làm việc xác thực bằng Token JWT chuẩn mã hóa **HS256** thời hạn 7 ngày, kiểm soát vai trò RBAC chặt chẽ.
+- **NFR-SEC-07 (Bảo mật OAuth 2.0 State):** Luồng đăng nhập mạng xã hội (Google, GitHub) sử dụng mã `state` ngẫu nhiên và chứng thực token ID trực tiếp với nhà cung cấp, loại bỏ nguy cơ tấn công Replay Attack và CSRF.
 - **NFR-SEC-06 (Audit Logging Toàn diện):** Hệ thống phải ghi lại nhật ký bất biến (Immutable Audit Log) cho mọi hành động: Ai đã tạo đề, ai đã xem trước đề, ai đã tải file in ấn, địa chỉ IP và User-Agent.
 
 ---

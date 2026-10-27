@@ -66,6 +66,8 @@ class QuestionCreate(BaseModel):
     cognitive_level: CognitiveLevel = CognitiveLevel.RECOGNITION
     item_format: ItemFormat = ItemFormat.SINGLE_CHOICE
     stem: str
+    short_answer_key: Optional[str] = None
+    tolerance: Optional[float] = 0.0
     image_urls: Optional[List[str]] = []
     explanation: Optional[str] = None
     source_reference: Optional[str] = None
@@ -88,6 +90,8 @@ class QuestionUpdate(BaseModel):
     cognitive_level: Optional[str] = None
     item_format: Optional[str] = None
     stem: Optional[str] = None
+    short_answer_key: Optional[str] = None
+    tolerance: Optional[float] = None
     explanation: Optional[str] = None
     source_reference: Optional[str] = None
     status: Optional[str] = None
@@ -109,6 +113,8 @@ class QuestionOut(BaseModel):
     cognitive_level: str
     item_format: str
     stem: str
+    short_answer_key: Optional[str] = None
+    tolerance: Optional[float] = 0.0
     image_urls: Optional[str] = None
     explanation: Optional[str] = None
     source_reference: Optional[str] = None
@@ -157,12 +163,16 @@ def list_questions(
     question_type: Optional[str] = None,  # Alias for item_format
     subject_id: Optional[str] = None,
     grade_id: Optional[str] = None,
+    strand_id: Optional[str] = None,
+    topic_id: Optional[str] = None,
+    lesson_id: Optional[str] = None,
+    keyword: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
-    """Filters questions in the item bank by YCCĐ, Archetype, CognitiveLevel, Format, etc."""
+    """Filters questions in the item bank by YCCĐ, Archetype, CognitiveLevel, Format, Strand, Topic, Lesson, Keyword."""
     query = db.query(Question)
 
     if learning_outcome_id:
@@ -178,6 +188,15 @@ def list_questions(
         query = query.filter(Question.subject_id == subject_id)
     if grade_id:
         query = query.filter(Question.grade_id == grade_id)
+    if strand_id:
+        query = query.filter(Question.strand_id == strand_id)
+    if topic_id:
+        query = query.filter(Question.topic_id == topic_id)
+    if lesson_id:
+        query = query.filter(Question.lesson_id == lesson_id)
+    if keyword:
+        kw = f"%{keyword}%"
+        query = query.filter((Question.stem.ilike(kw)) | (Question.explanation.ilike(kw)))
     if status_filter:
         query = query.filter(Question.status == status_filter)
 
@@ -293,6 +312,20 @@ def create_question(payload: QuestionCreate, db: Session = Depends(get_db)):
     return q
 
 
+@router.get("/count")
+def get_questions_count(db: Session = Depends(get_db)):
+    total = db.query(Question).count()
+    single_choice = db.query(Question).filter(Question.item_format == "SINGLE_CHOICE").count()
+    true_false = db.query(Question).filter(Question.item_format == "TRUE_FALSE_GROUP").count()
+    short_answer = db.query(Question).filter(Question.item_format == "SHORT_ANSWER").count()
+    return {
+        "total": total,
+        "single_choice": single_choice,
+        "true_false": true_false,
+        "short_answer": short_answer
+    }
+
+
 @router.get("/{question_id}", response_model=QuestionOut)
 def get_question(question_id: str, db: Session = Depends(get_db)):
     q = db.query(Question).filter(Question.id == question_id).first()
@@ -385,3 +418,152 @@ def auto_tag(payload: AutoTagRequest, db: Session = Depends(get_db)):
         subject_id=payload.subject_id,
         grade_id=payload.grade_id
     )
+
+
+
+
+
+class ExportQuestionsRequest(BaseModel):
+    format: str = Field("json", description="json, csv, latex, pdf")
+    question_ids: Optional[List[str]] = None
+
+
+@router.post("/export")
+def export_questions(payload: ExportQuestionsRequest, db: Session = Depends(get_db)):
+    query = db.query(Question)
+    if payload.question_ids:
+        query = query.filter(Question.id.in_(payload.question_ids))
+    questions = query.all()
+
+    if payload.format == "csv":
+        import csv
+        import io
+        from fastapi.responses import StreamingResponse
+        output = io.StringIO()
+        output.write('\ufeff')  # UTF-8 BOM
+        writer = csv.writer(output)
+        writer.writerow(["ID", "Format", "CognitiveLevel", "Stem", "Explanation"])
+        for q in questions:
+            writer.writerow([q.id, q.item_format, q.cognitive_level, q.stem, q.explanation or ""])
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=quesy_bank_export.csv"}
+        )
+    elif payload.format == "latex":
+        latex_lines = []
+        for q in questions:
+            latex_lines.append(r"\\begin{ex}")
+            latex_lines.append(q.stem)
+            if q.item_format == "SINGLE_CHOICE" and q.options:
+                latex_lines.append(r"\\choice")
+                for opt in q.options:
+                    prefix = r"\\True " if opt.is_correct else ""
+                    latex_lines.append(f"{{{prefix}{opt.content}}}")
+            elif q.item_format == "TRUE_FALSE_GROUP" and q.sub_statements:
+                latex_lines.append(r"\\choiceTF")
+                for sub in q.sub_statements:
+                    prefix = r"\\True " if sub.is_true else ""
+                    latex_lines.append(f"{{{prefix}{sub.content}}}")
+            elif q.item_format == "SHORT_ANSWER":
+                ans = q.short_answer_key or "0"
+                latex_lines.append(f"\\\\shortans{{{ans}}}")
+            if q.explanation:
+                latex_lines.append(r"\\begin{loigiai}")
+                latex_lines.append(q.explanation)
+                latex_lines.append(r"\\end{loigiai}")
+            latex_lines.append(r"\\end{ex}")
+            latex_lines.append("")
+        return {"success": True, "format": "latex", "latex_code": "\\n".join(latex_lines)}
+    else:
+        return {
+            "success": True,
+            "count": len(questions),
+            "questions": [
+                {
+                    "id": q.id,
+                    "stem": q.stem,
+                    "item_format": q.item_format,
+                    "cognitive_level": q.cognitive_level,
+                    "explanation": q.explanation
+                }
+                for q in questions
+            ]
+        }
+
+
+class ImportQuestionsRequest(BaseModel):
+    latex_code: Optional[str] = None
+    questions_json: Optional[List[Dict[str, Any]]] = None
+
+
+@router.post("/import")
+def import_questions(payload: ImportQuestionsRequest, db: Session = Depends(get_db)):
+    from backend.services.composer_service import extract_questions_from_latex
+    imported_list = []
+    if payload.latex_code:
+        extracted = extract_questions_from_latex(payload.latex_code)
+        for q_data in extracted:
+            tags = suggest_auto_tagging(stem=q_data["stem"], db=db)
+            q = Question(
+                stem=q_data["stem"],
+                item_format=q_data.get("item_format", "SINGLE_CHOICE"),
+                short_answer_key=q_data.get("short_answer_value") or q_data.get("short_answer_key"),
+                tolerance=q_data.get("tolerance", 0.0),
+                cognitive_level=q_data.get("cognitive_level", tags.get("cognitive_level", "RECOGNITION")),
+                learning_outcome_id=tags.get("learning_outcome_id"),
+                status="APPROVED"
+            )
+            if q_data.get("options"):
+                for idx, opt in enumerate(q_data["options"]):
+                    q.options.append(QuestionOption(
+                        label=opt.get("label", "A"),
+                        content=opt.get("content", ""),
+                        is_correct=opt.get("is_correct", False),
+                        order_index=idx
+                    ))
+            if q_data.get("sub_statements"):
+                for idx, sub in enumerate(q_data["sub_statements"]):
+                    q.sub_statements.append(SubStatement(
+                        label=sub.get("label", "a"),
+                        content=sub.get("content", ""),
+                        is_true=sub.get("is_true", False),
+                        order_index=idx
+                    ))
+            db.add(q)
+            imported_list.append(q)
+    elif payload.questions_json:
+        for q_item in payload.questions_json:
+            stem = q_item.get("stem", "")
+            tags = suggest_auto_tagging(stem=stem, db=db)
+            q = Question(
+                stem=stem,
+                item_format=q_item.get("item_format", "SINGLE_CHOICE"),
+                short_answer_key=q_item.get("short_answer_key"),
+                tolerance=q_item.get("tolerance", 0.0),
+                cognitive_level=q_item.get("cognitive_level", tags.get("cognitive_level", "RECOGNITION")),
+                learning_outcome_id=q_item.get("learning_outcome_id") or tags.get("learning_outcome_id"),
+                status="APPROVED"
+            )
+            for opt in q_item.get("options", []):
+                q.options.append(QuestionOption(
+                    label=opt.get("label", "A"),
+                    content=opt.get("content", ""),
+                    is_correct=opt.get("is_correct", False)
+                ))
+            for sub in q_item.get("sub_statements", []):
+                q.sub_statements.append(SubStatement(
+                    label=sub.get("label", "a"),
+                    content=sub.get("content", ""),
+                    is_true=sub.get("is_true", False)
+                ))
+            db.add(q)
+            imported_list.append(q)
+
+    db.commit()
+    return {
+        "success": True,
+        "imported_count": len(imported_list),
+        "message": f"Successfully imported {len(imported_list)} questions into the bank."
+    }

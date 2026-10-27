@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, phân hệ Soạn đề tinh gọn không cần khai báo preamble (Canonical Preamble Injection tự động nhúng fontspec, tikz, tkz-tab, tcolorbox, ex_test v3.3), bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, phân hệ Trợ lý Soạn thảo AI Copilot thông minh, và quy chuẩn quản trị phát triển Git.
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ), động cơ Canonical Preamble Injection, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, và quy chuẩn quản trị phát triển Git.
 - **Ngày phát hành:** 2026-10-24  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
@@ -680,6 +680,68 @@ ight)$$
   - Độ phân biệt: $D = P_H - P_L$ (Nhóm $27\%$ điểm cao trừ nhóm $27\%$ điểm thấp).
   - Cảnh báo các câu hỏi lỗi ($D < 0.2$) để loại khỏi ngân hàng.
 
+#### SRS-FEAT-11: Hệ Thống Xác Thực & Quản Lý Danh Tính Người Dùng (Authentication, JWT & OAuth)
+- **Mô tả:** Cung cấp hệ thống đăng ký, đăng nhập an toàn bảo vệ tài nguyên đề thi và ngân hàng câu hỏi, phân quyền người dùng theo vai trò RBAC (Role-Based Access Control).
+- **Yêu cầu kỹ thuật:**
+  1. *Thực thể `User` (`backend/models.py`):* Các trường bắt buộc gồm `id` (UUIDv4), `email` (unique, index), `hashed_password` (nullable cho tài khoản mạng xã hội), `full_name`, `role` (`ADMIN`, `TEACHER`, `STUDENT`), `avatar_url`, `oauth_provider` (`local`, `google`, `github`), `oauth_id`, `is_active` (boolean default True), `created_at`, `updated_at`.
+  2. *Mật khẩu An toàn:* Áp dụng thuật toán băm chuẩn PBKDF2-HMAC-SHA256 với 600.000 vòng lặp và muối ngẫu nhiên (salt 32 bytes) thông qua thư viện chuẩn Python `hashlib`, không phụ thuộc thư viện biên dịch C bên ngoài.
+  3. *Mã hóa Token JWT HS256:* Sinh và kiểm tra JWT an toàn với thuật toán HS256, thời hạn sống 7 ngày (86.400 * 7 giây), payload chuẩn chứa `sub` (User ID), `email`, `role`, `name`, `exp`. Tích hợp dependency `get_current_user` và `get_current_active_user` bảo vệ các route nhạy cảm.
+  4. *API Router Xác thực (`backend/routers/auth.py`):*
+     - `POST /api/v1/auth/register`: Đăng ký tài khoản mới với email, mật khẩu (tối thiểu 6 ký tự), họ tên và vai trò (`TEACHER` / `STUDENT`).
+     - `POST /api/v1/auth/login`: Xác thực thông tin đăng nhập, trả về `access_token`, `token_type: "bearer"` và thông tin hồ sơ `user`.
+     - `GET /api/v1/auth/me`: Truy vấn thông tin người dùng hiện tại dựa trên header `Authorization: Bearer <token>`.
+     - `POST /api/v1/auth/oauth/google` & `POST /api/v1/auth/oauth/github`: Xử lý đăng nhập mạng xã hội OAuth 2.0 (Google, GitHub), tự động cấp phát hoặc liên kết tài khoản tương ứng.
+     - `POST /api/v1/auth/logout`: Đăng xuất và dọn dẹp phiên làm việc.
+  5. *Giao diện Apple HIG & Quản lý Trạng thái:*
+     - Header Navbar: Hiển thị cặp nút `[Đăng nhập]` và `[Đăng ký]` khi chưa đăng nhập; hiển thị Avatar, Tên, Role badge và Menu popup Tài khoản kèm nút `Đăng xuất` khi đã đăng nhập.
+     - Modal Xác thực (`#auth-modal`): Chuyển đổi mượt mà giữa Tab Đăng nhập và Tab Đăng ký; nút đăng nhập nhanh tài khoản giáo viên/admin thử nghiệm; nút OAuth Google và GitHub trực quan.
+     - Lưu trữ Token tại `localStorage.getItem('quesy_auth_token')`, tự động đính kèm vào mọi request API gửi tới backend.
+
+#### SRS-FEAT-12: Phân Hệ Ngân Hàng Câu Hỏi Khảo Thí Toàn Diện (Item Bank Full CRUD, 6-Tier Cascade TT 32, Modals, Import/Export & Badge Sync)
+- **Mô tả:** Phân hệ quản lý ngân hàng câu hỏi chuẩn hóa toàn diện đáp ứng đầy đủ Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT.
+- **Yêu cầu kỹ thuật:**
+  1. *Bộ Lọc Cây Kiến Thức 6 Tầng Cascading:* 
+     - Lọc phân cấp tuần tự: Cấp học / Khối lớp (`grade`) $
+ightarrow$ Môn học (`subject`) $
+ightarrow$ Mạch nội dung TT 32 (`strand`) $
+ightarrow$ Chủ đề (`topic`) $
+ightarrow$ Bài học (`lesson`) $
+ightarrow$ Yêu cầu cần đạt (`yccd`).
+     - Khi chọn cấp cha, các dropdown cấp con tự động cập nhật danh mục tương ứng.
+  2. *Bộ Lọc Thứ Cấp Đa Chiều:*
+     - Dạng câu hỏi (Problem Archetype), Mức độ nhận thức (Nhận biết, Thông hiểu, Vận dụng, Vận dụng cao), Thể thức khảo thí (Trắc nghiệm đơn, Đúng/Sai 4 ý, Trả lời ngắn), Tìm kiếm từ khóa theo thân câu hỏi hoặc mã YCCĐ với cơ chế debounce 300ms.
+  3. *Hệ thống CRUD & Modals Chuẩn Apple HIG:*
+     - **Modal Thêm Mới (+ Thêm thủ công - `#question-create-modal`):** Hỗ trợ đủ 3 thể thức QĐ 764, công cụ chèn nhanh ký hiệu toán học, live KaTeX preview, chọn mức độ nhận thức, mã YCCĐ, đáp án đúng (radio chọn đáp án đúng cho MCQ, switch Đúng/Sai từng ý cho TF, ô nhập số và dung sai cho Short Answer), lời giải chi tiết. Tích hợp nút kiểm tra trùng lặp AI và gợi ý tag AI trước khi lưu.
+     - **Modal Xem Chi Tiết (`#question-detail-modal`):** Hiển thị trực quan toàn bộ thân câu hỏi, công thức toán KaTeX, đồ thị TikZ SVG, bảng biến thiên, các phương án lựa chọn, barem tính điểm bậc thang QĐ 764 (0.1đ - 0.25đ - 0.5đ - 1.0đ), cây phân loại 6 tầng và chỉ số thống kê $p, D$.
+     - **Modal Sửa Câu Hỏi (`#question-edit-modal`):** Tải đầy đủ thông tin câu hỏi hiện tại, cho phép chỉnh sửa nội dung, phương án, khẳng định đúng/sai, dung sai, YCCĐ, cập nhật tức thì vào CSDL qua `PUT /api/v1/questions/{id}`.
+     - **Chức Năng Xóa Câu Hỏi:** Hộp thoại xác nhận an toàn, thực hiện xóa cascade các options và sub-statements liên quan qua `DELETE /api/v1/questions/{id}`, tự động làm mới giao diện và cập nhật huy hiệu số lượng.
+  4. *Xuất & Nhập Dữ Liệu Ngân Hàng:*
+     - **Xuất Dữ Liệu (`POST /api/v1/questions/export`):** Xuất toàn bộ hoặc danh sách câu hỏi đã lọc ra:
+       * PDF Vector: Định dạng A4 chuẩn in ấn, font CMU Serif/Times, chia 2 cột đối xứng hoặc 1 cột rõ ràng kèm đáp án và lời giải.
+       * CSV UTF-8 BOM: Tương thích 100% Microsoft Excel tiếng Việt trên Windows (không lỗi font mojibake).
+       * LaTeX `.tex`: Mã nguồn chuẩn gói lệnh `ex_test.sty` với các khối `\begin{ex}` sẵn sàng biên dịch.
+     - **Nhập Dữ Liệu (`POST /api/v1/questions/import`):** Nhập câu hỏi từ tệp văn bản hoặc dán trực tiếp mã LaTeX / JSON, tự động bóc tách các câu hỏi, kiểm tra tính hợp lệ và thêm vào ngân hàng.
+  5. *Đồng Bộ Huy Hiệu Số Lượng (#bank-count-badge):* Badge đếm số lượng câu hỏi trên thanh điều hướng (`#bank-count-badge`) luôn tự động đồng bộ theo thời gian thực với tổng số câu hỏi thực tế trong CSDL sau mỗi thao tác Thêm, Sửa, Xóa, Nhập, hoặc Lưu từ Composer.
+
+#### SRS-FEAT-13: Nút Chuyên Biệt "LƯU VÀO NGÂN HÀNG" & Động Cơ Trích Xuất Đa Thể Thức Từ Soạn Đề Composer Vào Ngân Hàng
+- **Mô tả:** Trong phân hệ Soạn đề (`/composer`), tích hợp nút bấm chuyên biệt nổi bật **`📥 LƯU VÀO NGÂN HÀNG`** trực tiếp trên thanh công cụ và nâng cấp toàn diện API `POST /api/v1/composer/save-to-bank`.
+- **Yêu cầu kỹ thuật:**
+  1. *Nút Bấm Chuyên Biệt:* Neo trực tiếp trên thanh công cụ của Editor cạnh menu Xuất file, biểu tượng database nổi bật màu ngọc emerald hoặc gradient xanh Apple, kích hoạt thao tác lưu 1-click mà không cần mở dropdown ẩn.
+  2. *Động Cơ Bóc Tách Đa Thể Thức:*
+     - Hỗ trợ toàn diện cú pháp gói lệnh quốc gia `ex_test.sty` (`\begin{ex} ... \end{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`).
+     - Trích xuất chính xác 3 thể thức câu hỏi:
+       * Phần I: Trắc nghiệm đơn `\choice{A}{B}{C}{D}` (phát hiện cờ `\True` để gán `is_correct = True`).
+       * Phần II: Đúng/Sai 4 khẳng định `\choiceTF[1]{a}{b}{c}{d}` (phát hiện cờ `\True` để gán `is_true = True` cho từng khẳng định độc lập).
+       * Phần III: Trả lời ngắn `\shortans{giá_trị}` hoặc `\SA{giá_trị}` (lưu đáp án ngắn và dung sai).
+     - Giữ nguyên vẹn thân câu hỏi (stem), các khối TikZ vẽ đồ thị, hình học không gian, và bảng biến thiên `tkz-tab`.
+     - Bóc tách toàn vẹn khối lời giải chi tiết `\begin{loigiai} ... \end{loigiai}`.
+  3. *Tự Động Gắn Nhãn AI & Xác Định Khối Lớp/Môn Học:*
+     - Tự động nhận diện môn học và khối lớp từ tiêu đề văn bản (Header minipage).
+     - Áp dụng `suggest_auto_tagging` để đề xuất mã YCCĐ theo Thông tư 32 cho các câu hỏi chưa được gán nhãn thủ công.
+  4. *Phản Hồi Thống Kê Chi Tiết & Đồng Bộ Badge:*
+     - Trả về payload JSON chi tiết số lượng câu hỏi lưu thành công theo từng thể thức (`counts: { single_choice, true_false, short_answer }`, `total_saved`).
+     - Tự động cập nhật số đếm trên badge `#bank-count-badge` và làm mới dữ liệu tab Ngân hàng câu hỏi ngay lập tức.
+
 ---
 
 ## 5. THIẾT KẾ CƠ SỞ DỮ LIỆU LOGIC (LOGICAL DATA MODEL)
@@ -741,4 +803,7 @@ ight)$$
 | **SRS-FEAT-05** | Test tích hợp | Câu hỏi có cosine similarity $\ge 0.90$ phải kích hoạt chặn lưu và hiển thị modal cảnh báo trùng lặp. |
 | **SRS-FEAT-08** | Unit Test thuật toán | Chạy 1.000 lần sinh mã đề hoán vị: $0\%$ câu hỏi chùm bị tách rời; $0\%$ phương án có cờ `is_fixed` bị đảo khỏi vị trí cố định. |
 | **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng MathType 7.0 OLE Vector WMF nét căng tuyệt đối, click đúp mở MathType 7 sửa được trực tiếp; bảng số liệu dạng native table không bị lỗi đen khi xuất PDF; khổ A4 dọc chuẩn. |
+| **SRS-FEAT-11** | Test tự động + UI Test | Đăng ký, đăng nhập tài khoản mật khẩu (PBKDF2/SHA256 băm an toàn); cấp JWT HS256 chuẩn; hỗ trợ OAuth Google/GitHub; phân quyền RBAC (`TEACHER`, `ADMIN`, `STUDENT`); lưu token `quesy_auth_token` và đồng bộ header Authorization. |
+| **SRS-FEAT-12** | Test chức năng + UI Test | Thực thi đầy đủ CRUD câu hỏi; mở Modal Thêm mới, Modal Chi tiết, Modal Sửa, Xóa câu hỏi; lọc 6 tầng TT 32 cascading chuẩn; xuất danh sách ra PDF vector / CSV UTF-8 BOM / LaTeX; nhập câu hỏi; cập nhật ngay số lượng badge `#bank-count-badge`. |
+| **SRS-FEAT-13** | Test tích hợp + E2E | Nút chuyên biệt `📥 LƯU VÀO NGÂN HÀNG` trên toolbar Composer trích xuất trọn vẹn câu hỏi trắc nghiệm đơn, đúng/sai QĐ 764, trả lời ngắn, TikZ, BBT, lời giải chi tiết; tự động gắn tag YCCĐ AI; trả về chi tiết số lượng câu theo từng thể thức và cập nhật tức thì `#bank-count-badge`. |
 | **SRS-VERIF-CI** | Test CI Runner + Pre-Commit Gate | 100% test cases vượt qua trên môi trường CI runner (`pytest`, syntax check) trước khi commit; tuân thủ nghiêm ngặt nguyên tắc Strict CI Isolation (chỉ duy nhất Sub-Agent CI đọc/ghi CI, cấm các sub-agent khác truy cập đọc); vòng lặp sửa lỗi CI loop lặp lại cho đến khi pass mới commit. |

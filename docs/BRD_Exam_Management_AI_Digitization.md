@@ -3,9 +3,9 @@
 **Dự án:** Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học  
 **Tên mã dự án (Project Code):** QUESY  
 **Mục tiêu cốt lõi:** Giải quyết triệt để các rào cản và nút thắt cổ chai trong quy trình số hóa đề thi, tự động tái tạo đồ thị vector, chuẩn hóa công thức toán học, trộn đề an toàn chống vỡ logic và xuất bản ấn phẩm khảo thí in ấn chuyên nghiệp.  
-**Phiên bản (Version):** 2.7 (Tập trung hoàn thiện MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Bảo toàn chỉnh sửa 2 chiều)  
+**Phiên bản (Version):** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Lưu Đề từ Soạn thảo vào Ngân hàng)  
 **Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
-**Ngày phát hành:** 2026-10-21  
+**Ngày phát hành:** 2026-10-24
 
 ---
 
@@ -152,6 +152,8 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 | **RULE-06** | Cơ cấu Ma trận Đề thi Đánh giá Định kỳ | Tỷ lệ điểm các câu hỏi trong đề kiểm tra phải nằm trong biên độ cấu hình ma trận quy định (dung sai $\pm 5\%$). |
 | **RULE-07** | Bảo toàn Khối mã Chat Bubble & Động cơ Thay thế Câu hỏi | Khi người dùng ra lệnh thay thế câu thứ N, hệ thống tự động bóc tách câu cũ làm `old_text` và gán câu mới làm `new_text`. Khối code trong chat bubble tuyệt đối không bị nuốt mất nếu không có diff hợp lệ gửi sang editor. |
 | **RULE-08** | Quy chuẩn Git Workflow - Không Tự Động Tạo PR | Chỉ thực hiện `git commit` và `git push` lên repository; tuyệt đối không tự động tạo hoặc cập nhật Pull Request trừ khi có yêu cầu bằng lời nói rõ ràng từ người dùng. |
+| **RULE-09** | Bảo mật Định danh & Mật khẩu Băm | Mật khẩu người dùng bắt buộc băm qua PBKDF2-HMAC-SHA256 (600.000 vòng lặp, salt 32 bytes); phiên làm việc quản lý qua JWT HS256 (thời hạn 7 ngày); bảo vệ an toàn ngân hàng đề thi. |
+| **RULE-10** | Tích lũy Ngân hàng Chuẩn hóa từ Soạn thảo | Khi lưu đề thi từ Composer vào Ngân hàng, hệ thống bắt buộc bóc tách trọn vẹn cả 3 thể thức QĐ 764, bảo toàn đồ thị TikZ, BBT `tkz-tab`, lời giải chi tiết và tự động gán nhãn YCCĐ. |
 
 ---
 
@@ -161,8 +163,10 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 |:---|:---|:---|:---:|:---|
 | **BR-01** | AI Số hoá Đề thi & Studio HITL | AI Parsing Engine & HITL | P0 | Giảm 90% thời gian gõ lại đề thủ công |
 | **BR-02** | Dựng Đồ thị TikZ SVG & Chuẩn hóa Toán | TikZ Renderer & LaTeX Sanitizer | P0 | Hiển thị đồ thị vector sắc nét, chống lỗi KaTeX |
-| **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa | Taxonomy & Item Bank | P0 | Phân loại sâu theo dạng bài, chống trùng lặp |
+| **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa & CRUD | Taxonomy & Item Bank | P0 | Quản lý vòng đời đầy đủ, lọc 6 tầng TT 32, xuất/nhập đa định dạng, chống trùng lặp |
 | **BR-04** | Ma trận Đề thi 2 Chiều & Rút Đề | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối cấu trúc |
 | **BR-05** | Trộn Đề & Hoán vị An toàn | Safe Shuffling Engine | P0 | Chống lỗi logic đáp án neo, bảo toàn bài đọc |
 | **BR-06** | Xuất bản Word OMML & Bảng điểm | Export Service & Grade Manager | P0 | Xuất bản in ấn 1-click, chấm điểm bậc thang tự động |
 | **BR-07** | Trợ lý Soạn thảo AI & Thay thế Câu hỏi Thông minh | Composer Copilot & Question Replacement Engine | P0 | Hỗ trợ giáo viên chỉnh sửa/thay thế câu hỏi 1-click, bảo toàn code và trải nghiệm mượt mà |
+| **BR-08** | Xác thực Người dùng & Phân quyền Khảo thí | Auth Service & User Management | P0 | Bảo mật kho đề thi, hỗ trợ OAuth Google/GitHub, JWT và phân quyền RBAC Giáo viên / Học sinh |
+| **BR-09** | Lưu Đề từ Soạn Thảo vào Ngân Hàng | Composer & Item Bank Ingestion | P0 | Khép kín chu trình biên soạn, tích lũy tự động kho câu hỏi chuẩn quốc gia chỉ với 1 click |

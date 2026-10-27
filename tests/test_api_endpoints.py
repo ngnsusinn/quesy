@@ -254,3 +254,211 @@ def test_api_variant_shuffling(client):
         ]
         assert len(child_indices) == 2
         assert child_indices[1] == child_indices[0] + 1
+
+
+# -----------------------------------------------------------------
+# 5. Test Question Bank Count, Export, Import, Filters & Cascade Delete
+# -----------------------------------------------------------------
+
+def test_api_questions_count_endpoint(client):
+    """Test GET /api/v1/questions/count returns distribution by format."""
+    res = client.get("/api/v1/questions/count")
+    assert res.status_code == 200
+    counts = res.json()
+    assert "total" in counts
+    assert "single_choice" in counts
+    assert "true_false" in counts
+    assert "short_answer" in counts
+    assert counts["total"] >= 0
+    assert counts["single_choice"] >= 0
+    assert counts["true_false"] >= 0
+    assert counts["short_answer"] >= 0
+
+
+def test_api_questions_export_csv_utf8_bom(client):
+    """Test POST /api/v1/questions/export with format=csv returns UTF-8 BOM."""
+    res = client.post("/api/v1/questions/export", json={"format": "csv"})
+    assert res.status_code == 200
+    assert "text/csv" in res.headers.get("content-type", "")
+    assert "quesy_bank_export.csv" in res.headers.get("content-disposition", "")
+    # Check binary UTF-8 BOM marker (\xef\xbb\xbf)
+    assert res.content.startswith(b"\xef\xbb\xbf"), "CSV stream must start with UTF-8 BOM bytes"
+    # Check text representation
+    assert res.text.startswith("\ufeff"), "Decoded CSV text must start with \\ufeff character"
+    assert "ID,Format,CognitiveLevel,Stem,Explanation" in res.text
+
+
+def test_api_questions_export_latex_and_json(client):
+    """Test POST /api/v1/questions/export for latex and json formats."""
+    # LaTeX format
+    res_tex = client.post("/api/v1/questions/export", json={"format": "latex"})
+    assert res_tex.status_code == 200
+    data_tex = res_tex.json()
+    assert data_tex["success"] is True
+    assert data_tex["format"] == "latex"
+    assert "latex_code" in data_tex
+    assert r"\begin{ex}" in data_tex["latex_code"]
+
+    # JSON format
+    res_json = client.post("/api/v1/questions/export", json={"format": "json"})
+    assert res_json.status_code == 200
+    data_json = res_json.json()
+    assert data_json["success"] is True
+    assert "count" in data_json
+    assert "questions" in data_json
+    assert isinstance(data_json["questions"], list)
+
+
+def test_api_questions_import_latex_and_json(client):
+    """Test POST /api/v1/questions/import for LaTeX snippet and JSON payloads."""
+    # 1. Import via LaTeX
+    latex_snippet = r"""
+\begin{ex}
+Tìm họ nguyên hàm của hàm số $f(x) = 2x$.
+\choice
+{\True $x^2 + C$}
+{$2x^2 + C$}
+{$x + C$}
+{$2 + C$}
+\begin{loigiai}
+Ta có $\int 2x dx = x^2 + C$.
+\end{loigiai}
+\end{ex}
+"""
+    res_tex = client.post("/api/v1/questions/import", json={"latex_code": latex_snippet})
+    assert res_tex.status_code == 200
+    data_tex = res_tex.json()
+    assert data_tex["success"] is True
+    assert data_tex["imported_count"] >= 1
+
+    # 2. Import via questions_json
+    json_payload = [
+        {
+            "stem": "Cho hàm số bậc ba $y = f(x)$. Tính $f'(1)$.",
+            "item_format": "SHORT_ANSWER",
+            "short_answer_key": "3.5",
+            "tolerance": 0.01,
+            "cognitive_level": "APPLICATION"
+        }
+    ]
+    res_json = client.post("/api/v1/questions/import", json={"questions_json": json_payload})
+    assert res_json.status_code == 200
+    data_json = res_json.json()
+    assert data_json["success"] is True
+    assert data_json["imported_count"] >= 1
+
+
+def test_api_questions_keyword_search_and_taxonomy_filters(client):
+    """Test filtering questions by keyword and taxonomy hierarchy (strand_id, topic_id, lesson_id)."""
+    import uuid
+    from backend.database import SessionLocal
+    from backend.models import Strand, Topic, Lesson
+
+    db = SessionLocal()
+    strand = db.query(Strand).first()
+    topic = db.query(Topic).first()
+    lesson = db.query(Lesson).first()
+    strand_id = strand.id if strand else None
+    topic_id = topic.id if topic else None
+    lesson_id = lesson.id if lesson else None
+    db.close()
+
+    unique_marker = f"KW_TEST_{uuid.uuid4().hex[:8]}"
+    create_payload = {
+        "stem": f"Câu hỏi kiểm thử tìm kiếm từ khóa: {unique_marker}",
+        "subject_id": "subj-toan",
+        "grade_id": "grade-12",
+        "strand_id": strand_id,
+        "topic_id": topic_id,
+        "lesson_id": lesson_id,
+        "cognitive_level": "RECOGNITION",
+        "item_format": "SINGLE_CHOICE",
+        "options": [
+            {"label": "A", "content": "Đáp án đúng", "is_correct": True},
+            {"label": "B", "content": "Đáp án sai", "is_correct": False}
+        ]
+    }
+    c_res = client.post("/api/v1/questions", json=create_payload)
+    assert c_res.status_code == 201
+    q_id = c_res.json()["id"]
+
+    try:
+        # Search by unique keyword
+        kw_res = client.get(f"/api/v1/questions?keyword={unique_marker}")
+        assert kw_res.status_code == 200
+        kw_data = kw_res.json()
+        assert len(kw_data) >= 1
+        assert any(q["id"] == q_id for q in kw_data)
+
+        # Search by non-existent keyword
+        empty_res = client.get(f"/api/v1/questions?keyword=NON_EXISTENT_{uuid.uuid4().hex}")
+        assert empty_res.status_code == 200
+        assert len(empty_res.json()) == 0
+
+        # Filter by strand_id if present
+        if strand_id:
+            strand_res = client.get(f"/api/v1/questions?strand_id={strand_id}")
+            assert strand_res.status_code == 200
+            assert any(q["id"] == q_id for q in strand_res.json())
+
+        # Filter by topic_id if present
+        if topic_id:
+            topic_res = client.get(f"/api/v1/questions?topic_id={topic_id}")
+            assert topic_res.status_code == 200
+            assert any(q["id"] == q_id for q in topic_res.json())
+
+        # Filter by lesson_id if present
+        if lesson_id:
+            lesson_res = client.get(f"/api/v1/questions?lesson_id={lesson_id}")
+            assert lesson_res.status_code == 200
+            assert any(q["id"] == q_id for q in lesson_res.json())
+    finally:
+        client.delete(f"/api/v1/questions/{q_id}")
+
+
+def test_api_question_delete_cascade_options_and_substatements(client):
+    """Test that deleting a question cascades deletion to its QuestionOptions and SubStatements."""
+    from backend.database import SessionLocal
+    from backend.models import QuestionOption, SubStatement
+
+    payload = {
+        "stem": "Câu hỏi kiểm tra cascade delete",
+        "cognitive_level": "COMPREHENSION",
+        "item_format": "SINGLE_CHOICE",
+        "options": [
+            {"label": "A", "content": "Option 1", "is_correct": True},
+            {"label": "B", "content": "Option 2", "is_correct": False}
+        ],
+        "sub_statements": [
+            {"label": "a", "content": "Khẳng định a", "is_true": True},
+            {"label": "b", "content": "Khẳng định b", "is_true": False}
+        ]
+    }
+    c_res = client.post("/api/v1/questions", json=payload)
+    assert c_res.status_code == 201
+    q_id = c_res.json()["id"]
+
+    # Verify options and sub-statements exist in database
+    db = SessionLocal()
+    try:
+        opts = db.query(QuestionOption).filter(QuestionOption.question_id == q_id).all()
+        subs = db.query(SubStatement).filter(SubStatement.question_id == q_id).all()
+        assert len(opts) == 2
+        assert len(subs) == 2
+    finally:
+        db.close()
+
+    # Delete the question via DELETE endpoint
+    del_res = client.delete(f"/api/v1/questions/{q_id}")
+    assert del_res.status_code in [200, 204]
+
+    # Verify cascade deletion
+    db2 = SessionLocal()
+    try:
+        opts_after = db2.query(QuestionOption).filter(QuestionOption.question_id == q_id).all()
+        subs_after = db2.query(SubStatement).filter(SubStatement.question_id == q_id).all()
+        assert len(opts_after) == 0, "QuestionOption records must be deleted on cascade"
+        assert len(subs_after) == 0, "SubStatement records must be deleted on cascade"
+    finally:
+        db2.close()
+

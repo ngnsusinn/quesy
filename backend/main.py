@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from backend.database import engine, Base, SessionLocal, get_db
 from backend.models import AIDigitizeJob
 from backend.seed_data import seed_database
-from backend.routers import taxonomy, questions, digitize, matrix, exams, composer
+from backend.routers import taxonomy, questions, digitize, matrix, exams, composer, auth
 
 # Configure logging
 logging.basicConfig(
@@ -85,6 +85,7 @@ app.include_router(composer.router)
 app.include_router(digitize.router)
 app.include_router(matrix.router)
 app.include_router(exams.router)
+app.include_router(auth.router)
 
 
 @app.post("/api/v1/upload", status_code=status.HTTP_201_CREATED, tags=["Digitize"])
