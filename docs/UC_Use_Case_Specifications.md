@@ -149,73 +149,97 @@
 
 ---
 
-### UC-06: THIẾT LẬP MA TRẬN & BẢN ĐẶC TẢ ĐỀ THI THEO YCCĐ
+### UC-06: THIẾT LẬP MA TRẬN 2D, ÁP DỤNG PRESETS & ĐỐI SOÁT TỒN KHO
 - **Mã Use Case:** `UC-06`
-- **Tên Use Case:** Thiết lập Ma trận Đề thi & Bản đặc tả theo YCCĐ
+- **Tên Use Case:** Thiết lập Ma trận Đề thi 2D, Áp dụng Presets, Đối soát Tồn kho & Xuất bản Bản đặc tả
 - **Tác nhân chính:** Tổ trưởng Chuyên môn, Giáo viên
-- **Căn cứ:** Thông tư 22/2021/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
+- **Căn cứ pháp lý:** Thông tư 22/2021/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
 
 #### Luồng sự kiện chính:
-1. Người dùng nhập thông số chung: Tên kỳ thi, Môn học, Khối lớp, Thời gian làm bài (VD: 90 phút), Thang điểm tổng (10.0).
-2. Hệ thống tải cây kiến thức và dựng lưới ma trận 2 chiều:
-   - Trục dòng: Danh sách Mạch nội dung $\rightarrow$ Yêu cầu cần đạt (YCCĐ) $\rightarrow$ Dạng câu hỏi.
-   - Trục ngang: 3 Cấp độ nhận thức (Biết, Hiểu, Vận dụng) $\times$ Thể thức câu hỏi (Trắc nghiệm đơn, Đúng/Sai 4 ý, Trả lời ngắn, Tự luận).
-3. Người dùng nhập số lượng câu cần lấy vào từng ô ma trận.
-4. Hệ thống tự động tính toán tổng số câu, tỷ lệ % điểm theo mức độ tư duy ($40\%$ Biết - $30\%$ Hiểu - $30\%$ Vận dụng), và hiển thị chỉ báo "Số dư khả dụng trong Bank".
-5. Người dùng nhấn "Lưu và Ban hành Ma trận".
+1. Người dùng truy cập phân hệ Ma trận đề thi (`/matrix`, tab `#tab-matrix`).
+2. Người dùng chọn áp dụng một trong 3 Ma trận mẫu (Presets):
+   - Preset 1: Chuẩn Tốt nghiệp THPT 2025 (34 câu, 10.0đ, thời gian 90 phút).
+   - Preset 2: Kiểm tra Định kỳ / Giữa kỳ (20 câu, 10.0đ, thời gian 50-60 phút).
+   - Preset 3: Kiểm tra Cuối kỳ (28 câu, 10.0đ, thời gian 90 phút).
+3. Hệ thống tải cây kiến thức và dựng lưới ma trận 2D tương tác:
+   - Trục dòng: Danh sách Mạch nội dung $
+ightarrow$ Yêu cầu cần đạt (YCCĐ) $
+ightarrow$ Dạng câu hỏi $
+ightarrow$ Thể thức câu hỏi.
+   - Trục ngang: 3 Cột nhận thức: Biết (0.25đ), Hiểu (1.0đ/0.25đ), Vận dụng (0.5đ/0.75đ).
+4. Người dùng điều chỉnh số lượng câu hỏi trong từng ô ma trận.
+5. Hệ thống tính toán thời gian thực:
+   - Tổng số câu và tổng điểm từng dòng.
+   - Tổng câu và tổng điểm từng cột.
+   - Thang điểm tổng tự động cân bằng đạt 10.0đ.
+   - Thanh phân bổ Bloom (%) hiển thị trực quan tỷ lệ Biết - Hiểu - Vận dụng và đưa ra cảnh báo nếu độ lệch $> \pm 5\%$.
+6. Hệ thống tự động thực hiện **Live Inventory Checker (Đối soát tồn kho câu hỏi)** với CSDL Question Bank:
+   - Hiển thị màu xanh lá kèm số câu khả dụng nếu đủ câu (`Kho: 15/4 câu (Đủ)`).
+   - Hiển thị màu đỏ cảnh báo nếu thiếu câu (`Kho: 1/4 câu (Thiếu 3 câu)`).
+7. Người dùng có thể nhấn nút "Xuất Bản Đặc Tả Ma Trận" để tải về bản đặc tả dưới dạng PDF Vector, CSV UTF-8 BOM hoặc JSON qua endpoint `GET /api/v1/matrix/{id}/spec`.
+8. Người dùng nhấn nút "Lưu và Ban hành Ma trận" hoặc "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề".
+9. Hệ thống lưu ma trận vào CSDL qua `POST /api/v1/matrix` và chuyển tiếp sang phân hệ Trộn đề an toàn.
 
 ---
 
-### UC-07: SINH ĐỀ THI TỰ ĐỘNG TỪ MA TRẬN RÀNG BUỘC YCCĐ
+### UC-07: SINH ĐỀ THI GỐC & HOÁN ĐỔI CÂU HỎI TƯƠNG ĐƯƠNG (IN-PLACE ITEM SWAP)
 - **Mã Use Case:** `UC-07`
-- **Tên Use Case:** Sinh Đề thi từ Ma trận Ràng buộc YCCĐ
+- **Tên Use Case:** Sinh Đề thi Gốc từ Ma trận và Hoán đổi Câu hỏi Tương đương
 - **Tác nhân chính:** Giáo viên, Tổ trưởng Chuyên môn
 
 #### Luồng sự kiện chính:
-1. Người dùng chọn Ma trận đề thi cần sử dụng.
-2. Người dùng thiết lập ràng buộc loại trừ: Loại trừ các câu hỏi đã xuất hiện trong bài thi gần nhất của khối/lớp trong vòng 30 ngày qua.
-3. Người dùng nhấn nút "Khởi tạo Đề thi Gốc".
-4. Hệ thống kích hoạt thuật toán Constraint Satisfaction Solver:
-   - Quét ngân hàng, lọc các câu hỏi đạt `status = 'APPROVED'` khớp đúng mã YCCĐ, Dạng câu hỏi và Mức độ nhận thức.
-   - Kiểm tra toàn vẹn câu hỏi chùm (Passage-based): Giữ nguyên bài đọc chung và toàn bộ câu con đi kèm.
-5. Hệ thống hiển thị Đề thi Gốc (Master Exam) vừa sinh ra để người dùng rà soát nội dung.
-6. Cho phép bấm "Đổi câu khác" (hệ thống tự động bốc câu hỏi khác cùng mã YCCĐ, cùng dạng bài, cùng mức độ Bloom để thay thế).
-7. Người dùng nhấn "Xác nhận Đề thi Gốc".
+1. Người dùng chọn Ma trận đề thi cần sử dụng và thiết lập ràng buộc loại trừ (loại trừ câu hỏi đã xuất hiện trong 30 ngày qua).
+2. Người dùng nhấn nút "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề".
+3. Hệ thống kích hoạt thuật toán Constraint Satisfaction Problem (CSP Solver):
+   - Rút câu hỏi đạt `status = 'APPROVED'`, `is_defective == False` khớp từng ô ma trận.
+   - Áp dụng trọng số trắc lượng học ưu tiên câu hỏi có độ phân biệt $D \ge 0.3$.
+   - Bảo toàn các câu hỏi chùm có chung `passage_id`.
+4. Hệ thống hiển thị Đề thi Gốc (Master Exam) tại tab `#tab-shuffler` (Bước 1):
+   - Render đầy đủ thân câu hỏi, công thức KaTeX, đồ thị TikZ vector SVG, các phương án A-B-C-D, 4 khẳng định Đúng/Sai và ô trả lời ngắn.
+   - Hiển thị badge Option Anchor nếu câu hỏi có phương án mỏ neo.
+5. Giáo viên rà soát đề gốc:
+   - Nếu muốn thay thế một câu hỏi bất kỳ, giáo viên bấm nút **"Đổi câu khác" (Swap Question)** tại card câu hỏi đó.
+   - Hệ thống gọi API `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates` tìm kiếm các câu hỏi tương đương trong Question Bank (cùng YCCĐ, cùng mức độ Bloom, cùng thể thức, không trùng với đề gốc).
+   - Giáo viên chọn câu hỏi thay thế hoặc cho phép hệ thống tự động bốc câu hỏi tối ưu nhất qua `POST /api/v1/exams/{master_id}/items/{item_id}/swap`.
+   - Hệ thống cập nhật câu hỏi mới vào đề gốc thời gian thực, hủy bỏ các mã đề hoán vị cũ để đảm bảo tính đồng bộ dữ liệu.
 
 ---
 
-### UC-08: TRỘN ĐỀ & HOÁN VỊ MÃ ĐỀ AN TOÀN
+### UC-08: TRỘN ĐỀ HOÁN VỊ AN TOÀN 4 NGUYÊN TẮC (SAFE SHUFFLING)
 - **Mã Use Case:** `UC-08`
-- **Tên Use Case:** Trộn đề và hoán vị mã đề an toàn
+- **Tên Use Case:** Trộn Đề Hoán Vị An Toàn 4 Nguyên Tắc & Lập Ma Trận Đáp Án
 - **Tác nhân chính:** Giáo viên, Tổ trưởng chuyên môn
 
 #### Luồng sự kiện chính:
-1. Người dùng chọn số lượng mã đề hoán vị cần tạo (VD: 4 mã đề: 101, 102, 103, 104).
-2. Người dùng nhấn nút "Bắt đầu Trộn đề".
-3. Động cơ Shuffling Engine thực thi 4 quy tắc an toàn:
-   - **Quy tắc phân vùng:** Chỉ đảo thứ tự câu trong từng Phần riêng biệt.
-   - **Quy tắc câu chùm:** Neo bài đọc chung và các câu con liên quan liền kề nhau.
-   - **Quy tắc neo phương án (Option Anchor):** Khóa cố định các phương án chứa "Cả A và B", "Tất cả các ý trên" ở vị trí cuối cùng (D).
-   - Hoán vị ngẫu nhiên các phương án còn lại.
-4. Hệ thống tạo ra 4 bản ghi mã đề thi độc lập kèm theo **Ma trận Ánh xạ Đáp án** (Answer Key Matrix).
-5. Hệ thống chuyển sang màn hình xuất bản tài liệu (UC-09).
+1. Người dùng cấu hình trộn đề: Chọn 4 mã đề hoán vị chuẩn (101, 102, 103, 104).
+2. Người dùng nhấn nút "Kích Hoạt Trộn Đề An Toàn (4 Mã Đề)".
+3. Động cơ Safe Shuffling Engine thực thi nghiêm ngặt 4 nguyên tắc khảo thí an toàn:
+   - **Section Integrity:** Chỉ hoán vị câu hỏi trong cùng một Phần (Phần I, Phần II, Phần III độc lập).
+   - **Passage Integrity:** Gom ngữ liệu bài đọc chung và các câu con thành khối nguyên tử bất khả phân; các câu con luôn đi liền kề nhau.
+   - **Option Anchor Rule (100%):** Tự động phát hiện phương án mỏ neo ("Cả A và B", "Tất cả các đáp án trên", "Không có đáp án nào"...) hoặc cờ `is_fixed = True`; **khóa cố định tại vị trí cuối cùng (D)** trong 100% các mã đề; chỉ hoán vị tự do các phương án A, B, C.
+   - **Key Matrix:** Tự động sinh Ma trận Ánh xạ Đáp án đối chiếu giữa đề gốc và 4 mã đề hoán vị.
+4. Hệ thống hiển thị Kết quả Trộn Đề:
+   - Huy hiệu xanh xác minh: `Option Anchor Rule: ĐẠT 100% (Khóa cố định tại vị trí D)`.
+   - Các nút chuyển Tab xem trước từng mã đề (Mã 101, Mã 102, Mã 103, Mã 104) với KaTeX và TikZ đầy đủ.
+   - Bảng Ma trận Ánh xạ Đáp án tổng hợp đối chiếu Đề gốc và 4 mã đề.
 
 ---
 
-### UC-09: XUẤT BẢN GÓI ĐỀ THI WORD (.DOCX) MATHTYPE OLE / OMML & BAREM
+### UC-09: XUẤT BẢN ĐỀ THI ĐƠN LẺ & ĐÓNG GÓI ẤN PHẨM KHẢO THÍ (.ZIP)
 - **Mã Use Case:** `UC-09`
-- **Tên Use Case:** Xuất bản Gói Đề thi Word chuẩn mẫu in (MathType OLE Vector WMF / OMML) và Barem
+- **Tên Use Case:** Xuất bản Đề thi Đơn lẻ (PDF) & Đóng gói Ấn phẩm Khảo thí (.ZIP)
 - **Tác nhân chính:** Giáo viên, Cán bộ in sao đề
 
 #### Luồng sự kiện chính:
-1. Người dùng chọn mẫu template Word và định dạng công thức (`mathtype`, `omml`, hoặc `latex`).
-2. Người dùng nhấn "Xuất gói In ấn (.ZIP)".
-3. Hệ thống tạo các file:
-   - $N$ file đề thi Word (`.docx`) khổ A4 Portrait, công thức toán dạng **MathType 7.0 OLE Vector WMF** (100% vector thuần nét căng, stream DSMT7 TeX Input Language, click đúp mở MathType 7 để chỉnh sửa 2 chiều mượt mà không lỗi) hoặc **OMML native**, tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word native `<w:tbl>`.
-   - File Bảng ma trận đáp án tổng hợp các mã đề (Excel/CSV UTF-8 BOM + PDF).
-   - File Hướng dẫn giải chi tiết từng mã đề.
-   - File Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR.
-4. Hệ thống đóng gói thành 1 file ZIP và bắt đầu tải xuống máy người dùng.
+1. Người dùng có thể nhấn nút **"Tải PDF Mã {code}"** để tải trực tiếp file đề thi đơn lẻ dạng PDF Vector 2 cột chuẩn Bộ GD&ĐT qua `GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`.
+2. Người dùng nhấn nút **"TẢI TRỌN GÓI ĐỀ THI PDF (.ZIP)"** qua `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.
+3. Hệ thống tạo và đóng gói tự động các file sau vào tệp ZIP:
+   - `De_101.pdf`, `De_102.pdf`, `De_103.pdf`, `De_104.pdf`: Đề thi 4 mã đề hoán vị A4 Portrait 2 cột.
+   - `LoiGiai_101.pdf`, `LoiGiai_102.pdf`, `LoiGiai_103.pdf`, `LoiGiai_104.pdf`: Hướng dẫn giải chi tiết kèm barem điểm bậc thang QĐ 764.
+   - `BangDapAn_TongHop.pdf`: Bảng ma trận đối chiếu đáp án tổng hợp in ấn dạng PDF.
+   - `BangDapAn_TongHop.csv`: Bảng ma trận đối chiếu đáp án định dạng CSV có ký tự UTF-8 BOM (`\ufeff`) tương thích 100% Microsoft Excel tiếng Việt.
+   - `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`: Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR 2025.
+4. Trình duyệt tự động kích hoạt tải xuống file `Goi_DeThi_PDF_{id}.zip` an toàn.
 
 ---
 

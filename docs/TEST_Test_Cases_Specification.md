@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.2 (Phân hệ Xác thực Người dùng Auth, Ngân hàng Câu hỏi Mở rộng & Soạn đề Save-to-Bank)  
+- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 209 Tests (100% Passed)  
+- **Tổng số kịch bản tự động hóa:** 209+ Tests (100% Passed)  
 - **Ngày lập:** 2026-10-27  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
@@ -157,6 +157,49 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 
 ---
 
+### TEST SUITE 05: MA TRẬN ĐỀ THI 2D THEO YCCĐ & ĐỐI SOÁT TỒN KHO
+
+#### TC-MATRIX-01: Thiết lập Lưới Ma trận 2D & Tải 3 Presets Chuẩn Hóa
+- **Mô tả:** Kiểm tra khả năng tải và áp dụng chính xác 3 preset ma trận đề thi mẫu theo TT 22 & QĐ 764.
+- **Các bước thực hiện:**
+  1. Truy cập tab `#tab-matrix`.
+  2. Bấm nút áp dụng lần lượt: `Preset 1 (Chuẩn TN THPT 2025)`, `Preset 2 (Kiểm tra Định kỳ)`, `Preset 3 (Kiểm tra Cuối kỳ)`.
+- **Kết quả kỳ vọng:**
+  - Preset 1: Điền đúng 34 câu, 10.0đ (12 TN đơn, 4 Đúng/Sai, 6 Trả lời ngắn), tỷ lệ Bloom đạt 40% Biết - 30% Hiểu - 30% Vận dụng.
+  - Preset 2: Điền đúng 20 câu, 10.0đ (12 TN đơn, 4 Đúng/Sai, 4 Trả lời ngắn).
+  - Preset 3: Điền đúng 28 câu, 10.0đ (16 TN đơn, 4 Đúng/Sai, 8 Trả lời ngắn).
+  - Lưới ma trận render mượt mà, không gián đoạn giao diện.
+
+#### TC-MATRIX-02: Tính toán Thời gian thực & Cảnh báo Tỷ lệ Bloom
+- **Mô tả:** Kiểm tra cơ chế tự động tính tổng câu, tổng điểm từng dòng/cột và nhãn cảnh báo Bloom khi người dùng thay đổi giá trị ô ma trận.
+- **Các bước thực hiện:**
+  1. Thay đổi số lượng câu hỏi ở ô Biết thành 20 câu, Hiểu 2 câu, Vận dụng 2 câu.
+- **Kết quả kỳ vọng:**
+  - Tổng câu và tổng điểm các dòng/cột cập nhật tức thì.
+  - Thanh tiến trình Bloom chuyển màu hổ phách kèm nhãn cảnh báo: "CẢNH BÁO: Tỷ lệ phân bố Bloom lệch so với chuẩn TT 22".
+
+#### TC-MATRIX-03: Đối soát Tồn kho Thời gian thực (Live Inventory Checker)
+- **Mô tả:** Kiểm tra tính năng đối soát số lượng câu hỏi thực tế trong CSDL Question Bank cho từng ô ma trận.
+- **Các bước thực hiện:**
+  1. Gọi API `POST /api/v1/matrix/{id}/check-availability` hoặc kích hoạt kiểm tra trên giao diện.
+- **Kết quả kỳ vọng:**
+  - Các ô có đủ câu hỏi APPROVED hiển thị badge xanh (`Kho: X/Y câu (Đủ)`).
+  - Các ô thiếu câu hiển thị badge đỏ (`Kho: X/Y câu (Thiếu Z câu)`).
+  - Trả về danh sách cảnh báo chi tiết các ô bị thiếu.
+
+#### TC-MATRIX-04: Xuất bản Bản Đặc tả Ma trận Đề thi (PDF / CSV UTF-8 BOM / JSON)
+- **Mô tả:** Kiểm tra endpoint xuất bản bản đặc tả ma trận đề thi.
+- **Các bước thực hiện:**
+  1. Gửi request `GET /api/v1/matrix/{id}/spec?format=json`.
+  2. Gửi request `GET /api/v1/matrix/{id}/spec?format=csv`.
+  3. Gửi request `GET /api/v1/matrix/{id}/spec?format=pdf`.
+- **Kết quả kỳ vọng:**
+  - Format JSON trả về cấu trúc ma trận, phân bổ YCCĐ và tồn kho.
+  - Format CSV có chứa tiền tố UTF-8 BOM (`\ufeff`), mở bằng Excel tiếng Việt không bị lỗi font.
+  - Format PDF trả về file Vector PDF chuẩn in ấn A4 Portrait gồm Khung ma trận 2D và Bảng đặc tả chi tiết.
+
+---
+
 ### TEST SUITE 06: ĐỘNG CƠ TRỘN ĐỀ HOÁN VỊ AN TOÀN (SAFE SHUFFLING ENGINE)
 
 #### TC-SHUFFLE-01: Quy tắc Neo cố định Phương án (Option Anchor Rule - RULE-02)
@@ -169,6 +212,7 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Kết quả kỳ vọng:**
   - Trong toàn bộ 4 mã đề (101, 102, 103, 104), nội dung *"Cả A và B đều đúng"* **LUÔN NẰM Ở VỊ TRÍ D**.
   - Các phương án A, B, C được hoán vị ngẫu nhiên hợp lệ.
+  - Tỷ lệ Option Anchor Rule đạt 100%.
 
 #### TC-SHUFFLE-02: Quy tắc Bảo toàn Toàn vẹn Câu hỏi Chùm (Passage Integrity - RULE-03)
 - **Mô tả:** Đảm bảo đoạn văn ngữ liệu chung và các câu hỏi con luôn đi liền kề nhau sau khi trộn đề.
@@ -181,6 +225,36 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
   - Bài đọc P luôn xuất hiện ngay trước các câu con.
   - Các câu con luôn nằm ở các vị trí số thứ tự liên tiếp nhau (ví dụ: Câu 15, 16, 17, 18).
   - Không có bất kỳ câu hỏi đơn nào bị xen vào giữa cụm câu hỏi con của bài đọc P.
+
+#### TC-SHUFFLE-03: Hoán đổi Câu hỏi Đề Gốc Tương đương (In-Place Question Swap Engine)
+- **Mô tả:** Kiểm tra tính năng đổi một câu hỏi bất kỳ trong MasterExam sang một câu hỏi khác cùng YCCĐ từ ngân hàng câu hỏi.
+- **Các bước thực hiện:**
+  1. Chọn Câu 1 trong MasterExam.
+  2. Gọi `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates`.
+  3. Chọn một câu ứng viên và gọi `POST /api/v1/exams/{master_id}/items/{item_id}/swap`.
+- **Kết quả kỳ vọng:**
+  - Danh sách ứng viên trả về chỉ gồm các câu có cùng YCCĐ, cùng cognitive_level, cùng item_format và chưa có trong đề gốc.
+  - API swap thành công, cập nhật câu hỏi mới vào MasterExamItem.
+  - Các ExamVariant cũ tự động bị xóa bỏ để buộc người dùng trộn lại.
+
+#### TC-SHUFFLE-04: Bảo toàn Phân đoạn (Section Integrity)
+- **Mô tả:** Kiểm tra các câu hỏi chỉ được đảo trong cùng một Phần theo QĐ 764.
+- **Kết quả kỳ vọng:**
+  - Phần I chỉ chứa câu SINGLE_CHOICE đảo thứ tự nội bộ.
+  - Phần II chỉ chứa câu TRUE_FALSE_GROUP đảo thứ tự nội bộ.
+  - Phần III chỉ chứa câu SHORT_ANSWER đảo thứ tự nội bộ.
+  - Tuyệt đối không hoán vị câu hỏi khác phần sang nhau.
+
+#### TC-SHUFFLE-05: Lập Ma trận Đáp án Tổng hợp & Đóng gói Ấn phẩm (.ZIP / .PDF)
+- **Mô tả:** Kiểm tra xuất bản bảng ma trận đáp án và đóng gói tệp ZIP.
+- **Các bước thực hiện:**
+  1. Gọi `GET /api/v1/exams/{master_id}/key-matrix`.
+  2. Gọi `GET /api/v1/exams/{master_id}/export-pdf?variant_code=101`.
+  3. Gọi `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.
+- **Kết quả kỳ vọng:**
+  - Bảng ma trận đáp án hiển thị đầy đủ đối chiếu giữa Đề gốc và 4 mã đề.
+  - File PDF tải về có layout 2 cột rõ ràng, chuẩn font in ấn.
+  - File ZIP giải nén có đầy đủ 5 thành phần: `De_{code}.pdf`, `LoiGiai_{code}.pdf`, `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 
 ---
 

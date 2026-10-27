@@ -1151,12 +1151,15 @@
               <p class="text-xs text-slate-500">Căn cứ Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (QĐ 764)</p>
             </div>
             
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 flex-wrap gap-1">
               <button onclick="app.loadMatrixPreset('thpt_2025')" class="btn-apple-secondary text-xs">
                 Preset: Chuẩn TN THPT 2025 (34 câu)
               </button>
               <button onclick="app.loadMatrixPreset('midterm')" class="btn-apple-secondary text-xs">
                 Preset: Kiểm tra Định kỳ (20 câu)
+              </button>
+              <button onclick="app.loadMatrixPreset('final')" class="btn-apple-secondary text-xs font-bold text-brand-700 bg-brand-50 border-brand-200">
+                Preset: Kiểm tra Cuối kỳ (28 câu)
               </button>
             </div>
           </div>
@@ -1189,6 +1192,17 @@
                 <span>Lưu & Ban Hành Ma Trận</span>
               </button>
             </div>
+          </div>
+
+          <!-- Export Spec Actions -->
+          <div class="flex items-center space-x-2 pt-2 border-t border-black/[0.04]">
+            <span class="text-[11px] font-semibold text-slate-500">Xuất Bản Đặc Tả:</span>
+            <button onclick="app.exportMatrixSpec('pdf')" class="btn-apple-secondary py-1.5 px-3 text-xs flex items-center space-x-1">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-600"></i><span>Tải PDF (A4)</span>
+            </button>
+            <button onclick="app.exportMatrixSpec('csv')" class="btn-apple-secondary py-1.5 px-3 text-xs flex items-center space-x-1">
+              <i data-lucide="table" class="w-3.5 h-3.5 text-emerald-600"></i><span>Tải CSV (UTF-8 BOM)</span>
+            </button>
           </div>
         </div>
 
@@ -1491,6 +1505,37 @@
 
     </div>
   </main>
+
+  <!-- ================= SWAP QUESTION CANDIDATES MODAL ================= -->
+  <div id="swap-question-modal" class="apple-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <div class="apple-modal-sheet max-w-3xl w-full border border-black/[0.08] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div class="px-6 py-4 bg-slate-50 border-b border-black/[0.06] flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm">Đổi Câu Hỏi Tương Đương (Ngân Hàng Câu Hỏi Quesy)</h3>
+            <p id="swap-modal-subtitle" class="text-xs text-slate-500">Chọn câu hỏi thay thế có cùng YCCĐ và cấp độ nhận thức từ ngân hàng câu hỏi</p>
+          </div>
+        </div>
+        <button onclick="app.closeSwapQuestionModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="p-6 max-h-[60vh] overflow-y-auto space-y-4">
+        <div class="text-xs text-slate-600 mb-2" id="swap-modal-current-info"></div>
+        <div id="swap-candidates-list" class="space-y-3">
+          <!-- Dynamically populated candidate items -->
+        </div>
+      </div>
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-black/[0.06] flex items-center justify-end space-x-2">
+        <button type="button" onclick="app.closeSwapQuestionModal()" class="btn-apple-secondary text-xs">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ================= LATEX FORMULA LIVE EDITOR MODAL ================= -->
   <div id="latex-editor-modal" class="apple-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 hidden">

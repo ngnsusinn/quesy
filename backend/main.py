@@ -84,6 +84,7 @@ app.include_router(questions.router)
 app.include_router(composer.router)
 app.include_router(digitize.router)
 app.include_router(matrix.router)
+app.include_router(matrix.router_singular)
 app.include_router(exams.router)
 app.include_router(auth.router)
 

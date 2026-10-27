@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
+- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ), động cơ Canonical Preamble Injection, bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, và quy chuẩn quản trị phát triển Git.
-- **Ngày phát hành:** 2026-10-24  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap) và đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF).
+- **Ngày phát hành:** 2026-10-27  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
 ---
@@ -641,25 +641,73 @@ ight)$$
 
 ---
 
-### 4.3. Phân hệ Ma trận & Động cơ Sinh Đề (Matrix & Exam Engine)
+### 4.3. Phân hệ Ma trận & Động cơ Sinh & Trộn Đề (Matrix & Safe Exam Engine)
 
-#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi theo YCCĐ (Test Blueprint)
-- **Mô tả:** Định nghĩa cấu trúc đề thi theo ma trận 2 chiều:
-  - Dòng: Danh sách Mạch nội dung $\rightarrow$ Yêu cầu cần đạt (YCCĐ) $\rightarrow$ Dạng câu hỏi.
-  - Cột: 3 Mức độ nhận thức (Biết, Hiểu, Vận dụng) $\times$ Dạng thức câu hỏi.
-  - Điểm số: Điểm quy định cho từng câu hỏi ở từng vị trí.
+#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi 2D theo YCCĐ & Thư viện Presets (Interactive 2D Matrix Blueprint)
+- **Mô tả:** Định nghĩa cấu trúc đề thi theo ma trận 2 chiều chuẩn hóa theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
+- **Yêu cầu kỹ thuật:**
+  1. *Thư viện Ma trận mẫu (Presets):*
+     - **Preset 1 (Chuẩn Tốt nghiệp THPT 2025):** 34 câu, 10.0 điểm, thời gian 90 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định tính điểm bậc thang (1.0đ/câu = 4.0đ), và 6 câu Trả lời ngắn (0.5đ/câu = 3.0đ). Phân bổ Bloom chuẩn: 40% Biết (3.0đ) - 30% Hiểu (3.5đ) - 30% Vận dụng (3.5đ).
+     - **Preset 2 (Kiểm tra Định kỳ / Giữa kỳ):** 20 câu, 10.0 điểm, thời gian 50-60 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 4 câu Trả lời ngắn (0.75đ/câu = 3.0đ). Phân bổ: ~50% Biết, 30% Hiểu, 20% Vận dụng.
+     - **Preset 3 (Kiểm tra Cuối kỳ):** 28 câu, 10.0 điểm, thời gian 90 phút. Gồm 16 câu TN đơn (0.25đ/câu = 4.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 8 câu Trả lời ngắn (0.25đ/câu = 2.0đ). Phân bổ: 40% Biết, 35% Hiểu, 25% Vận dụng.
+  2. *Lưới Ma trận 2D Tương tác (Interactive 2D Grid):*
+     - Dòng: Phân nhóm theo Mạch nội dung $
+ightarrow$ Yêu cầu cần đạt (YCCĐ) $
+ightarrow$ Dạng câu hỏi (Problem Archetype) $
+ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
+     - Cột: 3 Mức độ nhận thức: Biết (Nhận biết), Hiểu (Thông hiểu), Vận dụng.
+     - Ô nhập liệu: Cho phép nhập số lượng câu hỏi cần lấy cho từng ô.
+     - Tính toán thời gian thực: Tự động tính tổng số câu từng dòng, tổng điểm từng dòng, tổng số câu theo từng cột nhận thức, tổng điểm theo từng cột nhận thức và tổng điểm toàn đề (chuẩn 10.0đ).
+     - Thanh đo lường Bloom: Hiển thị trực quan tỷ lệ % Biết, Hiểu, Vận dụng; cảnh báo màu hổ phách nếu độ lệch vượt quá $\pm 5\%$ so với tỷ lệ chuẩn của từng loại kỳ thi.
+  3. *Đối soát Tồn kho Thời gian thực (Live Inventory Checker):*
+     - Hệ thống kết nối cơ sở dữ liệu câu hỏi thực tế qua API `POST /api/v1/matrix/{id}/check-availability` hoặc `POST /api/v1/matrix/check-availability`.
+     - Với mỗi ô ma trận, đếm số câu hỏi có `status = 'APPROVED'` và `is_defective == False` khớp YCCĐ, mức độ và thể thức.
+     - Hiển thị badge trực quan: Xanh lá nếu đủ câu (ví dụ: `Kho: 15 câu (Đủ)`), Đỏ nếu thiếu câu (ví dụ: `Kho: 2 câu (Thiếu 2)`).
+     - Tổng hợp cảnh báo toàn ma trận: Hiển thị danh sách ô thiếu câu và tổng số câu cần bổ sung vào Ngân hàng.
+  4. *API Quản lý & Xuất bản Bản đặc tả Ma trận:*
+     - Hỗ trợ cả 2 tiền tố route song song: `/api/v1/matrix` và `/api/v1/matrices`.
+     - `POST /api/v1/matrix`: Lưu và ban hành ma trận vào CSDL.
+     - `GET /api/v1/matrix`: Danh sách các ma trận đã ban hành.
+     - `GET /api/v1/matrix/{id}`: Chi tiết bản đặc tả ma trận.
+     - `GET /api/v1/matrix/{id}/spec`: Xuất bản bản đặc tả ma trận đề thi ra 3 định dạng (`format=json`, `format=csv`, `format=pdf`):
+       * `json`: Payload chi tiết cấu trúc ma trận và thống kê tồn kho.
+       * `csv`: File bảng tính CSV có gắn mã ký tự UTF-8 BOM (`\ufeff`) hiển thị chuẩn tiếng Việt trên Excel.
+       * `pdf`: Bản đặc tả in ấn A4 Portrait chuẩn quy cách Bộ GD&ĐT gồm Khung Ma trận phân bổ 2D và Bảng Đặc tả chi tiết từng câu hỏi.
+     - Nút "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề": Lưu ma trận hiện tại, gọi API sinh đề gốc từ ma trận và chuyển mượt sang Tab Trộn đề.
 
-#### SRS-FEAT-07: Sinh Đề Gốc theo Ràng buộc (Constraint Satisfaction Solver)
-- **Mô tả:** Tự động lấy câu hỏi từ ngân hàng thỏa mãn ma trận.
-- **Ràng buộc:** Trạng thái câu hỏi là `APPROVED`; không nằm trong danh sách loại trừ (Exclusion list); đúng tỷ lệ YCCĐ và mức độ nhận thức.
+#### SRS-FEAT-07: Động cơ Sinh Đề Gốc theo Ràng buộc Ma trận (CSP Solver) & Đổi Câu Tương Đương (In-Place Item Swap)
+- **Mô tả:** Tự động giải bài toán thỏa mãn ràng buộc (Constraint Satisfaction Problem - CSP) để rút câu hỏi từ ngân hàng thành Đề Thi Gốc (Master Exam) và hỗ trợ giáo viên thẩm định, đổi câu hỏi linh hoạt.
+- **Yêu cầu kỹ thuật:**
+  1. *Thuật toán Rút Đề Gốc:*
+     - Khớp chính xác từng ô ma trận theo YCCĐ, Dạng câu hỏi, Cấp độ nhận thức và Thể thức câu hỏi.
+     - Kiểm tra tồn kho trước khi rút đề; ném ngoại lệ `InsufficientInventoryError` kèm báo cáo chi tiết nếu thiếu câu và cờ `allow_partial = False`.
+     - Ràng buộc loại trừ: Loại bỏ các câu hỏi đã xuất hiện trong danh sách loại trừ hoặc các đề thi trong 30 ngày qua khi được kích hoạt.
+     - Trọng số trắc lượng học (Psychometric Weighting): Ưu tiên câu hỏi có độ phân biệt tốt ($D \ge 0.3$) và độ khó cân đối ($p \approx 0.55$).
+     - Đề gốc được lưu vào CSDL (`MasterExam` và `MasterExamItem`) phân theo 3 phần: Phần I (TN đơn), Phần II (Đúng/Sai), Phần III (Trả lời ngắn).
+  2. *Hiển thị Đề thi Gốc Đầy đủ Thông tin:*
+     - API `POST /api/v1/exams/generate` và `GET /api/v1/exams/{master_id}` trả về đầy đủ thân câu hỏi (`stem`), phương án trắc nghiệm (`options`), các khẳng định con (`sub_statements`), câu trả lời ngắn, mã YCCĐ, đồ thị TikZ SVG và KaTeX preview.
+     - Hiển thị badge Option Anchor nếu câu hỏi chứa phương án phụ thuộc vị trí.
+  3. *Động cơ Đổi Câu hỏi Khác (In-Place Question Swap Engine):*
+     - `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates`: Tìm kiếm các câu hỏi thay thế tiềm năng từ CSDL Question Bank:
+       * Cùng mã YCCĐ (`learning_outcome_id`).
+       * Cùng mức độ nhận thức (`cognitive_level`).
+       * Cùng thể thức câu hỏi (`item_format`).
+       * Trạng thái `status = 'APPROVED'` và `is_defective == False`.
+       * Loại trừ tất cả các câu hỏi đang có mặt trong đề gốc.
+     - `POST /api/v1/exams/{master_id}/items/{item_id}/swap`: Thay thế câu hỏi chỉ định trong đề gốc bằng câu hỏi mới; tự động xóa các mã đề hoán vị cũ (`ExamVariant`) để yêu cầu trộn lại, bảo toàn tính nhất quán tuyệt đối.
 
 #### SRS-FEAT-08: Thuật toán Trộn Đề & Hoán vị Mã đề An toàn (Safe Shuffling Engine)
-- **Mô tả:** Sinh ra $N$ mã đề hoán vị (101, 102, 103, 104...) từ 1 đề gốc.
-- **Quy tắc an toàn:**
-  1. **Section Integrity:** Chỉ hoán vị câu hỏi trong cùng một Phần/Dạng thức (không trộn trắc nghiệm đơn sang phần đúng sai).
-  2. **Passage Integrity:** Giữ nguyên cụm câu hỏi chùm; đoạn văn ngữ liệu luôn đi liền trước các câu con.
-  3. **Option Anchor:** Nếu phương án có cờ `is_fixed = true` hoặc chứa nội dung nhạy cảm vị trí ("Cả A và B", "Tất cả các ý trên"), phương án này luôn bị khóa cố định ở vị trí cuối cùng (D).
-  4. **Key Generator:** Tự động xuất ma trận hoán vị đáp án (Answer Key Matrix).
+- **Mô tả:** Sinh ra 4 mã đề hoán vị chuẩn (101, 102, 103, 104) từ Đề thi Gốc, tuân thủ nghiêm ngặt 4 nguyên tắc khảo thí an toàn.
+- **4 Nguyên tắc An toàn Tuyệt đối:**
+  1. **Section Integrity (Bảo toàn phân đoạn):** Chỉ hoán vị câu hỏi trong cùng một Phần / Thể thức (Phần I chỉ đảo trong Phần I; Phần II chỉ đảo trong Phần II; Phần III chỉ đảo trong Phần III).
+  2. **Passage Integrity (Bảo toàn câu hỏi chùm / ngữ liệu):** Ngữ liệu bài đọc chung và các câu hỏi con đi kèm được gom thành một khối nguyên tử (Atomic Block); khi hoán vị, toàn bộ khối nguyên tử di chuyển cùng nhau; các câu hỏi con luôn nằm liền kề ngay sau ngữ liệu.
+  3. **Option Anchor Rule (Khóa mỏ neo phương án):** Tự động phát hiện phương án có `is_fixed = True` hoặc chứa từ khóa mỏ neo vị trí ("Cả A và B", "Cả hai đáp án", "Tất cả các đáp án trên", "Tất cả các ý trên", "Không có đáp án nào"...). **BẮT BUỘC KHÓA CỐ ĐỊNH phương án này tại vị trí cuối cùng (Vị trí D)** trong mọi mã đề hoán vị; chỉ hoán vị tự do các phương án còn lại (A, B, C). Đảm bảo tỷ lệ xác minh Option Anchor Rule đạt 100%.
+  4. **Key Matrix Generator (Ma trận đáp án đối chiếu):** Tự động lập bảng ma trận đối chiếu đáp án chéo giữa đề gốc và 4 mã đề hoán vị (cho cả 3 thể thức: ký tự đáp án cho Phần I, chuỗi đúng/sai cho Phần II, giá trị số cho Phần III).
+- **Xem trước Mã đề & Đóng gói Xuất bản Ấn phẩm:**
+  - Tab xem trước từng mã đề (Mã 101, 102, 103, 104) với huy hiệu xác minh Option Anchor Rule đạt 100%.
+  - Bảng ma trận đáp án tổng hợp (Answer Key Matrix Table).
+  - Tải file PDF độc lập cho từng mã đề (`GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`).
+  - Tải trọn gói ấn phẩm đề thi (.ZIP) (`GET /api/v1/exams/{master_id}/export-zip?format=pdf`): Đóng gói đầy đủ `De_{code}.pdf`, `LoiGiai_{code}.pdf`, `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), và `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 
 ---
 

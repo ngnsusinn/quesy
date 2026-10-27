@@ -462,3 +462,96 @@ def test_api_question_delete_cascade_options_and_substatements(client):
     finally:
         db2.close()
 
+
+def test_api_matrix_spec_and_availability_and_swap(client):
+    """Test matrix spec exports (json, csv with UTF-8 BOM, pdf with %PDF),
+    route aliases (/matrix and /matrices), live availability checker,
+    master exam generation, item swap with variant invalidation,
+    safe shuffling, and ZIP packaging containing 5 standard components.
+    """
+    import zipfile
+
+    # 1. Route alias test: List matrices via both /matrices and /matrix
+    m_res_plural = client.get("/api/v1/matrices")
+    m_res_singular = client.get("/api/v1/matrix")
+    assert m_res_plural.status_code == 200
+    assert m_res_singular.status_code == 200
+    matrices = m_res_plural.json()
+    assert len(matrices) > 0
+    matrix_id = matrices[0]["id"]
+
+    # 2. Check availability via singular and plural aliases
+    avail_res = client.post(f"/api/v1/matrix/{matrix_id}/check-availability")
+    assert avail_res.status_code == 200
+    avail_plural = client.post(f"/api/v1/matrices/{matrix_id}/check-availability")
+    assert avail_plural.status_code == 200
+    avail_data = avail_res.json()
+    assert "is_sufficient" in avail_data
+    assert "total_required" in avail_data
+    assert "total_available" in avail_data
+    assert "items" in avail_data
+
+    # 3. Export matrix spec (JSON, CSV with UTF-8 BOM, PDF with %PDF)
+    spec_json = client.get(f"/api/v1/matrix/{matrix_id}/spec?format=json")
+    assert spec_json.status_code == 200
+    assert spec_json.json()["id"] == matrix_id
+
+    spec_csv = client.get(f"/api/v1/matrix/{matrix_id}/spec?format=csv")
+    assert spec_csv.status_code == 200
+    assert "utf-8" in spec_csv.headers.get("content-type", "").lower()
+    # Confirm UTF-8 BOM byte prefix
+    assert spec_csv.content.startswith(b"\xef\xbb\xbf"), "Matrix spec CSV must start with UTF-8 BOM bytes"
+
+    spec_pdf = client.get(f"/api/v1/matrix/{matrix_id}/spec?format=pdf")
+    assert spec_pdf.status_code == 200
+    assert spec_pdf.headers.get("content-type") == "application/pdf"
+    # Confirm %PDF magic bytes
+    assert spec_pdf.content.startswith(b"%PDF"), "Matrix spec PDF must start with %PDF magic bytes"
+
+    # 4. Generate Master Exam and test replacement candidates & swap
+    gen_res = client.post("/api/v1/exams/generate", json={"matrix_id": matrix_id, "title": "Test Exam", "allow_partial": True})
+    assert gen_res.status_code in [200, 201]
+    exam_data = gen_res.json()
+    master_id = exam_data["id"]
+    assert len(exam_data["items"]) > 0
+
+    item = exam_data["items"][0]
+    item_id = item["id"]
+
+    # Generate variants first to test variant invalidation on swap
+    shuf_res = client.post(f"/api/v1/exams/{master_id}/shuffle", json={"variant_codes": ["101", "102"]})
+    assert shuf_res.status_code == 200
+    assert shuf_res.json()["generated_variants_count"] == 2
+
+    # Query replacement candidates
+    cand_res = client.get(f"/api/v1/exams/{master_id}/items/{item_id}/replacement-candidates")
+    assert cand_res.status_code == 200
+    candidates = cand_res.json()
+    if len(candidates) > 0:
+        new_q_id = candidates[0]["id"]
+        swap_res = client.post(f"/api/v1/exams/{master_id}/items/{item_id}/swap", json={"new_question_id": new_q_id})
+        assert swap_res.status_code == 200
+        assert swap_res.json()["question_id"] == new_q_id
+
+        # Re-shuffle after swap to generate all 4 variants
+        re_shuf = client.post(f"/api/v1/exams/{master_id}/shuffle", json={"variant_codes": ["101", "102", "103", "104"]})
+        assert re_shuf.status_code == 200
+        assert re_shuf.json()["generated_variants_count"] == 4
+
+        # Export ZIP and verify 5 standard components
+        zip_res = client.get(f"/api/v1/exams/{master_id}/export-zip")
+        assert zip_res.status_code == 200
+        assert zip_res.headers.get("content-type") == "application/zip"
+
+        with zipfile.ZipFile(io.BytesIO(zip_res.content), "r") as zf:
+            namelist = zf.namelist()
+            assert any(f.startswith("De_") and f.endswith(".pdf") for f in namelist), "ZIP must contain De_{code}.pdf"
+            assert any(f.startswith("LoiGiai_") and f.endswith(".pdf") for f in namelist), "ZIP must contain LoiGiai_{code}.pdf"
+            assert "BangDapAn_TongHop.pdf" in namelist, "ZIP must contain BangDapAn_TongHop.pdf"
+            assert "BangDapAn_TongHop.csv" in namelist, "ZIP must contain BangDapAn_TongHop.csv"
+            assert "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf" in namelist, "ZIP must contain Phieu_Tra_Loi_Trac_Nghiem_2025.pdf"
+            # Verify CSV in ZIP has UTF-8 BOM
+            assert zf.read("BangDapAn_TongHop.csv").startswith(b"\xef\xbb\xbf")
+
+
+

@@ -57,9 +57,14 @@ def check_matrix_availability(
     """Validates whether the item bank has sufficient APPROVED questions
     to assemble an exam according to the ExamMatrix specification.
     """
-    matrix = db.query(ExamMatrix).filter(ExamMatrix.id == matrix_id).first()
-    if not matrix:
-        raise ValueError(f"ExamMatrix with id '{matrix_id}' not found.")
+    if matrix_id and matrix_id != "default":
+        matrix = db.query(ExamMatrix).filter(ExamMatrix.id == matrix_id).first()
+        if not matrix:
+            raise ValueError(f"ExamMatrix with id '{matrix_id}' not found.")
+    else:
+        matrix = db.query(ExamMatrix).first()
+        if not matrix:
+            raise ValueError(f"ExamMatrix with id '{matrix_id}' not found.")
 
     excluded_ids = _get_excluded_question_ids(db, exclude_exam_ids, exclude_question_ids)
 
@@ -150,9 +155,14 @@ def solve_and_generate_master_exam(
     if random_seed is not None:
         random.seed(random_seed)
 
-    matrix = db.query(ExamMatrix).filter(ExamMatrix.id == matrix_id).first()
-    if not matrix:
-        raise ValueError(f"ExamMatrix with id '{matrix_id}' not found.")
+    if matrix_id and matrix_id != "default":
+        matrix = db.query(ExamMatrix).filter(ExamMatrix.id == matrix_id).first()
+        if not matrix:
+            raise ValueError(f"ExamMatrix with id '{matrix_id}' not found.")
+    else:
+        matrix = db.query(ExamMatrix).first()
+        if not matrix:
+            raise ValueError(f"ExamMatrix with id '{matrix_id}' not found.")
 
     # 1. Aggregate excluded question IDs (recent exams + explicit exclusion)
     excluded_set = _get_excluded_question_ids(db, exclude_exam_ids, excluded_question_ids)

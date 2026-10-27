@@ -51,8 +51,19 @@ class MasterExamItemOut(BaseModel):
     stem: Optional[str] = None
     item_format: Optional[str] = None
     cognitive_level: Optional[str] = None
+    code: Optional[str] = None
+    learning_outcome_id: Optional[str] = None
+    learning_outcome_code: Optional[str] = None
+    options: List[Any] = []
+    sub_statements: List[Any] = []
+    has_anchor: bool = False
+    short_answer_value: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SwapQuestionRequest(BaseModel):
+    new_question_id: str
 
 
 class MasterExamOut(BaseModel):
@@ -88,6 +99,48 @@ def list_master_exams(
     return query.order_by(MasterExam.created_at.desc()).all()
 
 
+def _enrich_master_item(it: MasterExamItem) -> MasterExamItemOut:
+    q = it.question
+    opts = [
+        {
+            "label": o.label,
+            "content": o.content,
+            "is_correct": o.is_correct,
+            "is_fixed": getattr(o, "is_fixed", False)
+        }
+        for o in (q.options if q else [])
+    ]
+    subs = [
+        {
+            "label": s.label,
+            "content": s.content,
+            "is_true": s.is_true
+        }
+        for s in (q.sub_statements if q else [])
+    ]
+    has_anchor = any(
+        o.get("is_fixed") or any(kw in o.get("content", "").lower() for kw in ["cả a và b", "tất cả", "không có"])
+        for o in opts
+    )
+    return MasterExamItemOut(
+        id=it.id,
+        question_id=it.question_id,
+        section=it.section,
+        order_index=it.order_index,
+        points=it.points,
+        stem=q.stem if q else None,
+        item_format=q.item_format if q else None,
+        cognitive_level=q.cognitive_level if q else None,
+        code=getattr(q, "code", None) or (q.learning_outcome.code if q and q.learning_outcome else None),
+        learning_outcome_id=q.learning_outcome_id if q else None,
+        learning_outcome_code=q.learning_outcome.code if (q and q.learning_outcome) else None,
+        options=opts,
+        sub_statements=subs,
+        has_anchor=has_anchor,
+        short_answer_value=getattr(q, "short_answer_value", None)
+    )
+
+
 @router.post("/generate", response_model=MasterExamOut, status_code=status.HTTP_201_CREATED)
 def generate_master_exam(payload: GenerateExamRequest, db: Session = Depends(get_db)):
     """POST /api/v1/exams/generate
@@ -99,22 +152,10 @@ def generate_master_exam(payload: GenerateExamRequest, db: Session = Depends(get
             db=db,
             title=payload.title,
             excluded_question_ids=payload.excluded_question_ids,
-            allow_partial=payload.allow_partial or False
+            allow_partial=bool(payload.allow_partial)
         )
 
-        # Enrich item outputs
-        items_out = []
-        for it in master_exam.items:
-            items_out.append(MasterExamItemOut(
-                id=it.id,
-                question_id=it.question_id,
-                section=it.section,
-                order_index=it.order_index,
-                points=it.points,
-                stem=it.question.stem if it.question else None,
-                item_format=it.question.item_format if it.question else None,
-                cognitive_level=it.question.cognitive_level if it.question else None
-            ))
+        items_out = [_enrich_master_item(it) for it in master_exam.items]
 
         return MasterExamOut(
             id=master_exam.id,
@@ -139,18 +180,7 @@ def get_master_exam(master_id: str, db: Session = Depends(get_db)):
     if not master:
         raise HTTPException(status_code=404, detail="MasterExam not found")
 
-    items_out = []
-    for it in master.items:
-        items_out.append(MasterExamItemOut(
-            id=it.id,
-            question_id=it.question_id,
-            section=it.section,
-            order_index=it.order_index,
-            points=it.points,
-            stem=it.question.stem if it.question else None,
-            item_format=it.question.item_format if it.question else None,
-            cognitive_level=it.question.cognitive_level if it.question else None
-        ))
+    items_out = [_enrich_master_item(it) for it in master.items]
 
     return MasterExamOut(
         id=master.id,
@@ -163,6 +193,79 @@ def get_master_exam(master_id: str, db: Session = Depends(get_db)):
         status=master.status,
         items=items_out
     )
+
+
+@router.get("/{master_id}/items/{item_id}/replacement-candidates")
+def get_replacement_candidates(
+    master_id: str,
+    item_id: str,
+    db: Session = Depends(get_db)
+):
+    """Finds equivalent questions in Question Bank for in-place item swap."""
+    master_item = db.query(MasterExamItem).filter(MasterExamItem.id == item_id).first()
+    if not master_item:
+        raise HTTPException(status_code=404, detail="MasterExamItem not found")
+
+    q = master_item.question
+    master = db.query(MasterExam).filter(MasterExam.id == master_id).first()
+    excluded_q_ids = {it.question_id for it in master.items} if master else {master_item.question_id}
+
+    from backend.models import Question
+    candidates = []
+    if q:
+        candidates = db.query(Question).filter(
+            Question.status == "APPROVED",
+            Question.learning_outcome_id == q.learning_outcome_id,
+            Question.cognitive_level == q.cognitive_level,
+            Question.item_format == q.item_format,
+            Question.is_defective.is_(False),
+            ~Question.id.in_(list(excluded_q_ids))
+        ).all()
+
+    if not candidates and q:
+        candidates = db.query(Question).filter(
+            Question.status == "APPROVED",
+            Question.item_format == q.item_format,
+            ~Question.id.in_(list(excluded_q_ids))
+        ).limit(10).all()
+
+    return [
+        {
+            "id": c.id,
+            "code": getattr(c, "code", None) or (c.learning_outcome.code if c and c.learning_outcome else None),
+            "stem": c.stem,
+            "cognitive_level": c.cognitive_level,
+            "item_format": c.item_format,
+            "options": [{"label": o.label, "content": o.content, "is_correct": o.is_correct} for o in c.options],
+            "sub_statements": [{"label": s.label, "content": s.content, "is_true": s.is_true} for s in c.sub_statements],
+        }
+        for c in candidates
+    ]
+
+
+@router.post("/{master_id}/items/{item_id}/swap", response_model=MasterExamItemOut)
+def swap_master_question(
+    master_id: str,
+    item_id: str,
+    payload: SwapQuestionRequest,
+    db: Session = Depends(get_db)
+):
+    """Swaps question in MasterExamItem and clears existing variants."""
+    master_item = db.query(MasterExamItem).filter(MasterExamItem.id == item_id).first()
+    if not master_item:
+        raise HTTPException(status_code=404, detail="MasterExamItem not found")
+
+    from backend.models import Question, ExamVariant
+    new_q = db.query(Question).filter(Question.id == payload.new_question_id).first()
+    if not new_q:
+        raise HTTPException(status_code=404, detail="New question not found")
+
+    master_item.question_id = new_q.id
+    db.query(ExamVariant).filter(ExamVariant.master_exam_id == master_id).delete()
+    db.commit()
+    db.refresh(master_item)
+
+    return _enrich_master_item(master_item)
 
 
 class DirectExamShuffleRequest(BaseModel):

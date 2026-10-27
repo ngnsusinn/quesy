@@ -3,8 +3,8 @@
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Phiên bản:** v3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Lưu Đề từ Soạn thảo vào Ngân hàng)  
-> **Cập nhật lần cuối:** Tháng 10/2026
+> **Phiên bản:** v3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
+> **Cập nhật lần cuối:** 27/10/2026
 
 ---
 
@@ -236,11 +236,19 @@ Hệ thống quản lý **20 thực thể** chia thành 5 nhóm nghiệp vụ:
 | **PUT** | `/api/v1/questions/{id}` | Chỉnh sửa nội dung câu hỏi, phương án, khẳng định Đ/S | `questions.py` |
 | **DELETE**| `/api/v1/questions/{id}` | Xóa câu hỏi khỏi ngân hàng | `questions.py` |
 | **GET** | `/api/v1/taxonomy/tree` | Lấy toàn bộ cây kiến thức phân cấp 6 tầng theo TT 32 | `taxonomy.py` |
-| **POST** | `/api/v1/matrix` | Tạo ma trận đặc tả đề thi theo YCCĐ | `matrix.py` |
-| **POST** | `/api/v1/matrix/{id}/generate` | Thuật toán sinh đề thi gốc từ ma trận | `matrix.py` |
-| **POST** | `/api/v1/exams/{id}/shuffle` | Hoán vị $N$ mã đề an toàn, xuất phiếu soi đáp án | `exams.py` |
-| **POST** | `/api/v1/exams/{id}/export-pdf` | Xuất bản file PDF vector 100% CMU Serif / Times New Roman | `exams.py` |
-| **GET**  | `/api/v1/exams/{id}/export-zip` | Đóng gói trọn bộ ấn phẩm PDF (Đề, Lời giải, Barem, Phiếu OMR) | `exams.py` |
+| **GET** | `/api/v1/matrix` (hoặc `/api/v1/matrices`) | Danh sách ma trận đặc tả đề thi đã lưu | `matrix.py` |
+| **POST** | `/api/v1/matrix` (hoặc `/api/v1/matrices`) | Tạo và ban hành ma trận đặc tả đề thi theo YCCĐ | `matrix.py` |
+| **GET** | `/api/v1/matrix/{id}` | Lấy chi tiết ma trận theo ID | `matrix.py` |
+| **POST** | `/api/v1/matrix/{id}/check-availability` | Kiểm tra đối soát tồn kho câu hỏi theo ma trận từ CSDL | `matrix.py` |
+| **GET** | `/api/v1/matrix/{id}/spec` | Xuất bản bản đặc tả ma trận đề thi (format: PDF / CSV UTF-8 BOM / JSON) | `matrix.py` |
+| **POST** | `/api/v1/exams/generate` | Sinh đề thi gốc (MasterExam) từ ma trận theo thuật toán CSP Solver | `exams.py` |
+| **GET** | `/api/v1/exams/{id}` | Lấy chi tiết đề thi gốc với đầy đủ thân, options, sub_statements, TikZ | `exams.py` |
+| **GET** | `/api/v1/exams/{id}/items/{item_id}/replacement-candidates` | Lấy danh sách câu hỏi thay thế tương đương cùng YCCĐ/Bloom/thể thức | `exams.py` |
+| **POST** | `/api/v1/exams/{id}/items/{item_id}/swap` | Hoán đổi câu hỏi chỉ định trong đề gốc sang câu mới | `exams.py` |
+| **POST** | `/api/v1/exams/{id}/shuffle` | Hoán vị 4 mã đề an toàn (Section/Passage/Anchor 100%), sinh Answer Key Matrix | `exams.py` |
+| **GET**  | `/api/v1/exams/{id}/key-matrix` | Lấy ma trận đối chiếu đáp án chéo giữa đề gốc và 4 mã đề | `exams.py` |
+| **GET**  | `/api/v1/exams/{id}/export-pdf` | Xuất bản trực tiếp file PDF Vector A4 2 cột cho mã đề chỉ định | `exams.py` |
+| **GET**  | `/api/v1/exams/{id}/export-zip` | Đóng gói trọn bộ ấn phẩm PDF (Đề 101-104, Lời giải, Barem QĐ 764, Đáp án PDF/CSV BOM, Phiếu OMR) | `exams.py` |
 
 ---
 

@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
+- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, hệ thống xác thực an toàn (PBKDF2/SHA256, JWT HS256, OAuth 2.0), tốc độ trích xuất lưu đề từ Composer vào Ngân hàng (<= 1.5s), độ trễ truy vấn lọc ngân hàng câu hỏi 6 tầng (P95 <= 150ms), tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
-- **Ngày phát hành:** 2026-10-24
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, hệ thống xác thực an toàn (PBKDF2/SHA256, JWT HS256, OAuth 2.0), tốc độ trích xuất lưu đề từ Composer vào Ngân hàng (<= 1.5s), độ trễ truy vấn lọc ngân hàng câu hỏi 6 tầng (P95 <= 150ms), hiệu năng phân hệ Ma trận đề thi 2D (tốc độ đối soát tồn kho <= 200ms, xuất bản bản đặc tả PDF <= 1.0s, CSV UTF-8 BOM <= 200ms), hiệu năng động cơ sinh & trộn đề an toàn (thời gian rút đề gốc <= 2.0s, đổi câu hỏi tương đương <= 300ms, sinh 4 mã đề hoán vị an toàn <= 1.5s), độ chính xác tuyệt đối 100% của Option Anchor Rule tại vị trí D, tốc độ đóng gói trọn bộ ấn phẩm khảo thí ZIP <= 10s, tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
+- **Ngày phát hành:** 2026-10-27
 
 ---
 
@@ -38,8 +38,12 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 - **NFR-PERF-04 (Thời gian gợi ý AI Auto-tagging YCCĐ):** Tiến trình phân tích ngữ nghĩa thân câu hỏi và đưa ra gợi ý mã Yêu cầu cần đạt (YCCĐ) theo Thông tư 32 không quá **1.0 giây/câu**.
 
 ### 2.2. Tốc độ Sinh Đề & Trộn Mã đề (Exam Engine Performance)
-- **NFR-PERF-05 (Thời gian sinh đề gốc từ ma trận YCCĐ):** Thuật toán tìm kiếm và lấy câu hỏi thỏa mãn ma trận (Constraint Solver) cho đề 50 câu phải hoàn thành trong vòng **$< 3$ giây** trên kho dữ liệu 100.000 câu hỏi.
-- **NFR-PERF-06 (Thời gian trộn đề và sinh 4 mã đề hoán vị):** Quá trình chạy thuật toán hoán vị an toàn, kiểm tra cờ neo vị trí (Option Anchor) và xuất ra ma trận ánh xạ đáp án cho 4 mã đề phải hoàn thành trong **$< 2$ giây**.
+- **NFR-PERF-05 (Thời gian sinh đề gốc từ ma trận YCCĐ):** Thuật toán tìm kiếm và lấy câu hỏi thỏa mãn ma trận (Constraint Solver) cho đề 34 câu (hoặc 50 câu) phải hoàn thành trong vòng **$< 2$ giây** trên kho dữ liệu ngân hàng câu hỏi.
+- **NFR-PERF-06 (Thời gian trộn đề và sinh 4 mã đề hoán vị):** Quá trình chạy thuật toán hoán vị an toàn 4 nguyên tắc, kiểm tra cờ neo vị trí (Option Anchor) và xuất ra ma trận ánh xạ đáp án cho 4 mã đề phải hoàn thành trong **$< 1.5$ giây**.
+- **NFR-PERF-17 (Thời gian Kiểm tra Đối soát Tồn kho Ma trận):** Thao tác đối soát số lượng câu hỏi khả dụng theo từng ô ma trận trong Question Bank qua API `POST /api/v1/matrix/{id}/check-availability` đạt thời gian đáp ứng **$\le 200$ ms**.
+- **NFR-PERF-18 (Thời gian Xuất bản Bản đặc tả Ma trận Đề thi):** Tiến trình kết xuất Bản đặc tả Ma trận Đề thi ra file PDF Vector đạt **$\le 1.0$ giây**, và file CSV UTF-8 BOM đạt **$\le 200$ ms**.
+- **NFR-PERF-19 (Thời gian Hoán đổi Câu hỏi Đề Gốc - In-Place Question Swap):** Thao tác tìm kiếm ứng viên tương đương và hoán đổi một câu hỏi trong đề gốc qua API `POST /api/v1/exams/{master_id}/items/{item_id}/swap` hoàn thành trong vòng **$\le 300$ ms**.
+- **NFR-ACC-02 (Độ Chính xác 100% của Option Anchor Rule tại vị trí D):** Trong 100% các lần hoán vị mã đề (kiểm thử 100+ vòng lặp), các phương án có chứa từ ngữ phụ thuộc vị trí ("Cả A và B", "Tất cả các đáp án trên", "Không có đáp án nào"...) hoặc cờ `is_fixed = True` bắt buộc phải nằm cố định tại vị trí D, không bao giờ xuất hiện ở A, B, C.
 
 ### 2.3. Hiệu năng Giao diện, Render Công thức & Xuất bản (Frontend & Engine Performance)
 - **NFR-PERF-07 (Tốc độ render công thức KaTeX):** Trên màn hình Studio Hậu kiểm chứa 50 câu hỏi đầy đủ công thức toán, thời gian render ban đầu (First Contentful Paint) không quá **1.2 giây**; tốc độ khung hình khi cuộn trang (Scrolling Frame Rate) phải duy trì ổn định $\ge 60$ FPS.

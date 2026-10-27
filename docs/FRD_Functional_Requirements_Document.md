@@ -2,9 +2,9 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (bóc tách trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (tự động nhúng ngầm ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn thảo AI copilot thông minh, và quy chuẩn quản trị phát triển Git.
-- **Ngày phát hành:** 2026-10-24  
+- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap) và đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF).
+- **Ngày phát hành:** 2026-10-27  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
 ---
@@ -743,16 +743,51 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.9. FR-05.1: Thiết lập Bản Đặc tả Ma trận Đề thi theo YCCĐ
-- **Màn hình:** `SCR-MATRIX-BUILDER`
-- **Thông số chung:** Tên kỳ thi, Khối lớp, Môn học, Thời gian làm bài (phút), Thang điểm tổng (10.0).
-- **Lưới Ma trận (Matrix Grid):**
-  - Trục dọc: Danh sách Mạch nội dung $\rightarrow$ Yêu cầu cần đạt (YCCĐ) $\rightarrow$ Dạng câu hỏi.
-  - Trục ngang: 3 Cấp độ nhận thức (Biết, Hiểu, Vận dụng) $\times$ Dạng thức câu hỏi.
-  - Mỗi ô cấu hình: Số lượng câu hỏi + Điểm số cho mỗi câu.
-- **Tự động tính toán & Cảnh báo:**
-  - Tổng số câu và tỷ lệ % điểm (ví dụ: $40\%$ Biết - $30\%$ Hiểu - $30\%$ Vận dụng; $70\%$ Trắc nghiệm - $30\%$ Tự luận).
-  - Hiển thị chỉ báo **"Số dư khả dụng trong Ngân hàng"** bên cạnh số lượng yêu cầu để cảnh báo thiếu câu hỏi.
+### 2.9. FR-05.1: Thiết lập Bản Đặc tả Ma trận Đề thi theo YCCĐ & Thư viện Presets
+- **Màn hình:** `SCR-MATRIX-BUILDER` (Route: `/matrix`, tab: `#tab-matrix`)
+- **Căn cứ pháp lý:** Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
+- **Thông số chung:** Tên kỳ thi, Khối lớp & Môn học, Thời gian làm bài (45, 50, 90 phút), Thang điểm tổng (10.0đ).
+- **Thư viện Ma trận Mẫu (Exam Matrix Presets):**
+  1. *Preset 1 - Chuẩn Tốt nghiệp THPT 2025 (34 câu, 10.0đ, 90 phút):*
+     - Phần I: 12 câu trắc nghiệm đơn $\times$ 0.25đ = 3.0đ.
+     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0đ (áp dụng barem lũy tiến QĐ 764).
+     - Phần III: 6 câu Trả lời ngắn $\times$ 0.5đ = 3.0đ.
+     - Tỷ lệ phân bổ chuẩn: 40% Biết (3.0đ) - 30% Hiểu (3.5đ) - 30% Vận dụng (3.5đ).
+  2. *Preset 2 - Kiểm tra Định kỳ / Giữa kỳ (20 câu, 10.0đ, 50-60 phút):*
+     - Phần I: 12 câu trắc nghiệm đơn $\times$ 0.25đ = 3.0đ.
+     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0đ.
+     - Phần III: 4 câu Trả lời ngắn $\times$ 0.75đ = 3.0đ.
+     - Tỷ lệ phân bổ: ~50% Biết, 30% Hiểu, 20% Vận dụng.
+  3. *Preset 3 - Kiểm tra Cuối kỳ (28 câu, 10.0đ, 90 phút):*
+     - Phần I: 16 câu trắc nghiệm đơn $\times$ 0.25đ = 4.0đ.
+     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0đ.
+     - Phần III: 8 câu Trả lời ngắn $\times$ 0.25đ = 2.0đ.
+     - Tỷ lệ phân bổ: 40% Biết, 35% Hiểu, 25% Vận dụng.
+- **Lưới Ma trận 2D Tương tác (Interactive 2D Matrix Grid):**
+  - Trục dọc: Phân cấp theo Mạch nội dung $
+ightarrow$ Yêu cầu cần đạt (YCCĐ) $
+ightarrow$ Dạng câu hỏi (Problem Archetype) $
+ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
+  - Trục ngang: 3 Cột nhận thức: Biết (Nhận biết), Hiểu (Thông hiểu), Vận dụng.
+  - Tính toán thời gian thực: Tự động tính tổng câu, tổng điểm từng dòng; tổng câu, tổng điểm từng cột và tổng điểm toàn ma trận (thang 10.0đ).
+  - Thanh tiến trình phân bổ Bloom (Biết %, Hiểu %, Vận dụng %) với nhãn cảnh báo trực quan: Đạt chuẩn khảo thí khi tỷ lệ tiệm cận chuẩn của từng preset (dung sai $\pm 5\%$).
+- **Đối soát Tồn kho Câu hỏi Thời gian thực (Live Inventory Checker):**
+  - Kết nối trực tiếp cơ sở dữ liệu Question Bank thông qua API kiểm tra tồn kho.
+  - Từng ô ma trận hiển thị trạng thái tồn kho thực tế:
+    * *Đủ câu:* Hiển thị màu xanh lá (`bg-emerald-100 text-emerald-800`), ví dụ: `Kho: 15/4 câu (Đủ)`.
+    * *Cảnh báo thiếu câu:* Hiển thị màu đỏ (`bg-rose-100 text-rose-800`), ví dụ: `Kho: 1/4 câu (Thiếu 3 câu)`.
+  - Cảnh báo toàn ma trận: Hiển thị tổng số câu thiếu và danh sách các ô thiếu câu trước khi sinh đề.
+- **API Hợp đồng Ma trận Đề thi:**
+  - `POST /api/v1/matrix` (alias `/api/v1/matrices`): Lưu và ban hành ma trận đề thi.
+  - `GET /api/v1/matrix` (alias `/api/v1/matrices`): Danh sách ma trận.
+  - `GET /api/v1/matrix/{id}` (alias `/api/v1/matrices/{id}`): Chi tiết ma trận.
+  - `POST /api/v1/matrix/{id}/check-availability` & `POST /api/v1/matrix/check-availability`: Kiểm tra tồn kho câu hỏi.
+  - `GET /api/v1/matrix/{id}/spec` (alias `/api/v1/matrices/{id}/spec`): Xuất bản bản đặc tả ma trận đề thi:
+    * `format=json`: Trả về JSON bản đặc tả chi tiết.
+    * `format=csv`: File CSV mã hóa UTF-8 BOM (`\ufeff`) tương thích 100% Microsoft Excel tiếng Việt.
+    * `format=pdf`: File Vector PDF A4 Portrait gồm Khung ma trận 2D và Bảng đặc tả chi tiết.
+- **Nút Hành động "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề":**
+  - Tự động lưu cấu hình ma trận hiện tại, gọi API `POST /api/v1/exams/generate` và chuyển người dùng sang tab Trộn đề (`#tab-shuffler`).
 
 ---
 
@@ -762,33 +797,64 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.10. FR-06.1: Thuật toán Sinh Đề Gốc theo Ràng buộc Ma trận
-- **Đầu vào:** Ma trận đề thi ID + Danh sách loại trừ (các câu đã thi trong 30 ngày qua).
-- **Xử lý:** Quét các câu hỏi đạt `status = 'APPROVED'`, lấy mẫu ngẫu nhiên có trọng số ưu tiên câu hỏi có chỉ số khảo thí tốt ($p, D$).
-- **Đầu ra:** Bản ghi `master_exams` và danh sách `master_exam_items`.
+### 2.10. FR-06.1: Đề Thi Gốc (Master Exam) & Động cơ Đổi Câu Tương Đương (In-Place Item Swap)
+- **Màn hình:** `SCR-SHUFFLER` (Route: `/shuffler`, tab: `#tab-shuffler` - Bước 1)
+- **Thuật toán Sinh Đề Gốc theo Ràng buộc Ma trận (CSP Solver):**
+  - **Đầu vào:** `matrix_id`, `title`, cờ `exclude_30d` (loại trừ câu hỏi đã thi trong 30 ngày qua), `allow_partial`.
+  - **Xử lý:** Lọc câu hỏi `status = 'APPROVED'`, `is_defective == False` từ CSDL; ưu tiên câu hỏi có độ phân biệt $D \ge 0.3$ và độ khó cân đối $p \approx 0.55$.
+  - **Đầu ra:** Bản ghi `master_exams` và danh sách `master_exam_items` phân theo 3 phần (Phần I: TN đơn, Phần II: Đúng/Sai, Phần III: Trả lời ngắn).
+- **Hiển thị Đề thi Gốc Trực quan:**
+  - Hiển thị đầy đủ thân câu hỏi, công thức toán KaTeX và đồ thị vector TikZ SVG.
+  - Hiển thị nhãn thể thức, mã câu hỏi, mã YCCĐ và cờ Option Anchor nếu có phương án mỏ neo.
+- **Động cơ Đổi Câu hỏi Khác (In-Place Question Swap Engine):**
+  - Cho phép giáo viên thay thế một câu hỏi bất kỳ trong đề gốc bằng một câu hỏi tương đương từ ngân hàng.
+  - **Hợp đồng API:**
+    * `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates`: Trả về danh sách câu hỏi ứng viên cùng YCCĐ, cùng mức độ Bloom, cùng thể thức, trạng thái APPROVED, không bị defective, loại trừ câu hỏi đang có trong đề gốc.
+    * `POST /api/v1/exams/{master_id}/items/{item_id}/swap`:
+      - Payload: `{"replacement_question_id": Optional[str]}` (nếu rỗng, tự động chọn câu tối ưu nhất).
+      - Cập nhật `question_id` của `MasterExamItem`.
+      - Tự động xóa các `ExamVariant` cũ để bắt buộc trộn lại.
+      - Trả về `MasterExamItem` mới đã cập nhật.
 
-### 2.11. FR-06.2: Thuật toán Trộn Đề Hoán vị An toàn (Safe Shuffling Engine)
-- **Đầu vào:** `master_exam_id`, Số lượng mã đề cần tạo (101, 102, 103, 104).
-- **4 Nguyên tắc An toàn Tuyệt đối:**
-  1. **Section Integrity:** Chỉ đảo thứ tự câu hỏi trong cùng một Phần.
-  2. **Passage Integrity:** Ngữ liệu bài đọc chung và các câu hỏi con luôn đi liền kề nhau.
-  3. **Option Anchor Rule:** Phương án chứa "Cả A và B", "Tất cả các ý trên", "Không có đáp án nào" hoặc cờ `is_fixed = true` bắt buộc **khóa cố định ở vị trí cuối cùng (D)**.
-  4. **Key Generator:** Tự động sinh Ma trận Ánh xạ Đáp án đối chiếu giữa đề gốc và các mã đề hoán vị.
+### 2.11. FR-06.2: Thuật toán Trộn Đề Hoán vị An toàn 4 Nguyên Tắc (Safe Shuffling Engine)
+- **Màn hình:** `SCR-SHUFFLER` (Route: `/shuffler`, tab: `#tab-shuffler` - Bước 2)
+- **Đầu vào:** `master_exam_id`, danh sách mã đề cần tạo (`variant_codes: ["101", "102", "103", "104"]`).
+- **4 Nguyên tắc An toàn Tuyệt đối (QĐ 764/QĐ-BGDĐT):**
+  1. *Section Integrity (Bảo toàn phân đoạn):* Câu hỏi chỉ được hoán vị trong cùng một Phần / Thể thức (Phần I chỉ đảo trong Phần I, Phần II trong Phần II, Phần III trong Phần III).
+  2. *Passage Integrity (Bảo toàn câu hỏi chùm / ngữ liệu):* Ngữ liệu bài đọc chung và các câu hỏi con đi kèm được gom thành một khối nguyên tử (Atomic Block); khi hoán vị, toàn bộ khối nguyên tử di chuyển cùng nhau; các câu hỏi con luôn nằm liền kề ngay sau ngữ liệu.
+  3. *Option Anchor Rule (Khóa mỏ neo phương án):* Tự động phát hiện phương án có `is_fixed = True` hoặc chứa từ khóa mỏ neo vị trí ("Cả A và B", "Cả hai đáp án", "Tất cả các đáp án trên", "Tất cả các ý trên", "Không có đáp án nào"...). **BẮT BUỘC KHÓA CỐ ĐỊNH phương án này tại vị trí cuối cùng (Vị trí D)** trong mọi mã đề hoán vị; chỉ hoán vị tự do các phương án còn lại (A, B, C). Đảm bảo tỷ lệ xác minh Option Anchor Rule đạt 100%.
+  4. *Key Matrix Generator (Ma trận đáp án đối chiếu):* Tự động sinh bảng ma trận đối chiếu đáp án chéo giữa đề gốc và các mã đề hoán vị (101, 102, 103, 104...).
+- **Xem trước Mã đề & Xác minh Option Anchor:**
+  - Tab xem trước từng mã đề (Mã 101, 102, 103, 104) với huy hiệu xác minh Option Anchor Rule: `Option Anchor Rule: ĐẠT 100% (Khóa cố định tại vị trí D)`.
+  - Hiển thị nhãn `[Neo D]` bên cạnh phương án mỏ neo.
+  - Bảng Ma trận Ánh xạ Đáp án đối chiếu giữa Đề gốc và 4 mã đề hoán vị.
 
 ---
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│ MOD-07: XUẤT BẢN ĐỀ THI ĐA ĐỊNH DẠNG (PUBLISHING SERVICE)              │
+│ MOD-07: XUẤT BẢN ĐỀ THI ĐA ĐỊNH DẠNG & ĐÓNG GÓI (.ZIP)                │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.12. FR-07.1: Xuất bản Microsoft Word (.docx) Chuẩn Khảo thí & MathType OLE
+### 2.12. FR-07.1: Xuất bản Đề thi Đơn lẻ & Đóng gói Trọn gói Ấn phẩm Khảo thí (.ZIP)
+- **Tải file PDF Đơn lẻ cho từng Mã đề:**
+  - API: `GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`.
+  - Xuất trực tiếp file `De_Thi_Ma_{code}.pdf` chuẩn Vector PDF A4 Portrait 2 cột theo quy cách Bộ GD&ĐT.
+- **Tải Trọn Gói Ấn Phẩm Đề Thi (.ZIP):**
+  - API: `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.
+  - Tự động đóng gói và tải xuống file zip chứa đầy đủ 5 thành phần:
+    1. `De_{code}.pdf` cho toàn bộ các mã đề hoán vị (101, 102, 103, 104): Layout 2 cột, tiêu đề chuẩn Bộ GD&ĐT, font CMU Serif / Times, công thức toán vector sắc nét.
+    2. `LoiGiai_{code}.pdf` cho toàn bộ các mã đề hoán vị: Hướng dẫn giải chi tiết từng bước kèm barem chấm điểm bậc thang QĐ 764.
+    3. `BangDapAn_TongHop.pdf`: Bảng ma trận đối chiếu đáp án tổng hợp định dạng PDF in ấn.
+    4. `BangDapAn_TongHop.csv`: Bảng ma trận đáp án định dạng CSV có ký tự UTF-8 BOM (`\ufeff`) tương thích 100% Microsoft Excel tiếng Việt.
+    5. `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`: Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR Bộ GD&ĐT 2025.
 - **Định dạng in ấn & Khổ giấy:**
-  - Khổ chuẩn quốc gia: **A4 Portrait (210 x 297 mm)**, lề trang 1.5 cm - 1.8 cm, font Times New Roman 11pt, giãn dòng 1.15.
+  - Khổ chuẩn quốc gia: **A4 Portrait (210 x 297 mm)**, lề trang 1.5 cm - 1.8 cm, font Times New Roman / CMU Serif 11pt, giãn dòng 1.15.
   - Header chuẩn: Tên trường/sở, môn thi, mã đề thi, bảng điền số báo danh và phách.
 - **Công thức Toán đa định dạng (`math_format`):**
-  - **`mathtype` (Mặc định):** Nhúng đối tượng **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `Equation Native` chứa MTEF v5 DSMT7 và bản ghi `TeX Input Language`). Căn thẳng hàng chân dòng (baseline alignment qua `w:position` khớp chuẩn xác theo `depth_pt` của WMF), tự động nâng cấp phân số sang `\dfrac` (cỡ chữ 11pt đầy đủ cho cả tử và mẫu), chuẩn hóa khoảng cách ký tự (kerning/spacing chuẩn MathType: giãn cách toán tử `=`, `+`, `-`, đệm giữa các nhân tử kề nhau, hỗ trợ ký hiệu đạo hàm `f'(x)` chuẩn Symbol `0xa2`), bảo toàn và dựng vector đa giác cho các dấu ngoặc co giãn (`\left`, `\right` ngoặc đơn, ngoặc vuông, ngoặc nhọn), đệm kerning chữ nghiêng tránh dính dấu ngoặc (`f(x)` -> `f\,(x)`), chuẩn hóa tập số `\mathbb{R}, \mathbb{Q}, \mathbb{Z}` sang Times New Roman Bold đứng chuẩn xác, tắt gạch chân đỏ kiểm tra chính tả của Word (`w:hideSpellingErrors`, `w:noProof`), chuẩn hóa typographic style (tên hàm `\sin`, `\cos`, `\tan`, `\cot` thẳng đứng Upright, biến số in nghiêng Italic), chuẩn hóa embellishment vectơ (`\vec`, `\overrightarrow`), áp dụng typeface `0x82` bảo toàn toàn bộ dấu ngoặc `[`, `]`, `(`, `)`, `{`, `}` trong MathType, đạt độ nét vector tuyệt đối 100% không bị fallback DIB mờ hay lỗi dấu `?` ở mọi mức zoom, **cho phép click đúp mở MathType 7 client để chỉnh sửa trực tiếp 2 chiều đồng bộ tuyệt đối với Web**.
+  - **`mathtype` (Mặc định):** Nhúng đối tượng **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `Equation Native` chứa MTEF v5 DSMT7 và bản ghi `TeX Input Language`). Căn thẳng hàng chân dòng (baseline alignment qua `w:position` khớp chuẩn xác theo `depth_pt` của WMF), tự động nâng cấp phân số sang `\dfrac` (cỡ chữ 11pt đầy đủ cho cả tử và mẫu), chuẩn hóa khoảng cách ký tự (kerning/spacing chuẩn MathType: giãn cách toán tử `=`, `+`, `-`, đệm giữa các nhân tử kề nhau, hỗ trợ ký hiệu đạo hàm `f'(x)` chuẩn Symbol `0xa2`), bảo toàn và dựng vector đa giác cho các dấu ngoặc co giãn (`\left`, `
+ight` ngoặc đơn, ngoặc vuông, ngoặc nhọn), đệm kerning chữ nghiêng tránh dính dấu ngoặc (`f(x)` -> `f\,(x)`), chuẩn hóa tập số `\mathbb{R}, \mathbb{Q}, \mathbb{Z}` sang Times New Roman Bold đứng chuẩn xác, tắt gạch chân đỏ kiểm tra chính tả của Word (`w:hideSpellingErrors`, `w:noProof`), chuẩn hóa typographic style (tên hàm `\sin`, `\cos`, `\tan`, `\cot` thẳng đứng Upright, biến số in nghiêng Italic), chuẩn hóa embellishment vectơ (`\vec`, `\overrightarrow`), áp dụng typeface `0x82` bảo toàn toàn bộ dấu ngoặc `[`, `]`, `(`, `)`, `{`, `}` trong MathType, đạt độ nét vector tuyệt đối 100% không bị fallback DIB mờ hay lỗi dấu `?` ở mọi mức zoom, **cho phép click đúp mở MathType 7 client để chỉnh sửa trực tiếp 2 chiều đồng bộ tuyệt đối với Web**.
   - **`omml`:** Phương trình bản địa Microsoft Word (`<m:oMath>`) chuyển đổi từ TeX qua MathJax MathML và XSLT.
   - **`latex`:** Giữ nguyên mã nguồn LaTeX bọc trong cặp `${...}$`.
 - **Tự động chuyển đổi bảng dữ liệu thống kê (`\begin{array}`):**
@@ -796,11 +862,6 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
   - Dựng thành bảng Microsoft Word thực tế (`<w:tbl>`) căn giữa, có viền nét mảnh (`border sz="4"`), loại bỏ triệt để hiện tượng hộp đen (black box) khi xuất sang PDF.
 - **Dịch vụ MathJax Persistent Worker:**
   - Chạy tiến trình nền Node.js xử lý MathJax 3/4 với bộ gói TeX đầy đủ (`input/tex-full`), thời gian sinh ~14 ms/công thức.
-- **Gói ZIP xuất bản:**
-  - $N$ file đề thi Word (`De_101.docx`, `De_102.docx`...).
-  - File Hướng dẫn giải chi tiết từng mã đề (`LoiGiai_101.docx`...).
-  - File Bảng đáp án tổng hợp các mã đề (Excel/CSV UTF-8 BOM + PDF).
-  - File Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR.
 
 ---
 

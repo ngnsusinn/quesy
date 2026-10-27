@@ -164,6 +164,31 @@ Located in `backend/routers/composer.py` (`POST /api/v1/composer/save-to-bank`):
 - **AI Taxonomy Auto-Tagging:** Automatically detects subject, grade, and assigns official Circular 32 YCCĐ codes via `suggest_auto_tagging`.
 - **Granular Format Breakdown:** Returns total saved counts categorized by question format and immediately updates `#bank-count-badge`.
 
+### 11. Interactive 2D Matrix Grid, Standard Presets & Live Inventory Checker
+
+Located in `backend/routers/matrix.py`, `backend/services/matrix_solver.py` & `frontend/` (`/matrix`):
+- **Statutory Compliance (Circular 22 & Decision 764):** Configures test blueprints based on official assessment guidelines.
+- **Standard Exam Presets:**
+  - **Preset 1 (National Graduation Exam 2025):** 34 items (12 Single Choice $\times$ 0.25 pt, 4 True/False $\times$ 1.0 pt, 6 Short Answer $\times$ 0.5 pt; standard 40% Recognition - 30% Comprehension - 30% Application ratio, 10.0 points total).
+  - **Preset 2 (Midterm / Periodic Assessment):** 20 items (12 Single Choice $\times$ 0.25 pt, 4 True/False $\times$ 1.0 pt, 4 Short Answer $\times$ 0.75 pt, 10.0 points total).
+  - **Preset 3 (Final / Semester Assessment):** 28 items (16 Single Choice $\times$ 0.25 pt, 4 True/False $\times$ 1.0 pt, 8 Short Answer $\times$ 0.25 pt, 10.0 points total).
+- **Interactive 2D Matrix Grid:** Rows partitioned by Content Strand, Learning Outcome (YCCĐ), and Problem Archetype; columns mapped to 3 cognitive tiers (Recognition, Comprehension, Application) with real-time score summation and Bloom balance alerts.
+- **Real-Time Question Bank Inventory Checker:** Validates available approved questions in database per matrix cell, displaying visual indicators (green badge if sufficient, red badge with exact deficit if replenishment is required).
+- **Multi-Format Blueprint Specification Exporter (`GET /api/v1/matrix/{id}/spec`):** Exports official test specification document in Vector PDF, Excel-compatible UTF-8 BOM CSV, and structured JSON.
+
+### 12. Safe Exam Shuffling, In-Place Item Swap & Bundled ZIP Publishing
+
+Located in `backend/routers/exams.py`, `backend/services/shuffling_engine.py` & `frontend/` (`/shuffler`):
+- **Step 1 - Master Exam & In-Place Item Swap:** Generates Master Exam from matrix via constraint satisfaction solver; renders questions with full KaTeX formulas and TikZ plots; enables teachers to replace any question with an equivalent question from the bank (same YCCĐ, cognitive tier, and format).
+- **Step 2 - 4 Safe Shuffling Principles (Decision 764):**
+  1. *Section Integrity:* Shuffles items strictly within their respective format sections (Part I, Part II, Part III).
+  2. *Passage Integrity:* Preserves stimulus reading passages and dependent sub-questions as indivisible atomic blocks.
+  3. *Option Anchor Rule (100% Guaranteed):* Automatically detects position-dependent options (*\"All of the above\"*, *\"Both A and B\"*, *\"None of the above\"*) and locks them to choice D across all generated variants.
+  4. *Answer Key Matrix:* Generates a cross-variant permutation matrix comparing Master Exam and all shuffled codes (101, 102, 103, 104).
+- **Step 3 - Single PDF Download & Publication Bundle (.ZIP):**
+  - Download standalone vector PDF for any variant code (`GET /api/v1/exams/{id}/export-pdf?variant_code=101`).
+  - Download bundled exam publication archive (`.ZIP`) containing `De_{code}.pdf`, `LoiGiai_{code}.pdf`, `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), and official `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
+
 ---
 
 ## System Architecture
