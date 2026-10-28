@@ -3,9 +3,9 @@
 **Dự án:** Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học  
 **Tên mã dự án (Project Code):** QUESY  
 **Mục tiêu cốt lõi:** Giải quyết triệt để các rào cản và nút thắt cổ chai trong quy trình số hóa đề thi, tự động tái tạo đồ thị vector, chuẩn hóa công thức toán học, trộn đề an toàn chống vỡ logic và xuất bản ấn phẩm khảo thí in ấn chuyên nghiệp.  
-**Phiên bản (Version):** 2.7 (Tập trung hoàn thiện MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Bảo toàn chỉnh sửa 2 chiều)  
+**Phiên bản (Version):** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
 **Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
-**Ngày phát hành:** 2026-10-21  
+**Ngày phát hành:** 2026-10-27
 
 ---
 
@@ -18,7 +18,9 @@
 | 2.5 | 2026-10-18 | BA Team & Tech Lead | Tái cơ cấu toàn diện tài liệu theo định hướng Giải pháp & Giá trị thực tế: Tích hợp bộ dựng đồ thị vector SVG TikZ/PGFPlots tự động có Auto-clipping, 4 quy tắc toán học KaTeX, động cơ Safe Shuffling (Option Anchor), chấm điểm bậc thang và xuất bản Word OMML native. | Ban Giám đốc & PM |
 | 2.6 | 2026-10-21 | BA Team & Tech Lead | Tích hợp chuẩn xuất bản MathType 7.0 OLE Vector WMF (double-click editable), dịch vụ MathJax Persistent Worker Engine (~14ms/công thức), và chuyển đổi bảng thống kê `\begin{array}` thành Word Table `<w:tbl>` chống lỗi đen PDF. | Ban Giám đốc & PM |
 | 2.7 | 2026-10-21 | BA Team & Tech Lead | Chuẩn hóa nhị phân DSMT7 Native Preamble, bản ghi TeX Input Language, bổ sung embellishment vectơ (`\vec`, `\overrightarrow`), đạt $100\%$ Vector WMF tuyệt đối, giải quyết triệt để lỗi OLE activation trong Microsoft Word. | Ban Giám đốc & PM |
-| **3.0** | 2026-10-24 | BA Team & Tech Lead | **Tích hợp Động cơ Thay thế Câu hỏi Thông minh (Question Replacement Engine), Cơ chế bảo toàn khối mã Chat Bubble (Safe Chat Sync), và Quy chuẩn Quản trị Git Workflow (Chỉ commit và push, tuyệt đối không tự động tạo PR).** | Ban Giám đốc & PM |
+| 3.0 | 2026-10-24 | BA Team & Tech Lead | Tích hợp Động cơ Thay thế Câu hỏi Thông minh (Question Replacement Engine), Cơ chế bảo toàn khối mã Chat Bubble (Safe Chat Sync), và Quy chuẩn Quản trị Git Workflow (Chỉ commit và push, tuyệt đối không tự động tạo PR). | Ban Giám đốc & PM |
+| 3.3 | 2026-10-25 | BA Team & Tech Lead | Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Lưu Đề từ Soạn thảo vào Ngân hàng. | Ban Giám đốc & PM |
+| **3.4** | 2026-10-27 | BA Team & Lead Architect | **Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D (TT 22 & QĐ 764), 3 Ma trận mẫu Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản đặc tả (PDF/CSV/JSON), Động cơ Sinh Đề Gốc kèm Đổi câu hỏi tương đương, Động cơ Trộn Đề An Toàn 4 Nguyên Tắc (Option Anchor 100%), và Đóng gói Ấn phẩm Khảo thí (.ZIP/.PDF).** | Ban Giám đốc & PM |
 
 ---
 
@@ -103,25 +105,74 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
   4. `PASSAGE_GROUP`: Câu hỏi chùm (Một đoạn văn bản/ngữ liệu bài đọc chung và các câu hỏi con đi kèm).
   5. `ESSAY`: Câu hỏi tự luận kèm rubric barem chấm điểm theo tiêu chí.
 - **BR-03.4 Kiểm soát trùng lặp bằng AI Vector:** Sử dụng thuật toán Cosine Similarity để so khớp nội dung: Cảnh báo vàng khi trùng $\ge 80\%$, **chặn lưu và cảnh báo đỏ khi trùng $\ge 90\%$** so với các câu hỏi trong ngân hàng.
+- **BR-03.5 Lưu trữ thực tế & Bền vững 100% CSDL SQLite (Persistent Item Bank):** Toàn bộ câu hỏi được lưu trữ thực tế trong SQLite (`storage/quesy.db`, 230+ câu hỏi chuẩn hóa). Khi hệ thống khởi động lại máy chủ hoặc người dùng F5 tải lại trang, client nạp trực tiếp toàn bộ dữ liệu từ CSDL (`limit=1000`), tuyệt đối không ghi đè dữ liệu giả lập (mock data), đảm bảo tính toàn vẹn và bất biến của ngân hàng câu hỏi.
+
 
 ---
 
-### BR-04: MA TRẬN ĐỀ THI & RÚT ĐỀ THEO RÀNG BUỘC
-- **BR-04.1 Ma trận đề thi 2 chiều linh hoạt:**
-  - Trục dọc: Danh sách Chủ đề / Mạch nội dung / Bài học / Dạng bài toán.
-  - Trục ngang: 4 Cấp độ nhận thức $\times$ Dạng thức câu hỏi (Trắc nghiệm đơn, Đúng/Sai, Trả lời ngắn, Tự luận).
-  - Tự động kiểm tra tỷ lệ phân bố điểm số theo cấu hình mong muốn.
-- **BR-04.2 Rút đề gốc theo thuật toán thỏa mãn ràng buộc (Solver):**
-  - Rút ngẫu nhiên các câu hỏi đạt chuẩn thỏa mãn chính xác ma trận.
-  - Áp dụng danh sách loại trừ (Exclusion list): Không chọn lại các câu hỏi đã xuất hiện trong bài kiểm tra gần đây.
+### BR-04: MA TRẬN ĐỀ THI 2D THEO YCCĐ, PRESETS & ĐỐI SOÁT TỒN KHO THỜI GIAN THỰC
+- **BR-04.1 Ma trận đề thi 2 chiều tương tác (Interactive 2D Matrix Grid):**
+  - Căn cứ pháp lý: Thông tư 22/2021/TT-BGDĐT (đánh giá học sinh THCS và THPT) và Định dạng đề thi tốt nghiệp THPT từ năm 2025 (Quyết định 764/QĐ-BGDĐT).
+  - Trục dọc: Phân cấp theo Mạch nội dung (Strand) $
+ightarrow$ Yêu cầu cần đạt (YCCĐ) $
+ightarrow$ Dạng câu hỏi (Problem Archetype) và Thể thức câu hỏi (ItemFormat: `SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
+  - Trục ngang: 3 Cột cấp độ nhận thức bám sát Bảng động từ TT 32:
+    1. *Biết (Nhận biết):* TN đơn (0.25đ/câu).
+    2. *Hiểu (Thông hiểu):* Đúng/Sai (1.0đ/câu theo barem lũy tiến QĐ 764) hoặc TN đơn.
+    3. *Vận dụng:* Trả lời ngắn (0.5đ/câu) hoặc Vận dụng / Vận dụng cao.
+  - Tính toán thời gian thực: Tự động cộng dồn tổng số câu, tổng điểm từng dòng, tổng điểm từng cột và thang điểm tổng 10.0đ. Cảnh báo trực quan khi tổng điểm lệch khỏi 10.0đ.
+  - Thanh tiến trình phân bổ Bloom (Biết %, Hiểu %, Vận dụng %) với nhãn cảnh báo trực quan: Đạt chuẩn khảo thí khi tỷ lệ tiệm cận 40% Biết - 30% Hiểu - 30% Vận dụng (dung sai $\pm 5\%$).
+- **BR-04.2 Thư viện Ma trận mẫu (Exam Matrix Presets):**
+  1. *Preset 1: Chuẩn Tốt nghiệp THPT 2025 (34 câu, 10.0 điểm, thời gian 90 phút):*
+     - Phần I: 12 câu trắc nghiệm đơn $\times$ 0.25đ = 3.0 điểm.
+     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0 điểm.
+     - Phần III: 6 câu Trả lời ngắn $\times$ 0.5đ = 3.0 điểm.
+     - Tỷ lệ chuẩn: 40% Biết (3.0đ) - 30% Hiểu (3.5đ) - 30% Vận dụng (3.5đ).
+  2. *Preset 2: Kiểm tra Định kỳ / Giữa kỳ (20 câu, 10.0 điểm, thời gian 50-60 phút):*
+     - Phần I: 12 câu trắc nghiệm đơn $\times$ 0.25đ = 3.0 điểm.
+     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0 điểm.
+     - Phần III: 4 câu Trả lời ngắn $\times$ 0.75đ = 3.0 điểm.
+     - Tỷ lệ: ~50% Biết, 30% Hiểu, 20% Vận dụng.
+  3. *Preset 3: Kiểm tra Cuối kỳ (28 câu, 10.0 điểm, thời gian 90 phút):*
+     - Phần I: 16 câu trắc nghiệm đơn $\times$ 0.25đ = 4.0 điểm.
+     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0 điểm.
+     - Phần III: 8 câu Trả lời ngắn $\times$ 0.25đ = 2.0 điểm.
+     - Tỷ lệ: 40% Biết, 35% Hiểu, 25% Vận dụng.
+- **BR-04.3 Đối soát tồn kho câu hỏi thời gian thực (Live Inventory Checker):**
+  - Hệ thống tự động kiểm tra đối soát số lượng câu hỏi thực tế trong CSDL Question Bank cho từng ô ma trận (`learning_outcome_id x cognitive_level x item_format x problem_archetype_id`).
+  - Trạng thái hiển thị trực quan:
+    * *Đủ câu (Xanh):* Hiển thị số lượng khả dụng trong kho kèm badge xanh (ví dụ: `Kho: 15/4 câu (Đủ)`).
+    * *Cảnh báo thiếu câu (Đỏ):* Hiển thị số lượng khả dụng và số lượng cần bổ sung kèm badge đỏ nổi bật (ví dụ: `Kho: 1/4 câu (Thiếu 3 câu)`).
+  - Cảnh báo toàn ma trận: Hiển thị danh sách các ô thiếu câu và tổng số câu cần nạp thêm trước khi tiến hành rút đề.
+- **BR-04.4 Xuất bản Bản đặc tả Ma trận Đề thi (Test Blueprint Specification Publishing):**
+  - Hỗ trợ xuất bản bản đặc tả ma trận đề thi ra 3 định dạng:
+    1. *JSON:* API RESTful phục vụ tích hợp và lưu trữ dữ liệu.
+    2. *CSV UTF-8 BOM:* Tương thích 100% Microsoft Excel tiếng Việt trên Windows.
+    3. *PDF Vector:* Khổ A4 Portrait chuẩn quy cách Bộ GD&ĐT gồm Khung Ma trận 2D và Bảng Đặc tả chi tiết từng YCCĐ.
+- **BR-04.5 Rút đề gốc theo thuật toán thỏa mãn ràng buộc (CSP Solver):**
+  - Rút câu hỏi đạt chuẩn `status = 'APPROVED'` và `is_defective == False` thỏa mãn chính xác từng ô ma trận.
+  - Áp dụng danh sách loại trừ (Exclusion list): Cho phép tick chọn loại trừ các câu hỏi đã xuất hiện trong bài kiểm tra 30 ngày qua.
+  - Trọng số trắc lượng học (Psychometric Weighting): Ưu tiên câu hỏi có độ phân biệt tốt ($D \ge 0.3$) và độ khó cân đối ($p \approx 0.55$).
 
 ---
 
-### BR-05: ĐỘNG CƠ TRỘN ĐỀ THI AN TOÀN (SAFE SHUFFLING ENGINE)
-- **BR-05.1 Khóa neo phương án (Option Anchor Rule):** Phương án chứa từ ngữ phụ thuộc vị trí (*"Cả A và B đều đúng"*, *"Tất cả các đáp án trên"*, *"Không có đáp án nào"*) hoặc cờ `is_fixed = true` bắt buộc **khóa cố định ở vị trí cuối cùng (D)** trong mọi mã đề hoán vị.
-- **BR-05.2 Bảo toàn câu hỏi chùm (Passage Integrity):** Ngữ liệu bài đọc chung và các câu hỏi con luôn đi liền kề nhau, không bị xé lẻ sang trang khác.
-- **BR-05.3 Bảo toàn phân vùng (Section Integrity):** Câu hỏi chỉ hoán vị trong cùng một Phần/Dạng thức thi.
-- **BR-05.4 Ma trận ánh xạ đáp án:** Tự động sinh bảng đối chiếu đáp án chéo giữa đề gốc và các mã đề hoán vị (101, 102, 103, 104...).
+### BR-05: ĐỘNG CƠ SINH & TRỘN ĐỀ THI AN TOÀN (SAFE SHUFFLING ENGINE)
+- **BR-05.1 Đề thi Gốc (Master Exam), Nhập từ Ma Trận & Đổi câu hỏi Tương đương (In-Place Question Swap Engine):**
+  - **Thanh nguồn Đề thi Gốc:** Cho phép chọn đề thi gốc đã lưu trong hệ thống hoặc chọn trực tiếp ma trận đề thi để sinh đề gốc (`⚡ Sinh Đề Gốc từ Ma Trận Này`) ngay trong phân hệ Trộn Đề.
+  - Hiển thị danh sách câu hỏi đề gốc với đầy đủ công thức toán KaTeX và đồ thị vector TikZ SVG.
+  - Tính năng "Đổi câu khác" (Swap Question): Cho phép giáo viên thay thế một câu hỏi bất kỳ trong đề gốc bằng một câu hỏi tương đương từ ngân hàng câu hỏi (cùng YCCĐ, cùng mức độ nhận thức Bloom, cùng thể thức thi, trạng thái APPROVED, không bị defective).
+  - Tự động hủy các mã đề hoán vị cũ khi đề gốc bị thay đổi để đảm bảo tính đồng bộ dữ liệu.
+- **BR-05.2 4 Nguyên tắc Trộn Đề An Toàn Bắt Buộc (4 Safe Shuffling Rules - QĐ 764):**
+  1. *Nguyên tắc 1 - Section Integrity (Bảo toàn phân đoạn):* Câu hỏi chỉ được hoán vị trong cùng một Phân đoạn / Thể thức (Phần I chỉ đảo trong Phần I, Phần II trong Phần II, Phần III trong Phần III).
+  2. *Nguyên tắc 2 - Passage Integrity (Bảo toàn câu hỏi chùm / ngữ liệu):* Giữ liền mạch khối câu hỏi có chung ngữ liệu bài đọc hoặc hình vẽ; các câu hỏi con luôn nằm liền kề ngay sau đoạn văn bản ngữ liệu chung.
+  3. *Nguyên tắc 3 - Option Anchor Rule (Khóa mỏ neo phương án):* Tự động nhận diện các phương án chứa từ ngữ phụ thuộc vị trí ("Cả A và B", "Cả hai đáp án", "Tất cả các đáp án trên", "Tất cả các ý trên", "Không có đáp án nào"...) hoặc cờ `is_fixed = True`. **BẮT BUỘC KHÓA CỐ ĐỊNH phương án này tại vị trí cuối cùng: Vị trí D** trong mọi mã đề hoán vị; chỉ xáo trộn các phương án A, B, C tự do. Đảm bảo tỷ lệ đạt Option Anchor Rule 100%.
+  4. *Nguyên tắc 4 - Key Matrix Generator (Ma trận đáp án đối chiếu):* Tự động sinh bảng ma trận đối chiếu đáp án chéo giữa đề gốc và các mã đề hoán vị (101, 102, 103, 104...).
+- **BR-05.3 Xuất bản Đề thi Đơn lẻ & Đóng gói Ấn phẩm Khảo thí (.ZIP) Thuần Vector PDF LaTeX:**
+  - Hoán vị sinh 4 mã đề chuẩn: 101, 102, 103, 104.
+  - Tab xem trước từng mã đề (Mã 101, 102, 103, 104) với huy hiệu xác minh Option Anchor Rule đạt 100%.
+  - Bảng ma trận đáp án tổng hợp (Answer Key Matrix table).
+  - Nút tải PDF riêng cho từng mã đề (`export-pdf`): Xuất bản file `De_Thi_Ma_{code}.pdf` chuẩn Vector PDF LaTeX qua Tectonic XeTeX Engine.
+  - Nút tải trọn gói ấn phẩm đề thi (.ZIP): Đóng gói đầy đủ `De_{code}.pdf`, `LoiGiai_{code}.pdf` (chuẩn LaTeX thuần túy tương đồng phân hệ Soạn đề), `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), và `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 
 ---
 
@@ -152,6 +203,11 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 | **RULE-06** | Cơ cấu Ma trận Đề thi Đánh giá Định kỳ | Tỷ lệ điểm các câu hỏi trong đề kiểm tra phải nằm trong biên độ cấu hình ma trận quy định (dung sai $\pm 5\%$). |
 | **RULE-07** | Bảo toàn Khối mã Chat Bubble & Động cơ Thay thế Câu hỏi | Khi người dùng ra lệnh thay thế câu thứ N, hệ thống tự động bóc tách câu cũ làm `old_text` và gán câu mới làm `new_text`. Khối code trong chat bubble tuyệt đối không bị nuốt mất nếu không có diff hợp lệ gửi sang editor. |
 | **RULE-08** | Quy chuẩn Git Workflow - Không Tự Động Tạo PR | Chỉ thực hiện `git commit` và `git push` lên repository; tuyệt đối không tự động tạo hoặc cập nhật Pull Request trừ khi có yêu cầu bằng lời nói rõ ràng từ người dùng. |
+| **RULE-09** | Bảo mật Định danh & Mật khẩu Băm | Mật khẩu người dùng bắt buộc băm qua PBKDF2-HMAC-SHA256 (600.000 vòng lặp, salt 32 bytes); phiên làm việc quản lý qua JWT HS256 (thời hạn 7 ngày); bảo vệ an toàn ngân hàng đề thi. |
+| **RULE-10** | Tích lũy Ngân hàng Chuẩn hóa từ Soạn thảo | Khi lưu đề thi từ Composer vào Ngân hàng, hệ thống bắt buộc bóc tách trọn vẹn cả 3 thể thức QĐ 764, bảo toàn đồ thị TikZ, BBT `tkz-tab`, lời giải chi tiết và tự động gán nhãn YCCĐ. |
+| **RULE-11** | Bảo toàn 4 Nguyên Tắc Trộn Đề An Toàn (Safe Shuffling) | Hoán vị mã đề bắt buộc tuân thủ 100%: Section Integrity (đảo trong cùng phần), Passage Integrity (bảo toàn ngữ liệu câu chùm), Option Anchor Rule (khóa mỏ neo tại vị trí D), và Key Matrix (bảng đối chiếu đáp án). |
+| **RULE-12** | Đối soát Tồn kho Ma trận & Ràng buộc Khả dụng | Trước khi rút đề, hệ thống đối soát số lượng câu hỏi khả dụng theo từng ô ma trận; nếu thiếu câu phải đưa ra cảnh báo chính xác (số lượng thiếu, YCCĐ, mức độ) và chặn rút đề nếu không bật cờ allow_partial. |
+| **RULE-13** | Hoán đổi Câu hỏi Đề Gốc Độc lập (In-Place Item Swap) | Khi đổi câu hỏi trong Master Exam, câu mới bắt buộc cùng YCCĐ, cùng mức độ nhận thức Bloom và cùng thể thức thi; hệ thống tự động làm mới đề gốc và hủy bỏ các mã đề hoán vị cũ để đảm bảo tính nhất quán. |
 
 ---
 
@@ -161,8 +217,10 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 |:---|:---|:---|:---:|:---|
 | **BR-01** | AI Số hoá Đề thi & Studio HITL | AI Parsing Engine & HITL | P0 | Giảm 90% thời gian gõ lại đề thủ công |
 | **BR-02** | Dựng Đồ thị TikZ SVG & Chuẩn hóa Toán | TikZ Renderer & LaTeX Sanitizer | P0 | Hiển thị đồ thị vector sắc nét, chống lỗi KaTeX |
-| **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa | Taxonomy & Item Bank | P0 | Phân loại sâu theo dạng bài, chống trùng lặp |
-| **BR-04** | Ma trận Đề thi 2 Chiều & Rút Đề | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối cấu trúc |
-| **BR-05** | Trộn Đề & Hoán vị An toàn | Safe Shuffling Engine | P0 | Chống lỗi logic đáp án neo, bảo toàn bài đọc |
-| **BR-06** | Xuất bản Word OMML & Bảng điểm | Export Service & Grade Manager | P0 | Xuất bản in ấn 1-click, chấm điểm bậc thang tự động |
+| **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa & CRUD | Taxonomy & Item Bank | P0 | Quản lý vòng đời đầy đủ, lọc 6 tầng TT 32, xuất/nhập đa định dạng, chống trùng lặp |
+| **BR-04** | Ma trận Đề thi 2D theo YCCĐ & Đối soát Tồn kho | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối cấu trúc TT 22 & QĐ 764, 3 Presets, xuất bản bản đặc tả |
+| **BR-05** | Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc | Safe Shuffling Engine & Master Exam | P0 | Chống lỗi logic đáp án neo, bảo toàn bài đọc, đổi câu hỏi linh hoạt, sinh ma trận đáp án |
+| **BR-06** | Xuất bản Vector PDF, Word OMML & Gói ZIP | Export Service & Publishing Pipeline | P0 | Xuất bản in ấn 1-click, đóng gói trọn gói ZIP đề thi, lời giải, barem bậc thang và phiếu OMR |
 | **BR-07** | Trợ lý Soạn thảo AI & Thay thế Câu hỏi Thông minh | Composer Copilot & Question Replacement Engine | P0 | Hỗ trợ giáo viên chỉnh sửa/thay thế câu hỏi 1-click, bảo toàn code và trải nghiệm mượt mà |
+| **BR-08** | Xác thực Người dùng & Phân quyền Khảo thí | Auth Service & User Management | P0 | Bảo mật kho đề thi, hỗ trợ OAuth Google/GitHub, JWT và phân quyền RBAC Giáo viên / Học sinh |
+| **BR-09** | Lưu Đề từ Soạn Thảo vào Ngân Hàng | Composer & Item Bank Ingestion | P0 | Khép kín chu trình biên soạn, tích lũy tự động kho câu hỏi chuẩn quốc gia chỉ với 1 click |

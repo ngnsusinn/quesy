@@ -24,7 +24,7 @@ from backend.services.latex_pdf_exporter import (
     convert_latex_table_to_html,
 )
 from backend.services.tikz_renderer import render_tikz_to_svg, normalize_tikz_exam_standard
-from backend.services.latex_converter import sanitize_latex
+from backend.services.latex_converter import sanitize_latex, sanitize_latex_for_xetex
 
 logger = logging.getLogger("quesy.composer_service")
 
@@ -39,33 +39,46 @@ STORAGE_COMPOSER_CACHE.mkdir(parents=True, exist_ok=True)
 TEMPLATES: Dict[str, Dict[str, str]] = {
     "ex_test_standard_exam": {
         "title": "Đề thi Chuẩn Quốc Gia 2025 (Gói ex_test v3.3)",
-        "description": "Đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn (\\choice), Đúng/Sai (\\choiceTF), Trả lời ngắn (\\shortans), chèn hình \\immini.",
-        "latex": r"""\begin{center}
-  \textbf{\large KỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026}\\
-  \textbf{\large MÔN THI: TOÁN HỌC}\\
-  \textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}
-\end{center}
+        "description": "Đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn (\\choice), Đúng/Sai (\\choiceTF), Trả lời ngắn (\\shortans), chèn hình TikZ căn giữa.",
+        "latex": r"""\noindent
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO ...}\\
+  \textbf{TRƯỜNG THPT ...}\\
+  \textbf{ĐỀ CHÍNH THỨC}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP THPT NĂM 2025}\\
+  \textbf{MÔN: TOÁN}\\
+  \textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}
+\end{minipage}
+\vspace{0.25cm}
+\noindent
+Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0102}}
+\vspace{0.1cm}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.3cm}
 \vspace{0.4cm}
 
 \section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
 \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 
 \begin{ex}
-\immini{
-  Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên.
-  Hàm số đã cho đồng biến trên khoảng nào dưới đây?
-}{
+Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên. Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\begin{center}
   \begin{tikzpicture}[scale=0.55, >=stealth]
     \draw[->] (-3, 0) -- (3.5, 0) node[right] {$x$};
     \draw[->] (0, -4) -- (0, 4.5) node[above] {$y$};
     \node[below left] at (0, 0) {$O$};
     \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 3) -- (0, 3) node[left] {$3$};
     \draw[dashed] (2, 0) node[above] {$2$} -- (2, -2) -- (0, -2) node[left] {$-2$};
-    \draw[thick, smooth, domain=-2.3:3.1] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
+    \draw[thick, smooth, samples=50, domain=-2.3:3.1] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
     \fill (-1, 3) circle (1.5pt);
     \fill (2, -2) circle (1.5pt);
   \end{tikzpicture}
-}
+\end{center}
 \choice
 {\True $(-\infty; -1)$}
 {$(-1; 2)$}
@@ -136,10 +149,8 @@ $s = \int_{0}^{2} (3t^2 + 2t)\,\mathrm{d}t = \left. (t^3 + t^2) \right|_0^2 = 12
 \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 
 \begin{ex}
-\immini{
-  Cho hàm số bậc ba $y = f(x)$ liên tục trên $\mathbb{R}$ có đồ thị như hình vẽ.
-  Hàm số đã cho nghịch biến trên khoảng nào dưới đây?
-}{
+Cho hàm số bậc ba $y = f(x)$ liên tục trên $\mathbb{R}$ có đồ thị như hình vẽ. Hàm số đã cho nghịch biến trên khoảng nào dưới đây?
+\begin{center}
   \begin{tikzpicture}[scale=0.55, >=stealth]
     \clip (-3.8, -5.5) rectangle (4.2, 5.5);
     \draw[->, thick] (-3.5, 0) -- (3.8, 0) node[right] {$x$};
@@ -147,11 +158,11 @@ $s = \int_{0}^{2} (3t^2 + 2t)\,\mathrm{d}t = \left. (t^3 + t^2) \right|_0^2 = 12
     \node[below left] at (0, 0) {$O$};
     \draw[dashed] (-1, 0) node[below] {$-1$} -- (-1, 4) -- (0, 4) node[left] {$4$};
     \draw[dashed] (2, 0) node[above] {$2$} -- (2, -3) -- (0, -3) node[left] {$-3$};
-    \draw[thick, black, smooth, samples=100, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
+    \draw[thick, black, smooth, samples=50, domain=-2.5:3.2] plot (\x, {(\x)^3 - 1.5*(\x)^2 - 6*(\x) + 0.5});
     \fill (-1, 4) circle (1.5pt);
     \fill (2, -3) circle (1.5pt);
   \end{tikzpicture}
-}
+\end{center}
 \choice
 {$(-\infty; -1)$}
 {\True $(-1; 2)$}
@@ -389,7 +400,8 @@ def ensure_full_latex_document(
     latex_source: str = "",
     mode: str = "dethi",
     title: str = "Tài Liệu Soạn Thảo",
-    latex_code: Optional[str] = None
+    latex_code: Optional[str] = None,
+    draft_mode: bool = False
 ) -> str:
     r"""Wraps preamble-free LaTeX question code with standard exam preamble
     including fontspec, amsmath, amssymb, amsfonts, geometry a4 1.5cm margin,
@@ -449,6 +461,7 @@ def ensure_full_latex_document(
             raw = re.sub(r'\\usepackage\{ex_test\}', lambda m: f"\\usepackage[{norm_mode}]{{ex_test}}", raw)
 
         raw = fix_immini_choice_nesting(raw)
+        raw = sanitize_latex_for_xetex(raw)
         return raw
 
     # Strip any accidental outer \begin{document} / \end{document} if no \documentclass
@@ -462,7 +475,29 @@ def ensure_full_latex_document(
     body = re.sub(r'\\begin\{document\}', '', body).strip()
     body = re.sub(r'\\end\{document\}', '', body).strip()
 
+    # Automatically clean \large, \Large, \LARGE in or around section titles
+    body = re.sub(r'\\(?:large|Large|LARGE)\s*', '', body)
+
+    # Automatically insert \setcounter{ex}{0} after section headers for PHẦN II, PHẦN III, PHẦN IV... if not present
+    parts = re.split(r'((?:\\noindent\s*)?\\textbf\{PHẦN\s+(?:II|III|IV|V|VI)[^}]*\}|(?:\\section\*?\{PHẦN\s+(?:II|III|IV|V|VI)[^}]*\})|PHẦN\s+(?:II|III|IV|V|VI)\.[^\n]*)', body, flags=re.IGNORECASE)
+    if len(parts) > 1:
+        reconstructed = [parts[0]]
+        for j in range(1, len(parts), 2):
+            header = parts[j]
+            content = parts[j+1] if j+1 < len(parts) else ""
+            if r'\setcounter{ex}{0}' not in content[:300]:
+                if r'\begin{ex}' in content:
+                    content = content.replace(r'\begin{ex}', r'\setcounter{ex}{0}' + '\n' + r'\begin{ex}', 1)
+                else:
+                    content = r'\setcounter{ex}{0}' + '\n' + content
+            reconstructed.append(header + content)
+        body = "".join(reconstructed)
+
+    if draft_mode:
+        body = re.sub(r'samples=\d+', 'samples=35', body)
+
     body = fix_immini_choice_nesting(body)
+    body = sanitize_latex_for_xetex(body)
 
     preamble = f"""\\documentclass[12pt,a4paper]{{article}}
 \\usepackage{{fontspec}}
@@ -829,6 +864,15 @@ def compile_latex_source_to_html(
 # 3. PDF Compilation Execution (Hybrid: Tectonic XeTeX with Chromium Fallback)
 # ---------------------------------------------------------------------------
 
+def compute_compilation_timeout(latex_source: str) -> int:
+    if not latex_source:
+        return 60
+    tikz_count = len(re.findall(r'\\begin\{(?:tikzpicture|tkzTab)\}|\\tkzTabInit', latex_source, re.IGNORECASE))
+    code_len = len(latex_source)
+    calc_timeout = max(60, min(240, 45 + tikz_count * 10 + (code_len // 250)))
+    return calc_timeout
+
+
 def find_tectonic_executable() -> Optional[Path]:
     """Finds tectonic executable in PATH or standard local locations."""
     found = shutil.which("tectonic")
@@ -865,6 +909,7 @@ def compile_with_tectonic(
     output_pdf.parent.mkdir(parents=True, exist_ok=True)
 
     raw = ensure_full_latex_document(latex_source, mode=mode, title=title)
+    calc_timeout = compute_compilation_timeout(raw)
 
     with tempfile.TemporaryDirectory(prefix="tectonic_build_") as tmp_dir:
         tmp_dir_path = Path(tmp_dir)
@@ -904,7 +949,7 @@ def compile_with_tectonic(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=45,
+                timeout=calc_timeout,
                 encoding="utf-8",
                 errors="replace",
                 cwd=str(tmp_dir_path)
@@ -921,7 +966,7 @@ def compile_with_tectonic(
                 err_summary = "\n".join(lines[:10]) if lines else err_output[-800:]
                 return False, err_summary, elapsed_ms
         except subprocess.TimeoutExpired:
-            return False, "Biên dịch Tectonic quá thời gian cho phép (>45 giây).", 0
+            return False, f"Biên dịch Tectonic quá thời gian cho phép (>{calc_timeout} giây).", 0
         except Exception as e:
             return False, f"Lỗi thực thi Tectonic: {e}", 0
 
@@ -992,13 +1037,15 @@ def compile_with_remote_tectonic_api(
     latex_source: str,
     output_pdf: Path,
     title: str = "Tài Liệu Soạn Thảo",
-    mode: str = "dethi"
+    mode: str = "dethi",
+    api_url: Optional[str] = None,
 ) -> Tuple[bool, str, int]:
     """Compiles LaTeX using remote Tectonic Docker microservice (e.g. on armbian)."""
     start_time = time.perf_counter()
-    api_url = os.environ.get("LATEX_API_URL") or os.environ.get("TECTONIC_API_URL")
+    if not api_url:
+        api_url = os.environ.get("LATEX_API_URL") or os.environ.get("TECTONIC_API_URL")
 
-    # If not explicitly configured in env, check armbian default
+    # If not explicitly configured in env or argument, check armbian default
     if not api_url:
         try:
             req_check = urllib.request.Request("http://armbian:8090/health")
@@ -1013,9 +1060,10 @@ def compile_with_remote_tectonic_api(
 
     try:
         sanitized_latex = ensure_full_latex_document(latex_source, mode=mode, title=title)
+        calc_timeout = compute_compilation_timeout(sanitized_latex)
         payload = json.dumps({
             "latex_code": sanitized_latex,
-            "timeout_s": 60
+            "timeout_s": calc_timeout
         }).encode("utf-8")
 
         req = urllib.request.Request(
@@ -1024,7 +1072,7 @@ def compile_with_remote_tectonic_api(
             headers={"Content-Type": "application/json"}
         )
 
-        with urllib.request.urlopen(req, timeout=65) as resp:
+        with urllib.request.urlopen(req, timeout=calc_timeout + 15) as resp:
             pdf_bytes = resp.read()
             elapsed_ms = int((time.perf_counter() - start_time) * 1000)
             if len(pdf_bytes) > 500 and pdf_bytes.startswith(b"%PDF"):

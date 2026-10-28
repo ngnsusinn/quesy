@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.
-- **Ngày phát hành:** 2026-10-24  
+- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.
+- **Ngày phát hành:** 2026-10-24
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
 ---
@@ -149,73 +149,120 @@
 
 ---
 
-### UC-06: THIẾT LẬP MA TRẬN & BẢN ĐẶC TẢ ĐỀ THI THEO YCCĐ
-- **Mã Use Case:** `UC-06`
-- **Tên Use Case:** Thiết lập Ma trận Đề thi & Bản đặc tả theo YCCĐ
-- **Tác nhân chính:** Tổ trưởng Chuyên môn, Giáo viên
-- **Căn cứ:** Thông tư 22/2021/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
+### UC-05: QUẢN LÝ NGÂN HÀNG CÂU HỎI LƯU TRỮ BỀN VỮNG SQLITE 100% (NO MOCK OVERWRITE)
+- **Mã Use Case:** `UC-05`
+- **Tên Use Case:** Quản lý Ngân hàng Câu hỏi Lưu trữ Bền vững SQLite & Triệt tiêu Ghi đè Mock Data
+- **Tác nhân chính:** Giáo viên, Quản trị viên
+- **Mô tả:** Đảm bảo toàn bộ câu hỏi thực tế trong CSDL SQLite (`storage/quesy.db`, 230+ câu hỏi) được tải đầy đủ lên giao diện khi khởi động hoặc F5, không bị ghi đè dữ liệu mẫu tĩnh, đồng bộ tuyệt đối qua mọi lần khởi động lại máy chủ.
 
 #### Luồng sự kiện chính:
-1. Người dùng nhập thông số chung: Tên kỳ thi, Môn học, Khối lớp, Thời gian làm bài (VD: 90 phút), Thang điểm tổng (10.0).
-2. Hệ thống tải cây kiến thức và dựng lưới ma trận 2 chiều:
-   - Trục dòng: Danh sách Mạch nội dung $\rightarrow$ Yêu cầu cần đạt (YCCĐ) $\rightarrow$ Dạng câu hỏi.
-   - Trục ngang: 3 Cấp độ nhận thức (Biết, Hiểu, Vận dụng) $\times$ Thể thức câu hỏi (Trắc nghiệm đơn, Đúng/Sai 4 ý, Trả lời ngắn, Tự luận).
-3. Người dùng nhập số lượng câu cần lấy vào từng ô ma trận.
-4. Hệ thống tự động tính toán tổng số câu, tỷ lệ % điểm theo mức độ tư duy ($40\%$ Biết - $30\%$ Hiểu - $30\%$ Vận dụng), và hiển thị chỉ báo "Số dư khả dụng trong Bank".
-5. Người dùng nhấn "Lưu và Ban hành Ma trận".
+1. Khi khởi động ứng dụng hoặc F5 tải lại trang, client thực thi `fetchQuestionsFromDB()` gọi API `GET /api/v1/questions?limit=1000`.
+2. Hệ thống nạp toàn bộ danh sách câu hỏi thực tế từ SQLite vào `state.itemBank`.
+3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`) và cập nhật bộ đếm badge thời gian thực.
+4. Hệ thống kiểm tra: Nếu CSDL đã có dữ liệu (`state.itemBank.length > 0`), tuyệt đối KHÔNG kích hoạt `seedInitialQuestions()`, bảo toàn 100% dữ liệu thực.
+5. Khi người dùng thực hiện tạo câu hỏi mới, import LaTeX hàng loạt, chỉnh sửa câu hỏi, xóa câu hỏi hoặc bấm "LƯU VÀO NGÂN HÀNG" từ phân hệ Soạn đề, các thay đổi được ghi trực tiếp vào SQLite và client tự động kích hoạt `fetchQuestionsFromDB()` để đồng bộ lại dữ liệu.
+
+#### Luồng ngoại lệ (Offline Fallback):
+- Khi CSDL SQLite hoàn toàn rỗng hoặc máy chủ Backend chưa được kích hoạt, hệ thống mới kích hoạt `seedInitialQuestions()` làm dữ liệu mẫu dự phòng ngoại tuyến.
 
 ---
 
-### UC-07: SINH ĐỀ THI TỰ ĐỘNG TỪ MA TRẬN RÀNG BUỘC YCCĐ
+### UC-06: THIẾT LẬP MA TRẬN 2D, ÁP DỤNG PRESETS & ĐỐI SOÁT TỒN KHO
+- **Mã Use Case:** `UC-06`
+- **Tên Use Case:** Thiết lập Ma trận Đề thi 2D, Áp dụng Presets, Đối soát Tồn kho & Xuất bản Bản đặc tả
+- **Tác nhân chính:** Tổ trưởng Chuyên môn, Giáo viên
+- **Căn cứ pháp lý:** Thông tư 22/2021/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
+
+#### Luồng sự kiện chính:
+1. Người dùng truy cập phân hệ Ma trận đề thi (`/matrix`, tab `#tab-matrix`).
+2. Người dùng chọn áp dụng một trong 3 Ma trận mẫu (Presets):
+   - Preset 1: Chuẩn Tốt nghiệp THPT 2025 (34 câu, 10.0đ, thời gian 90 phút).
+   - Preset 2: Kiểm tra Định kỳ / Giữa kỳ (20 câu, 10.0đ, thời gian 50-60 phút).
+   - Preset 3: Kiểm tra Cuối kỳ (28 câu, 10.0đ, thời gian 90 phút).
+3. Hệ thống tải cây kiến thức và dựng lưới ma trận 2D tương tác:
+   - Trục dòng: Danh sách Mạch nội dung $
+ightarrow$ Yêu cầu cần đạt (YCCĐ) $
+ightarrow$ Dạng câu hỏi $
+ightarrow$ Thể thức câu hỏi.
+   - Trục ngang: 3 Cột nhận thức: Biết (0.25đ), Hiểu (1.0đ/0.25đ), Vận dụng (0.5đ/0.75đ).
+4. Người dùng điều chỉnh số lượng câu hỏi trong từng ô ma trận.
+5. Hệ thống tính toán thời gian thực:
+   - Tổng số câu và tổng điểm từng dòng.
+   - Tổng câu và tổng điểm từng cột.
+   - Thang điểm tổng tự động cân bằng đạt 10.0đ.
+   - Thanh phân bổ Bloom (%) hiển thị trực quan tỷ lệ Biết - Hiểu - Vận dụng và đưa ra cảnh báo nếu độ lệch $> \pm 5\%$.
+6. Hệ thống tự động thực hiện **Live Inventory Checker (Đối soát tồn kho câu hỏi)** với CSDL Question Bank:
+   - Hiển thị màu xanh lá kèm số câu khả dụng nếu đủ câu (`Kho: 15/4 câu (Đủ)`).
+   - Hiển thị màu đỏ cảnh báo nếu thiếu câu (`Kho: 1/4 câu (Thiếu 3 câu)`).
+7. Người dùng có thể nhấn nút "Xuất Bản Đặc Tả Ma Trận" để tải về bản đặc tả dưới dạng PDF Vector, CSV UTF-8 BOM hoặc JSON qua endpoint `GET /api/v1/matrix/{id}/spec`.
+8. Người dùng nhấn nút "Lưu và Ban hành Ma trận" hoặc "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề".
+9. Hệ thống lưu ma trận vào CSDL qua `POST /api/v1/matrix` và chuyển tiếp sang phân hệ Trộn đề an toàn.
+
+---
+
+### UC-07: SINH ĐỀ THI GỐC, NHẬP TỪ MA TRẬN & HOÁN ĐỔI CÂU HỎI TƯƠNG ĐƯƠNG (IN-PLACE ITEM SWAP)
 - **Mã Use Case:** `UC-07`
-- **Tên Use Case:** Sinh Đề thi từ Ma trận Ràng buộc YCCĐ
+- **Tên Use Case:** Sinh Đề thi Gốc từ Ma trận và Hoán đổi Câu hỏi Tương đương
 - **Tác nhân chính:** Giáo viên, Tổ trưởng Chuyên môn
 
 #### Luồng sự kiện chính:
-1. Người dùng chọn Ma trận đề thi cần sử dụng.
-2. Người dùng thiết lập ràng buộc loại trừ: Loại trừ các câu hỏi đã xuất hiện trong bài thi gần nhất của khối/lớp trong vòng 30 ngày qua.
-3. Người dùng nhấn nút "Khởi tạo Đề thi Gốc".
-4. Hệ thống kích hoạt thuật toán Constraint Satisfaction Solver:
-   - Quét ngân hàng, lọc các câu hỏi đạt `status = 'APPROVED'` khớp đúng mã YCCĐ, Dạng câu hỏi và Mức độ nhận thức.
-   - Kiểm tra toàn vẹn câu hỏi chùm (Passage-based): Giữ nguyên bài đọc chung và toàn bộ câu con đi kèm.
-5. Hệ thống hiển thị Đề thi Gốc (Master Exam) vừa sinh ra để người dùng rà soát nội dung.
-6. Cho phép bấm "Đổi câu khác" (hệ thống tự động bốc câu hỏi khác cùng mã YCCĐ, cùng dạng bài, cùng mức độ Bloom để thay thế).
-7. Người dùng nhấn "Xác nhận Đề thi Gốc".
+1. Người dùng chọn Ma trận đề thi cần sử dụng và thiết lập ràng buộc loại trừ (loại trừ câu hỏi đã xuất hiện trong 30 ngày qua).
+2. Người dùng nhấn nút "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề".
+3. Hệ thống kích hoạt thuật toán Constraint Satisfaction Problem (CSP Solver):
+   - Rút câu hỏi đạt `status = 'APPROVED'`, `is_defective == False` khớp từng ô ma trận.
+   - Áp dụng trọng số trắc lượng học ưu tiên câu hỏi có độ phân biệt $D \ge 0.3$.
+   - Bảo toàn các câu hỏi chùm có chung `passage_id`.
+4. Hệ thống hiển thị Đề thi Gốc (Master Exam) tại tab `#tab-shuffler` (Bước 1):
+   - Render đầy đủ thân câu hỏi, công thức KaTeX, đồ thị TikZ vector SVG, các phương án A-B-C-D, 4 khẳng định Đúng/Sai và ô trả lời ngắn.
+   - Hiển thị badge Option Anchor nếu câu hỏi có phương án mỏ neo.
+5. Giáo viên rà soát đề gốc:
+   - Nếu muốn thay thế một câu hỏi bất kỳ, giáo viên bấm nút **"Đổi câu khác" (Swap Question)** tại card câu hỏi đó.
+   - Hệ thống gọi API `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates` tìm kiếm các câu hỏi tương đương trong Question Bank (cùng YCCĐ, cùng mức độ Bloom, cùng thể thức, không trùng với đề gốc).
+   - Giáo viên chọn câu hỏi thay thế hoặc cho phép hệ thống tự động bốc câu hỏi tối ưu nhất qua `POST /api/v1/exams/{master_id}/items/{item_id}/swap`.
+   - Hệ thống cập nhật câu hỏi mới vào đề gốc thời gian thực, hủy bỏ các mã đề hoán vị cũ để đảm bảo tính đồng bộ dữ liệu.
+
+#### Các luồng rẽ nhánh (Thanh Nguồn Đề Gốc trong Shuffler):
+- **Luồng 1a (Chọn Đề Gốc Đã Lưu):** Tại tab `#tab-shuffler`, người dùng mở dropdown `#shuffler-select-master-exam` chọn một đề thi gốc đã lưu trong hệ thống. Hệ thống gọi `GET /api/v1/exams/{id}` và nạp ngay vào không gian làm việc.
+- **Luồng 1b (Sinh Đề Gốc từ Ma Trận Khảo Thí Trực Tiếp):** Người dùng chọn một ma trận từ dropdown `#shuffler-select-matrix` và bấm nút **`⚡ Sinh Đề Gốc từ Ma Trận Này`**. Hệ thống gọi `POST /api/v1/exams/generate` với `matrix_id`, tự động rút đề theo ràng buộc và nạp trực tiếp vào Shuffler.
+- **Luồng 1c (Đồng bộ Ma Trận Hiện Tại):** Người dùng bấm nút **`🔄 Đồng bộ từ Ma trận hiện tại`** để chuyển đổi ngay ma trận đang soạn thảo tại tab `/matrix` thành đề gốc trong Shuffler.
 
 ---
 
-### UC-08: TRỘN ĐỀ & HOÁN VỊ MÃ ĐỀ AN TOÀN
+### UC-08: TRỘN ĐỀ HOÁN VỊ AN TOÀN 4 NGUYÊN TẮC (SAFE SHUFFLING)
 - **Mã Use Case:** `UC-08`
-- **Tên Use Case:** Trộn đề và hoán vị mã đề an toàn
+- **Tên Use Case:** Trộn Đề Hoán Vị An Toàn 4 Nguyên Tắc & Lập Ma Trận Đáp Án
 - **Tác nhân chính:** Giáo viên, Tổ trưởng chuyên môn
 
 #### Luồng sự kiện chính:
-1. Người dùng chọn số lượng mã đề hoán vị cần tạo (VD: 4 mã đề: 101, 102, 103, 104).
-2. Người dùng nhấn nút "Bắt đầu Trộn đề".
-3. Động cơ Shuffling Engine thực thi 4 quy tắc an toàn:
-   - **Quy tắc phân vùng:** Chỉ đảo thứ tự câu trong từng Phần riêng biệt.
-   - **Quy tắc câu chùm:** Neo bài đọc chung và các câu con liên quan liền kề nhau.
-   - **Quy tắc neo phương án (Option Anchor):** Khóa cố định các phương án chứa "Cả A và B", "Tất cả các ý trên" ở vị trí cuối cùng (D).
-   - Hoán vị ngẫu nhiên các phương án còn lại.
-4. Hệ thống tạo ra 4 bản ghi mã đề thi độc lập kèm theo **Ma trận Ánh xạ Đáp án** (Answer Key Matrix).
-5. Hệ thống chuyển sang màn hình xuất bản tài liệu (UC-09).
+1. Người dùng cấu hình trộn đề: Chọn 4 mã đề hoán vị chuẩn (101, 102, 103, 104).
+2. Người dùng nhấn nút "Kích Hoạt Trộn Đề An Toàn (4 Mã Đề)".
+3. Động cơ Safe Shuffling Engine thực thi nghiêm ngặt 4 nguyên tắc khảo thí an toàn:
+   - **Section Integrity:** Chỉ hoán vị câu hỏi trong cùng một Phần (Phần I, Phần II, Phần III độc lập).
+   - **Passage Integrity:** Gom ngữ liệu bài đọc chung và các câu con thành khối nguyên tử bất khả phân; các câu con luôn đi liền kề nhau.
+   - **Option Anchor Rule (100%):** Tự động phát hiện phương án mỏ neo ("Cả A và B", "Tất cả các đáp án trên", "Không có đáp án nào"...) hoặc cờ `is_fixed = True`; **khóa cố định tại vị trí cuối cùng (D)** trong 100% các mã đề; chỉ hoán vị tự do các phương án A, B, C.
+   - **Key Matrix:** Tự động sinh Ma trận Ánh xạ Đáp án đối chiếu giữa đề gốc và 4 mã đề hoán vị.
+4. Hệ thống hiển thị Kết quả Trộn Đề:
+   - Huy hiệu xanh xác minh: `Option Anchor Rule: ĐẠT 100% (Khóa cố định tại vị trí D)`.
+   - Các nút chuyển Tab xem trước từng mã đề (Mã 101, Mã 102, Mã 103, Mã 104) với KaTeX và TikZ đầy đủ.
+   - Bảng Ma trận Ánh xạ Đáp án tổng hợp đối chiếu Đề gốc và 4 mã đề.
 
 ---
 
-### UC-09: XUẤT BẢN GÓI ĐỀ THI WORD (.DOCX) MATHTYPE OLE / OMML & BAREM
+### UC-09: XUẤT BẢN ĐỀ THI ĐƠN LẺ & ĐÓNG GÓI ẤN PHẨM KHẢO THÍ (.ZIP) THUẦN VECTOR PDF LATEX
 - **Mã Use Case:** `UC-09`
-- **Tên Use Case:** Xuất bản Gói Đề thi Word chuẩn mẫu in (MathType OLE Vector WMF / OMML) và Barem
+- **Tên Use Case:** Xuất bản Đề thi Đơn lẻ (PDF) & Đóng gói Ấn phẩm Khảo thí (.ZIP) Thuần Vector PDF LaTeX (Tectonic XeTeX Engine)
 - **Tác nhân chính:** Giáo viên, Cán bộ in sao đề
 
 #### Luồng sự kiện chính:
-1. Người dùng chọn mẫu template Word và định dạng công thức (`mathtype`, `omml`, hoặc `latex`).
-2. Người dùng nhấn "Xuất gói In ấn (.ZIP)".
-3. Hệ thống tạo các file:
-   - $N$ file đề thi Word (`.docx`) khổ A4 Portrait, công thức toán dạng **MathType 7.0 OLE Vector WMF** (100% vector thuần nét căng, stream DSMT7 TeX Input Language, click đúp mở MathType 7 để chỉnh sửa 2 chiều mượt mà không lỗi) hoặc **OMML native**, tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word native `<w:tbl>`.
-   - File Bảng ma trận đáp án tổng hợp các mã đề (Excel/CSV UTF-8 BOM + PDF).
-   - File Hướng dẫn giải chi tiết từng mã đề.
-   - File Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR.
-4. Hệ thống đóng gói thành 1 file ZIP và bắt đầu tải xuống máy người dùng.
+1. Người dùng có thể nhấn nút **"Tải PDF Mã {code}"** để tải trực tiếp file đề thi đơn lẻ dạng PDF Vector 2 cột chuẩn Bộ GD&ĐT qua `GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`. Hệ thống chuyển đổi mã đề sang LaTeX chuẩn Quốc gia (`ex_test.sty` v3.3) và biên dịch qua Tectonic XeTeX Engine.
+2. Người dùng nhấn nút **"TẢI TRỌN GÓI ĐỀ THI PDF (.ZIP)"** qua `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.
+3. Hệ thống tạo và đóng gói tự động các file sau vào tệp ZIP:
+   - `De_101.pdf`, `De_102.pdf`, `De_103.pdf`, `De_104.pdf`: Đề thi 4 mã đề hoán vị A4 Portrait 2 cột biên dịch từ LaTeX XeTeX chuẩn mực.
+   - `LoiGiai_101.pdf`, `LoiGiai_102.pdf`, `LoiGiai_103.pdf`, `LoiGiai_104.pdf`: Hướng dẫn giải chi tiết kèm barem điểm bậc thang QĐ 764 biên dịch từ LaTeX XeTeX chuẩn mực.
+   - `BangDapAn_TongHop.pdf`: Bảng ma trận đối chiếu đáp án tổng hợp in ấn dạng PDF.
+   - `BangDapAn_TongHop.csv`: Bảng ma trận đối chiếu đáp án định dạng CSV có ký tự UTF-8 BOM (`\ufeff`) tương thích 100% Microsoft Excel tiếng Việt.
+   - `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`: Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR 2025.
+4. Trình duyệt tự động kích hoạt tải xuống file `Goi_DeThi_PDF_{id}.zip` an toàn.
 
 ---
 
@@ -329,3 +376,111 @@
      - Backend tự động nhận diện chế độ toàn vẹn, bảo toàn cấu trúc tài liệu của người dùng, nâng cấp các gói lệnh tương thích XeTeX và đồng bộ tùy chọn `[dethi]` / `[loigiai]`.
   6. Khi người dùng chọn menu `XUẤT FILE ▾` -> `Tải mã nguồn TeX (.tex)`:
      - Hệ thống tự động kiểm tra: nếu mã trong editor là dạng tinh gọn không preamble, hệ thống tự động bọc Canonical Preamble và `\begin{document}...\end{document}` trước khi lưu tệp tải về, đảm bảo giáo viên có thể biên dịch độc lập ngay trên TeXLive / Overleaf.
+- **Luồng 6k - Đính kèm, Dán Clipboard (Ctrl+V) & Kéo Thả Phân Tích Hình Ảnh (Multi-Modal Image Input, Clipboard Paste & Visual Reasoning):**
+  1. *Đính kèm từ Compact Bar:*
+     - Người dùng nhấp vào nút icon ảnh trên thanh `#composer-ai-compact-bar` để chọn một hoặc nhiều file ảnh từ máy tính, HOẶC dán ảnh trực tiếp từ clipboard (`Ctrl+V` / `Cmd+V`) khi đang gõ tại `#composer-compact-input`.
+     - Hệ thống kích hoạt Fast Dispatch: Tự động mở bung popup trợ lý lớn `#composer-ai-popup`, ẩn thanh compact bar, chuyển con trỏ vào ô nhập `#composer-chat-input`, đưa ảnh vào mảng `attachedImages` và hiển thị khay thumbnail đính kèm ngay trên ô chat.
+  2. *Thao tác trên Khung Chat Lớn (#composer-chat-input-container):*
+     - Người dùng có thể: (a) Nhấp vào nút icon ảnh trên toolbar của chat card; (b) Nhấn tổ hợp phím `Ctrl+V` / `Cmd+V` để dán ảnh chụp màn hình; (c) Kéo và thả file ảnh trực tiếp vào khung chat (vùng dropzone phát sáng viền tím `border-purple-500/80 bg-purple-500/10`).
+     - Khay thumbnail `#composer-attached-images-container` hiển thị danh sách các ảnh đã chọn (kích thước 54px x 54px, bo góc mượt mà).
+     - Người dùng có thể nhấp vào nút (✕) ở góc trên mỗi thumbnail để gỡ ảnh ra khỏi danh sách đính kèm, hoặc nhấp vào ảnh để mở Lightbox xem trước cỡ lớn.
+  3. *Gửi yêu cầu và Hiển thị:*
+     - Người dùng gõ thêm câu lệnh yêu cầu (ví dụ: *"Trích xuất đề bài từ ảnh và vẽ lại đồ thị hàm số bằng TikZ"*) và nhấn `Enter` hoặc nhấp nút tròn mũi tên gửi.
+     - Hệ thống đóng gói mảng Base64 Data URL vào trường `images` trong payload `POST /api/v1/composer/chat`.
+     - Bong bóng chat của người dùng lập tức hiển thị nội dung câu hỏi cùng các thumbnail ảnh đính kèm; sau đó khay thumbnail đính kèm được dọn sạch (`attachedImages = []`).
+  4. *Phản hồi từ AI Copilot:*
+     - AI Copilot đa phương tiện (hoặc Offline Fallback) đọc ảnh, nhận diện đề bài, phân tích đồ thị/bảng biến thiên, sinh ra khối mã LaTeX `ex_test.sty` và khối TikZ tương ứng.
+     - Phản hồi trả về kèm khối diff hoặc suggested_latex để giáo viên 1-click chèn hoặc thay thế trực tiếp vào trình soạn thảo đề thi.
+- **Luồng 6l - Dán Ảnh Clipboard Chuẩn Xác Không Nhân Đôi (Event Isolation & Debounce Paste):**
+  1. Người dùng sao chép một ảnh chụp màn hình vào Clipboard và nhấn `Ctrl+V` (hoặc `Cmd+V`) vào ô chat `#composer-chat-input`.
+  2. Cơ chế Event Isolation kích hoạt: Gọi đồng thời `e.preventDefault()` và `e.stopPropagation()`, ngăn chặn hiện tượng sự kiện dán bị nổi bọt lên container cha `#composer-chat-input-container`.
+  3. Cơ chế Debounce 500ms và Deduplication kiểm tra chữ ký ảnh: Nếu ảnh vừa được thêm vào trong vòng 500ms hoặc đã có trong danh sách `attachedImages`, hệ thống từ chối thêm trùng.
+  4. Khay thumbnail hiển thị chính xác **duy nhất 1 ảnh**, thông báo toast xuất hiện duy nhất 1 lần, triệt tiêu hoàn toàn lỗi 1 ảnh dán thành 2 ảnh.
+- **Luồng 6m - Chuẩn Hóa Khảo Thí 2025: Reset Thứ Tự Câu Hỏi Về 1 Ở Mỗi Phần (\setcounter{ex}{0}) & Loại Bỏ \large:**
+  1. Người dùng biên dịch hoặc nạp mẫu đề thi chuẩn Quốc gia gồm PHẦN I, PHẦN II, PHẦN III.
+  2. Tại đầu mỗi phần mới (PHẦN II, PHẦN III), hệ thống tự động kiểm tra và chèn lệnh `\setcounter{ex}{0}` ngay sau tiêu đề/hướng dẫn.
+  3. Khi biên dịch PDF qua Tectonic/XeTeX hoặc xem trước HTML, PHẦN II tự động bắt đầu lại từ **Câu 1 đến Câu 4**; PHẦN III tự động bắt đầu lại từ **Câu 1 đến Câu 6** (không bị đếm nối tiếp thành Câu 13, 17...).
+  4. Nếu trong mã nguồn có các thẻ `\large`, `\Large` ở tiêu đề phần (do người dùng vô tình dán vào), bộ tiền xử lý tự động bóc tách sạch sẽ, đưa tiêu đề về dạng chuẩn 12pt in đậm `\noindent\textbf{PHẦN ...}` `\textit{...}`.
+- **Luồng 6n - Quy Trình Biên Dịch Nhanh Đa Tầng (Instant Preview 0.2s, Focus Quick Compile 1.5s & Draft Mode 15s):**
+  1. *Xem trước Tức thì (Instant Live Preview):* Khi đang soạn thảo gõ chữ, hệ thống tự động kích hoạt chế độ xem trước HTML/SVG với độ trễ 0.2s, nạp lại các hình TikZ cũ từ MD5 Disk Cache trong 10ms.
+  2. *Biên dịch Nhanh Câu Đang Sửa (Focus Quick Compile):* Khi giáo viên vừa sửa 1 câu hỏi cụ thể, bấm nút `⚡ BIÊN DỊCH CÂU NÀY` hoặc nhấn `Ctrl+Shift+S`. Hệ thống chỉ biên dịch duy nhất câu hỏi tại con trỏ sang PDF vector trong 1.0 - 1.8 giây để kiểm tra ngay bố cục.
+  3. *Chế độ Nháp (Draft Mode):* Khi cần biên dịch toàn bộ đề nhưng muốn tiết kiệm thời gian, giáo viên bật cờ "Chế độ Nháp". Hệ thống tự động giảm `samples=35` cho toàn bộ đồ thị TikZ, hoàn thành biên dịch toàn bộ 22 câu trong 12 - 18 giây thay vì 65 giây.
+  4. *Xuất bản Chính thức:* Khi đề thi hoàn thiện, tắt Chế độ Nháp và nhấn `BIÊN DỊCH` (`Ctrl+S`) để xuất bản bản in chất lượng cao 1200 DPI.
+
+  ---
+
+  ### UC-09: ĐĂNG KÝ, ĐĂNG NHẬP & QUẢN LÝ PHIÊN LÀM VIỆC (AUTHENTICATION & RBAC)
+
+  - **Tác nhân:** Giáo viên, Học sinh, Quản trị viên (Admin).
+  - **Mục tiêu:** Tạo tài khoản, xác thực danh tính an toàn, bảo vệ dữ liệu khảo thí và phân quyền truy cập.
+  - **Tiền điều kiện:** Người dùng truy cập vào ứng dụng Quesy trên trình duyệt.
+  - **Luồng sự kiện chính (MSS):**
+    1. Người dùng bấm nút `[Đăng nhập]` hoặc `[Đăng ký]` trên góc phải thanh điều hướng header.
+    2. Hệ thống hiển thị Modal Xác thực Apple HIG với 2 tab: Đăng nhập và Đăng ký.
+    3. Khi Đăng ký:
+       - Người dùng nhập Họ tên, Email, Mật khẩu (>= 6 ký tự) và chọn vai trò Giáo viên / Học sinh.
+       - Nhấn `Tạo tài khoản`. Hệ thống băm mật khẩu PBKDF2-HMAC-SHA256, lưu vào bảng `users`, sinh JWT HS256 và trả về.
+    4. Khi Đăng nhập Email/Mật khẩu:
+       - Người dùng nhập Email, Mật khẩu và nhấn `Đăng nhập`.
+       - Hệ thống kiểm tra mật khẩu đã băm, cấp JWT HS256, lưu `quesy_auth_token` vào `localStorage`.
+    5. Khi Đăng nhập Mạng xã hội OAuth (Google / GitHub):
+       - Người dùng bấm nút `Google` hoặc `GitHub`.
+       - Hệ thống xác thực danh tính mạng xã hội, tạo hoặc liên kết tài khoản và trả về JWT.
+    6. Giao diện Header tự động cập nhật: Ẩn nút Đăng nhập/Đăng ký, hiển thị Avatar người dùng, Tên, Role badge và Menu Tài khoản.
+    7. Khi Đăng xuất: Người dùng chọn `Đăng xuất` từ menu tài khoản; hệ thống xóa token khỏi `localStorage` và khôi phục trạng thái ban đầu.
+
+  ---
+
+  ### UC-10: QUẢN TRỊ TOÀN DIỆN NGÂN HÀNG CÂU HỎI (ITEM BANK FULL CRUD & MODALS)
+
+  - **Tác nhân:** Giáo viên, Tổ trưởng chuyên môn.
+  - **Mục tiêu:** Quản trị toàn diện vòng đời câu hỏi trong CSDL khảo thí chuẩn Thông tư 32/2018 và QĐ 764/QĐ-BGDĐT.
+  - **Tiền điều kiện:** Người dùng điều hướng tới tab `/bank`.
+  - **Luồng sự kiện chính (MSS):**
+    1. *Lọc cây kiến thức 6 tầng & Bộ lọc thứ cấp:*
+       - Người dùng chọn Khối lớp -> Môn học -> Mạch nội dung TT 32 -> Chủ đề -> Bài học -> YCCĐ.
+       - Chọn Dạng câu hỏi, Mức độ nhận thức (Biết, Hiểu, Vận dụng, Vận dụng cao), Thể thức (Trắc nghiệm, Đúng/Sai, Trả lời ngắn).
+       - Nhập từ khóa tìm kiếm: Hệ thống tự động lọc danh sách với độ trễ < 150ms.
+    2. *Thêm câu hỏi mới (+ Thêm thủ công):*
+       - Người dùng bấm nút `+ Thêm câu hỏi thủ công`.
+       - Hệ thống mở Modal Thêm mới (`#question-create-modal`).
+       - Chọn thể thức: SINGLE_CHOICE (4 options A-D, radio chọn đáp án đúng, checkbox khóa D), TRUE_FALSE_GROUP (4 ý a-d, switch Đúng/Sai), hoặc SHORT_ANSWER (ô nhập kết quả và dung sai).
+       - Nhập nội dung stem kèm công cụ chèn nhanh công thức toán học và xem trước KaTeX Live.
+       - Nhấn `Gợi ý YCCĐ AI` để tự động đề xuất mã YCCĐ; nhấn `Kiểm tra Trùng lặp AI` để kiểm tra Cosine Similarity.
+       - Nhấn `Lưu vào Ngân hàng`: Hệ thống gọi `POST /api/v1/questions`, cập nhật danh sách và tăng số lượng trên badge `#bank-count-badge`.
+    3. *Xem chi tiết câu hỏi:*
+       - Người dùng bấm vào thẻ câu hỏi hoặc nút `Xem chi tiết`.
+       - Hệ thống mở Modal Chi tiết (`#question-detail-modal`), render công thức toán học KaTeX, đồ thị TikZ SVG, barem điểm bậc thang QĐ 764 và chỉ số $p, D$.
+    4. *Sửa câu hỏi:*
+       - Người dùng bấm nút `Sửa` trên thẻ câu hỏi hoặc trong modal chi tiết.
+       - Hệ thống mở Modal Sửa (`#question-edit-modal`) nạp sẵn dữ liệu câu hỏi.
+       - Chỉnh sửa nội dung, đáp án, lời giải và bấm `Lưu thay đổi`: Hệ thống gọi `PUT /api/v1/questions/{id}` cập nhật CSDL.
+    5. *Xóa câu hỏi:*
+       - Người dùng bấm nút `Xóa` -> Hộp thoại xác nhận an toàn xuất hiện.
+       - Xác nhận xóa -> Hệ thống gọi `DELETE /api/v1/questions/{id}`, xóa cascade options/sub-statements, cập nhật ngay số lượng badge `#bank-count-badge`.
+    6. *Xuất & Nhập Ngân hàng:*
+       - Xuất: Chọn `Xuất ngân hàng` -> Chọn PDF Vector (A4 in ấn), CSV UTF-8 BOM (chuẩn Excel không lỗi font), hoặc LaTeX (`ex_test.sty`).
+       - Nhập: Bấm `Nhập câu hỏi` -> Tải file hoặc dán mã LaTeX -> Hệ thống bóc tách, tự động gắn tag và đẩy vào CSDL.
+
+  ---
+
+  ### UC-11: LƯU TOÀN BỘ ĐỀ THI TỪ SOẠN THẢO VÀO NGÂN HÀNG CÂU HỎI (1-CLICK SAVE FROM COMPOSER)
+
+  - **Tác nhân:** Giáo viên biên soạn đề thi.
+  - **Mục tiêu:** Lưu toàn bộ các câu hỏi từ văn bản LaTeX đang soạn thảo vào Ngân hàng câu hỏi CSDL mà không phải sao chép thủ công.
+  - **Tiền điều kiện:** Giáo viên đang mở phân hệ Soạn đề (`/composer`) và có mã nguồn LaTeX đề thi hợp lệ.
+  - **Luồng sự kiện chính (MSS):**
+    1. Giáo viên hoàn tất soạn thảo đề thi trên LaTeX Editor.
+    2. Giáo viên nhấp nút chuyên biệt **`📥 LƯU VÀO NGÂN HÀNG`** (`#btn-composer-save-to-bank`) trực tiếp trên thanh công cụ Composer.
+    3. Hệ thống hiển thị hiệu ứng loading phản hồi xúc giác.
+    4. Trình duyệt gửi request `POST /api/v1/composer/save-to-bank` với payload `latex_code`.
+    5. Backend thực hiện phân tích:
+       - Bóc tách toàn diện các câu hỏi chuẩn `\begin{ex}` hoặc `\textbf{Câu X.}`.
+       - Trích xuất Trắc nghiệm đơn `\choice` (nhận diện `\True`), Đúng/Sai 4 ý `\choiceTF[1]` (nhận diện `\True` từng ý a, b, c, d), và Trả lời ngắn `\shortans`.
+       - Giữ nguyên vẹn đồ thị TikZ, bảng biến thiên `tkz-tab` và khối lời giải `\begin{loigiai}`.
+       - Tự động nhận diện môn học, khối lớp, chạy `suggest_auto_tagging` gán mã YCCĐ chuẩn Thông tư 32.
+       - Lưu tất cả câu hỏi vào cơ sở dữ liệu `questions`, `question_options`, `sub_statements`.
+    6. Backend phản hồi kết quả chi tiết: Tổng số câu đã lưu kèm số lượng câu của từng thể thức.
+    7. Frontend hiển thị thông báo Toast thành công Apple HIG với thông tin chi tiết: *"Đã lưu thành công 22 câu hỏi vào Ngân hàng câu hỏi (12 Trắc nghiệm đơn, 4 Đúng/Sai 4 ý, 6 Trả lời ngắn)"*.
+    8. Badge số lượng `#bank-count-badge` trên thanh điều hướng lập tức cập nhật số lượng mới.
+    9. Khi giáo viên chuyển sang tab Ngân hàng câu hỏi (`/bank`), danh sách câu hỏi mới đã sẵn sàng hiển thị và phục vụ rút đề ma trận.

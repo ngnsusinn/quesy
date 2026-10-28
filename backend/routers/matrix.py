@@ -1,12 +1,17 @@
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel, Field, ConfigDict
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response, FileResponse
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import ExamMatrix, MatrixItem
 from backend.services.matrix_solver import check_matrix_availability
+from backend.config import EXPORTS_DIR
+import csv
+import io
 
 router = APIRouter(prefix="/api/v1/matrices", tags=["Matrices"])
+router_singular = APIRouter(prefix="/api/v1/matrix", tags=["Matrices"])
 
 
 # ==========================================
@@ -70,6 +75,7 @@ class ExamMatrixOut(BaseModel):
 # ==========================================
 
 @router.get("", response_model=List[ExamMatrixOut])
+@router_singular.get("", response_model=List[ExamMatrixOut])
 def list_matrices(
     subject_id: Optional[str] = None,
     grade_id: Optional[str] = None,
@@ -85,6 +91,7 @@ def list_matrices(
 
 
 @router.post("", response_model=ExamMatrixOut, status_code=status.HTTP_201_CREATED)
+@router_singular.post("", response_model=ExamMatrixOut, status_code=status.HTTP_201_CREATED)
 def create_matrix(payload: ExamMatrixCreate, db: Session = Depends(get_db)):
     """Create a new exam matrix blueprint with its target item specifications."""
     from backend.models import Subject, Grade, LearningOutcome, Lesson, Topic, Strand
@@ -154,6 +161,7 @@ def create_matrix(payload: ExamMatrixCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{matrix_id}", response_model=ExamMatrixOut)
+@router_singular.get("/{matrix_id}", response_model=ExamMatrixOut)
 def get_matrix(matrix_id: str, db: Session = Depends(get_db)):
     matrix = db.query(ExamMatrix).filter(ExamMatrix.id == matrix_id).first()
     if not matrix:
@@ -162,6 +170,7 @@ def get_matrix(matrix_id: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{matrix_id}", response_model=ExamMatrixOut)
+@router_singular.put("/{matrix_id}", response_model=ExamMatrixOut)
 def update_matrix(matrix_id: str, payload: ExamMatrixUpdate, db: Session = Depends(get_db)):
     matrix = db.query(ExamMatrix).filter(ExamMatrix.id == matrix_id).first()
     if not matrix:
@@ -193,6 +202,7 @@ def update_matrix(matrix_id: str, payload: ExamMatrixUpdate, db: Session = Depen
 
 
 @router.delete("/{matrix_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router_singular.delete("/{matrix_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_matrix(matrix_id: str, db: Session = Depends(get_db)):
     matrix = db.query(ExamMatrix).filter(ExamMatrix.id == matrix_id).first()
     if not matrix:
@@ -202,14 +212,148 @@ def delete_matrix(matrix_id: str, db: Session = Depends(get_db)):
     return None
 
 
+@router.post("/check-availability")
+@router_singular.post("/check-availability")
 @router.post("/{matrix_id}/check-availability")
-def check_availability(matrix_id: str, db: Session = Depends(get_db)):
-    """POST /api/v1/matrices/:matrix_id/check-availability
-    Validates whether the item bank has sufficient approved questions
+@router_singular.post("/{matrix_id}/check-availability")
+def check_availability(matrix_id: Optional[str] = None, db: Session = Depends(get_db)):
+    """Validates whether the item bank has sufficient approved questions
     for each matrix requirement.
     """
+    if not matrix_id or matrix_id == "default":
+        m = db.query(ExamMatrix).first()
+        if not m:
+            raise HTTPException(status_code=404, detail="No exam matrix found in system.")
+        matrix_id = m.id
     try:
         report = check_matrix_availability(matrix_id, db)
         return report
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/{matrix_id}/spec")
+@router_singular.get("/{matrix_id}/spec")
+def get_matrix_spec(
+    matrix_id: str,
+    format: str = Query("json", description="json, csv, or pdf"),
+    db: Session = Depends(get_db)
+):
+    """Exports exam matrix specification in json, csv (utf-8 bom), or pdf (ReportLab)."""
+    matrix = db.query(ExamMatrix).filter(ExamMatrix.id == matrix_id).first()
+    if not matrix:
+        matrix = db.query(ExamMatrix).first()
+    if not matrix:
+        raise HTTPException(status_code=404, detail="ExamMatrix not found")
+
+    if format.lower() == "json":
+        return {
+            "id": matrix.id,
+            "title": matrix.title,
+            "subject_id": matrix.subject_id,
+            "grade_id": matrix.grade_id,
+            "duration_minutes": matrix.duration_minutes,
+            "total_points": matrix.total_points,
+            "items": [
+                {
+                    "id": i.id,
+                    "learning_outcome_id": i.learning_outcome_id,
+                    "cognitive_level": i.cognitive_level,
+                    "item_format": i.item_format,
+                    "quantity": i.quantity,
+                    "points_per_item": i.points_per_item
+                }
+                for i in matrix.items
+            ]
+        }
+
+    elif format.lower() == "csv":
+        output = io.StringIO()
+        output.write("\ufeff")
+        writer = csv.writer(output)
+        writer.writerow(["STT", "Mã YCCĐ", "Mức độ nhận thức", "Dạng câu hỏi", "Số lượng", "Điểm/câu", "Tổng điểm"])
+        for idx, item in enumerate(matrix.items, 1):
+            yccd = item.learning_outcome.code if item.learning_outcome else (item.learning_outcome_id or "N/A")
+            tot = round(item.quantity * item.points_per_item, 2)
+            writer.writerow([idx, yccd, item.cognitive_level, item.item_format, item.quantity, item.points_per_item, tot])
+        
+        csv_data = output.getvalue()
+        return Response(
+            content=csv_data,
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f"attachment; filename=BanDacTa_Matrix_{matrix.id}.csv"}
+        )
+
+    elif format.lower() == "pdf":
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib import colors
+            from backend.services.docx_exporter import register_vietnamese_fonts
+            from reportlab.pdfbase import pdfmetrics
+
+            register_vietnamese_fonts()
+            registered = pdfmetrics.getRegisteredFontNames() if 'pdfmetrics' in globals() else []
+            font_main = 'TimesNewRoman' if 'TimesNewRoman' in registered else 'Helvetica'
+            font_bold = 'TimesNewRoman-Bold' if 'TimesNewRoman-Bold' in registered else 'Helvetica-Bold'
+
+            export_dir = EXPORTS_DIR / "specs"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            pdf_path = export_dir / f"BanDacTa_Matrix_{matrix.id}.pdf"
+
+            doc = SimpleDocTemplate(str(pdf_path), pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+            styles = getSampleStyleSheet()
+            style_title = ParagraphStyle('Title', fontName=font_bold, fontSize=16, leading=20, alignment=1)
+            style_subtitle = ParagraphStyle('Sub', fontName=font_main, fontSize=11, leading=15, alignment=1)
+            style_cell = ParagraphStyle('Cell', fontName=font_main, fontSize=10, leading=13)
+            style_header = ParagraphStyle('Header', fontName=font_bold, fontSize=10, leading=13, textColor=colors.white)
+
+            story = [
+                Paragraph("BẢN ĐẶC TẢ MA TRẬN ĐỀ THI", style_title),
+                Spacer(1, 5),
+                Paragraph(f"<b>Kỳ thi:</b> {matrix.title} | <b>Thời gian:</b> {matrix.duration_minutes} phút | <b>Tổng điểm:</b> {matrix.total_points}", style_subtitle),
+                Spacer(1, 15)
+            ]
+
+            table_data = [[
+                Paragraph("STT", style_header),
+                Paragraph("Yêu cầu cần đạt", style_header),
+                Paragraph("Mức độ", style_header),
+                Paragraph("Dạng câu hỏi", style_header),
+                Paragraph("SL", style_header),
+                Paragraph("Điểm", style_header),
+                Paragraph("Tổng", style_header),
+            ]]
+
+            for idx, item in enumerate(matrix.items, 1):
+                yccd = item.learning_outcome.code if item.learning_outcome else (item.learning_outcome_id or "N/A")
+                tot = round(item.quantity * item.points_per_item, 2)
+                table_data.append([
+                    Paragraph(str(idx), style_cell),
+                    Paragraph(str(yccd), style_cell),
+                    Paragraph(str(item.cognitive_level), style_cell),
+                    Paragraph(str(item.item_format), style_cell),
+                    Paragraph(str(item.quantity), style_cell),
+                    Paragraph(str(item.points_per_item), style_cell),
+                    Paragraph(str(tot), style_cell),
+                ])
+
+            t = Table(table_data, colWidths=[35, 140, 90, 100, 40, 50, 50])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#002244')),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            story.append(t)
+            doc.build(story)
+
+            if pdf_path.exists():
+                return FileResponse(path=str(pdf_path), filename=pdf_path.name, media_type="application/pdf")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
+
+    raise HTTPException(status_code=400, detail="Invalid format specified. Use json, csv, or pdf.")

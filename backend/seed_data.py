@@ -21,7 +21,9 @@ from backend.models import (
     ExamVariant,
     ExamVariantItem,
     AIDigitizeJob,
+    User,
 )
+from backend.services.auth_service import hash_password
 
 logger = logging.getLogger("quesy.seed")
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +43,13 @@ def seed_database(db: Session, force_reset: bool = True):
     else:
         Base.metadata.create_all(bind=engine)
         if db.query(Question).count() >= 30:
+            user_teacher = db.query(User).filter(User.email == "teacher@quesy.vn").first()
+            if not user_teacher:
+                db.add(User(email="teacher@quesy.vn", hashed_password=hash_password("quesy123456"), full_name="Thầy Nguyễn Văn Hưng", role="TEACHER", oauth_provider="local"))
+            user_admin = db.query(User).filter(User.email == "admin@quesy.vn").first()
+            if not user_admin:
+                db.add(User(email="admin@quesy.vn", hashed_password=hash_password("admin123456"), full_name="Quản Trị Viên QUESY", role="ADMIN", oauth_provider="local"))
+            db.commit()
             logger.info("Database already seeded with sufficient questions. Skipping.")
             return
 
@@ -1107,6 +1116,29 @@ def seed_database(db: Session, force_reset: bool = True):
         ],
     )
     db.add(sample_job)
+
+    # 12. USERS (TEACHER & ADMIN)
+    user_teacher = db.query(User).filter(User.email == "teacher@quesy.vn").first()
+    if not user_teacher:
+        user_teacher = User(
+            email="teacher@quesy.vn",
+            hashed_password=hash_password("quesy123456"),
+            full_name="Thầy Nguyễn Văn Hưng",
+            role="TEACHER",
+            oauth_provider="local"
+        )
+        db.add(user_teacher)
+
+    user_admin = db.query(User).filter(User.email == "admin@quesy.vn").first()
+    if not user_admin:
+        user_admin = User(
+            email="admin@quesy.vn",
+            hashed_password=hash_password("admin123456"),
+            full_name="Quản Trị Viên QUESY",
+            role="ADMIN",
+            oauth_provider="local"
+        )
+        db.add(user_admin)
 
     db.commit()
     logger.info("Database seeding completed successfully with all Circular 32 entities, questions, and variants.")

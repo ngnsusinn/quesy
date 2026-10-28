@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, phân hệ Soạn đề tinh gọn không cần khai báo preamble (Canonical Preamble Injection tự động nhúng fontspec, tikz, tkz-tab, tcolorbox, ex_test v3.3), bộ dựng đồ thị vector SVG (TikZ), chuẩn hóa công thức KaTeX, thuật toán trộn đề an toàn (Safe Shuffling Engine), MathJax engine, xuất bản ấn phẩm Word MathType 7.0 OLE Vector WMF / OMML, phân hệ Trợ lý Soạn thảo AI Copilot thông minh, và quy chuẩn quản trị phát triển Git.
-- **Ngày phát hành:** 2026-10-24  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap) và đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF).
+- **Ngày phát hành:** 2026-10-27  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
 ---
@@ -161,6 +161,15 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 4. `PASSAGE_GROUP`: Câu hỏi chùm (Một đoạn văn bản/ngữ liệu bài đọc cha và các câu hỏi con).
 5. `ESSAY`: Câu hỏi tự luận kèm rubric tiêu chí chấm điểm.
 
+#### SRS-FEAT-04a: Lưu Trữ Thực Tế & Nạp Bền Vững 100% CSDL SQLite Ngân Hàng Câu Hỏi (Persistent SQLite Item Bank)
+- **Mô tả:** Đảm bảo toàn bộ ngân hàng câu hỏi được lưu trữ thực tế, toàn vẹn và bền vững trong CSDL SQLite (`storage/quesy.db`, 230+ câu hỏi chuẩn hóa).
+- **Yêu cầu kỹ thuật:**
+  1. *Khởi động và Nạp Dữ liệu Thực:* Khi khởi động server hoặc tải lại trang F5 trên client, hàm `fetchQuestionsFromDB()` truy vấn toàn bộ câu hỏi qua `GET /api/v1/questions?limit=1000` (không bị giới hạn mặc định 50 câu) để nạp đầy đủ danh sách thực tế vào `state.itemBank`.
+  2. *Triệt Tiêu Hoàn Toàn Ghi Đè Dữ Liệu Giả (Zero Mock Overwrite):* Loại bỏ hoàn toàn việc gọi hàm nạp 12 câu hỏi mẫu giả lập (`seedInitialQuestions()`) sau khi đã nạp dữ liệu từ CSDL. Dữ liệu mock chỉ đóng vai trò dự phòng ngoại tuyến cực hạn (offline fallback) khi CSDL rỗng hoàn toàn hoặc mất kết nối mạng.
+  3. *Đồng bộ Bền vững Sau Mọi Thao tác:* Mọi thao tác thêm mới câu hỏi (thủ công, import LaTeX), chỉnh sửa nội dung, xóa câu hỏi, hoặc lưu trực tiếp từ phân hệ Soạn đề (`POST /api/v1/composer/save-to-bank`) đều thực thi trực tiếp trên SQLite và tự động cập nhật ngay lập tức `state.itemBank` kèm số lượng badge thời gian thực.
+  4. *Bảo toàn Qua Khởi động Lại Server:* File CSDL `storage/quesy.db` bảo toàn nguyên vẹn 100% dữ liệu qua mọi chu kỳ tắt/bật lại máy chủ (`force_reset=False` trong `backend/seed_data.py`).
+
+
 #### SRS-FEAT-04b: Xuất bản PDF Đề thi Trực tiếp từ Số hóa AI theo Chuẩn LaTeX Thuần (LaTeX-grade Digitize PDF Publisher)
 - **Mô tả:** Cho phép giáo viên xuất ngay bộ câu hỏi vừa được AI bóc tách ra tệp PDF chuẩn khảo thí quốc gia (`POST /api/v1/digitize/export-pdf` và `GET /api/v1/digitize/jobs/:job_id/export-pdf`).
 - **Typography & Font Chuẩn $\LaTeX$:**
@@ -174,7 +183,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   1. *Cột bên trái (Editor Pane):*
      - *Khung trên:* Trình soạn thảo mã nguồn LaTeX Dark mode (`#141824`, bảo toàn màu nền khi click con trỏ focus, thanh cuộn mượt mà không kẹt `overflow-y: scroll`) với toolbar `MỚI`, `THÊM ▾` (7 template chuẩn `ex_test`), phím tắt hoàn tác (Undo/Redo), dọn dẹp, sao chép, đánh số dòng và hiển thị vị trí con trỏ.
      - *Thanh Banner Gợi ý Sửa đổi (Inline Diff Banner):* Hiển thị trực tiếp số dòng cần sửa, tự động cuộn và bôi đen vị trí cần thay thế trên editor, hiển thị trực quan khối so sánh `- old_text` (đỏ) và `+ new_text` (xanh), cho phép duyệt nhanh với 2 nút bấm **`[Đồng ý]`** và **`[Từ chối]`**.
-     - *Khung dưới:* Trợ lý Soạn thảo AI Copilot hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ `\immini`, hỗ trợ kéo thả thanh ngang hoặc biên trên để co giãn độ cao tùy ý.
+     - *Khung dưới:* Trợ lý Soạn thảo AI Copilot hỗ trợ sinh câu hỏi trắc nghiệm Phần I, Đúng/Sai Phần II (QĐ 764 chuẩn `\choiceTF[1]`), Trả lời ngắn Phần III, bảng biến thiên `tkz-tab`, đồ thị TikZ căn giữa `\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}`, hỗ trợ kéo thả thanh ngang hoặc biên trên để co giãn độ cao tùy ý.
   2. *Thanh Phân Tách Ngang (Horizontal Splitter):*
      - Nằm giữa Cột Trái và Cột Phải (`#composer-col-splitter`), hỗ trợ kéo thả chuột/cảm ứng để thay đổi tỷ lệ chiều ngang linh hoạt từ 25% đến 75% (mặc định 60% Left : 40% Right), ghi nhớ tỷ lệ vào `localStorage`.
   3. *Cột bên phải (Live Preview Pane):*
@@ -392,7 +401,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   - Khi không cấu hình AI Provider hoặc mạng gián đoạn, động cơ dự phòng nhận diện câu lệnh thay thế câu $n$ (ví dụ: "đơn điệu hàm số thay thế câu 1"), tự động sinh câu hỏi toán chuẩn `ex_test.sty` và bóc tách câu $n$ cũ để trả về `DiffSuggestion` hoàn chỉnh.
 
 #### SRS-FEAT-04q: Hộp Soạn Thảo Đề Thi Tinh Gọn Không Preamble & Động Cơ Nhúng Ngầm Canonical Preamble Injection (Preamble-Free Question Editor)
-- **Mô tả:** Tách biệt triệt để giữa phần Khai báo Gói Lệnh (Preamble) và Phần Thân Nội Dung Đề Thi (Exam Body). Giáo viên khi sử dụng phân hệ Soạn đề (`/composer`) chỉ cần tập trung viết nội dung đề thi và các câu hỏi chuẩn gói lệnh khảo thí quốc gia `ex_test.sty` (`\begin{ex}...\choice...\loigiai...\end{ex}`, `\choiceTF`, `\shortans`, `\immini`, TikZ, `tkz-tab`), hoàn toàn KHÔNG CẦN viết các dòng lệnh rườm rà như `\documentclass`, `\usepackage`, hay `\begin{document}...\end{document}`.
+- **Mô tả:** Tách biệt triệt để giữa phần Khai báo Gói Lệnh (Preamble) và Phần Thân Nội Dung Đề Thi (Exam Body). Giáo viên khi sử dụng phân hệ Soạn đề (`/composer`) chỉ cần tập trung viết nội dung đề thi và các câu hỏi chuẩn gói lệnh khảo thí quốc gia `ex_test.sty` (`\begin{ex}...\choice...\loigiai...\end{ex}`, `\choiceTF[1]`, `\shortans`, TikZ căn giữa, `tkz-tab`), hoàn toàn KHÔNG CẦN viết các dòng lệnh rườm rà như `\documentclass`, `\usepackage`, hay `\begin{document}...\end{document}`. Toàn bộ hình vẽ đồ thị và bảng biến thiên mặc định căn giữa, loại bỏ khuyến nghị `\immini` khỏi cấu trúc chuẩn.
 - **Kiến trúc Nhúng Ngầm Preamble Chuẩn (Canonical Preamble Injection):**
   1. *Định nghĩa Preamble Chuẩn (Canonical Preamble Spec):*
      ```latex
@@ -536,6 +545,104 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   4. *Khử Lỗi Chuỗi Ký Tự Newline (`\n`) trong JavaScript:* Toàn bộ các template string trong frontend JavaScript dùng dòng mới thực tế thay vì ký tự escape `\\n`, loại bỏ triệt để hiện tượng XeTeX sinh lỗi `\n{}` hoặc `There's no line here to end`.
   5. *Đồng bộ Bộ Render HTML Preview (`compile_latex_source_to_html`):* Bộ render HTML chuyển đổi `\choiceTF[1]` thành 4 hàng dọc `display: block; width: 100%; margin-bottom: 4px;` kèm nhãn a), b), c), d) và trạng thái đúng/sai.
 
+#### SRS-FEAT-04u: Trợ Lý AI Copilot Đa Phương Tiện: Đính Kèm, Dán Clipboard (Ctrl+V) & Kéo Thả Phân Tích Hình Ảnh (Multi-Modal Image Input, Clipboard Paste & Visual Reasoning)
+- **Mô tả:** Mở rộng năng lực phân hệ Soạn đề (`/composer`) cho phép giáo viên tải lên hình ảnh trực tiếp qua nút đính kèm, kéo thả tệp ảnh (Drag & Drop), hoặc dán ảnh trực tiếp từ bộ nhớ tạm (Clipboard Paste qua `Ctrl+V` / `Cmd+V`) vào thanh prompt thu gọn (`#composer-compact-input`) hoặc ô chat lớn (`#composer-chat-input`) để Trợ lý AI Copilot phân tích đề bài, trích xuất LaTeX, vẽ lại đồ thị hàm số và bảng biến thiên TikZ.
+- **Quy chuẩn Tương tác Người dùng & Giao diện (Apple HIG & Emil Kowalski):**
+  1. *Đính kèm từ Compact Bar:*
+     - Thanh compact bar trang bị nút biểu tượng hình ảnh (`<i data-lucide="image"></i>`), nhấp vào sẽ kích hoạt hộp thoại chọn file ảnh ẩn (`#composer-compact-image-input`, `accept="image/*"`).
+     - Khi dán ảnh (`Ctrl+V`) hoặc chọn file từ compact bar: Hệ thống tự động chuyển tiếp ảnh vào danh sách đính kèm, mở bung popup trợ lý lớn (`#composer-ai-popup`), chuyển tiêu điểm focus vào `#composer-chat-input`, hiển thị chip thumbnail ảnh và giữ nguyên trải nghiệm liền mạch.
+  2. *Đính kèm & Dán trên Khung Chat Popup:*
+     - Khung chat lớn trang bị nút đính kèm ảnh tinh tế trong toolbar con cạnh nút `+` (Quick Actions) kèm input file ẩn (`#composer-chat-image-input`).
+     - Hỗ trợ sự kiện dán ảnh (`paste` event) trực tiếp trên `#composer-chat-input` và toàn bộ khung chat: Trích xuất tự động `image/*` từ clipboard dạng Base64 Data URL (`data:image/...;base64,...`).
+     - Hỗ trợ kéo thả ảnh (Drag & Drop): Khi kéo file ảnh vào vùng chat, khung viền chuyển hiệu ứng highlight tím sáng `border-purple-500/80 bg-purple-500/10` (active dropzone), thả file sẽ tự động nạp ảnh vào khay đính kèm.
+  3. *Khay Hiển Thị Thumbnail Đính Kèm (#composer-attached-images-container):*
+     - Nằm ngay phía trên ô nhập liệu `#composer-chat-input`.
+     - Mỗi ảnh được hiển thị dưới dạng card thumbnail bo góc tròn `rounded-xl`, kích thước 54px x 54px, viền mờ `border-white/15`, ảnh bên trong `object-cover`.
+     - Góc trên bên phải thumbnail trang bị nút xóa (✕) với vi tương tác co nhẹ `active:scale-90`, hover chuyển đỏ.
+     - Nhấp trực tiếp vào thumbnail mở Modal Xem trước Phóng to (Image Lightbox) với nền mờ `backdrop-blur-sm` mà không làm gián đoạn luồng soạn thảo.
+  4. *Hiển thị Tin nhắn Phía Người Dùng (#composer-chat-messages):*
+     - Khi tin nhắn được gửi đi, bong bóng chat của user hiển thị đồng thời văn bản câu hỏi và các thumbnail ảnh đính kèm (bo góc `rounded-lg`, click mở lightbox phóng to).
+     - Lịch sử phiên (`quesy_composer_chat_sessions`) lưu trữ đồng bộ mảng ảnh `images`.
+- **Hợp Đồng API & Xử Lý Phía Máy Chủ (`POST /api/v1/composer/chat`):**
+  1. *Cập nhật Schema Request:* Bổ sung trường `images: Optional[List[str]] = Field(default_factory=list)` vào cả `ChatRequest` và `ChatMessage`.
+  2. *Cấu trúc Message Đa Phương Tiện (Multi-Modal LLM Formatting):*
+     - Khi kết nối nhà cung cấp AI bên ngoài (OpenAI GPT-4o, Google Gemini Flash, OpenRouter): Đóng gói payload user content thành mảng các khối đối tượng:
+       `[{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": img_base64_data_url}}]`.
+  3. *Định hướng System Prompt & Năng lực Phân tích Ảnh:*
+     - Nhận diện đề thi, bảng biến thiên, đồ thị hàm số (bậc ba, phân thức, bậc bốn), hình học không gian hoặc chữ viết tay trong ảnh.
+     - Tái tạo đồ thị hàm số và hình học thành mã TikZ căn giữa (`\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}`), loại bỏ hoàn toàn việc dùng `\immini` làm mặc định để chống méo mó bố cục và tràn viền.
+     - Tái tạo bảng biến thiên bằng gói `tkz-tab` (`\tkzTabInit...`) căn giữa.
+     - Đóng gói câu hỏi chuẩn `ex_test.sty` (`\begin{ex}...\choice / \choiceTF[1] / \shortans...\loigiai...\end{ex}`), Phần II tuyệt đối không gõ tiền tố `a)`, `b)`.
+  4. *Động Cơ Dự Phòng Cục Bộ (Local/Offline Fallback Engine):*
+     - Khi AI ngoại vi không khả dụng hoặc mất mạng, hệ thống phát hiện cờ có ảnh `images`, đối chiếu từ khóa ngữ cảnh yêu cầu (đồ thị, bảng biến thiên, tikz, giải bài) và trả về khối mã nguồn LaTeX/TikZ mẫu hoàn chỉnh kèm khối diff và lời giải thích rõ ràng.
+
+#### SRS-FEAT-04v: Cơ Chế Dynamic Adaptive Compilation Timeout Cho Đề Thi Quy Mô Lớn & Trợ Lý AI Chẩn Đoán Tối Ưu Hóa TikZ (Dynamic Adaptive Compilation Timeout & TikZ Optimization Copilot)
+- **Bối cảnh & Bài toán Kỹ thuật:**
+  - Đề thi khảo thí hoàn chỉnh (12 câu Phần I, 4 câu Phần II, 6 câu Phần III - ví dụ Đề kiểm tra giữa kỳ I THPT Việt Đức 2026-2027) có quy mô văn bản lớn (~24.000 ký tự, 6 trang PDF vector A4) và chứa nhiều hình vẽ TikZ, bảng biến thiên `tkz-tab`, đặc biệt là các đồ thị hàm phân thức và hàm bậc ba với mật độ lấy mẫu cao `samples=100` trong 4 phương án lựa chọn.
+  - Trước đây hệ thống gán cứng timeout cố định (`timeout_s: 60` tại `compile_with_remote_tectonic_api` và `timeout=45` tại `compile_with_tectonic`). Trên máy chủ ARM (`armbian:8090`), tiến trình biên dịch XeTeX trọn vẹn mất 67.68 giây, dẫn tới việc container Tectonic ngắt tiến trình và ném lỗi HTTP 504 `{"detail": "Compilation timed out"}`.
+- **Giải pháp Kỹ thuật & Luồng Xử Lý:**
+  1. *Thuật toán Tính Timeout Động Phích Thích Ứng (Dynamic Adaptive Compilation Timeout):*
+     - Trước khi gửi lệnh biên dịch, hệ thống tự động bóc tách và phân tích độ phức tạp của mã nguồn LaTeX qua hàm `compute_compilation_timeout(latex_source: str) -> int`:
+       + `tikz_count`: Đếm tổng số khối môi trường TikZ và bảng biến thiên (`\begin{tikzpicture}`, `\begin{tkzTab}`, `\tkzTabInit`).
+       + `code_len`: Tổng độ dài ký tự của mã nguồn LaTeX sau khi chuẩn hóa.
+       + Công thức tính toán timeout động:
+         $$\text{calc\_timeout} = \max\left(60, \min\left(240, 45 + 10 \times \text{tikz\_count} + \left\lfloor \frac{\text{code\_len}}{250} 
+ight
+floor 
+ight)
+ight)$$
+     - Truyền `timeout_s: calc_timeout` vào payload JSON gửi sang Remote Tectonic Docker API (`http://armbian:8090/compile`).
+     - Thiết lập timeout mạng cho socket HTTP `urllib.request.urlopen` là $\text{calc\_timeout} + 15$ giây để dự phòng độ trễ truyền gói tin mạng (network jitter buffer).
+     - Áp dụng $\text{calc\_timeout}$ cho cờ `timeout` của tiến trình con `subprocess.run` khi biên dịch với Local Tectonic engine (`compile_with_tectonic`).
+  2. *Trợ Lý AI Copilot Chẩn Đoán Lỗi Timeout & Tự Động Sinh Diff Tối Ưu TikZ:*
+     - Khi gặp thông điệp lỗi biên dịch chứa `"Compilation timed out"`, `"timed out"`, hoặc `"quá thời gian cho phép"`, hàm `diagnose_compile_error` tự động kích hoạt chẩn đoán chuyên biệt:
+       + Xác định nguyên nhân gốc: Đề thi có quy mô lớn chứa nhiều hình vẽ TikZ phức tạp với tham số tính toán toạ độ giải tích dày đặc (`samples=100`).
+       + Thông báo hệ thống: Quesy đã tự động nâng ngưỡng timeout biên dịch lên tới $\text{calc\_timeout}$ giây (tối đa 240s) theo cơ chế thích ứng.
+       + Khuyến nghị tối ưu hóa kỹ thuật: Đề xuất chuyển đổi các thông số `samples=100` thành `samples=50` (hoặc `samples=60`). Trên khổ A4 tiêu chuẩn, mật độ 50 điểm lấy mẫu đã tạo nên đường cong Bézier trơn mịn tuyệt đối cho in ấn vector $1200\text{ DPI}$, đồng thời giảm 50% khối lượng tính toán giải tích của XeTeX, giúp tăng tốc độ biên dịch lên gấp đôi.
+       + Trích xuất danh sách `diffs` (`List[DiffSuggestion]`): Định vị toàn bộ các dòng chứa `samples=100` trong mã nguồn và sinh khối diff đề xuất thay thế sang `samples=50`, cho phép người dùng click "Đồng ý" (Apply) hoặc "Áp dụng tất cả" (Apply All) trực tiếp trên khung soạn thảo.
+  3. *Thông Báo Tiến Trình Biên Dịch Đề Thi Lớn (Progressive Status Feedback):*
+     - Trên giao diện Frontend (`app.js`), khi biên dịch tài liệu lớn (`code_len > 10000` hoặc $\ge 4$ khối TikZ), nhãn trạng thái `#composer-status-text` lập tức hiển thị `"Đang biên dịch đề thi lớn (nhiều hình TikZ)..."`.
+     - Kích hoạt đồng hồ tiến trình đa nấc (Progressive Status Timer: 5s, 15s, 35s) cập nhật thông điệp thời gian thực (ví dụ: *"Đang xử lý hình vẽ TikZ & tính toán toạ độ..."*, *"Đang kết xuất các trang PDF vector qua XeTeX..."*), triệt tiêu hoàn toàn cảm giác giao diện bị đơ/treo khi biên dịch tài liệu nặng.
+
+#### SRS-FEAT-04w: Chuẩn Hóa Căn Giữa Đồ Thị Toán Học, Bảng Biến Thiên & Bảng Biểu (Centered Diagrams Invariant) & Loại Bỏ Hoàn Toàn Khuyến Nghị `\immini`
+- **Bối cảnh & Vấn đề Kỹ thuật:**
+  - Trước đây, `system_prompt` của AI Copilot khuyến nghị sử dụng `\immini{Văn bản câu hỏi}{Mã hình TikZ}` khiến mô hình AI tự động bao bọc tất cả hình ảnh, đồ thị sang góc phải. Khi người dùng tải ảnh đề thi hoặc tạo câu hỏi, đồ thị bị co ép lệch một bên, văn bản và 4 phương án bị ép dạt sang mép trái, đồng thời việc lồng `\choice` vào trong `\immini` gây xung đột hộp TeX (`Missing }`, `box overflow`).
+  - Hơn nữa, việc thiếu quy chuẩn căn lề minipage trong tiêu đề đề thi khiến AI sinh Header chia đôi `0.5\textwidth` mỗi bên, thiếu `\centering` cột trái, thiếu `\hfill`, thiếu dòng thí sinh `\dotfill` kèm khung mã đề `\framebox{\textbf{Mã đề: ...}}`, và câu hỏi Đúng/Sai Phần II sinh thiếu tham số `[1]` (`\choiceTF` thay vì `\choiceTF[1]`) đồng thời gõ nhầm tiền tố `a)`, `b)` vào nội dung khẳng định gây lỗi hiển thị lặp `a) a)`, `b) b)`.
+- **Đặc tả Giải pháp & Quy chuẩn Bắt buộc (Centered Diagrams Invariant):**
+  1. *Mặc định Căn Giữa 100% (Centered Layout):*
+     - Toàn bộ đồ thị hàm số TikZ, hình học không gian TikZ, bảng biến thiên `tkz-tab` và bảng biểu thống kê BẮT BUỘC PHẢI ĐƯỢC ĐẶT Ở CHÍNH GIỮA bằng môi trường `\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}`.
+     - Vị trí: Đặt ngay bên dưới phần dẫn đề bài (stem) và ở phía trên các phương án lựa chọn `\choice` / `\choiceTF[1]` / `\shortans`.
+     - Tuyệt đối loại bỏ khuyến nghị `\immini` khỏi toàn bộ system prompt và template mẫu.
+  2. *Chuẩn hóa Header 2 Cột Bộ GD&ĐT 2025:*
+     - Minipage trái `0.38\textwidth` căn giữa `\centering`; Minipage phải `0.58\textwidth` căn giữa `\centering`; phân cách bằng `\hfill`.
+     - Dòng thông tin thí sinh: `Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: ...}}`.
+     - Duy nhất 1 đường nét liền đơn `\noindent\rule{\textwidth}{0.5pt}` dưới thông tin thí sinh.
+     - Tiêu đề Section in đậm & in nghiêng: `\noindent\textbf{PHẦN ...} \textit{...}` (không dùng `\large` hay `\section*`).
+  3. *Chuẩn hóa Phần II Đúng/Sai:*
+     - Bắt buộc dùng `\choiceTF[1]`, khẳng định chiếm 100% độ rộng 1 cột.
+     - Tuyệt đối không gõ tiền tố `a)`, `b)`, `c)`, `d)` trong khẳng định để tránh lặp nhãn kép.
+  4. *Tối ưu hóa Lấy Mẫu TikZ:* Mặc định `samples=50` hoặc `samples=60` trên mọi đồ thị hàm số để bảo đảm biên dịch siêu tốc.
+
+#### SRS-FEAT-04x: Cơ chế Chống Nhân Đôi Ảnh Đính Kèm Khi Dán Clipboard (Clipboard Paste Deduplication & Event Isolation)
+- **Mô tả:** Loại bỏ hoàn toàn lỗi nhân đôi ảnh chụp khi giáo viên dán ảnh (`Ctrl+V` / `Cmd+V`) vào ô chat trợ lý (`#composer-chat-input`).
+- **Xử lý Kỹ thuật Đa tầng:**
+  1. *Ngắt lan truyền sự kiện (Event Propagation Stop):* Bổ sung `e.stopPropagation()` song hành cùng `e.preventDefault()` trong listener dán ảnh tại `setupPasteAndDropListeners()`, triệt tiêu hoàn toàn sự kiện nổi bọt lên container cha `#composer-chat-input-container`.
+  2. *Cờ Idempotent Binding Guard:* Bổ sung `this._pasteListenersBound` ngăn chặn việc gán trùng lặp nhiều lần các bộ lắng nghe sự kiện khi khởi tạo lại phân hệ Soạn đề.
+  3. *Debounce & Trùng Lặp Chữ Ký Ảnh (Image Signature Deduplication):* Tại hàm `addAttachedImage`, kiểm tra chữ ký ảnh kết hợp timestamp: nếu cùng một ảnh được gửi liên tiếp trong khoảng thời gian < 500ms hoặc đã có trong danh sách đính kèm, hệ thống lập tức từ chối và không thêm lặp.
+
+#### SRS-FEAT-04y: Chuẩn Hóa Cấu Trúc Khảo Thí Quốc Gia 2025: Reset Thứ Tự Câu Hỏi Về 1 Ở Mỗi Phần (\setcounter{ex}{0}) & Loại Bỏ Triệt Để Thẻ \large Ở Tiêu Đề Phần
+- **Mô tả:** Đảm bảo toàn bộ tài liệu đề thi môn Toán và KHTN được xuất bản chuẩn Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT:
+  1. *Reset bộ đếm câu hỏi:* PHẦN I gồm 12 câu trắc nghiệm (Câu 1 đến Câu 12); PHẦN II (Đúng/Sai) bắt đầu lại từ Câu 1 đến Câu 4; PHẦN III (Trả lời ngắn) bắt đầu lại từ Câu 1 đến Câu 6.
+  2. *Lệnh chuẩn LaTeX:* Đặt `\setcounter{ex}{0}` ngay sau tiêu đề/hướng dẫn của PHẦN II và PHẦN III.
+  3. *Tự động hóa toàn diện:* `composer_service.py` (`ensure_full_latex_document`, `sync_section_question_counts`) tự động phát hiện ranh giới phần và chèn `\setcounter{ex}{0}` nếu tài liệu chưa có; đồng thời bộ phân giải HTML preview cũng reset counter về 1.
+  4. *Loại bỏ triệt để `\large`:* Bộ tiền xử lý tự động làm sạch mọi thẻ `\large`, `\Large`, `\LARGE` bên trong hoặc bao quanh tiêu đề phần, bảo toàn kích thước font chữ 12pt in đậm chuẩn mực `\noindent\textbf{PHẦN ...}` `\textit{...}`.
+
+#### SRS-FEAT-04z: Kiến Trúc Biên Dịch Nhanh Đa Tầng Cho Soạn Thảo Đề Thi (Focus Mode, Instant Preview & Draft Mode)
+- **Mô tả:** Giải quyết triệt để vấn đề thời gian chờ khi sửa đổi mã nguồn LaTeX bằng kiến trúc tăng tốc biên dịch đa tầng:
+  1. *Tầng 1: Chế độ Xem trước Tức thì HTML/SVG (Instant Live HTML Preview - 0.2s):* Tự động chuyển đổi sang giao diện xem trước HTML/SVG qua `compile_latex_source_to_html` với bộ đệm Disk Cache TikZ theo mã MD5 (0.01s cho hình không đổi) và MathJax/KaTeX (0.05s).
+  2. *Tầng 2: Biên dịch Nhanh Câu Đang Sửa / Phân Đoạn (Focus / Partial Question Quick Compile - 1.5s):* Cho phép giáo viên biên dịch riêng khối câu hỏi hiện tại tại vị trí con trỏ hoặc đoạn văn bản bôi đen thành PDF vector trong 1.0 - 1.8 giây qua nút bấm `⚡ BIÊN DỊCH CÂU NÀY` hoặc phím tắt `Ctrl+Shift+S`.
+  3. *Tầng 3: Chế độ Biên dịch Nhanh Nháp (Draft Mode - 15s):* Giảm `samples=35` cho toàn bộ đồ thị TikZ khi bật cờ `draft_mode`, cắt giảm 70% thời gian biên dịch tài liệu lớn từ 65s xuống 15s.
+
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.
 - **Xử lý:** Tính toán vector embedding (`text-embedding-3-small` hoặc `bge-m3`), so sánh Cosine Distance trong `pgvector`.
@@ -543,25 +650,89 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 
 ---
 
-### 4.3. Phân hệ Ma trận & Động cơ Sinh Đề (Matrix & Exam Engine)
+### 4.3. Phân hệ Ma trận & Động cơ Sinh & Trộn Đề (Matrix & Safe Exam Engine)
 
-#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi theo YCCĐ (Test Blueprint)
-- **Mô tả:** Định nghĩa cấu trúc đề thi theo ma trận 2 chiều:
-  - Dòng: Danh sách Mạch nội dung $\rightarrow$ Yêu cầu cần đạt (YCCĐ) $\rightarrow$ Dạng câu hỏi.
-  - Cột: 3 Mức độ nhận thức (Biết, Hiểu, Vận dụng) $\times$ Dạng thức câu hỏi.
-  - Điểm số: Điểm quy định cho từng câu hỏi ở từng vị trí.
+#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi 2D theo YCCĐ & Thư viện Presets (Interactive 2D Matrix Blueprint)
+- **Mô tả:** Định nghĩa cấu trúc đề thi theo ma trận 2 chiều chuẩn hóa theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
+- **Yêu cầu kỹ thuật:**
+  1. *Thư viện Ma trận mẫu (Presets):*
+     - **Preset 1 (Chuẩn Tốt nghiệp THPT 2025):** 34 câu, 10.0 điểm, thời gian 90 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định tính điểm bậc thang (1.0đ/câu = 4.0đ), và 6 câu Trả lời ngắn (0.5đ/câu = 3.0đ). Phân bổ Bloom chuẩn: 40% Biết (3.0đ) - 30% Hiểu (3.5đ) - 30% Vận dụng (3.5đ).
+     - **Preset 2 (Kiểm tra Định kỳ / Giữa kỳ):** 20 câu, 10.0 điểm, thời gian 50-60 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 4 câu Trả lời ngắn (0.75đ/câu = 3.0đ). Phân bổ: ~50% Biết, 30% Hiểu, 20% Vận dụng.
+     - **Preset 3 (Kiểm tra Cuối kỳ):** 28 câu, 10.0 điểm, thời gian 90 phút. Gồm 16 câu TN đơn (0.25đ/câu = 4.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 8 câu Trả lời ngắn (0.25đ/câu = 2.0đ). Phân bổ: 40% Biết, 35% Hiểu, 25% Vận dụng.
+  2. *Lưới Ma trận 2D Tương tác (Interactive 2D Grid):*
+     - Dòng: Phân nhóm theo Mạch nội dung $
+ightarrow$ Yêu cầu cần đạt (YCCĐ) $
+ightarrow$ Dạng câu hỏi (Problem Archetype) $
+ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
+     - Cột: 3 Mức độ nhận thức: Biết (Nhận biết), Hiểu (Thông hiểu), Vận dụng.
+     - Ô nhập liệu: Cho phép nhập số lượng câu hỏi cần lấy cho từng ô.
+     - Tính toán thời gian thực: Tự động tính tổng số câu từng dòng, tổng điểm từng dòng, tổng số câu theo từng cột nhận thức, tổng điểm theo từng cột nhận thức và tổng điểm toàn đề (chuẩn 10.0đ).
+     - Thanh đo lường Bloom: Hiển thị trực quan tỷ lệ % Biết, Hiểu, Vận dụng; cảnh báo màu hổ phách nếu độ lệch vượt quá $\pm 5\%$ so với tỷ lệ chuẩn của từng loại kỳ thi.
+  3. *Đối soát Tồn kho Thời gian thực (Live Inventory Checker):*
+     - Hệ thống kết nối cơ sở dữ liệu câu hỏi thực tế qua API `POST /api/v1/matrix/{id}/check-availability` hoặc `POST /api/v1/matrix/check-availability`.
+     - Với mỗi ô ma trận, đếm số câu hỏi có `status = 'APPROVED'` và `is_defective == False` khớp YCCĐ, mức độ và thể thức.
+     - Hiển thị badge trực quan: Xanh lá nếu đủ câu (ví dụ: `Kho: 15 câu (Đủ)`), Đỏ nếu thiếu câu (ví dụ: `Kho: 2 câu (Thiếu 2)`).
+     - Tổng hợp cảnh báo toàn ma trận: Hiển thị danh sách ô thiếu câu và tổng số câu cần bổ sung vào Ngân hàng.
+  4. *API Quản lý & Xuất bản Bản đặc tả Ma trận:*
+     - Hỗ trợ cả 2 tiền tố route song song: `/api/v1/matrix` và `/api/v1/matrices`.
+     - `POST /api/v1/matrix`: Lưu và ban hành ma trận vào CSDL.
+     - `GET /api/v1/matrix`: Danh sách các ma trận đã ban hành.
+     - `GET /api/v1/matrix/{id}`: Chi tiết bản đặc tả ma trận.
+     - `GET /api/v1/matrix/{id}/spec`: Xuất bản bản đặc tả ma trận đề thi ra 3 định dạng (`format=json`, `format=csv`, `format=pdf`):
+       * `json`: Payload chi tiết cấu trúc ma trận và thống kê tồn kho.
+       * `csv`: File bảng tính CSV có gắn mã ký tự UTF-8 BOM (`\ufeff`) hiển thị chuẩn tiếng Việt trên Excel.
+       * `pdf`: Bản đặc tả in ấn A4 Portrait chuẩn quy cách Bộ GD&ĐT gồm Khung Ma trận phân bổ 2D và Bảng Đặc tả chi tiết từng câu hỏi.
+     - Nút "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề": Lưu ma trận hiện tại, gọi API sinh đề gốc từ ma trận và chuyển mượt sang Tab Trộn đề.
 
-#### SRS-FEAT-07: Sinh Đề Gốc theo Ràng buộc (Constraint Satisfaction Solver)
-- **Mô tả:** Tự động lấy câu hỏi từ ngân hàng thỏa mãn ma trận.
-- **Ràng buộc:** Trạng thái câu hỏi là `APPROVED`; không nằm trong danh sách loại trừ (Exclusion list); đúng tỷ lệ YCCĐ và mức độ nhận thức.
+#### SRS-FEAT-07: Động cơ Sinh Đề Gốc theo Ràng buộc Ma trận (CSP Solver) & Đổi Câu Tương Đương (In-Place Item Swap)
+- **Mô tả:** Tự động giải bài toán thỏa mãn ràng buộc (Constraint Satisfaction Problem - CSP) để rút câu hỏi từ ngân hàng thành Đề Thi Gốc (Master Exam) và hỗ trợ giáo viên thẩm định, đổi câu hỏi linh hoạt.
+- **Yêu cầu kỹ thuật:**
+  1. *Thuật toán Rút Đề Gốc:*
+     - Khớp chính xác từng ô ma trận theo YCCĐ, Dạng câu hỏi, Cấp độ nhận thức và Thể thức câu hỏi.
+     - Kiểm tra tồn kho trước khi rút đề; ném ngoại lệ `InsufficientInventoryError` kèm báo cáo chi tiết nếu thiếu câu và cờ `allow_partial = False`.
+     - Ràng buộc loại trừ: Loại bỏ các câu hỏi đã xuất hiện trong danh sách loại trừ hoặc các đề thi trong 30 ngày qua khi được kích hoạt.
+     - Trọng số trắc lượng học (Psychometric Weighting): Ưu tiên câu hỏi có độ phân biệt tốt ($D \ge 0.3$) và độ khó cân đối ($p \approx 0.55$).
+     - Đề gốc được lưu vào CSDL (`MasterExam` và `MasterExamItem`) phân theo 3 phần: Phần I (TN đơn), Phần II (Đúng/Sai), Phần III (Trả lời ngắn).
+  2. *Hiển thị Đề thi Gốc Đầy đủ Thông tin:*
+     - API `POST /api/v1/exams/generate` và `GET /api/v1/exams/{master_id}` trả về đầy đủ thân câu hỏi (`stem`), phương án trắc nghiệm (`options`), các khẳng định con (`sub_statements`), câu trả lời ngắn, mã YCCĐ, đồ thị TikZ SVG và KaTeX preview.
+     - Hiển thị badge Option Anchor nếu câu hỏi chứa phương án phụ thuộc vị trí.
+  3. *Động cơ Đổi Câu hỏi Khác (In-Place Question Swap Engine):*
+     - `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates`: Tìm kiếm các câu hỏi thay thế tiềm năng từ CSDL Question Bank:
+       * Cùng mã YCCĐ (`learning_outcome_id`).
+       * Cùng mức độ nhận thức (`cognitive_level`).
+       * Cùng thể thức câu hỏi (`item_format`).
+       * Trạng thái `status = 'APPROVED'` và `is_defective == False`.
+       * Loại trừ tất cả các câu hỏi đang có mặt trong đề gốc.
+     - `POST /api/v1/exams/{master_id}/items/{item_id}/swap`: Thay thế câu hỏi chỉ định trong đề gốc bằng câu hỏi mới; tự động xóa các mã đề hoán vị cũ (`ExamVariant`) để yêu cầu trộn lại, bảo toàn tính nhất quán tuyệt đối.
+  4. *Thanh Công Cụ Nguồn Đề Thi Gốc & Nhập từ Ma Trận Khảo Thí (Master Exam Source Toolbar):*
+     - Bố trí trực tiếp ở đầu tab `#tab-shuffler` ngay dưới thanh tiến trình:
+       * *Chọn Đề Gốc Đã Có:* Dropdown danh sách các đề thi gốc đã lưu trong hệ thống (`GET /api/v1/exams`). Khi người dùng chọn, tải thông tin và câu hỏi tương ứng.
+       * *Tạo Đề Gốc từ Ma Trận Khảo Thí:* Dropdown danh sách ma trận (`GET /api/v1/matrix`) kèm nút bấm **`⚡ Sinh Đề Gốc từ Ma Trận Này`** (`POST /api/v1/exams/generate`), cho phép sinh đề gốc trực tiếp từ phân hệ Trộn Đề mà không cần thao tác trung gian.
+       * *Đồng bộ Ma Trận Hiện Tại:* Nút bấm **`🔄 Đồng bộ từ Ma trận hiện tại`** cho phép đồng bộ ngay cấu hình ma trận đang mở trong Matrix Studio.
+       * *Thẻ Thông Tin Tổng Quan:* Hiển thị trực quan Tên đề thi, Môn học, Khối lớp, Thời gian làm bài, Tổng số câu hỏi, Thang điểm 10.0đ.
 
 #### SRS-FEAT-08: Thuật toán Trộn Đề & Hoán vị Mã đề An toàn (Safe Shuffling Engine)
-- **Mô tả:** Sinh ra $N$ mã đề hoán vị (101, 102, 103, 104...) từ 1 đề gốc.
-- **Quy tắc an toàn:**
-  1. **Section Integrity:** Chỉ hoán vị câu hỏi trong cùng một Phần/Dạng thức (không trộn trắc nghiệm đơn sang phần đúng sai).
-  2. **Passage Integrity:** Giữ nguyên cụm câu hỏi chùm; đoạn văn ngữ liệu luôn đi liền trước các câu con.
-  3. **Option Anchor:** Nếu phương án có cờ `is_fixed = true` hoặc chứa nội dung nhạy cảm vị trí ("Cả A và B", "Tất cả các ý trên"), phương án này luôn bị khóa cố định ở vị trí cuối cùng (D).
-  4. **Key Generator:** Tự động xuất ma trận hoán vị đáp án (Answer Key Matrix).
+- **Mô tả:** Sinh ra 4 mã đề hoán vị chuẩn (101, 102, 103, 104) từ Đề thi Gốc, tuân thủ nghiêm ngặt 4 nguyên tắc khảo thí an toàn.
+- **4 Nguyên tắc An toàn Tuyệt đối:**
+  1. **Section Integrity (Bảo toàn phân đoạn):** Chỉ hoán vị câu hỏi trong cùng một Phần / Thể thức (Phần I chỉ đảo trong Phần I; Phần II chỉ đảo trong Phần II; Phần III chỉ đảo trong Phần III).
+  2. **Passage Integrity (Bảo toàn câu hỏi chùm / ngữ liệu):** Ngữ liệu bài đọc chung và các câu hỏi con đi kèm được gom thành một khối nguyên tử (Atomic Block); khi hoán vị, toàn bộ khối nguyên tử di chuyển cùng nhau; các câu hỏi con luôn nằm liền kề ngay sau ngữ liệu.
+  3. **Option Anchor Rule (Khóa mỏ neo phương án):** Tự động phát hiện phương án có `is_fixed = True` hoặc chứa từ khóa mỏ neo vị trí ("Cả A và B", "Cả hai đáp án", "Tất cả các đáp án trên", "Tất cả các ý trên", "Không có đáp án nào"...). **BẮT BUỘC KHÓA CỐ ĐỊNH phương án này tại vị trí cuối cùng (Vị trí D)** trong mọi mã đề hoán vị; chỉ hoán vị tự do các phương án còn lại (A, B, C). Đảm bảo tỷ lệ xác minh Option Anchor Rule đạt 100%.
+  4. **Key Matrix Generator (Ma trận đáp án đối chiếu):** Tự động lập bảng ma trận đối chiếu đáp án chéo giữa đề gốc và 4 mã đề hoán vị (cho cả 3 thể thức: ký tự đáp án cho Phần I, chuỗi đúng/sai cho Phần II, giá trị số cho Phần III).
+- **Xem trước Mã đề & Đóng gói Xuất bản Ấn phẩm Thuần Vector PDF LaTeX (Tectonic XeTeX Engine):**
+  - Tab xem trước từng mã đề (Mã 101, 102, 103, 104) với huy hiệu xác minh Option Anchor Rule đạt 100%.
+  - Bảng ma trận đáp án tổng hợp (Answer Key Matrix Table).
+  - **Xuất Bản Thuần Vector PDF LaTeX Chuẩn Quốc Gia (Tectonic XeTeX Engine):**
+    * Loại bỏ hoàn toàn engine PDF đơn giản/ReportLab gây lỗi font tiếng Việt và công thức text thô, thay thế 100% bằng kiến trúc biên dịch LaTeX thuần túy chuẩn Quốc gia (`ex_test.sty` v3.3) qua Tectonic XeTeX Engine (kết hợp Chromium CMU Serif vector fallback) — đồng nhất tuyệt đối với phân hệ Soạn đề (`/composer`).
+    * Mã nguồn LaTeX được tổng hợp tự động (`generate_variant_latex`):
+      - Header 2 cột canonical cân đối: `\noindent`, `\begin{minipage}[t]{0.38\textwidth}\centering ... \end{minipage}`, `\hfill`, `\begin{minipage}[t]{0.58\textwidth}\centering ... \end{minipage}` (tuyệt đối không bọc ngoài bằng `\begin{center}`).
+      - Dòng thông tin thí sinh `Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \framebox{\textbf{Mã đề: ...}}` và đường kẻ đơn duy nhất `\noindent
+ule{\textwidth}{0.5pt}`.
+      - Phần I: `\choice` 4 phương án hoán vị an toàn, làm sạch nhãn tiền tố thừa.
+      - Phần II: `\choiceTF[1]` BẮT BUỘC bọc từng khẳng định con trong cặp ngoặc nhọn `{{\True ...}}` hoặc `{{...}}`, tự động padding đủ 4 khẳng định, kèm `\setcounter{ex}{0}` reset bộ đếm về 1.
+      - Phần III: `\shortans` kèm `\setcounter{ex}{0}` reset bộ đếm về 1.
+      - Tích hợp hàm làm sạch `sanitize_latex_for_xetex`: Tự động tìm và escape toàn bộ ký tự gạch dưới `_` nằm ngoài chế độ toán học thành `\_`, bảo toàn nguyên vẹn cú pháp subscript `$x_1$` trong math mode và các khối TikZ, triệt tiêu vĩnh viễn lỗi biên dịch `Missing $ inserted`.
+    * Tải file PDF độc lập cho từng mã đề (`GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`): Kết xuất file `De_Thi_Ma_{code}.pdf` chuẩn Vector PDF LaTeX sắc nét.
+    * Tải trọn gói ấn phẩm đề thi (.ZIP) (`GET /api/v1/exams/{master_id}/export-zip?format=pdf`): Đóng gói đầy đủ `De_{code}.pdf` (chế độ `[dethi]`), `LoiGiai_{code}.pdf` (chế độ `[loigiai]` với barem chấm bậc thang trong `\begin{loigiai}` và `\begin{itemchoice}`), `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), và `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 
 ---
 
@@ -581,6 +752,68 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   - Độ khó thực nghiệm: $p = \frac{\text{Số học sinh đúng}}{\text{Tổng số học sinh dự thi}}$.
   - Độ phân biệt: $D = P_H - P_L$ (Nhóm $27\%$ điểm cao trừ nhóm $27\%$ điểm thấp).
   - Cảnh báo các câu hỏi lỗi ($D < 0.2$) để loại khỏi ngân hàng.
+
+#### SRS-FEAT-11: Hệ Thống Xác Thực & Quản Lý Danh Tính Người Dùng (Authentication, JWT & OAuth)
+- **Mô tả:** Cung cấp hệ thống đăng ký, đăng nhập an toàn bảo vệ tài nguyên đề thi và ngân hàng câu hỏi, phân quyền người dùng theo vai trò RBAC (Role-Based Access Control).
+- **Yêu cầu kỹ thuật:**
+  1. *Thực thể `User` (`backend/models.py`):* Các trường bắt buộc gồm `id` (UUIDv4), `email` (unique, index), `hashed_password` (nullable cho tài khoản mạng xã hội), `full_name`, `role` (`ADMIN`, `TEACHER`, `STUDENT`), `avatar_url`, `oauth_provider` (`local`, `google`, `github`), `oauth_id`, `is_active` (boolean default True), `created_at`, `updated_at`.
+  2. *Mật khẩu An toàn:* Áp dụng thuật toán băm chuẩn PBKDF2-HMAC-SHA256 với 600.000 vòng lặp và muối ngẫu nhiên (salt 32 bytes) thông qua thư viện chuẩn Python `hashlib`, không phụ thuộc thư viện biên dịch C bên ngoài.
+  3. *Mã hóa Token JWT HS256:* Sinh và kiểm tra JWT an toàn với thuật toán HS256, thời hạn sống 7 ngày (86.400 * 7 giây), payload chuẩn chứa `sub` (User ID), `email`, `role`, `name`, `exp`. Tích hợp dependency `get_current_user` và `get_current_active_user` bảo vệ các route nhạy cảm.
+  4. *API Router Xác thực (`backend/routers/auth.py`):*
+     - `POST /api/v1/auth/register`: Đăng ký tài khoản mới với email, mật khẩu (tối thiểu 6 ký tự), họ tên và vai trò (`TEACHER` / `STUDENT`).
+     - `POST /api/v1/auth/login`: Xác thực thông tin đăng nhập, trả về `access_token`, `token_type: "bearer"` và thông tin hồ sơ `user`.
+     - `GET /api/v1/auth/me`: Truy vấn thông tin người dùng hiện tại dựa trên header `Authorization: Bearer <token>`.
+     - `POST /api/v1/auth/oauth/google` & `POST /api/v1/auth/oauth/github`: Xử lý đăng nhập mạng xã hội OAuth 2.0 (Google, GitHub), tự động cấp phát hoặc liên kết tài khoản tương ứng.
+     - `POST /api/v1/auth/logout`: Đăng xuất và dọn dẹp phiên làm việc.
+  5. *Giao diện Apple HIG & Quản lý Trạng thái:*
+     - Header Navbar: Hiển thị cặp nút `[Đăng nhập]` và `[Đăng ký]` khi chưa đăng nhập; hiển thị Avatar, Tên, Role badge và Menu popup Tài khoản kèm nút `Đăng xuất` khi đã đăng nhập.
+     - Modal Xác thực (`#auth-modal`): Chuyển đổi mượt mà giữa Tab Đăng nhập và Tab Đăng ký; nút đăng nhập nhanh tài khoản giáo viên/admin thử nghiệm; nút OAuth Google và GitHub trực quan.
+     - Lưu trữ Token tại `localStorage.getItem('quesy_auth_token')`, tự động đính kèm vào mọi request API gửi tới backend.
+
+#### SRS-FEAT-12: Phân Hệ Ngân Hàng Câu Hỏi Khảo Thí Toàn Diện (Item Bank Full CRUD, 6-Tier Cascade TT 32, Modals, Import/Export & Badge Sync)
+- **Mô tả:** Phân hệ quản lý ngân hàng câu hỏi chuẩn hóa toàn diện đáp ứng đầy đủ Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT.
+- **Yêu cầu kỹ thuật:**
+  1. *Bộ Lọc Cây Kiến Thức 6 Tầng Cascading:* 
+     - Lọc phân cấp tuần tự: Cấp học / Khối lớp (`grade`) $
+ightarrow$ Môn học (`subject`) $
+ightarrow$ Mạch nội dung TT 32 (`strand`) $
+ightarrow$ Chủ đề (`topic`) $
+ightarrow$ Bài học (`lesson`) $
+ightarrow$ Yêu cầu cần đạt (`yccd`).
+     - Khi chọn cấp cha, các dropdown cấp con tự động cập nhật danh mục tương ứng.
+  2. *Bộ Lọc Thứ Cấp Đa Chiều:*
+     - Dạng câu hỏi (Problem Archetype), Mức độ nhận thức (Nhận biết, Thông hiểu, Vận dụng, Vận dụng cao), Thể thức khảo thí (Trắc nghiệm đơn, Đúng/Sai 4 ý, Trả lời ngắn), Tìm kiếm từ khóa theo thân câu hỏi hoặc mã YCCĐ với cơ chế debounce 300ms.
+  3. *Hệ thống CRUD & Modals Chuẩn Apple HIG:*
+     - **Modal Thêm Mới (+ Thêm thủ công - `#question-create-modal`):** Hỗ trợ đủ 3 thể thức QĐ 764, công cụ chèn nhanh ký hiệu toán học, live KaTeX preview, chọn mức độ nhận thức, mã YCCĐ, đáp án đúng (radio chọn đáp án đúng cho MCQ, switch Đúng/Sai từng ý cho TF, ô nhập số và dung sai cho Short Answer), lời giải chi tiết. Tích hợp nút kiểm tra trùng lặp AI và gợi ý tag AI trước khi lưu.
+     - **Modal Xem Chi Tiết (`#question-detail-modal`):** Hiển thị trực quan toàn bộ thân câu hỏi, công thức toán KaTeX, đồ thị TikZ SVG, bảng biến thiên, các phương án lựa chọn, barem tính điểm bậc thang QĐ 764 (0.1đ - 0.25đ - 0.5đ - 1.0đ), cây phân loại 6 tầng và chỉ số thống kê $p, D$.
+     - **Modal Sửa Câu Hỏi (`#question-edit-modal`):** Tải đầy đủ thông tin câu hỏi hiện tại, cho phép chỉnh sửa nội dung, phương án, khẳng định đúng/sai, dung sai, YCCĐ, cập nhật tức thì vào CSDL qua `PUT /api/v1/questions/{id}`.
+     - **Chức Năng Xóa Câu Hỏi:** Hộp thoại xác nhận an toàn, thực hiện xóa cascade các options và sub-statements liên quan qua `DELETE /api/v1/questions/{id}`, tự động làm mới giao diện và cập nhật huy hiệu số lượng.
+  4. *Xuất & Nhập Dữ Liệu Ngân Hàng:*
+     - **Xuất Dữ Liệu (`POST /api/v1/questions/export`):** Xuất toàn bộ hoặc danh sách câu hỏi đã lọc ra:
+       * PDF Vector: Định dạng A4 chuẩn in ấn, font CMU Serif/Times, chia 2 cột đối xứng hoặc 1 cột rõ ràng kèm đáp án và lời giải.
+       * CSV UTF-8 BOM: Tương thích 100% Microsoft Excel tiếng Việt trên Windows (không lỗi font mojibake).
+       * LaTeX `.tex`: Mã nguồn chuẩn gói lệnh `ex_test.sty` với các khối `\begin{ex}` sẵn sàng biên dịch.
+     - **Nhập Dữ Liệu (`POST /api/v1/questions/import`):** Nhập câu hỏi từ tệp văn bản hoặc dán trực tiếp mã LaTeX / JSON, tự động bóc tách các câu hỏi, kiểm tra tính hợp lệ và thêm vào ngân hàng.
+  5. *Đồng Bộ Huy Hiệu Số Lượng (#bank-count-badge):* Badge đếm số lượng câu hỏi trên thanh điều hướng (`#bank-count-badge`) luôn tự động đồng bộ theo thời gian thực với tổng số câu hỏi thực tế trong CSDL sau mỗi thao tác Thêm, Sửa, Xóa, Nhập, hoặc Lưu từ Composer.
+
+#### SRS-FEAT-13: Nút Chuyên Biệt "LƯU VÀO NGÂN HÀNG" & Động Cơ Trích Xuất Đa Thể Thức Từ Soạn Đề Composer Vào Ngân Hàng
+- **Mô tả:** Trong phân hệ Soạn đề (`/composer`), tích hợp nút bấm chuyên biệt nổi bật **`📥 LƯU VÀO NGÂN HÀNG`** trực tiếp trên thanh công cụ và nâng cấp toàn diện API `POST /api/v1/composer/save-to-bank`.
+- **Yêu cầu kỹ thuật:**
+  1. *Nút Bấm Chuyên Biệt:* Neo trực tiếp trên thanh công cụ của Editor cạnh menu Xuất file, biểu tượng database nổi bật màu ngọc emerald hoặc gradient xanh Apple, kích hoạt thao tác lưu 1-click mà không cần mở dropdown ẩn.
+  2. *Động Cơ Bóc Tách Đa Thể Thức:*
+     - Hỗ trợ toàn diện cú pháp gói lệnh quốc gia `ex_test.sty` (`\begin{ex} ... \end{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`).
+     - Trích xuất chính xác 3 thể thức câu hỏi:
+       * Phần I: Trắc nghiệm đơn `\choice{A}{B}{C}{D}` (phát hiện cờ `\True` để gán `is_correct = True`).
+       * Phần II: Đúng/Sai 4 khẳng định `\choiceTF[1]{a}{b}{c}{d}` (phát hiện cờ `\True` để gán `is_true = True` cho từng khẳng định độc lập).
+       * Phần III: Trả lời ngắn `\shortans{giá_trị}` hoặc `\SA{giá_trị}` (lưu đáp án ngắn và dung sai).
+     - Giữ nguyên vẹn thân câu hỏi (stem), các khối TikZ vẽ đồ thị, hình học không gian, và bảng biến thiên `tkz-tab`.
+     - Bóc tách toàn vẹn khối lời giải chi tiết `\begin{loigiai} ... \end{loigiai}`.
+  3. *Tự Động Gắn Nhãn AI & Xác Định Khối Lớp/Môn Học:*
+     - Tự động nhận diện môn học và khối lớp từ tiêu đề văn bản (Header minipage).
+     - Áp dụng `suggest_auto_tagging` để đề xuất mã YCCĐ theo Thông tư 32 cho các câu hỏi chưa được gán nhãn thủ công.
+  4. *Phản Hồi Thống Kê Chi Tiết & Đồng Bộ Badge:*
+     - Trả về payload JSON chi tiết số lượng câu hỏi lưu thành công theo từng thể thức (`counts: { single_choice, true_false, short_answer }`, `total_saved`).
+     - Tự động cập nhật số đếm trên badge `#bank-count-badge` và làm mới dữ liệu tab Ngân hàng câu hỏi ngay lập tức.
 
 ---
 
@@ -638,7 +871,12 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 | **SRS-FEAT-04e** | E2E Browser Test | Click chuột vào Compact Bar chân editor: con trỏ focus ô nhập text bình thường, không mở popup. Nhấn Enter hoặc nút mũi tên: mở bung full popup trợ lý và gửi prompt. |
 | **SRS-FEAT-04f** | Test tự động + UI Test | Phản hồi sửa đổi từ AI trích xuất thành đối tượng `DiffSuggestion`, định vị đúng dòng trên editor, hiển thị banner so sánh đỏ/xanh; nhấn [Đồng ý] thay thế chuẩn xác dòng code và kích hoạt recompile; nhấn [Từ chối] hủy bỏ an toàn không làm biến đổi mã nguồn. |
 | **SRS-FEAT-04p** | Test tự động + Blind Test | Bóc tách chính xác khối câu hỏi thứ N (`find_question_block`); prompt thay thế câu N liên kết đúng diff; nếu diff hợp lệ chuyển tới editor, nếu rỗng bảo tồn trọn vẹn code trong chat bubble kèm 3 nút hành động (không nuốt code). |
+| **SRS-FEAT-04u** | E2E Browser Test + Test tự động | Kiểm thử upload tệp ảnh, paste ảnh clipboard (Ctrl+V) trên cả compact bar và chat popup; hiển thị thumbnail preview kèm nút xóa (✕); mở lightbox phóng to; gửi request `POST /api/v1/composer/chat` kèm payload `images: [data_url]`; AI phản hồi mã TikZ / `ex_test.sty` từ hình ảnh đề bài. |
+| **SRS-FEAT-04v** | Test tự động + Đo kiểm | Tính toán timeout động $\text{calc\_timeout} \in [60, 240]$ dựa trên TikZ count và code length; socket timeout $\text{calc\_timeout} + 15$s; biên dịch trọn vẹn đề thi THPT Việt Đức 2026-2027 (~24k ký tự, 11 TikZ, 6 trang PDF) thành công không bị timeout 504; AI Copilot chẩn đoán lỗi timeout và gợi ý diff `samples=50` chính xác. |
 | **SRS-FEAT-05** | Test tích hợp | Câu hỏi có cosine similarity $\ge 0.90$ phải kích hoạt chặn lưu và hiển thị modal cảnh báo trùng lặp. |
 | **SRS-FEAT-08** | Unit Test thuật toán | Chạy 1.000 lần sinh mã đề hoán vị: $0\%$ câu hỏi chùm bị tách rời; $0\%$ phương án có cờ `is_fixed` bị đảo khỏi vị trí cố định. |
 | **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng MathType 7.0 OLE Vector WMF nét căng tuyệt đối, click đúp mở MathType 7 sửa được trực tiếp; bảng số liệu dạng native table không bị lỗi đen khi xuất PDF; khổ A4 dọc chuẩn. |
+| **SRS-FEAT-11** | Test tự động + UI Test | Đăng ký, đăng nhập tài khoản mật khẩu (PBKDF2/SHA256 băm an toàn); cấp JWT HS256 chuẩn; hỗ trợ OAuth Google/GitHub; phân quyền RBAC (`TEACHER`, `ADMIN`, `STUDENT`); lưu token `quesy_auth_token` và đồng bộ header Authorization. |
+| **SRS-FEAT-12** | Test chức năng + UI Test | Thực thi đầy đủ CRUD câu hỏi; mở Modal Thêm mới, Modal Chi tiết, Modal Sửa, Xóa câu hỏi; lọc 6 tầng TT 32 cascading chuẩn; xuất danh sách ra PDF vector / CSV UTF-8 BOM / LaTeX; nhập câu hỏi; cập nhật ngay số lượng badge `#bank-count-badge`. |
+| **SRS-FEAT-13** | Test tích hợp + E2E | Nút chuyên biệt `📥 LƯU VÀO NGÂN HÀNG` trên toolbar Composer trích xuất trọn vẹn câu hỏi trắc nghiệm đơn, đúng/sai QĐ 764, trả lời ngắn, TikZ, BBT, lời giải chi tiết; tự động gắn tag YCCĐ AI; trả về chi tiết số lượng câu theo từng thể thức và cập nhật tức thì `#bank-count-badge`. |
 | **SRS-VERIF-CI** | Test CI Runner + Pre-Commit Gate | 100% test cases vượt qua trên môi trường CI runner (`pytest`, syntax check) trước khi commit; tuân thủ nghiêm ngặt nguyên tắc Strict CI Isolation (chỉ duy nhất Sub-Agent CI đọc/ghi CI, cấm các sub-agent khác truy cập đọc); vòng lặp sửa lỗi CI loop lặp lại cho đến khi pass mới commit. |

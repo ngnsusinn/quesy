@@ -239,6 +239,11 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
   4. **Ma trận Ánh xạ Đáp án Tự động (Key Generator):**
      - Tự động sinh bảng đối chiếu chéo đáp án giữa Đề gốc và từng mã đề (ví dụ: Câu 5 đề 101 tương ứng Câu 12 đề gốc, đáp án đúng là C).
      - Giúp giáo viên đối chiếu và chấm bài nhanh chóng, chính xác.
+  5. **Thanh Nguồn Đề Gốc & Nhập Trực Tiếp từ Ma Trận Khảo Thí:**
+     - Cho phép chọn đề thi gốc đã lưu trong hệ thống hoặc chọn trực tiếp ma trận đề thi để sinh đề gốc (`⚡ Sinh Đề Gốc từ Ma Trận Này`) ngay trong phân hệ Trộn Đề.
+  6. **Xuất Bản Thuần Vector PDF LaTeX Chuẩn Quốc Gia (Tectonic XeTeX Engine):**
+     - Từng mã đề (`De_{code}.pdf`) và Hướng dẫn giải chi tiết (`LoiGiai_{code}.pdf`) được biên dịch trực tiếp từ mã nguồn LaTeX chuẩn Quốc gia (`ex_test.sty` v3.3, 2 cột minipage, `\choice`, `\choiceTF[1]`, `\shortans`) qua Tectonic XeTeX Engine — chất lượng in ấn sắc nét đồng nhất 100% với phân hệ Soạn đề.
+
 
 ---
 

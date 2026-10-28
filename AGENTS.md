@@ -13,10 +13,11 @@
      3. **Bắt buộc cập nhật CI đồng bộ theo code mới (Continuous CI Synchronization):**
         - Mỗi khi code có bất kỳ cập nhật gì mới (thêm thư viện Python trong `requirements.txt`, gói npm trong `package.json`, cấu hình font, headless browser/Chromium, biến môi trường `.env`, cờ thực thi, logic test mới...), sub-Agent phụ trách CI bắt buộc phải cập nhật CI theo ngay lập tức để loại bỏ mọi khả năng gây ra lỗi trên môi trường runner (Ubuntu/Linux).
      4. **Cổng kiểm soát Pre-Commit & Vòng lặp Sửa lỗi CI (Pre-Commit CI Gate & CI Fix-and-Test Loop):**
-        - **Bắt buộc test qua CI trước khi commit:** Trước khi thực hiện `git commit`, bắt buộc phải chạy và test qua được CI (chạy toàn bộ test suite, kiểm tra cú pháp và môi trường CI runner, 100% test cases đạt). Tuyệt đối cấm commit khi CI chưa pass.
+        - **Bắt buộc test qua CI trước khi commit:** Trước khi thực hiện `git commit`, bắt buộc phải chạy và test qua được CI (do Sub-Agent 3 đảm nhận chạy toàn bộ test suite, kiểm tra cú pháp và môi trường CI runner, 100% test cases đạt; Sub-Agent 4 thẩm định E2E trình duyệt thật). Tuyệt đối cấm commit khi CI chưa pass.
+        - **Quy tắc không chạy test lặp lại sau khi Sub-Agent 3 & 4 đã pass:** Sau khi Sub-Agent 3 và Sub-Agent 4 đã hoàn tất kiểm thử và báo cáo đạt 100% PASS (CI test pass, cú pháp JS 0 lỗi, E2E browser pass), Parent Agent **tuyệt đối KHÔNG CẦN chạy test (pytest) lại nữa**, mà tiến hành `git commit` và `git push` ngay lập tức để tối ưu hóa thời gian và tránh lặp lại công việc dư thừa.
         - **Vòng lặp sửa lỗi CI (CI Loop):** Nếu CI không pass (bất kỳ test case nào fail hoặc môi trường CI bị lỗi):
-          `CI Test Thất bại` → `Phân tích nguyên nhân` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 chạy lại CI test` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT**.
-        - Sau khi CI pass 100%, thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+          `CI Test Thất bại` → `Phân tích nguyên nhân` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 chạy lại CI test` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT** (chỉ Sub-Agent 3 chạy test trong vòng lặp này).
+        - Sau khi Sub-Agent 3 và 4 pass 100%, thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 2. **CHUẨN MỰC KHẢO THÍ QUỐC GIA:**
    - **Thông tư 32/2018/TT-BGDĐT:** Phân cấp cây kiến thức 6 tầng theo Yêu cầu cần đạt (YCCĐ) và Dạng câu hỏi. **Tuyệt đối không phân chia theo các bộ sách giáo khoa thương mại** (như Cánh diều, Kết nối tri thức, Chân trời sáng tạo).
@@ -82,6 +83,10 @@
           2. Sau khi Sub-Agent 1 phân tích và làm rõ nguyên nhân gốc rễ, **Sub-Agent 1 chỉ thị và bắt Sub-Agent 2 code lại (refactor / bug fix)** theo đúng định hướng giải pháp.
           3. Sau khi Sub-Agent 2 code lại xong, hệ thống **tiến hành tiếp tục trình tự tiếp theo:** kích hoạt lại Sub-Agent 3 và Sub-Agent 4 để kiểm thử lại mã nguồn mới.
           4. Lặp lại vòng lặp này liên tục cho đến khi 100% test cases đạt, CI pass và không còn bất kỳ lỗi nào mới được phép nghiệm thu và commit.
+        - **QUY TẮC MIỄN CHẠY LẠI TEST (ZERO REDUNDANT TESTING RULE):**
+          - Khi Sub-Agent 3 đã xác nhận 100% test cases pass trên môi trường giả lập CI và Sub-Agent 4 đã nghiệm thu 100% pass trên trình duyệt thật:
+          - **Parent Agent tuyệt đối KHÔNG ĐƯỢC CHẠY LẠI TEST SUITE (`pytest`) NỮA.** Việc kiểm thử tự động đã được Sub-Agent 3 và Sub-Agent 4 thực thi trọn vẹn và hoàn tất.
+          - Parent Agent tiến hành kiểm tra cổng mạng, dọn dẹp tiến trình, `git commit` và `git push` ngay lập tức.
 
    - **ĐỊNH NGHĨA TOÀN DIỆN VỀ "LỖI" TRONG KIỂM THỬ (COMPREHENSIVE DEFECT DEFINITION):**
      - **Bắt buộc:** Khái niệm "Lỗi" trong kiểm thử của Sub-Agent 3 và Sub-Agent 4 tuyệt đối **không chỉ giới hạn ở lỗi logic nghiệp vụ hay lỗi backend**, mà bao trùm toàn diện 5 nhóm khuyết tật phần mềm:

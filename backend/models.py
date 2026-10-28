@@ -488,3 +488,19 @@ class Student(Base):
 StudentRoster = Student
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=True)
+    full_name = Column(String(150), nullable=False)
+    role = Column(String(50), nullable=False, default="STUDENT")  # ADMIN, TEACHER, STUDENT
+    avatar_url = Column(String(500), nullable=True)
+    oauth_provider = Column(String(50), nullable=True, default="local")  # local, google, github
+    oauth_id = Column(String(255), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+

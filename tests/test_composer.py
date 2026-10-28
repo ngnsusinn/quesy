@@ -8,6 +8,9 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from backend.main import app
 from backend.routers.composer import (
+    ChatMessage,
+    ChatRequest,
+    ChatResponse,
     DiffSuggestion,
     diagnose_compile_error,
     extract_all_diffs_from_text,
@@ -3231,7 +3234,7 @@ def test_composer_all_backend_and_frontend_templates_compilation_and_syntax():
         latex = tmpl_data.get("latex", "")
         assert len(latex) > 20, f"Template {tmpl_id} has empty latex"
         # Check for typos
-        assert r"ule{\textwidth}" not in latex, f"Typo ule found in backend template {tmpl_id}"
+        assert r"\ule{\textwidth}" not in latex, f"Typo ule found in backend template {tmpl_id}"
         assert r"\choiceTFt" not in latex, f"Typo \\choiceTFt found in backend template {tmpl_id}"
         assert not re.search(r'(?<!r)ight\|', latex), f"Typo ight| found in backend template {tmpl_id}"
         
@@ -3246,7 +3249,7 @@ def test_composer_all_backend_and_frontend_templates_compilation_and_syntax():
     app_js_content = app_js_path.read_text(encoding="utf-8")
 
     # Check for forbidden typos in app.js
-    assert r"ule{\textwidth}" not in app_js_content
+    assert r"\ule{\textwidth}" not in app_js_content and r"\\ule{" not in app_js_content
     assert r"\choiceTFt" not in app_js_content
     assert not re.search(r'(?<!r)ight\|', app_js_content)
 
@@ -3506,3 +3509,1081 @@ $I = (x^2 + 1) \right|_0^1 = 2$.
     assert res_env is not None
     assert res_env.diff is not None
     assert r"\usepackage{tikz,tkz-tab}" in res_env.diff.new_text
+
+
+# ===========================================================================
+# TC-COMP-30 to TC-COMP-38: Multi-modal AI Chat with Image Attachment
+# ===========================================================================
+
+def test_composer_pydantic_models_images_field():
+    """TC-COMP-30: Verify Pydantic models ChatMessage and ChatRequest support the 'images' field.
+    Tests default factory, explicit empty list, single and multiple base64 data URLs.
+    """
+    # 1. ChatMessage defaults and customizations
+    msg_default = ChatMessage(role="user", content="Hello AI")
+    assert msg_default.images == []
+    assert msg_default.role == "user"
+    assert msg_default.content == "Hello AI"
+
+    msg_empty = ChatMessage(role="assistant", content="Reply", images=[])
+    assert msg_empty.images == []
+
+    sample_b64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    msg_with_img = ChatMessage(role="user", content="Analyze this chart", images=[sample_b64])
+    assert msg_with_img.images is not None
+    assert len(msg_with_img.images) == 1
+    assert msg_with_img.images[0] == sample_b64
+
+    msg_multi_img = ChatMessage(
+        role="user",
+        content="Two images",
+        images=["data:image/png;base64,img1", "data:image/jpeg;base64,img2"]
+    )
+    assert msg_multi_img.images is not None
+    assert len(msg_multi_img.images) == 2
+    assert msg_multi_img.images[0] == "data:image/png;base64,img1"
+    assert msg_multi_img.images[1] == "data:image/jpeg;base64,img2"
+
+    # 2. ChatRequest defaults, serialization, and history preservation
+    req_default = ChatRequest(message="Generate question")
+    assert req_default.images == []
+    assert req_default.history == []
+
+    req_with_img = ChatRequest(
+        message="Extract formula from image",
+        current_latex=r"\begin{document}\end{document}",
+        images=[sample_b64]
+    )
+    assert req_with_img.images is not None
+    assert len(req_with_img.images) == 1
+    assert req_with_img.images[0].startswith("data:image/png;base64,")
+
+    req_full = ChatRequest(
+        message="Follow-up on previous problem",
+        history=[msg_with_img, ChatMessage(role="assistant", content="Here is the question")],
+        images=["data:image/png;base64,img_step2"]
+    )
+    assert req_full.history is not None
+    assert len(req_full.history) == 2
+    assert req_full.history[0].images == [sample_b64]
+    assert req_full.images is not None
+    assert req_full.images == ["data:image/png;base64,img_step2"]
+
+    # Model dump / JSON serialization check
+    dumped = req_full.model_dump()
+    assert "images" in dumped
+    assert dumped["images"] == ["data:image/png;base64,img_step2"]
+    assert dumped["history"][0]["images"] == [sample_b64]
+
+
+def test_composer_chat_api_multimodal_offline_fallback():
+    """TC-COMP-31: Verify POST /api/v1/composer/chat offline fallback when images are attached.
+    Ensures smart offline generator recognizes image presence and produces an ex_test question
+    with TikZ graph or variation table snippet.
+    """
+    sample_b64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    payload = {
+        "message": "Trích xuất câu hỏi trắc nghiệm từ ảnh đồ thị đính kèm",
+        "current_latex": r"\begin{document}" + "\n" + r"\end{document}",
+        "images": [sample_b64]
+    }
+
+    # Force AI provider to None to test local / offline deterministic fallback
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post("/api/v1/composer/chat", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+
+        assert "reply" in data
+        assert "phân tích hình ảnh đính kèm" in data["reply"].lower()
+        assert r"\begin{ex}[Phân tích từ ảnh đính kèm]" in data["reply"]
+        assert "tikzpicture" in data["reply"]
+        assert r"\choice" in data["reply"]
+        assert r"\begin{loigiai}" in data["reply"]
+
+        # Verify suggested_latex
+        assert data["suggested_latex"] is not None
+        assert r"\begin{ex}[Phân tích từ ảnh đính kèm]" in data["suggested_latex"]
+
+        # Verify diff suggestion
+        assert data["diff"] is not None
+        assert data["diff"]["action"] == "replace"
+        assert r"\begin{ex}[Phân tích từ ảnh đính kèm]" in data["diff"]["new_text"]
+        assert "ảnh đính kèm" in data["diff"]["description"].lower()
+
+
+def test_composer_chat_api_multimodal_mocked_ai_single_image():
+    """TC-COMP-32: Verify POST /api/v1/composer/chat with 1 image when calling AI Provider.
+    Checks that user message content is formatted as multi-modal content blocks:
+    [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": img_url}}].
+    """
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-multimodal-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    ai_generated_latex = r"""\begin{ex}
+Cho hàm số $y = x^2 - 2x$ có đồ thị parabol như trong ảnh. Đỉnh của parabol là:
+\choice
+{\True $(1; -1)$}
+{$(0; 0)$}
+{$(2; 0)$}
+{$(-1; 3)$}
+\begin{loigiai}
+Toạ độ đỉnh $I(-\frac{b}{2a}; -\frac{\Delta}{4a}) = (1; -1)$.
+\end{loigiai}
+\end{ex}"""
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": f"Dưới đây là câu hỏi chuẩn hoá từ ảnh đồ thị:\n\n```latex\n{ai_generated_latex}\n```"
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    test_image_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    payload = {
+        "message": "Trích xuất câu hỏi từ ảnh",
+        "current_latex": r"\begin{document}\end{document}",
+        "images": [test_image_url]
+    }
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post("/api/v1/composer/chat", json=payload)
+            assert res.status_code == 200
+            data = res.json()
+
+            # Verify client.post was called with multi-modal content payload
+            assert mock_client.post.called
+            call_args, call_kwargs = mock_client.post.call_args
+            sent_json = call_kwargs["json"]
+            assert sent_json["model"] == "gpt-4o"
+            assert "messages" in sent_json
+
+            # Find user message in sent payload
+            user_msg = next((m for m in sent_json["messages"] if m["role"] == "user"), None)
+            assert user_msg is not None
+            assert isinstance(user_msg["content"], list), "User content must be a multimodal list of blocks"
+            assert len(user_msg["content"]) == 2
+
+            # Block 0: Text prompt
+            assert user_msg["content"][0]["type"] == "text"
+            assert "Yêu cầu của giáo viên: Trích xuất câu hỏi từ ảnh" in user_msg["content"][0]["text"]
+
+            # Block 1: Image URL block
+            assert user_msg["content"][1]["type"] == "image_url"
+            assert user_msg["content"][1]["image_url"]["url"] == test_image_url
+
+            # Verify response parsing
+            assert data["suggested_latex"] is not None
+            assert "y = x^2 - 2x" in data["suggested_latex"]
+
+
+def test_composer_chat_api_multimodal_mocked_ai_multiple_images_and_history():
+    """TC-COMP-33: Verify POST /api/v1/composer/chat handles multiple images and preserves conversation history.
+    Checks multi-modal content array with 1 text block + N image_url blocks.
+    """
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-gemini-key"
+    mock_service.provider = "gemini"
+    mock_service.model = "gemini-2.0-flash"
+    mock_service.base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": "Đã tổng hợp 2 ảnh thành câu hỏi so sánh 2 đồ thị."
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    img1 = "data:image/png;base64,firstImageData"
+    img2 = "data:image/jpeg;base64,secondImageData"
+    payload = {
+        "message": "So sánh 2 đồ thị hàm số từ 2 ảnh này",
+        "current_latex": r"\begin{document}\end{document}",
+        "history": [
+            {"role": "user", "content": "Ảnh 1 là hàm gì?"},
+            {"role": "assistant", "content": "Ảnh 1 là hàm bậc ba."}
+        ],
+        "images": [img1, img2]
+    }
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post("/api/v1/composer/chat", json=payload)
+            assert res.status_code == 200
+
+            call_args, call_kwargs = mock_client.post.call_args
+            sent_messages = call_kwargs["json"]["messages"]
+
+            # Check history preservation
+            roles = [m["role"] for m in sent_messages]
+            assert "system" in roles
+            assert roles[-3] == "user" and sent_messages[-3]["content"] == "Ảnh 1 là hàm gì?"
+            assert roles[-2] == "assistant" and sent_messages[-2]["content"] == "Ảnh 1 là hàm bậc ba."
+
+            # Check active user message has 1 text block + 2 image_url blocks
+            last_msg = sent_messages[-1]
+            assert last_msg["role"] == "user"
+            content = last_msg["content"]
+            assert isinstance(content, list)
+            assert len(content) == 3
+            assert content[0]["type"] == "text"
+            assert content[1]["type"] == "image_url" and content[1]["image_url"]["url"] == img1
+            assert content[2]["type"] == "image_url" and content[2]["image_url"]["url"] == img2
+
+
+def test_composer_chat_api_multimodal_empty_images_backward_compatibility():
+    """TC-COMP-34: Verify POST /api/v1/composer/chat when images list is empty or omitted.
+    Ensures message content remains a plain string for backward compatibility with text-only prompts.
+    """
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-openai-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o-mini"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": "Chào bạn, tôi sẵn sàng hỗ trợ."}}]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    # Explicit images=[]
+    payload = {
+        "message": "Viết câu hỏi lượng giác đơn giản",
+        "current_latex": r"\begin{document}\end{document}",
+        "images": []
+    }
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post("/api/v1/composer/chat", json=payload)
+            assert res.status_code == 200
+
+            call_args, call_kwargs = mock_client.post.call_args
+            sent_messages = call_kwargs["json"]["messages"]
+            last_msg = sent_messages[-1]
+            assert last_msg["role"] == "user"
+            assert isinstance(last_msg["content"], str), "When no images are provided, content must be a plain string"
+
+
+def test_composer_chat_api_multimodal_mocked_ai_diff_extraction():
+    """TC-COMP-35: Verify POST /api/v1/composer/chat extracts diffs accurately when AI responds
+    to image replacement requests with a diff block.
+    """
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-key"
+    mock_service.provider = "openai"
+    mock_service.model = "gpt-4o-mini"
+    mock_service.base_url = "https://api.openai.com/v1"
+
+    current_latex = r"""\begin{ex}
+Câu hỏi cũ cần thay thế.
+\end{ex}"""
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": (
+                        "Tôi đã thay thế câu hỏi cũ bằng câu hỏi trích xuất từ ảnh:\n\n"
+                        "```diff\n"
+                        "- \\begin{ex}\n"
+                        "- Câu hỏi cũ cần thay thế.\n"
+                        "- \\end{ex}\n"
+                        "+ \\begin{ex}[Trích xuất từ ảnh]\n"
+                        "+ Câu hỏi mới từ ảnh đồ thị.\n"
+                        "+ \\end{ex}\n"
+                        "```"
+                    )
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    payload = {
+        "message": "Thay thế câu hỏi này bằng câu hỏi trong ảnh",
+        "current_latex": current_latex,
+        "images": ["data:image/png;base64,sample"]
+    }
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post("/api/v1/composer/chat", json=payload)
+            assert res.status_code == 200
+            data = res.json()
+
+            assert data["diff"] is not None
+            assert data["diff"]["action"] == "replace"
+            assert "Câu hỏi cũ cần thay thế" in data["diff"]["old_text"]
+            assert "Trích xuất từ ảnh" in data["diff"]["new_text"]
+            assert len(data["diffs"]) >= 1
+
+
+def test_composer_multimodal_frontend_dom_elements():
+    """TC-COMP-36: Verify existence and attributes of all image attachment DOM elements in frontend/index.html.
+    Checks image thumbnail tray, file input, attach button, and image lightbox modal.
+    """
+    html_path = Path("frontend/index.html")
+    assert html_path.exists(), "frontend/index.html must exist"
+    content = html_path.read_text(encoding="utf-8")
+
+    # 1. Attached images thumbnail container
+    assert 'id="composer-attached-images-container"' in content
+    assert 'class="hidden flex items-center space-x-2 pb-2 overflow-x-auto select-none"' in content
+
+    # 2. Hidden file input for image upload
+    assert 'id="composer-chat-image-input"' in content
+    assert 'type="file"' in content
+    assert 'accept="image/*"' in content
+    assert 'multiple' in content
+    assert 'onchange="app.composer.handleImageFileSelect(event)"' in content
+
+    # 3. Attach button triggering file input click
+    assert "document.getElementById('composer-chat-image-input').click()" in content
+    assert 'data-lucide="image"' in content
+
+    # 4. Lightbox Modal for enlarged view
+    assert 'id="composer-image-lightbox"' in content
+    assert 'id="composer-lightbox-img"' in content
+    assert "app.composer.closeLightbox(event)" in content
+    assert "app.composer.closeLightbox()" in content
+
+
+def test_composer_multimodal_frontend_app_js_methods_and_flow():
+    """TC-COMP-37: Verify all JavaScript multi-modal image methods and event handling in frontend/static/app.js.
+    Checks state initialization, file select, rendering, lightbox, submit payload, and key listeners.
+    """
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists(), "frontend/static/app.js must exist"
+    content = js_path.read_text(encoding="utf-8")
+
+    # 1. State initialization
+    assert "attachedImages: []" in content
+
+    # 2. Core handler methods
+    assert "handleImageFileSelect(e)" in content
+    assert "addAttachedImage(dataUrl, name)" in content
+    assert "removeAttachedImage(id)" in content
+    assert "renderAttachedImages()" in content
+    assert "openLightbox(src)" in content
+    assert "closeLightbox(e)" in content
+
+    # 3. Payload construction in submitChat()
+    assert "attachedImagesCopy.map(img => img.dataUrl)" in content
+    assert "this.attachedImages = [];" in content
+    assert "images: imagePayloads" in content or "images: imagePayloads.length ? imagePayloads : undefined" in content
+
+    # 4. Chat history rendering with image thumbnail grid
+    assert "composer-chat-image-grid" in content
+    assert "composer-chat-image-thumb" in content
+    assert "app.composer.openLightbox" in content
+
+    # 5. Keyboard shortcut listener for Esc key closing lightbox
+    assert "e.key === 'Escape'" in content
+    assert "this.closeLightbox();" in content
+
+
+def test_composer_multimodal_css_styling():
+    """TC-COMP-38: Verify CSS classes and styles for multi-modal image chips and lightboxes in frontend/static/style.css."""
+    css_path = Path("frontend/static/style.css")
+    assert css_path.exists(), "frontend/static/style.css must exist"
+    content = css_path.read_text(encoding="utf-8")
+
+    # Scrollbar customization
+    assert "#composer-attached-images-container::-webkit-scrollbar" in content
+
+    # Image chip thumbnail
+    assert ".composer-image-chip" in content
+    assert ".composer-image-chip img" in content
+    assert ".composer-image-chip-remove" in content
+    assert ".composer-image-chip:hover .composer-image-chip-remove" in content
+
+    # Chat bubble image grid and thumbnail
+    assert '.composer-chat-image-grid' in content
+    assert '.composer-chat-image-thumb' in content
+
+
+def test_composer_compute_compilation_timeout_adaptive_scaling():
+    """TC-COMP-34: Verify compute_compilation_timeout dynamic adaptive scaling behavior.
+
+    Validates:
+    1. Empty latex source -> returns minimum floor of 60 seconds.
+    2. Short text without TikZ diagrams -> returns minimum floor of 60 seconds.
+    3. Medium document with some TikZ diagrams -> scales appropriately above 60s.
+    4. Large complex exam with many TikZ / tkz-tab blocks -> scales up towards upper ceiling of 240 seconds.
+    5. Extremely massive document -> strictly clamped to upper limit of 240 seconds.
+    """
+    from backend.services.composer_service import compute_compilation_timeout
+
+    # 1. Empty or whitespace source
+    assert compute_compilation_timeout("") == 60
+    assert compute_compilation_timeout("   \n\t") == 60
+
+    # 2. Short document without TikZ
+    short_plain = "Short plain text without any TikZ block or diagram."
+    assert compute_compilation_timeout(short_plain) == 60
+
+    # 3. Intermediate scaling
+    # 3 TikZ blocks, 2500 chars -> 45 + 30 + 10 = 85s
+    tikz_block = r"\begin{tikzpicture}\draw (0,0) -- (1,1);\end{tikzpicture}" + "\n"
+    mid_doc = (tikz_block * 3) + ("a" * 2500)
+    assert compute_compilation_timeout(mid_doc) == 85
+
+    # 4. Large document with 10 TikZ and tkz-tab blocks
+    tkz_tab_block = r"\begin{tikzpicture}\tkzTabInit{$x$/1}{$1$}\end{tikzpicture}" + "\n"
+    large_doc = (tikz_block * 5) + (tkz_tab_block * 5) + ("x" * 15000)
+    t_large = compute_compilation_timeout(large_doc)
+    assert 180 <= t_large <= 240
+
+    # 5. Massive document hitting the 240s upper clamp ceiling
+    massive_doc = (tikz_block * 25) + ("y" * 50000)
+    assert compute_compilation_timeout(massive_doc) == 240
+
+
+def test_composer_diagnose_compile_error_timeout_and_samples_optimization():
+    """TC-COMP-35: Verify diagnose_compile_error diagnoses 'Compilation timed out'
+    and proposes targeted diffs reducing TikZ samples=100 down to samples=50.
+    """
+    from backend.routers.composer import diagnose_compile_error
+
+    # Scenario A: Timeout error with TikZ plot using samples=100
+    err_timeout = "Error: Compilation timed out after 60 seconds while building document"
+    latex_code = (
+        r"\documentclass{article}" + "\n"
+        r"\usepackage{tikz}" + "\n"
+        r"\begin{document}" + "\n"
+        r"\begin{tikzpicture}" + "\n"
+        r"  \draw[domain=0:5, samples=100] plot(\x, {sin(\x)});" + "\n"
+        r"\end{tikzpicture}" + "\n"
+        r"\end{document}"
+    )
+
+    resp = diagnose_compile_error(err_timeout, latex_code)
+    assert resp is not None
+    assert "Compilation Timed Out" in resp.reply
+    assert "Dynamic Adaptive Compilation Timeout" in resp.reply
+    assert "samples=50" in resp.reply
+    assert resp.diff is not None
+    assert resp.diff.action == "replace"
+    assert "samples=100" in resp.diff.old_text
+    assert "samples=50" in resp.diff.new_text
+    assert len(resp.diffs) == 1
+
+    # Scenario B: Multiple plots with samples >= 80 (e.g. 100, 120)
+    multi_latex = (
+        r"\begin{tikzpicture}" + "\n"
+        r"  \draw[domain=0:5, samples=100] plot(\x, {sin(\x)});" + "\n"
+        r"  \draw[domain=-2:2, samples=120] plot(\x, {cos(\x)});" + "\n"
+        r"\end{tikzpicture}"
+    )
+    resp_multi = diagnose_compile_error("timed out", multi_latex)
+    assert resp_multi is not None
+    assert resp_multi.diff is not None
+    assert len(resp_multi.diffs) == 2
+    assert "samples=50" in resp_multi.diffs[0].new_text
+    assert "samples=50" in resp_multi.diffs[1].new_text
+
+    # Scenario C: Timeout error but no samples >= 80 found
+    no_samples_latex = (
+        r"\begin{tikzpicture}" + "\n"
+        r"  \draw[domain=0:5] plot(\x, {sin(\x)});" + "\n"
+        r"\end{tikzpicture}"
+    )
+    resp_no_samp = diagnose_compile_error("biên dịch quá thời gian quy định", no_samples_latex)
+    assert resp_no_samp is not None
+    assert "Compilation Timed Out" in resp_no_samp.reply
+    assert resp_no_samp.diff is None
+    assert resp_no_samp.diffs == []
+
+
+def test_composer_compile_large_viet_duc_exam_pdf_success(tmp_path):
+    """TC-COMP-36 / Verification: Verify large exam (THPT Việt Đức mid-term 12)
+    with 12 MC, 4 TF, 6 ShortAns and multiple TikZ plots compiles cleanly
+    with dynamic timeout scaling to a valid vector PDF.
+    """
+    import json
+    import urllib.request
+    from unittest.mock import patch, MagicMock
+    from backend.services.composer_service import (
+        compute_compilation_timeout,
+        compile_with_remote_tectonic_api,
+    )
+
+    # 1. Load Viet Duc exam content from local attachment or test fixture
+    attachment_path = Path(r"C:\Users\ngnsusinn\AppData\Local\hermes\attachments\pasted_content_2026-10-25_11-09-13-679_36e9d2.txt")
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "viet_duc_exam.tex"
+
+    if attachment_path.exists():
+        content = attachment_path.read_text(encoding="utf-8")
+    elif fixture_path.exists():
+        content = fixture_path.read_text(encoding="utf-8")
+    else:
+        assert False, "Neither attachment nor fixture viet_duc_exam.tex found"
+
+    assert len(content) > 10000, "Viet Duc exam must be substantial (>10k chars)"
+    assert "TRƯỜNG THPT VIỆT ĐỨC" in content
+    assert "Mã đề thi: 0108" in content
+
+    # 2. Check dynamic adaptive timeout scaling
+    calc_timeout = compute_compilation_timeout(content)
+    # 23k+ chars and 10+ TikZ diagrams must scale to upper limit (240s)
+    assert calc_timeout >= 200, f"Expected calc_timeout >= 200s, got {calc_timeout}s"
+
+    # 3. Verify Remote Tectonic API payload and execution contract
+    out_pdf = tmp_path / "viet_duc_output.pdf"
+
+    # Check if real armbian:8090 service is responsive
+    armbian_alive = False
+    try:
+        with urllib.request.urlopen("http://armbian:8090/health", timeout=0.8) as hresp:
+            if hresp.status == 200:
+                armbian_alive = True
+    except Exception:
+        armbian_alive = False
+
+    if armbian_alive:
+        # Live compilation test against armbian:8090
+        ok, err, ms = compile_with_remote_tectonic_api(content, out_pdf, title="Đề THPT Việt Đức 2026")
+        assert ok is True, f"Live compilation failed: {err}"
+        assert out_pdf.exists(), "Output PDF must exist"
+        pdf_bytes = out_pdf.read_bytes()
+        assert pdf_bytes.startswith(b"%PDF"), "Must be a valid PDF vector header"
+        assert len(pdf_bytes) > 500, f"PDF file size too small: {len(pdf_bytes)} bytes"
+        assert ms > 0
+        # Clean up out_pdf before mock test verification
+        out_pdf.unlink(missing_ok=True)
+
+    # CI Runner isolated mock test: verify payload carries timeout_s: calc_timeout and returns valid PDF
+    mock_response = MagicMock()
+    mock_response.status = 200
+    fake_pdf = b"%PDF-1.5 \n%Fake Valid PDF Content for CI runner testing\n" + b"X" * 600 + b"\n%%EOF"
+    mock_response.read.return_value = fake_pdf
+    mock_response.__enter__.return_value = mock_response
+
+    with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+        ok, err, ms = compile_with_remote_tectonic_api(
+            content,
+            out_pdf,
+            title="Đề THPT Việt Đức 2026",
+            api_url="http://armbian:8090/compile",
+        )
+        assert ok is True, f"Mock compilation failed: {err}"
+        assert out_pdf.exists(), "Output PDF must exist after mock compilation"
+        written_bytes = out_pdf.read_bytes()
+        assert written_bytes.startswith(b"%PDF")
+        assert len(written_bytes) > 500
+        assert written_bytes == fake_pdf
+
+        # Verify the request payload sent to the remote API
+        assert mock_urlopen.call_count >= 1
+        sent_req = mock_urlopen.call_args[0][0]
+        assert isinstance(sent_req, urllib.request.Request)
+        assert isinstance(sent_req.data, bytes)
+        payload_data = json.loads(sent_req.data.decode("utf-8"))
+        assert "timeout_s" in payload_data
+        assert payload_data["timeout_s"] == calc_timeout
+        assert payload_data["timeout_s"] >= 200
+        # Also verify socket buffer timeout passed to urlopen
+        socket_timeout = mock_urlopen.call_args[1].get("timeout")
+        assert socket_timeout == calc_timeout + 15
+        assert socket_timeout >= 215
+
+
+def test_composer_system_prompt_centered_diagrams_invariant():
+    """Verify system_prompt in backend/routers/composer.py strictly enforces
+    Centered Layout Invariant, requires \\begin{center}\\begin{tikzpicture},
+    prohibits default \\immini, recommends samples=50/60, enforces \\choiceTF[1]
+    without label prefixes in content, and standardizes MoET 2025 2-column header.
+    """
+    import inspect
+    from backend.routers.composer import composer_chat_endpoint
+
+    # 1. Inspect source of composer_chat_endpoint
+    source = inspect.getsource(composer_chat_endpoint)
+    assert "system_prompt" in source, "system_prompt must be defined in composer_chat_endpoint"
+
+    # 2. Intercept actual system_prompt payload delivered via httpx.Client.post
+    mock_service = MagicMock()
+    mock_service.api_key = "mock-secret-key"
+    mock_service.provider = "gemini"
+    mock_service.model = "gemini-2.5-flash"
+    mock_service.base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": "Sample LLM reply"}}]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    captured_system_prompt = None
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service), \
+         patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Tạo một câu hỏi trắc nghiệm hàm số bậc 3 có đồ thị TikZ",
+                "current_latex": r"\begin{document}\end{document}",
+                "history": [],
+            },
+        )
+        assert res.status_code == 200
+        assert mock_client.post.called, "httpx.Client.post must be called when provider is active"
+        json_payload = mock_client.post.call_args[1].get("json") or {}
+        messages = json_payload.get("messages", [])
+        assert len(messages) >= 1
+        assert messages[0]["role"] == "system"
+        captured_system_prompt = messages[0]["content"]
+
+    assert captured_system_prompt is not None, "Failed to capture system_prompt from chat endpoint"
+
+    # 3. Assert Centered Layout Invariant rules
+    assert "CENTERED LAYOUT INVARIANT" in captured_system_prompt
+    assert r"\begin{center}\begin{tikzpicture}" in captured_system_prompt
+    assert r"\end{tikzpicture}\end{center}" in captured_system_prompt
+    assert (
+        "TUYỆT ĐỐI KHÔNG nằm lệch 1 bên hay dùng \\immini" in captured_system_prompt
+        or "TUYỆT ĐỐI KHÔNG nằm lệch 1 bên hay dùng \\\\immini" in captured_system_prompt
+    )
+    assert "samples=50" in captured_system_prompt
+
+    # 4. Assert True/False \\choiceTF[1] standardization
+    assert r"\choiceTF[1]" in captured_system_prompt
+    assert "TUYỆT ĐỐI KHÔNG gõ tiền tố nhãn a), b), c), d) vào trong nội dung khẳng định" in captured_system_prompt
+
+    # 5. Assert MoET 2025 2-column header standardization
+    assert "0.38" in captured_system_prompt and "0.58" in captured_system_prompt
+    assert r"\dotfill" in captured_system_prompt
+    assert "Mã đề:" in captured_system_prompt
+    assert "0.5pt" in captured_system_prompt
+
+
+def test_ai_provider_system_prompt_centered_diagrams():
+    """Verify SYSTEM_PROMPT and SYSTEM_PROMPT_PASS2_FIGURE in ai_provider_service.py
+    enforce Centered Layout Invariant and ban label prefixes in sub_statements.
+    """
+    from backend.services.ai_provider_service import SYSTEM_PROMPT, SYSTEM_PROMPT_PASS2_FIGURE
+
+    # 1. Check SYSTEM_PROMPT
+    assert "CENTERED LAYOUT INVARIANT" in SYSTEM_PROMPT
+    assert r"\begin{center}\begin{tikzpicture}" in SYSTEM_PROMPT
+    assert r"\end{tikzpicture}\end{center}" in SYSTEM_PROMPT
+    assert "TUYỆT ĐỐI KHÔNG dùng \\immini" in SYSTEM_PROMPT or "TUYỆT ĐỐI KHÔNG dùng \\\\immini" in SYSTEM_PROMPT
+    assert "samples=50" in SYSTEM_PROMPT
+    assert "TUYỆT ĐỐI CẤM gõ tiền tố nhãn a), b), c), d)" in SYSTEM_PROMPT
+    assert "sub_statements" in SYSTEM_PROMPT
+
+    # 2. Check SYSTEM_PROMPT_PASS2_FIGURE
+    assert r"\begin{center}\begin{tikzpicture}" in SYSTEM_PROMPT_PASS2_FIGURE
+    assert r"\end{tikzpicture}\end{center}" in SYSTEM_PROMPT_PASS2_FIGURE
+    assert "samples=50" in SYSTEM_PROMPT_PASS2_FIGURE
+    assert "tkz-tab" in SYSTEM_PROMPT_PASS2_FIGURE
+    assert r"\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}" in SYSTEM_PROMPT_PASS2_FIGURE
+
+
+def test_composer_templates_centered_diagrams_no_immini():
+    """Verify TEMPLATES in composer_service.py and EX_TEST_TEMPLATES in app.js
+    strictly use centered TikZ diagrams, contain NO \\immini in question templates,
+    and successfully compile to PDF.
+    """
+    import re
+    from backend.services.composer_service import TEMPLATES
+
+    # 1. Test backend TEMPLATES['ex_test_standard_exam']
+    assert "ex_test_standard_exam" in TEMPLATES
+    tmpl_quocgia = TEMPLATES["ex_test_standard_exam"]["latex"]
+    assert r"\immini" not in tmpl_quocgia, "ex_test_standard_exam must not contain \\immini"
+    assert r"\begin{center}" in tmpl_quocgia
+    assert r"\begin{tikzpicture}" in tmpl_quocgia
+    assert "samples=50" in tmpl_quocgia
+    assert r"\choiceTF[1]" in tmpl_quocgia
+    assert "0.38" in tmpl_quocgia and "0.58" in tmpl_quocgia
+    assert "rule" in tmpl_quocgia and "0.5pt" in tmpl_quocgia
+
+    # Compile ex_test_standard_exam to PDF
+    res_qg = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": tmpl_quocgia, "title": "Đề thi Chuẩn Quốc Gia 2025"}
+    )
+    assert res_qg.status_code == 200
+    data_qg = res_qg.json()
+    assert data_qg["success"] is True
+    assert data_qg["pdf_url"].startswith("/api/v1/composer/pdf/")
+    assert data_qg["total_pages"] >= 1
+
+    # 2. Test backend TEMPLATES['circular_32_full_exam']
+    assert "circular_32_full_exam" in TEMPLATES
+    tmpl_tt32 = TEMPLATES["circular_32_full_exam"]["latex"]
+    assert r"\immini" not in tmpl_tt32, "circular_32_full_exam must not contain \\immini"
+    assert r"\begin{center}" in tmpl_tt32
+    assert r"\begin{tikzpicture}" in tmpl_tt32
+    assert "samples=50" in tmpl_tt32
+    assert r"\choiceTF[1]" in tmpl_tt32
+
+    # Compile circular_32_full_exam to PDF
+    res_tt32 = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": tmpl_tt32, "title": "Đề thi Chuẩn Thông tư 32"}
+    )
+    assert res_tt32.status_code == 200
+    data_tt32 = res_tt32.json()
+    assert data_tt32["success"] is True
+    assert data_tt32["pdf_url"].startswith("/api/v1/composer/pdf/")
+    assert data_tt32["total_pages"] >= 1
+
+    # 3. Test frontend app.js EX_TEST_TEMPLATES and fallback currentLatex
+    app_js_path = Path(__file__).resolve().parent.parent / "frontend" / "static" / "app.js"
+    assert app_js_path.exists()
+    app_js_content = app_js_path.read_text(encoding="utf-8")
+
+    # dethi_quocgia_full must NOT contain \immini and MUST use \choiceTF[1]
+    m_extest = re.search(r'EX_TEST_TEMPLATES\s*:\s*\{([\s\S]*?)\n\s*\},', app_js_content)
+    assert m_extest is not None
+    extest_body = m_extest.group(1)
+
+    m_dethi_full = re.search(r"'dethi_quocgia_full'\s*:\s*`([\s\S]*?)`", extest_body)
+    assert m_dethi_full is not None
+    dethi_full_code = m_dethi_full.group(1)
+    clean_dethi_full = dethi_full_code.replace('\\\\', '\\')
+    assert r"\immini" not in clean_dethi_full, "dethi_quocgia_full must not contain \\immini"
+    assert r"\choiceTF[1]" in clean_dethi_full
+    assert "0.38" in clean_dethi_full and "0.58" in clean_dethi_full
+    assert "rule" in clean_dethi_full and "0.5pt" in clean_dethi_full
+
+    # Compile dethi_quocgia_full to PDF
+    res_fe = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": clean_dethi_full, "title": "Đề thi Quốc Gia 2025 Frontend"}
+    )
+    assert res_fe.status_code == 200
+    data_fe = res_fe.json()
+    assert data_fe["success"] is True
+    assert data_fe["pdf_url"].startswith("/api/v1/composer/pdf/")
+
+    # extest_immini snippet must use centered diagram and samples=50
+    m_immini_snip = re.search(r"'extest_immini'\s*:\s*`([\s\S]*?)`", app_js_content)
+    assert m_immini_snip is not None
+    immini_body = m_immini_snip.group(1)
+    assert r"\immini{" not in immini_body, "extest_immini snippet must not contain \\immini{"
+    assert r"\begin{center}" in immini_body
+    assert "samples=50" in immini_body
+
+    # extest_choiceTF snippet must use \choiceTF[1] without label prefixes a), b)
+    m_choicetf_snip = re.search(r"'extest_choiceTF'\s*:\s*`([\s\S]*?)`", app_js_content)
+    assert m_choicetf_snip is not None
+    choicetf_body = m_choicetf_snip.group(1)
+    assert r"\choiceTF[1]" in choicetf_body
+    assert "a)" not in choicetf_body
+    assert "b)" not in choicetf_body
+
+    # Fallback this.currentLatex must NOT contain \immini and MUST have centered tikz
+    assert "Cho hàm số bậc ba $y = f(x)$ có đồ thị như hình bên." in app_js_content
+    m_fallback = re.search(r"this\.currentLatex\s*=\s*`[\\/]*noindent[\s\S]*?\\end\{ex\}\s*`", app_js_content)
+    assert m_fallback is not None, "Fallback this.currentLatex must be updated to 2-column header"
+    fallback_code = m_fallback.group(0)
+    assert r"\immini" not in fallback_code, "Fallback this.currentLatex must not contain \\immini"
+    assert "begin{center}" in fallback_code
+    assert "samples=50" in fallback_code
+
+
+def test_composer_paste_event_isolation_and_deduplication():
+    """Verify that frontend/static/app.js has paste event isolation, stopPropagation,
+    target boundary checks, deduplication check, and 500ms debounce to prevent image doubling.
+    """
+    app_js_path = Path(__file__).resolve().parent.parent / "frontend" / "static" / "app.js"
+    assert app_js_path.exists(), "frontend/static/app.js must exist"
+    code = app_js_path.read_text(encoding="utf-8")
+
+    # 1. Check _pasteListenersBound guard
+    assert "this._pasteListenersBound" in code
+    assert "if (this._pasteListenersBound) return;" in code
+    assert "this._pasteListenersBound = true;" in code
+
+    # 2. Check e.stopPropagation() on paste event
+    assert "e.stopPropagation();" in code
+
+    # 3. Check e.target boundary check on inputContainer
+    assert "e.target === chatInput || e.target === compactInput" in code
+
+    # 4. Check deduplication check in addAttachedImage
+    assert "this.attachedImages.some(img => img.dataUrl === dataUrl)" in code
+
+    # 5. Check 500ms debounce logic
+    assert "this._lastAttachedSig" in code
+    assert "< 500" in code
+
+
+def test_composer_section_counter_reset_and_large_removal():
+    """Verify that ensure_full_latex_document automatically strips \\large/\\Large/\\LARGE,
+    automatically inserts \\setcounter{ex}{0} before Part II, Part III,
+    and compilation produces valid PDF.
+    """
+    from backend.services.composer_service import ensure_full_latex_document
+
+    sample_latex = r"""
+\noindent\large\textbf{PHẦN I. CÂU TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN LỰA CHỌN}
+\begin{ex}
+Giải phương trình $2^x = 4$.
+\choice
+{$x = 1$}
+{\True $x = 2$}
+{$x = 4$}
+{$x = 0$}
+\end{ex}
+
+\noindent\Large\textbf{PHẦN II. CÂU TRẮC NGHIỆM ĐÚNG/SAI}
+\begin{ex}
+Cho hàm số $y = f(x)$.
+\choiceTF[1]
+{\True Mệnh đề A đúng}
+{Mệnh đề B sai}
+{\True Mệnh đề C đúng}
+{Mệnh đề D sai}
+\end{ex}
+
+\noindent\LARGE\textbf{PHẦN III. CÂU TRẮC NGHIỆM TRẢ LỜI NGẮN}
+\begin{ex}
+Giá trị lớn nhất của hàm số là bao nhiêu?
+\shortans{10}
+\end{ex}
+    """
+
+    doc = ensure_full_latex_document(sample_latex, mode="dethi", title="Đề kiểm tra")
+
+    # 1. Verify \\large, \\Large, \\LARGE are removed
+    assert r"\large" not in doc, "\\large should be stripped"
+    assert r"\Large" not in doc, "\\Large should be stripped"
+    assert r"\LARGE" not in doc, "\\LARGE should be stripped"
+
+    # 2. Verify \\setcounter{ex}{0} is automatically inserted for Phần II and Phần III
+    assert r"\setcounter{ex}{0}" in doc
+    assert doc.count(r"\setcounter{ex}{0}") >= 2
+
+    part2_idx = doc.find("PHẦN II")
+    assert part2_idx != -1
+    part2_slice = doc[part2_idx:]
+    assert r"\setcounter{ex}{0}" in part2_slice[:part2_slice.find(r"\begin{ex}")]
+
+    part3_idx = doc.find("PHẦN III")
+    assert part3_idx != -1
+    part3_slice = doc[part3_idx:]
+    assert r"\setcounter{ex}{0}" in part3_slice[:part3_slice.find(r"\begin{ex}")]
+
+    # 3. Verify PDF compilation with this LaTeX succeeds
+    res = client.post(
+        "/api/v1/composer/compile",
+        json={"latex_code": doc, "title": "Đề thi reset counter"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["pdf_url"].startswith("/api/v1/composer/pdf/")
+
+
+def test_composer_compile_partial_endpoint_and_draft_mode():
+    """Verify POST /api/v1/composer/compile-partial renders single question snippet
+    and /compile endpoint supports draft_mode=True.
+    """
+    snippet = r"""\begin{ex}
+    Giải phương trình $2^x = 4$.
+    \choice
+    {$x = 1$}
+    {\True $x = 2$}
+    {$x = 4$}
+    {$x = 0$}
+    \begin{loigiai}
+    Ta có $2^x = 4 \Leftrightarrow 2^x = 2^2 \Leftrightarrow x = 2$.
+    \end{loigiai}
+    \end{ex}
+    """
+    res = client.post(
+        "/api/v1/composer/compile-partial",
+        json={
+            "snippet_code": snippet,
+            "title": "Câu hỏi test partial",
+            "mode": "dethi",
+            "question_num": 1
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["pdf_url"].startswith("/api/v1/composer/pdf/")
+    assert data["total_pages"] >= 1
+    assert data["compile_time_ms"] >= 0
+
+    # Also test solution mode for compile-partial
+    res_sol = client.post(
+        "/api/v1/composer/compile-partial",
+        json={
+            "snippet_code": snippet,
+            "title": "Câu hỏi test partial loigiai",
+            "mode": "loigiai",
+            "question_num": 1
+        }
+    )
+    assert res_sol.status_code == 200
+    data_sol = res_sol.json()
+    assert data_sol["success"] is True
+
+    # Test draft_mode=True on /compile
+    res_draft = client.post(
+        "/api/v1/composer/compile",
+        json={
+            "latex_code": snippet,
+            "title": "Đề thi draft",
+            "mode": "dethi",
+            "draft_mode": True
+        }
+    )
+    assert res_draft.status_code == 200
+    data_draft = res_draft.json()
+    assert data_draft["success"] is True
+
+
+def test_composer_save_to_bank_comprehensive_three_formats_and_counts():
+    """Verify POST /api/v1/composer/save-to-bank extracts and persists all 3 Circular 32/2025 formats:
+    - SINGLE_CHOICE (Trắc nghiệm 4 lựa chọn)
+    - TRUE_FALSE_GROUP (Trắc nghiệm Đúng/Sai 4 khẳng định theo QĐ 764)
+    - SHORT_ANSWER (Trả lời ngắn với short_answer_key & tolerance)
+    and returns exact counts breakdown."""
+    import uuid
+    unique_tag = f"COMPOSER_SAVE_{uuid.uuid4().hex[:6]}"
+
+    latex_document = r"""
+\begin{ex}
+[TAG_PLACEHOLDER] Cho hàm số $y = x^3 - 3x^2 + 2$. Điểm cực đại của hàm số là:
+\choice
+{\True $(0; 2)$}
+{$(2; -2)$}
+{$(1; 0)$}
+{$(0; -2)$}
+\begin{loigiai}
+$y' = 3x^2 - 6x = 0 \Leftrightarrow x=0$ hoặc $x=2$. Điểm cực đại là $(0; 2)$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+[TAG_PLACEHOLDER] Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình vuông. Xét tính đúng sai của các mệnh đề sau:
+\choiceTF
+{\True $AC \perp BD$.}
+{$SA$ luôn vuông góc với đáy $ABCD$.}
+{\True Thể tích khối chóp tính theo công thức $V = \frac{1}{3} S_{ABCD} \cdot h$.}
+{Tam giác $SAB$ luôn là tam giác đều.}
+\begin{loigiai}
+$AC \perp BD$ do $ABCD$ là hình vuông. Công thức thể tích luôn đúng.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+[TAG_PLACEHOLDER] Một vật chuyển động theo quy luật $s(t) = -t^3 + 6t^2 + 9t$. Tìm vận tốc lớn nhất của vật (m/s).
+\shortans{21}
+\begin{loigiai}
+$v(t) = s'(t) = -3t^2 + 12t + 9 = -3(t-2)^2 + 21 \le 21$.
+\end{loigiai}
+\end{ex}
+""".replace("TAG_PLACEHOLDER", unique_tag)
+
+    res = client.post(
+        "/api/v1/composer/save-to-bank",
+        json={"latex_code": latex_document}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["total_saved"] == 3
+    assert data["count"] == 3
+
+    # Check counts breakdown
+    counts = data["counts"]
+    assert counts["single_choice"] == 1
+    assert counts["true_false"] == 1
+    assert counts["short_answer"] == 1
+
+    # Verify message formatting
+    assert "Đã lưu 3 câu hỏi" in data["message"]
+
+    # Verify database persistence
+    from backend.database import SessionLocal
+    from backend.models import Question
+    db = SessionLocal()
+    saved_questions = []
+    try:
+        saved_questions = db.query(Question).filter(Question.stem.contains(unique_tag)).all()
+        assert len(saved_questions) == 3
+
+        formats = {q.item_format for q in saved_questions}
+        assert "SINGLE_CHOICE" in formats
+        assert "TRUE_FALSE_GROUP" in formats
+        assert "SHORT_ANSWER" in formats
+
+        # Verify options on single choice
+        sc_q = next(q for q in saved_questions if q.item_format == "SINGLE_CHOICE")
+        assert len(sc_q.options) == 4
+        assert any(opt.is_correct for opt in sc_q.options)
+
+        # Verify sub-statements on true-false
+        tf_q = next(q for q in saved_questions if q.item_format == "TRUE_FALSE_GROUP")
+        assert len(tf_q.sub_statements) == 4
+        assert sum(1 for sub in tf_q.sub_statements if sub.is_true) == 2
+
+        # Verify short answer key
+        sa_q = next(q for q in saved_questions if q.item_format == "SHORT_ANSWER")
+        assert sa_q.short_answer_key == "21"
+    finally:
+        # Cleanup test questions
+        for q in saved_questions:
+            db.delete(q)
+        db.commit()
+        db.close()
+
+
+def test_composer_save_to_bank_empty_latex_graceful_response():
+    """Verify POST /api/v1/composer/save-to-bank handles empty or invalid LaTeX gracefully."""
+    res = client.post(
+        "/api/v1/composer/save-to-bank",
+        json={"latex_code": "% Just a comment, no questions"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is False
+    assert data["total_saved"] == 0
+    assert data["counts"]["single_choice"] == 0
+    assert data["counts"]["true_false"] == 0
+    assert data["counts"]["short_answer"] == 0
+

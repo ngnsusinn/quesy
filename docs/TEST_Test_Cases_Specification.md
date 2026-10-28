@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.1 (Phân hệ Soạn đề Tinh gọn Không Preamble Canonical Preamble Injection, Động cơ Thay thế Câu hỏi Thông minh Question Replacement Engine & Quy tắc Git Workflow Tuyệt đối Không Tự Động Tạo PR)  
+- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 146 Tests (100% Passed)  
-- **Ngày lập:** 2026-10-24  
+- **Tổng số kịch bản tự động hóa:** 209+ Tests (100% Passed)  
+- **Ngày lập:** 2026-10-27  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
 ---
@@ -34,13 +34,14 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 | **TS-01** | Bóc tách AI, LaTeX & Auto-tagging YCCĐ | BR-01, FR-01, SRS-FEAT-01 | 6 | P0 (Must Have) |
 | **TS-02** | Studio Hậu kiểm Đối chiếu (HITL Studio) | BR-01.5, FR-02, SRS-FEAT-02 | 4 | P0 (Must Have) |
 | **TS-03** | Cây Kiến thức & Chuẩn YCCĐ (TT 32) | BR-02.1, FR-03, SRS-FEAT-03 | 4 | P0 (Must Have) |
-| **TS-04** | Ngân hàng Câu hỏi & Định dạng 2025 | BR-02.4, FR-04, SRS-FEAT-04,05 | 5 | P0 / P1 |
+| **TS-04** | Ngân hàng Câu hỏi & Định dạng 2025 (Count, Export BOM, Import, Cascade) | BR-02.4, FR-04, SRS-FEAT-04,05 | 11 | P0 / P1 |
 | **TS-05** | Ma trận Đề thi theo YCCĐ & Sinh Đề | BR-03, BR-04.1, FR-05, FR-06.1 | 4 | P0 (Must Have) |
 | **TS-06** | Động cơ Trộn Đề Hoán vị An toàn | BR-04.2, FR-06.2, SRS-FEAT-08 | 5 | P0 (Critical) |
 | **TS-07** | Xuất bản File Word 2 Cột & In ấn | BR-05.1, FR-07, SRS-FEAT-09 | 4 | P0 (Must Have) |
 | **TS-08** | Bảo mật, RBAC & Khảo thí Thống kê | BR-05.2, BR-06, FR-08 | 3 | P1 / P2 |
-| **TS-09** | Soạn đề LaTeX AI & Live PDF (Tectonic) | FR-02.1, FR-02.2, NFR-COMP-02 | 15 | P0 (Must Have) |
+| **TS-09** | Soạn đề LaTeX AI, Live PDF & Save-to-Bank 3 Thể Thức | FR-02.1, FR-02.2, NFR-COMP-02 | 118 | P0 (Must Have) |
 | **TS-10** | Quản trị CI/CD & Cổng Pre-Commit Gate | NFR-DEV-01..06, TC-DEV-01..02 | 2 | P0 (Critical) |
+| **TS-11** | Hệ Thống Xác Thực Auth (PBKDF2, JWT, OAuth Google/GitHub, RBAC) | BR-05.2, FR-08, AUTH-01 | 19 | P0 (Critical) |
 
 ---
 
@@ -156,6 +157,49 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 
 ---
 
+### TEST SUITE 05: MA TRẬN ĐỀ THI 2D THEO YCCĐ & ĐỐI SOÁT TỒN KHO
+
+#### TC-MATRIX-01: Thiết lập Lưới Ma trận 2D & Tải 3 Presets Chuẩn Hóa
+- **Mô tả:** Kiểm tra khả năng tải và áp dụng chính xác 3 preset ma trận đề thi mẫu theo TT 22 & QĐ 764.
+- **Các bước thực hiện:**
+  1. Truy cập tab `#tab-matrix`.
+  2. Bấm nút áp dụng lần lượt: `Preset 1 (Chuẩn TN THPT 2025)`, `Preset 2 (Kiểm tra Định kỳ)`, `Preset 3 (Kiểm tra Cuối kỳ)`.
+- **Kết quả kỳ vọng:**
+  - Preset 1: Điền đúng 34 câu, 10.0đ (12 TN đơn, 4 Đúng/Sai, 6 Trả lời ngắn), tỷ lệ Bloom đạt 40% Biết - 30% Hiểu - 30% Vận dụng.
+  - Preset 2: Điền đúng 20 câu, 10.0đ (12 TN đơn, 4 Đúng/Sai, 4 Trả lời ngắn).
+  - Preset 3: Điền đúng 28 câu, 10.0đ (16 TN đơn, 4 Đúng/Sai, 8 Trả lời ngắn).
+  - Lưới ma trận render mượt mà, không gián đoạn giao diện.
+
+#### TC-MATRIX-02: Tính toán Thời gian thực & Cảnh báo Tỷ lệ Bloom
+- **Mô tả:** Kiểm tra cơ chế tự động tính tổng câu, tổng điểm từng dòng/cột và nhãn cảnh báo Bloom khi người dùng thay đổi giá trị ô ma trận.
+- **Các bước thực hiện:**
+  1. Thay đổi số lượng câu hỏi ở ô Biết thành 20 câu, Hiểu 2 câu, Vận dụng 2 câu.
+- **Kết quả kỳ vọng:**
+  - Tổng câu và tổng điểm các dòng/cột cập nhật tức thì.
+  - Thanh tiến trình Bloom chuyển màu hổ phách kèm nhãn cảnh báo: "CẢNH BÁO: Tỷ lệ phân bố Bloom lệch so với chuẩn TT 22".
+
+#### TC-MATRIX-03: Đối soát Tồn kho Thời gian thực (Live Inventory Checker)
+- **Mô tả:** Kiểm tra tính năng đối soát số lượng câu hỏi thực tế trong CSDL Question Bank cho từng ô ma trận.
+- **Các bước thực hiện:**
+  1. Gọi API `POST /api/v1/matrix/{id}/check-availability` hoặc kích hoạt kiểm tra trên giao diện.
+- **Kết quả kỳ vọng:**
+  - Các ô có đủ câu hỏi APPROVED hiển thị badge xanh (`Kho: X/Y câu (Đủ)`).
+  - Các ô thiếu câu hiển thị badge đỏ (`Kho: X/Y câu (Thiếu Z câu)`).
+  - Trả về danh sách cảnh báo chi tiết các ô bị thiếu.
+
+#### TC-MATRIX-04: Xuất bản Bản Đặc tả Ma trận Đề thi (PDF / CSV UTF-8 BOM / JSON)
+- **Mô tả:** Kiểm tra endpoint xuất bản bản đặc tả ma trận đề thi.
+- **Các bước thực hiện:**
+  1. Gửi request `GET /api/v1/matrix/{id}/spec?format=json`.
+  2. Gửi request `GET /api/v1/matrix/{id}/spec?format=csv`.
+  3. Gửi request `GET /api/v1/matrix/{id}/spec?format=pdf`.
+- **Kết quả kỳ vọng:**
+  - Format JSON trả về cấu trúc ma trận, phân bổ YCCĐ và tồn kho.
+  - Format CSV có chứa tiền tố UTF-8 BOM (`\ufeff`), mở bằng Excel tiếng Việt không bị lỗi font.
+  - Format PDF trả về file Vector PDF chuẩn in ấn A4 Portrait gồm Khung ma trận 2D và Bảng đặc tả chi tiết.
+
+---
+
 ### TEST SUITE 06: ĐỘNG CƠ TRỘN ĐỀ HOÁN VỊ AN TOÀN (SAFE SHUFFLING ENGINE)
 
 #### TC-SHUFFLE-01: Quy tắc Neo cố định Phương án (Option Anchor Rule - RULE-02)
@@ -168,6 +212,7 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Kết quả kỳ vọng:**
   - Trong toàn bộ 4 mã đề (101, 102, 103, 104), nội dung *"Cả A và B đều đúng"* **LUÔN NẰM Ở VỊ TRÍ D**.
   - Các phương án A, B, C được hoán vị ngẫu nhiên hợp lệ.
+  - Tỷ lệ Option Anchor Rule đạt 100%.
 
 #### TC-SHUFFLE-02: Quy tắc Bảo toàn Toàn vẹn Câu hỏi Chùm (Passage Integrity - RULE-03)
 - **Mô tả:** Đảm bảo đoạn văn ngữ liệu chung và các câu hỏi con luôn đi liền kề nhau sau khi trộn đề.
@@ -180,6 +225,36 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
   - Bài đọc P luôn xuất hiện ngay trước các câu con.
   - Các câu con luôn nằm ở các vị trí số thứ tự liên tiếp nhau (ví dụ: Câu 15, 16, 17, 18).
   - Không có bất kỳ câu hỏi đơn nào bị xen vào giữa cụm câu hỏi con của bài đọc P.
+
+#### TC-SHUFFLE-03: Hoán đổi Câu hỏi Đề Gốc Tương đương (In-Place Question Swap Engine)
+- **Mô tả:** Kiểm tra tính năng đổi một câu hỏi bất kỳ trong MasterExam sang một câu hỏi khác cùng YCCĐ từ ngân hàng câu hỏi.
+- **Các bước thực hiện:**
+  1. Chọn Câu 1 trong MasterExam.
+  2. Gọi `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates`.
+  3. Chọn một câu ứng viên và gọi `POST /api/v1/exams/{master_id}/items/{item_id}/swap`.
+- **Kết quả kỳ vọng:**
+  - Danh sách ứng viên trả về chỉ gồm các câu có cùng YCCĐ, cùng cognitive_level, cùng item_format và chưa có trong đề gốc.
+  - API swap thành công, cập nhật câu hỏi mới vào MasterExamItem.
+  - Các ExamVariant cũ tự động bị xóa bỏ để buộc người dùng trộn lại.
+
+#### TC-SHUFFLE-04: Bảo toàn Phân đoạn (Section Integrity)
+- **Mô tả:** Kiểm tra các câu hỏi chỉ được đảo trong cùng một Phần theo QĐ 764.
+- **Kết quả kỳ vọng:**
+  - Phần I chỉ chứa câu SINGLE_CHOICE đảo thứ tự nội bộ.
+  - Phần II chỉ chứa câu TRUE_FALSE_GROUP đảo thứ tự nội bộ.
+  - Phần III chỉ chứa câu SHORT_ANSWER đảo thứ tự nội bộ.
+  - Tuyệt đối không hoán vị câu hỏi khác phần sang nhau.
+
+#### TC-SHUFFLE-05: Lập Ma trận Đáp án Tổng hợp & Đóng gói Ấn phẩm (.ZIP / .PDF)
+- **Mô tả:** Kiểm tra xuất bản bảng ma trận đáp án và đóng gói tệp ZIP.
+- **Các bước thực hiện:**
+  1. Gọi `GET /api/v1/exams/{master_id}/key-matrix`.
+  2. Gọi `GET /api/v1/exams/{master_id}/export-pdf?variant_code=101`.
+  3. Gọi `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.
+- **Kết quả kỳ vọng:**
+  - Bảng ma trận đáp án hiển thị đầy đủ đối chiếu giữa Đề gốc và 4 mã đề.
+  - File PDF tải về có layout 2 cột rõ ràng, chuẩn font in ấn.
+  - File ZIP giải nén có đầy đủ 5 thành phần: `De_{code}.pdf`, `LoiGiai_{code}.pdf`, `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 
 ---
 
@@ -431,7 +506,74 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
   3. Kiểm tra bộ render HTML preview (`compile_latex_source_to_html`): 4 khẳng định a), b), c), d) hiển thị thành 4 hàng riêng biệt, mỗi hàng chiếm 100% chiều rộng (không chia 2 cột hay 4 cột) kèm nhãn a), b), c), d) và biểu tượng [Đ]/[S].
 - **Kết quả kỳ vọng:** Bố cục đề thi chuẩn mực, 1 cột thẳng đứng rõ ràng, không vỡ layout trên cả bản in PDF và xem trước HTML.
 
-#### TC-DEV-01: Quy Chuẩn Quản Trị Nhánh & Không Tự Động Tạo Pull Request (Git Workflow Guardrail)
+#### TC-COMP-31: Đính Kèm, Dán Clipboard (Ctrl+V) & Kéo Thả Ảnh vào Trợ Lý AI Copilot (Client-Side Image Attachment & UX)
+- **Mô tả:** Kiểm tra các phương thức nhập ảnh vào giao diện AI Copilot trên trình duyệt:
+  1. *Đính kèm từ Compact Bar:* Nhấp nút icon ảnh hoặc dán ảnh clipboard (`Ctrl+V`) vào `#composer-compact-input`: Kiểm tra hệ thống tự động mở bung popup lớn `#composer-ai-popup`, đưa ảnh vào khay thumbnail `#composer-attached-images-container` và focus vào ô chat lớn `#composer-chat-input`.
+  2. *Đính kèm từ Chat Popup:* Nhấp nút đính kèm ảnh trên toolbar của chat card, chọn 1 hoặc nhiều ảnh (`.png`, `.jpg`, `.webp`); hoặc nhấn `Ctrl+V` dán ảnh chụp màn hình; hoặc kéo thả file ảnh vào vùng chat (kiểm tra class viền sáng tím `.composer-drag-over`).
+  3. *Tương tác Khay Thumbnail:* Mỗi ảnh hiển thị card bo góc tròn với kích thước 54px x 54px; nhấp nút (✕) gỡ bỏ ảnh thành công; nhấp vào ảnh mở modal Lightbox xem phóng to; bấm Esc hoặc click nền đóng Lightbox.
+  4. *Render Bubble Chat & Reset Ô Nhập:* Khi bấm gửi, khay thumbnail được xóa sạch, bong bóng chat của user hiển thị tin nhắn kèm các ảnh đính kèm; lưu trữ bền vững vào lịch sử phiên `localStorage`.
+- **Kết quả kỳ vọng:** Thao tác dán/upload/xóa ảnh mượt mà 60 FPS, không lỗi console, đúng chuẩn Apple HIG và vi tương tác Emil Kowalski.
+- **Tự động hóa Pytest:** Đã được kiểm thử tự động tại `tests/test_composer.py::test_composer_multimodal_frontend_dom_elements`, `test_composer_multimodal_frontend_app_js_methods_and_flow`, và `test_composer_multimodal_css_styling`.
+
+#### TC-COMP-32: Tính Toàn Vẹn Hợp Đồng API Chat Đa Phương Tiện (Multimodal Payload & Pydantic Schema)
+- **Mô tả:** Kiểm tra schema và phản hồi của endpoint `POST /api/v1/composer/chat`:
+  1. Gửi request có trường `images` chứa danh sách chuỗi Data URL Base64 (`data:image/png;base64,...`).
+  2. Kiểm tra Pydantic model `ChatRequest` và `ChatMessage` tiếp nhận trường `images` mà không phát sinh lỗi validation 422.
+  3. Kiểm tra tính tương thích ngược khi request không có trường `images` (mặc định rỗng `[]`), hệ thống vẫn xử lý bình thường.
+- **Kết quả kỳ vọng:** API trả về mã trạng thái `200 OK`, bảo toàn cấu trúc `ChatResponse(reply, diff, diffs, suggested_latex)`.
+- **Tự động hóa Pytest:** Đã được kiểm thử tự động tại `tests/test_composer.py::test_composer_pydantic_models_images_field` và `test_composer_chat_api_multimodal_empty_images_backward_compatibility`.
+
+#### TC-COMP-33: Trợ Lý AI Phân Tích Hình Ảnh (TikZ / Bảng Biến Thiên) & Động Cơ Dự Phòng Offline Fallback
+- **Mô tả:** Kiểm tra khả năng xử lý hình ảnh của AI Copilot:
+  1. *Khi có AI Provider (Online Multi-modal):* Payload gửi tới external provider được đóng gói dưới dạng mảng các block `[{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": img}}]`. AI nhận diện đề bài, xuất mã câu hỏi `ex_test.sty` và khối dựng đồ thị TikZ nét đen hoặc bảng biến thiên `tkz-tab`.
+  2. *Khi ở chế độ Offline / Local Fallback (hoặc mất mạng):* Gửi request kèm `images` và prompt yêu cầu tạo đồ thị/bảng biến thiên/giải toán: Hệ thống nhận diện sự hiện diện của ảnh, phản hồi lời giải thích đã nhận ảnh thành công và tạo khối mã LaTeX/TikZ hoàn chỉnh để giáo viên chèn hoặc duyệt diff trực tiếp.
+- **Kết quả kỳ vọng:** Không bao giờ ném lỗi 500 khi xử lý ảnh; cả 2 chế độ online và offline fallback đều cung cấp mã nguồn LaTeX/TikZ hợp lệ cho người dùng.
+- **Tự động hóa Pytest:** Đã được kiểm thử tự động tại `tests/test_composer.py::test_composer_chat_api_multimodal_offline_fallback`, `test_composer_chat_api_multimodal_mocked_ai_single_image`, `test_composer_chat_api_multimodal_mocked_ai_multiple_images_and_history`, và `test_composer_chat_api_multimodal_mocked_ai_diff_extraction`.
+
+#### TC-COMP-34: Tính Toán Dynamic Adaptive Compilation Timeout Cho Đề Thi Lớn
+- **Mô tả:** Kiểm tra hàm tính toán timeout động `compute_compilation_timeout(latex_source: str)`:
+  1. *Đề thi nhỏ/rỗng (0 TikZ, < 1000 ký tự):* Timeout trả về mức chặn dưới $60$ giây.
+  2. *Đề thi trung bình (3 TikZ, 8.000 ký tự):* Tính đúng $45 + 3 \times 10 + 8000 // 250 = 107$ giây.
+  3. *Đề thi lớn chuẩn THPT Việt Đức (~24.000 ký tự, 11 TikZ/tkz-tab):* Tính toán chạm mức chặn trên an toàn $240$ giây.
+  4. *Đóng gói payload & socket:* Payload gửi sang Remote Tectonic Docker API có `timeout_s = calc_timeout`, socket `urlopen` có `timeout = calc_timeout + 15`.
+- **Kết quả kỳ vọng:** Hàm tính toán chính xác 100%, trả về giá trị nguyên nằm trong đoạn $[60, 240]$.
+- **Tự động hóa Pytest:** Được kiểm thử tự động tại `tests/test_composer.py::test_composer_compute_compilation_timeout_adaptive_scaling` và `test_composer_compile_large_viet_duc_exam_pdf_success`.
+
+#### TC-COMP-35: Trợ Lý AI Chẩn Đoán Lỗi Timeout & Đề Xuất Diff Tối Ưu Hóa TikZ (samples=100 -> samples=50)
+- **Mô tả:** Kiểm tra chẩn đoán lỗi của `diagnose_compile_error`:
+  1. Khi nhận chuỗi lỗi `compile_error` chứa `"Lỗi Tectonic API: Compilation timed out"` hoặc `"timed out"`.
+  2. Mã nguồn hiện tại chứa các khối đồ thị TikZ với `samples=100`.
+  3. AI Copilot phân tích rõ nguyên nhân do đề thi lớn có nhiều hình vẽ TikZ phức tạp, thông báo hệ thống đã tự động gia hạn thời gian biên dịch.
+  4. Đồng thời sinh `DiffSuggestion` và `diffs` đề xuất chuyển đổi `samples=100` thành `samples=50` để tăng tốc độ biên dịch lên gấp đôi.
+- **Kết quả kỳ vọng:** `diagnose_compile_error` trả về `ChatResponse` với `diff` hợp lệ thay thế `samples=100` thành `samples=50`, kèm danh sách `diffs` đầy đủ cho toàn bộ các đồ thị có mẫu dày.
+- **Tự động hóa Pytest:** Được kiểm thử tự động tại `tests/test_composer.py::test_composer_diagnose_compile_error_timeout_and_samples_optimization`.
+
+#### TC-COMP-34: Kiểm Thử Chống Nhân Đôi Ảnh Đính Kèm Khi Dán Clipboard (Ctrl+V Paste Event Isolation & Debounce)
+- **Mô tả:** Kiểm tra hành vi dán ảnh clipboard (`Ctrl+V` / `Cmd+V`) vào ô chat `#composer-chat-input`:
+  1. Kích hoạt sự kiện `paste` với một ảnh giả lập (Data URL) tại `#composer-chat-input`.
+  2. Xác nhận `e.stopPropagation()` được gọi để chặn sự kiện nổi bọt lên container `#composer-chat-input-container`.
+  3. Kiểm tra mảng `app.composer.attachedImages`: chỉ có **duy nhất 1 phần tử ảnh** được thêm vào.
+  4. Kiểm tra DOM khay thumbnail `#composer-attached-images-container`: hiển thị đúng 1 chip thumbnail, không nhân đôi thành 2 ảnh.
+  5. Thử nghiệm dán liên tiếp 2 lần cùng 1 ảnh trong < 500ms: Xác nhận cơ chế Debounce & Deduplication loại bỏ ảnh thứ hai, thông báo toast chỉ bắn duy nhất 1 lần.
+- **Kết quả kỳ vọng:** 1 ảnh dán chỉ sinh ra duy nhất 1 ảnh đính kèm, triệt tiêu hoàn toàn lỗi nhân đôi.
+
+#### TC-COMP-35: Kiểm Thử Chuẩn Hóa Cấu Trúc Khảo Thí Quốc Gia 2025: Reset Thứ Tự Câu Hỏi Về 1 (\setcounter{ex}{0}) & Loại Bỏ Thẻ \large Ở Tiêu Đề Phần
+- **Mô tả:** Kiểm tra logic tiền xử lý và biên dịch đề thi có nhiều phần (PHẦN I, PHẦN II, PHẦN III):
+  1. Gửi mã LaTeX đề thi 3 phần chuẩn Quốc gia tới `ensure_full_latex_document` và `sync_section_question_counts`:
+     - Kiểm tra tại vị trí bắt đầu PHẦN II và PHẦN III, hệ thống tự động chèn lệnh `\setcounter{ex}{0}` nếu tài liệu chưa có.
+     - Kiểm tra nếu tiêu đề có thẻ `\large` (ví dụ `\textbf{\large PHẦN I...}` hoặc `\large\textbf{PHẦN II...}`), hệ thống tự động bóc bỏ `\large`, đưa về chuẩn `\noindent\textbf{PHẦN ...}`.
+  2. Kiểm tra biên dịch qua `compile_latex_source_to_html`:
+     - Xác nhận số thứ tự câu hỏi ở PHẦN II được reset về Câu 1 (không phải Câu 13).
+     - Xác nhận số thứ tự câu hỏi ở PHẦN III được reset về Câu 1 (không phải Câu 17).
+  3. Kiểm tra các template trong `composer_service.py` (`TEMPLATES`) và `app.js` (`EX_TEST_TEMPLATES`): Xác nhận đã chứa sẵn `\setcounter{ex}{0}` ở PHẦN II, PHẦN III và không chứa thẻ `\large`.
+- **Kết quả kỳ vọng:** Đề thi hiển thị đúng thứ tự câu hỏi bắt đầu từ Câu 1 ở mỗi phần và typography tiêu đề phần đồng nhất 12pt in đậm.
+
+#### TC-COMP-36: Kiểm Thử Giải Pháp Biên Dịch Nhanh Đa Tầng (Focus Partial Compile, Instant Preview & Draft Mode)
+- **Mô tả:** Kiểm tra các cơ chế tăng tốc biên dịch:
+  1. *Focus Partial Compile:* Gửi yêu cầu biên dịch riêng 1 câu hỏi tại con trỏ tới `/api/v1/composer/compile-partial` (hoặc `/compile` với `focus_mode=True`), xác nhận tài liệu được bọc preamble tối giản, biên dịch thành công PDF trong < 2.0 giây.
+  2. *Instant Live Preview (HTML):* Gọi `compile_latex_source_to_html`, xác nhận công thức toán và đồ thị TikZ được chuyển đổi mượt mà, tái sử dụng Disk Cache của các hình không đổi trong < 200ms.
+  3. *Draft Mode Compile:* Gửi yêu cầu biên dịch toàn bộ tài liệu nặng kèm `draft_mode=True`, xác nhận backend tự động tối ưu `samples=35` cho các đường cong TikZ, hoàn thành biên dịch toàn bộ 22 câu trong < 20 giây.
+- **Kết quả kỳ vọng:** Các chế độ biên dịch nhanh hoạt động ổn định, giảm đáng kể thời gian chờ đợi của giáo viên khi soạn thảo.
 - **Mô tả:** Rà soát và xác thực hành vi của các agent và quy trình CI/CD:
   1. Chỉ thực hiện `git commit` và `git push` lên nhánh remote đang làm việc.
   2. Tuyệt đối không tự động kích hoạt `gh pr create` hoặc các API tương đương để tạo mới hay cập nhật Pull Request khi người dùng chưa ra lệnh trực tiếp bằng lời nói.
@@ -443,6 +585,42 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
   2. *Vòng lặp sửa lỗi CI (CI Loop):* Nếu CI test thất bại, kích hoạt vòng lặp: sửa code/test/CI -> chạy lại CI cho đến khi 100% test cases đạt mới cho phép commit.
   3. *Nguyên tắc Cô lập CI Tuyệt đối (Strict CI Isolation):* Sub-Agent phụ trách CI (Sub-Agent 3) độc quyền đọc, viết, chỉnh sửa cấu hình CI/CD (`.github/workflows/`); cấm mọi sub-agent khác (Sub-Agent 1, 2, 4...) truy cập và đọc CI; Sub-Agent CI tiếp nhận thông tin từ các sub-agents khác để cập nhật CI đồng bộ ngay khi code có thay đổi.
 - **Kết quả kỳ vọng:** 100% cam kết chất lượng mã nguồn trước khi commit vào kho lưu trữ; ngăn chặn lỗi môi trường runner và rò rỉ phân quyền giữa các sub-agents.
+
+---
+
+### TEST SUITE 11: HỆ THỐNG XÁC THỰC NGƯỜI DÙNG AUTH, PBKDF2, JWT & PHÂN QUYỀN RBAC (AUTH-01)
+
+#### TC-AUTH-01: Băm mật khẩu PBKDF2-HMAC-SHA256 & So khớp An toàn
+- **Mô tả:** Kiểm tra hàm `hash_password` tạo chuỗi băm chuẩn `pbkdf2:sha256:600000$<salt_b64>$<hash_b64>` với salt ngẫu nhiên 32 bytes; kiểm tra `verify_password` kháng tấn công timing qua `hmac.compare_digest`.
+- **Kết quả kỳ vọng:** 2 lần băm cùng mật khẩu cho ra 2 chuỗi khác nhau; xác thực mật khẩu đúng trả về True, sai/rỗng/hỏng trả về False.
+
+#### TC-AUTH-02: Sinh và Giải mã JSON Web Token (JWT HS256)
+- **Mô tả:** Kiểm tra `create_access_token` cấu trúc 3 phần `header.payload.signature` với thuật toán HMAC-SHA256; `decode_access_token` xác minh chữ ký và thời hạn hiệu lực (exp).
+- **Kết quả kỳ vọng:** Token hợp lệ giải mã ra payload chính xác; token bị can thiệp chữ ký, token hết hạn hoặc format sai trả về `None`.
+
+#### TC-AUTH-03: Đăng ký Tài khoản Mới (POST /api/v1/auth/register)
+- **Mô tả:** Kiểm tra luồng đăng ký với email, mật khẩu >= 6 ký tự, họ tên, vai trò; kiểm tra bắt lỗi email trùng (400) và mật khẩu quá ngắn (422).
+- **Kết quả kỳ vọng:** Đăng ký thành công trả về 201 Created + access_token + user profile; trùng email trả về 400 "Email already registered".
+
+#### TC-AUTH-04: Đăng nhập Hệ thống (POST /api/v1/auth/login)
+- **Mô tả:** Kiểm tra đăng nhập với email và mật khẩu; kiểm tra sai mật khẩu (401), email không tồn tại (401) và tài khoản bị vô hiệu hóa `is_active=False` (403).
+- **Kết quả kỳ vọng:** Đăng nhập đúng trả về 200 OK + JWT access_token; sai mật khẩu/email trả về 401 "Invalid email or password"; tài khoản inactive trả về 403.
+
+#### TC-AUTH-05: Lấy Thông tin Tài khoản (GET /api/v1/auth/me)
+- **Mô tả:** Kiểm tra dependency `get_current_active_user` với Bearer token hợp lệ, token giả mạo và không đính kèm header.
+- **Kết quả kỳ vọng:** Token hợp lệ trả về đúng user profile (200); token giả mạo hoặc thiếu Authorization header trả về 401 Unauthorized.
+
+#### TC-AUTH-06: Đăng nhập OAuth Google & GitHub
+- **Mô tả:** Kiểm tra callback OAuth tạo tài khoản mới nếu chưa tồn tại, cập nhật avatar_url và full_name nếu đã tồn tại, phát hành JWT token.
+- **Kết quả kỳ vọng:** Trả về 200 OK kèm access_token và profile người dùng liên kết đúng nhà cung cấp (`google`, `github`).
+
+#### TC-AUTH-07: Đăng xuất & Tài khoản Mặc định Seeded
+- **Mô tả:** Kiểm tra endpoint POST `/api/v1/auth/logout`; kiểm tra đăng nhập thành công với 2 tài khoản seeded: `teacher@quesy.vn` / `quesy123456` (role TEACHER) và `admin@quesy.vn` / `admin123456` (role ADMIN).
+- **Kết quả kỳ vọng:** Logout trả về 200 {"success": True}; cả 2 tài khoản mặc định đăng nhập thành công 100%.
+
+#### TC-AUTH-08: Phân quyền Vai trò RBAC (require_role)
+- **Mô tả:** Kiểm tra dependency phân quyền `require_role("ADMIN")` và `require_role("TEACHER")`.
+- **Kết quả kỳ vọng:** Admin truy cập được mọi vai trò; user thường truy cập tài nguyên Admin bị từ chối 403 "Required role: ADMIN".
 
 ---
 
