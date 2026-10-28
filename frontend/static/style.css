@@ -667,6 +667,36 @@ body.in-composer #tab-composer {
   display: block;
 }
 
+.matrix-stock-chip {
+  display: inline-block;
+  padding: 0.125rem 0.35rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  border: 1px solid transparent;
+}
+.matrix-stock-chip.stock-ok {
+  background-color: #ecfdf5;
+  color: #15803d;
+  border-color: #a7f3d0;
+}
+.matrix-stock-chip.stock-warn {
+  background-color: #fff1f2;
+  color: #b91c1c;
+  border-color: #fecdd3;
+  font-weight: 700;
+}
+
+.btn-preset {
+  transition: all 0.15s ease;
+}
+.btn-preset.active {
+  background-color: #e0e7ff !important;
+  color: #3730a3 !important;
+  border-color: #c7d2fe !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
 .stock-sufficient {
   color: #1b7a36;
 }

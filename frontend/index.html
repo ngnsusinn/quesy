@@ -1152,14 +1152,18 @@
             </div>
             
             <div class="flex items-center space-x-2 flex-wrap gap-1">
-              <button onclick="app.loadMatrixPreset('thpt_2025')" class="btn-apple-secondary text-xs">
+              <button id="btn-preset-thpt_2025" onclick="app.loadMatrixPreset('thpt_2025')" class="btn-preset btn-apple-secondary text-xs active">
                 Preset: Chuẩn TN THPT 2025 (34 câu)
               </button>
-              <button onclick="app.loadMatrixPreset('midterm')" class="btn-apple-secondary text-xs">
+              <button id="btn-preset-midterm" onclick="app.loadMatrixPreset('midterm')" class="btn-preset btn-apple-secondary text-xs">
                 Preset: Kiểm tra Định kỳ (20 câu)
               </button>
-              <button onclick="app.loadMatrixPreset('final')" class="btn-apple-secondary text-xs font-bold text-brand-700 bg-brand-50 border-brand-200">
+              <button id="btn-preset-final" onclick="app.loadMatrixPreset('final')" class="btn-preset btn-apple-secondary text-xs">
                 Preset: Kiểm tra Cuối kỳ (28 câu)
+              </button>
+              <button id="btn-add-matrix-row" onclick="app.openAddMatrixRowModal()" class="btn-apple-primary text-xs py-1.5 px-3 flex items-center space-x-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>+ Thêm dòng YCCĐ</span>
               </button>
             </div>
           </div>
@@ -1238,6 +1242,7 @@
                   </th>
                   <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng câu</th>
                   <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng điểm</th>
+                  <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-16">Thao tác</th>
                 </tr>
               </thead>
               <tbody id="matrix-grid-tbody" class="divide-y divide-slate-200">
@@ -1251,6 +1256,7 @@
                   <td id="matrix-total-vandung" class="p-3 text-center border-l border-slate-200 text-emerald-800">12 câu (3.5đ)</td>
                   <td id="matrix-total-items" class="p-3 text-center border-l border-slate-200 text-brand-800 text-sm">34 câu</td>
                   <td id="matrix-total-points" class="p-3 text-center border-l border-slate-200 text-brand-800 text-sm">10.0 đ</td>
+                  <td class="p-3 border-l border-slate-200"></td>
                 </tr>
               </tfoot>
             </table>
@@ -2006,6 +2012,61 @@
         <button type="button" onclick="document.getElementById('question-detail-modal').classList.add('hidden')" class="btn-apple-primary py-1.5 px-4 text-xs">
           Đóng
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ADD MATRIX ROW MODAL (APPLE HIG) ================= -->
+  <div id="add-matrix-row-modal" class="apple-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <div class="apple-modal-sheet max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150 bg-white rounded-2xl shadow-2xl">
+      <div class="px-6 py-4 bg-slate-50 border-b border-black/[0.06] flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center">
+            <i data-lucide="grid" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm">Thêm Dòng YCCĐ vào Ma Trận</h3>
+            <p class="text-xs text-slate-500">Chọn Mạch nội dung & Yêu cầu cần đạt chuẩn TT 32/2018</p>
+          </div>
+        </div>
+        <button type="button" onclick="app.closeAddMatrixRowModal()" class="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+      </div>
+      <div class="p-6 space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Mạch Nội Dung</label>
+          <select id="modal-matrix-strand" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-semibold">
+            <option value="Số, Đại số & Giải tích">Số, Đại số & Giải tích</option>
+            <option value="Hình học & Đo lường">Hình học & Đo lường</option>
+            <option value="Thống kê & Xác suất">Thống kê & Xác suất</option>
+            <option value="Thực hành & Trải nghiệm">Thực hành & Trải nghiệm</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Mã YCCĐ (Thông tư 32)</label>
+          <input type="text" id="modal-matrix-yccd" value="TOAN12.GT.05" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-mono" placeholder="Ví dụ: TOAN12.GT.05">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Tên Dạng Bài / Chủ Đề</label>
+          <input type="text" id="modal-matrix-archetype" value="Khảo sát sự biến thiên và vẽ đồ thị hàm số" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-medium">
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Số câu Biết</label>
+            <input type="number" id="modal-matrix-biet" value="2" min="0" max="10" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-bold text-center">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Số câu Hiểu</label>
+            <input type="number" id="modal-matrix-hieu" value="2" min="0" max="10" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-bold text-center">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Số câu Vận dụng</label>
+            <input type="number" id="modal-matrix-vandung" value="1" min="0" max="10" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-bold text-center">
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-black/[0.06] flex items-center justify-end space-x-2 shrink-0">
+        <button type="button" onclick="app.closeAddMatrixRowModal()" class="btn-apple-secondary py-1.5 px-4 text-xs">Hủy bỏ</button>
+        <button type="button" onclick="app.confirmAddMatrixRow()" class="btn-apple-primary py-1.5 px-4 text-xs font-semibold">Thêm vào ma trận</button>
       </div>
     </div>
   </div>

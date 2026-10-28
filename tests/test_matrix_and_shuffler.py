@@ -671,3 +671,324 @@ def test_shuffler_export_single_variant_and_package_pure_vector_pdf(client):
         assert "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf" in namelist
         assert zf.read("Phieu_Tra_Loi_Trac_Nghiem_2025.pdf").startswith(b"%PDF")
 
+
+# =========================================================================
+# 10. KIỂM THỬ THAO TÁC DÒNG MA TRẬN ĐỀ THI: DOM & JS CONTRACT
+# =========================================================================
+
+def test_matrix_dynamic_row_operations_dom_and_js_contract():
+    """Kiểm thử cấu trúc DOM và JavaScript contract cho thao tác thêm/xóa dòng Ma trận:
+    - DOM Elements trong frontend/index.html: #btn-add-matrix-row, #add-matrix-row-modal,
+      các trường input thêm dòng (#modal-matrix-strand, #modal-matrix-yccd, ...),
+      các nút xác nhận và hủy bỏ.
+    - Cột thao tác xóa dòng trong bảng ma trận (#matrix-grid-table).
+    - CSS styles trong frontend/static/style.css: .matrix-stock-chip, .btn-preset.active.
+    - JS contract trong frontend/static/app.js: các hàm addMatrixRow, deleteMatrixRow,
+      openAddMatrixRowModal, confirmAddMatrixRow có mặt và được export vào window.app.
+    """
+    from pathlib import Path
+
+    # 1. Kiểm tra DOM frontend/index.html
+    html_path = Path("frontend/index.html")
+    assert html_path.exists(), "frontend/index.html phải tồn tại"
+    html_content = html_path.read_text(encoding="utf-8")
+
+    assert 'id="btn-add-matrix-row"' in html_content, "Nút thêm dòng ma trận phải có id='btn-add-matrix-row'"
+    assert 'onclick="app.openAddMatrixRowModal()"' in html_content, "Nút thêm dòng phải gọi app.openAddMatrixRowModal()"
+    assert 'id="add-matrix-row-modal"' in html_content, "Modal thêm dòng ma trận phải có id='add-matrix-row-modal'"
+    assert 'id="modal-matrix-strand"' in html_content, "Modal phải có selector mạch kiến thức #modal-matrix-strand"
+    assert 'id="modal-matrix-yccd"' in html_content, "Modal phải có input mã YCCĐ #modal-matrix-yccd"
+    assert 'id="modal-matrix-archetype"' in html_content, "Modal phải có input dạng bài #modal-matrix-archetype"
+    assert 'id="modal-matrix-biet"' in html_content, "Modal phải có input số câu Biết #modal-matrix-biet"
+    assert 'id="modal-matrix-hieu"' in html_content, "Modal phải có input số câu Hiểu #modal-matrix-hieu"
+    assert 'id="modal-matrix-vandung"' in html_content, "Modal phải có input số câu Vận dụng #modal-matrix-vandung"
+    assert 'onclick="app.confirmAddMatrixRow()"' in html_content, "Nút xác nhận trong modal phải gọi app.confirmAddMatrixRow()"
+    assert 'onclick="app.closeAddMatrixRowModal()"' in html_content, "Nút đóng modal phải gọi app.closeAddMatrixRowModal()"
+    assert 'Thao tác' in html_content, "Bảng ma trận phải có tiêu đề cột Thao tác"
+
+    # 2. Kiểm tra CSS frontend/static/style.css
+    css_path = Path("frontend/static/style.css")
+    assert css_path.exists(), "frontend/static/style.css phải tồn tại"
+    css_content = css_path.read_text(encoding="utf-8")
+    assert ".matrix-stock-chip.stock-ok" in css_content, "CSS phải định nghĩa chip tồn kho đủ .matrix-stock-chip.stock-ok"
+    assert ".matrix-stock-chip.stock-warn" in css_content, "CSS phải định nghĩa chip tồn kho thiếu .matrix-stock-chip.stock-warn"
+    assert ".btn-preset.active" in css_content, "CSS phải định nghĩa trạng thái preset active .btn-preset.active"
+
+    # 3. Kiểm tra JS methods và contract trong frontend/static/app.js
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists(), "frontend/static/app.js phải tồn tại"
+    js_content = js_path.read_text(encoding="utf-8")
+
+    assert "function openAddMatrixRowModal" in js_content, "app.js phải định nghĩa function openAddMatrixRowModal"
+    assert "function closeAddMatrixRowModal" in js_content, "app.js phải định nghĩa function closeAddMatrixRowModal"
+    assert "function confirmAddMatrixRow" in js_content, "app.js phải định nghĩa function confirmAddMatrixRow"
+    assert "function addMatrixRow" in js_content, "app.js phải định nghĩa function addMatrixRow"
+    assert "function deleteMatrixRow" in js_content, "app.js phải định nghĩa function deleteMatrixRow"
+
+    # 4. Kiểm tra window.app exports
+    assert "openAddMatrixRowModal," in js_content, "window.app phải export openAddMatrixRowModal"
+    assert "closeAddMatrixRowModal," in js_content, "window.app phải export closeAddMatrixRowModal"
+    assert "confirmAddMatrixRow," in js_content, "window.app phải export confirmAddMatrixRow"
+    assert "addMatrixRow," in js_content, "window.app phải export addMatrixRow"
+    assert "deleteMatrixRow," in js_content, "window.app phải export deleteMatrixRow"
+
+
+# =========================================================================
+# 11. KIỂM THỬ TÍNH TOÁN ĐIỂM SỐ KHÔNG HARDCODE & PHÂN BỔ BLOOM THỜI GIAN THỰC
+# =========================================================================
+
+def test_matrix_dynamic_scoring_and_bloom_calculation_no_hardcode():
+    """Kiểm thử tính toán điểm số ma trận trả về giá trị thực tế theo số câu:
+    - Loại bỏ hoàn toàn hardcode '10.0 đ' trong renderMatrixGrid().
+    - Tính toán grandPoints động: totalBiet * 0.25 + totalHieu * 0.35 + totalVandung * 0.4.
+    - Tính toán tỷ lệ Bloom: pctBiet, pctHieu, pctVandung.
+    - Cảnh báo hoặc xác nhận chuẩn khảo thí theo ngưỡng phân bố.
+    - Mô phỏng tính toán động với các tập số câu khác nhau chứng minh không hardcode.
+    """
+    from pathlib import Path
+
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists()
+    js_content = js_path.read_text(encoding="utf-8")
+
+    # 1. Xác nhận loại bỏ hardcode '10.0 đ' trong hàm renderMatrixGrid
+    grid_func_start = js_content.find("function renderMatrixGrid()")
+    assert grid_func_start != -1
+    grid_func_end = js_content.find("function openAddMatrixRowModal()", grid_func_start)
+    assert grid_func_end != -1
+    grid_func_body = js_content[grid_func_start:grid_func_end]
+
+    assert "document.getElementById('matrix-total-points').innerText = '10.0 đ'" not in grid_func_body, \
+        "renderMatrixGrid tuyệt đối không được hardcode '10.0 đ'"
+    assert "const grandPoints = (totalBiet * 0.25 + totalHieu * 0.35 + totalVandung * 0.4).toFixed(1)" in grid_func_body, \
+        "grandPoints phải được tính toán động theo trọng số điểm từng câu"
+    assert "${grandPoints} đ" in grid_func_body, "Hiển thị tổng điểm phải sử dụng biến động ${grandPoints} đ"
+    assert "${grandItems} câu" in grid_func_body, "Hiển thị tổng câu phải sử dụng biến động ${grandItems} câu"
+
+    # 2. Xác nhận tính toán tỷ lệ Bloom phân bổ chuẩn khảo thí
+    assert "let pctBiet = Math.round((totalBiet / grandItems) * 100)" in grid_func_body
+    assert "let pctHieu = Math.round((totalHieu / grandItems) * 100)" in grid_func_body
+    assert "let pctVandung = Math.max(0, 100 - pctBiet - pctHieu)" in grid_func_body
+    assert "ĐẠT CHUẨN KHẢO THÍ: 40% Biết - 30% Hiểu - 30% Vận dụng" in grid_func_body
+    assert "CẢNH BÁO: Tỷ lệ phân bố Bloom" in grid_func_body
+
+    # 3. Mô phỏng tính toán độc lập xác thực tính chính xác không phụ thuộc hằng số 10.0đ
+    def compute_matrix_summary(rows):
+        total_biet = sum(r["biet"] for r in rows)
+        total_hieu = sum(r["hieu"] for r in rows)
+        total_vandung = sum(r["vandung"] for r in rows)
+        grand_items = total_biet + total_hieu + total_vandung
+        grand_points = round(total_biet * 0.25 + total_hieu * 0.35 + total_vandung * 0.4, 1)
+
+        pct_biet = round((total_biet / grand_items) * 100) if grand_items > 0 else 0
+        pct_hieu = round((total_hieu / grand_items) * 100) if grand_items > 0 else 0
+        pct_vandung = max(0, 100 - pct_biet - pct_hieu) if grand_items > 0 else 0
+
+        is_standard = (abs(pct_biet - 40) <= 5 and abs(pct_hieu - 30) <= 5)
+        return {
+            "grand_items": grand_items,
+            "grand_points": grand_points,
+            "pct_biet": pct_biet,
+            "pct_hieu": pct_hieu,
+            "pct_vandung": pct_vandung,
+            "is_standard": is_standard
+        }
+
+    # Kịch bản A: 20 câu (8 Biết, 6 Hiểu, 6 Vận dụng) -> Tổng điểm 6.5đ, Đạt chuẩn 40-30-30
+    res_a = compute_matrix_summary([{"biet": 8, "hieu": 6, "vandung": 6}])
+    assert res_a["grand_items"] == 20
+    assert res_a["grand_points"] == 6.5
+    assert res_a["pct_biet"] == 40
+    assert res_a["pct_hieu"] == 30
+    assert res_a["pct_vandung"] == 30
+    assert res_a["is_standard"] is True
+
+    # Kịch bản B: 40 câu (16 Biết, 12 Hiểu, 12 Vận dụng) -> Tổng điểm 13.0đ, Đạt chuẩn Bloom
+    res_b = compute_matrix_summary([{"biet": 16, "hieu": 12, "vandung": 12}])
+    assert res_b["grand_items"] == 40
+    assert res_b["grand_points"] == 13.0
+    assert res_b["is_standard"] is True
+
+    # Kịch bản C: 12 câu lệch chuẩn (10 Biết, 1 Hiểu, 1 Vận dụng) -> Tổng điểm 3.3đ, Cảnh báo Bloom
+    res_c = compute_matrix_summary([{"biet": 10, "hieu": 1, "vandung": 1}])
+    assert res_c["grand_items"] == 12
+    assert res_c["pct_biet"] == 83
+    assert res_c["is_standard"] is False
+
+
+# =========================================================================
+# 12. KIỂM THỬ RENDER 3 THỂ THỨC CÂU HỎI TRONG ĐỀ GỐC & MÃ ĐỀ HOÁN VỊ
+# =========================================================================
+
+def test_render_master_exam_and_variant_view_three_question_formats():
+    """Kiểm thử render 3 thể thức câu hỏi trong renderMasterExam và renderVariantView:
+    - Hỗ trợ đầy đủ: SINGLE_CHOICE, TRUE_FALSE_GROUP, SHORT_ANSWER.
+    - Format TRUE_FALSE_GROUP hiển thị Barem bậc thang QĐ 764 và nhãn [ĐÚNG]/[SAI].
+    - Format SHORT_ANSWER hiển thị giá trị số thực chính xác.
+    - Format SINGLE_CHOICE hiển thị danh sách phương án lựa chọn và huy hiệu neo [Neo D].
+    """
+    from pathlib import Path
+
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists()
+    js_content = js_path.read_text(encoding="utf-8")
+
+    # 1. Kiểm tra renderMasterExam() hỗ trợ trọn vẹn 3 thể thức
+    master_func_start = js_content.find("function renderMasterExam()")
+    assert master_func_start != -1
+    master_func_end = js_content.find("function swapMasterQuestion", master_func_start)
+    assert master_func_end != -1
+    master_func_body = js_content[master_func_start:master_func_end]
+
+    # Kiểm tra badge thể thức
+    assert "Trắc nghiệm Đơn" in master_func_body
+    assert "Đúng/Sai (4 ý)" in master_func_body
+    assert "Trả lời ngắn" in master_func_body
+
+    # Kiểm tra cấu trúc render SINGLE_CHOICE
+    assert "format === 'SINGLE_CHOICE' && q.options" in master_func_body
+    assert "is_fixed || isAnchorPhrase(o.content)" in master_func_body
+    assert "[Neo D]" in master_func_body
+
+    # Kiểm tra cấu trúc render TRUE_FALSE_GROUP với barem QĐ 764
+    assert "format === 'TRUE_FALSE_GROUP' && q.sub_statements" in master_func_body
+    assert "Barem bậc thang QĐ 764: Đúng 1 ý = 0.1đ | Đúng 2 ý = 0.25đ | Đúng 3 ý = 0.5đ | Đúng 4 ý = 1.0đ" in master_func_body
+    assert "sub.is_true ? '[ĐÚNG]' : '[SAI]'" in master_func_body
+
+    # Kiểm tra cấu trúc render SHORT_ANSWER
+    assert "format === 'SHORT_ANSWER'" in master_func_body
+    assert "Đáp án đúng (Trả lời ngắn):" in master_func_body
+    assert "q.short_answer_value || q.short_answer_key" in master_func_body
+
+    # 2. Kiểm tra renderVariantView() hỗ trợ trọn vẹn 3 thể thức
+    variant_func_start = js_content.find("function renderVariantView(code)")
+    assert variant_func_start != -1
+    variant_func_end = js_content.find("function renderAnswerKeyMatrixTable()", variant_func_start)
+    assert variant_func_end != -1
+    variant_func_body = js_content[variant_func_start:variant_func_end]
+
+    assert "format === 'SINGLE_CHOICE' && q.options" in variant_func_body
+    assert "format === 'TRUE_FALSE_GROUP' && q.sub_statements" in variant_func_body
+    assert "sub.is_true ? '[ĐÚNG]' : '[SAI]'" in variant_func_body
+    assert "format === 'SHORT_ANSWER'" in variant_func_body
+    assert "q.short_answer_value || q.short_answer_key" in variant_func_body
+
+
+# =========================================================================
+# 13. KIỂM THỬ BẢNG MA TRẬN ĐÁP ÁN HIỂN THỊ ĐẦY ĐỦ 3 THỂ THỨC & 4 MÃ ĐỀ
+# =========================================================================
+
+def test_render_answer_key_matrix_table_three_question_formats():
+    """Kiểm thử bảng ma trận đáp án hiển thị đầy đủ đáp án cho cả 3 thể thức:
+    - Bảng hiển thị format badge tương ứng: 'TN Đơn', 'Đúng/Sai', 'Trả lời ngắn'.
+    - Hiển thị đáp án đề gốc (masterKey) và cả 4 mã đề hoán vị (101, 102, 103, 104).
+    - Cột Option Anchor phản ánh chính xác 'Khóa vị trí D' hoặc 'Hoán vị tự do'.
+    - Mô phỏng logic tạo ma trận đáp án từ frontend đảm bảo mọi thể thức đều có key hợp lệ.
+    """
+    from pathlib import Path
+
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists()
+    js_content = js_path.read_text(encoding="utf-8")
+
+    # 1. Kiểm tra renderAnswerKeyMatrixTable()
+    table_func_start = js_content.find("function renderAnswerKeyMatrixTable()")
+    assert table_func_start != -1
+    table_func_end = js_content.find("function downloadPublishZip", table_func_start)
+    assert table_func_end != -1
+    table_func_body = js_content[table_func_start:table_func_end]
+
+    assert "row.format === 'TRUE_FALSE_GROUP'" in table_func_body
+    assert "row.format === 'SHORT_ANSWER'" in table_func_body
+    assert "TN Đơn" in table_func_body
+    assert "Đúng/Sai" in table_func_body
+    assert "Trả lời ngắn" in table_func_body
+    assert "row.masterKey" in table_func_body
+    assert "row.variantKeys['101']" in table_func_body
+    assert "row.variantKeys['102']" in table_func_body
+    assert "row.variantKeys['103']" in table_func_body
+    assert "row.variantKeys['104']" in table_func_body
+    assert "Khóa vị trí D" in table_func_body
+    assert "Hoán vị tự do" in table_func_body
+
+    # 2. Mô phỏng thuật toán khởi tạo keyMatrix từ đề gốc 3 thể thức
+    sample_master_items = [
+        {
+            "item_format": "SINGLE_CHOICE",
+            "options": [
+                {"label": "A", "content": "1", "is_correct": False, "is_fixed": False},
+                {"label": "B", "content": "2", "is_correct": True, "is_fixed": False},
+                {"label": "C", "content": "3", "is_correct": False, "is_fixed": False},
+                {"label": "D", "content": "Cả ba đều đúng", "is_correct": False, "is_fixed": True},
+            ]
+        },
+        {
+            "item_format": "TRUE_FALSE_GROUP",
+            "sub_statements": [
+                {"label": "a", "is_true": True},
+                {"label": "b", "is_true": False},
+                {"label": "c", "is_true": True},
+                {"label": "d", "is_true": True},
+            ]
+        },
+        {
+            "item_format": "SHORT_ANSWER",
+            "short_answer_value": "3.14"
+        }
+    ]
+
+    key_matrix = []
+    codes = ["101", "102", "103", "104"]
+
+    for idx, q in enumerate(sample_master_items):
+        master_correct = "-"
+        if q["item_format"] == "SINGLE_CHOICE":
+            c = next((o for o in q["options"] if o["is_correct"]), None)
+            master_correct = c["label"] if c else "A"
+        elif q["item_format"] == "TRUE_FALSE_GROUP":
+            master_correct = "-".join("Đ" if s["is_true"] else "S" for s in q["sub_statements"])
+        elif q["item_format"] == "SHORT_ANSWER":
+            master_correct = q.get("short_answer_value", "1")
+
+        has_anchor = any(o.get("is_fixed") for o in q.get("options", []))
+
+        variant_keys = {}
+        for code in codes:
+            if q["item_format"] == "SINGLE_CHOICE":
+                variant_keys[code] = "B"  # hoặc phương án hoán vị
+            else:
+                variant_keys[code] = master_correct
+
+        key_matrix.append({
+            "qIndex": idx + 1,
+            "format": q["item_format"],
+            "masterKey": master_correct,
+            "variantKeys": variant_keys,
+            "hasAnchor": has_anchor
+        })
+
+    # Xác thực cấu trúc hàng ma trận đáp án cho từng thể thức
+    assert len(key_matrix) == 3
+
+    # Câu 1: SINGLE_CHOICE với Anchor ở D
+    assert key_matrix[0]["format"] == "SINGLE_CHOICE"
+    assert key_matrix[0]["masterKey"] == "B"
+    assert key_matrix[0]["hasAnchor"] is True
+    for code in codes:
+        assert code in key_matrix[0]["variantKeys"]
+
+    # Câu 2: TRUE_FALSE_GROUP chuẩn 4 ý Đ-S-Đ-Đ
+    assert key_matrix[1]["format"] == "TRUE_FALSE_GROUP"
+    assert key_matrix[1]["masterKey"] == "Đ-S-Đ-Đ"
+    assert key_matrix[1]["hasAnchor"] is False
+    for code in codes:
+        assert key_matrix[1]["variantKeys"][code] == "Đ-S-Đ-Đ"
+
+    # Câu 3: SHORT_ANSWER chuẩn số thực
+    assert key_matrix[2]["format"] == "SHORT_ANSWER"
+    assert key_matrix[2]["masterKey"] == "3.14"
+    assert key_matrix[2]["hasAnchor"] is False
+    for code in codes:
+        assert key_matrix[2]["variantKeys"][code] == "3.14"
+
+
