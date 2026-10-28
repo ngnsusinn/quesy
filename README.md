@@ -173,8 +173,11 @@ Located in `backend/routers/matrix.py`, `backend/services/matrix_solver.py` & `f
   - **Preset 1 (National Graduation Exam 2025):** 34 items (12 Single Choice $\times$ 0.25 pt, 4 True/False $\times$ 1.0 pt, 6 Short Answer $\times$ 0.5 pt; standard 40% Recognition - 30% Comprehension - 30% Application ratio, 10.0 points total).
   - **Preset 2 (Midterm / Periodic Assessment):** 20 items (12 Single Choice $\times$ 0.25 pt, 4 True/False $\times$ 1.0 pt, 4 Short Answer $\times$ 0.75 pt, 10.0 points total).
   - **Preset 3 (Final / Semester Assessment):** 28 items (16 Single Choice $\times$ 0.25 pt, 4 True/False $\times$ 1.0 pt, 8 Short Answer $\times$ 0.25 pt, 10.0 points total).
-- **Interactive 2D Matrix Grid:** Rows partitioned by Content Strand, Learning Outcome (YCCĐ), and Problem Archetype; columns mapped to 3 cognitive tiers (Recognition, Comprehension, Application) with real-time score summation and Bloom balance alerts.
-- **Real-Time Question Bank Inventory Checker:** Validates available approved questions in database per matrix cell, displaying visual indicators (green badge if sufficient, red badge with exact deficit if replenishment is required).
+- **Interactive 2D Matrix Grid with Dynamic Rows:**
+  - Rows partitioned by Content Strand, Learning Outcome (YCCĐ), and Problem Archetype; columns mapped to 3 cognitive tiers (Recognition, Comprehension, Application) with real-time score summation and Bloom balance alerts.
+  - **Dynamic Row Management:** Add/remove YCCĐ rows dynamically (`+ Thêm dòng YCCĐ vào Ma trận`), pick learning outcomes from national taxonomy, and delete rows with immediate total score recalculation.
+  - **Dynamic Real-Time Scoring (Zero Hardcoding):** Calculates row points and matrix total points dynamically from cell values and statutory point weights (no hardcoded '10.0đ' totals or heuristic Bloom overrides).
+- **Real-Time Question Bank Inventory Checker:** Validates available approved questions in database per matrix cell, displaying visual indicators (green badge if sufficient, red alert badge with exact deficit if replenishment is required e.g. `Kho: X / Cần: Y`).
 - **Multi-Format Blueprint Specification Exporter (`GET /api/v1/matrix/{id}/spec`):** Exports official test specification document in Vector PDF, Excel-compatible UTF-8 BOM CSV, and structured JSON.
 
 ### 12. Safe Exam Shuffling, In-Place Item Swap & Bundled ZIP Publishing
@@ -182,7 +185,11 @@ Located in `backend/routers/matrix.py`, `backend/services/matrix_solver.py` & `f
 Located in `backend/routers/exams.py`, `backend/services/docx_exporter.py`, `backend/services/shuffling_engine.py` & `frontend/` (`/shuffler`):
 - **Step 1 - Master Exam, Matrix Import & In-Place Item Swap:**
   - **Master Exam Source Toolbar:** Select existing Master Exams from the system or pick any Assessment Matrix and immediately assemble a new Master Exam via `⚡ Sinh Đề Gốc từ Ma Trận Này` or sync from current active matrix.
-  - Generates Master Exam from matrix via constraint satisfaction solver; renders questions with full KaTeX formulas and TikZ plots; enables teachers to replace any question with an equivalent question from the bank (same YCCĐ, cognitive tier, and format).
+  - **Full Support for All 3 Assessment Formats (Circular 32 & Decision 764):**
+    1. *Single Choice (4 choices):* Highlights correct answer, flags Option Anchor (`[Neo D]`) for fixed options.
+    2. *True/False Group (4 statements a, b, c, d):* Distinct `[ĐÚNG]` and `[SAI]` badges, displays statutory progressive grading barem (0.1đ - 0.25đ - 0.5đ - 1.0đ).
+    3. *Short Answer:* Distinct numeric answer box with Part III label.
+  - **Ergonomic In-Place Item Swap:** Replace any question with an equivalent question from the bank (same YCCĐ, cognitive tier, and format) supporting full multi-format previews.
 - **Step 2 - 4 Safe Shuffling Principles (Decision 764):**
   1. *Section Integrity:* Shuffles items strictly within their respective format sections (Part I, Part II, Part III).
   2. *Passage Integrity:* Preserves stimulus reading passages and dependent sub-questions as indivisible atomic blocks.
@@ -355,7 +362,9 @@ Every pull request and commit to remote branches executes a multi-runtime GitHub
 >    - Sub-Agent CI có toàn quyền đọc và tiếp nhận thông tin từ các sub-agents khác (specs, code diffs, dependencies, test cases, bug reports) để chủ động đồng bộ hóa CI.
 > 4. **Vòng Lặp Sửa Lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
 >    `CI Fail` → `Sửa lỗi mã nguồn / Cập nhật test & CI` → `Chạy lại test CI` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT**.
-> 5. **Quy Tắc Quản Trị Nhánh & Git Workflow:** Toàn bộ quá trình phát triển tuân thủ nghiêm ngặt nguyên tắc **chỉ thực hiện `git commit` và `git push`** lên remote repository/feature branch. **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO/CẬP NHẬT PULL REQUEST (`gh pr create`, API PR...)** trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt).
+> 5. **Quy Tắc Quản Trị Git, Pull Request First & Continuous PR Description Sync:**
+>    - **Quy tắc tạo PR trước khi commit (PR First Rule):** Khi bắt đầu triển khai hoặc có nhánh làm việc, BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`). Tuyệt đối không commit khi chưa tồn tại Pull Request.
+>    - **Quy tắc cập nhật mô tả PR liên tục (Continuous PR Description Sync):** Nếu đang tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh chính xác trạng thái kỹ thuật, các thay đổi mới nhất và kết quả kiểm thử.
 
 ---
 

@@ -492,16 +492,25 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
 
 ---
 
-## 10. QUY TRÌNH QUẢN TRỊ PHIÊN BẢN & GIT WORKFLOW (STRICT PRE-COMMIT CI GATE, COMMIT & PUSH ONLY)
+## 10. QUY TRÌNH QUẢN TRỊ GIT, PULL REQUEST FIRST & CONTINUOUS PR DESCRIPTION SYNC
 
 - **Cổng Kiểm Soát Bắt Buộc Trước Khi Commit (Pre-Commit CI Gate):**
   - **Bắt buộc:** Trước khi thực hiện `git commit`, mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (`pytest`, syntax check, môi trường tương đương CI). Tuyệt đối cấm commit khi CI test chưa pass 100%.
   - **Vòng lặp sửa lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
     `CI thất bại` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 chạy lại CI test` → `Lặp lại quy trình` cho đến khi **100% PASS CI mới được phép thực hiện commit**.
+
+- **Quy Tắc Tạo Pull Request Trước Khi Commit (PR First Rule):**
+  - Khi bắt đầu triển khai một chu trình phát triển (tính năng mới, sửa lỗi, refactor) hoặc có nhánh làm việc (`feat`), BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`).
+  - Nếu nhánh chưa có commit khác biệt với `main` (GitHub API không cho phép tạo PR rỗng), thì ngay sau khi có commit đầu tiên của chu trình (hoặc WIP commit), BẮT BUỘC phải tạo Pull Request TRƯỚC khi commit các bước tiếp theo, bảo đảm luôn có Pull Request tồn tại trước khi hoàn tất chu trình.
+
+- **Quy Tắc Cập Nhật Mô Tả PR Liên Tục (Continuous PR Description Sync Rule):**
+  - Nếu có tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó bằng GitHub CLI (`gh pr edit <PR_NUM> --body "..."`).
+  - Nội dung mô tả PR phải phản ánh chính xác trạng thái kỹ thuật mới nhất, các thành phần đã sửa đổi, kết quả kiểm thử (100% PASS) và các tài liệu kỹ thuật đã đồng bộ.
+
 - **Quy trình Commit & Push:**
-  1. Sau khi 100% test cases vượt qua trên CI, thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
-  2. Thực hiện `git push` lên nhánh làm việc (remote branch).
-- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO/CẬP NHẬT PULL REQUEST:**
-  - Nghiêm cấm các sub-agent tự ý chạy lệnh `gh pr create` hoặc gọi GitHub REST API để mở Pull Request.
-  - Nghiêm cấm tự động cập nhật hoặc đẩy vào Pull Request có sẵn trừ khi Người dùng (User) yêu cầu bằng lời nói rõ ràng, cụ thể.
+  1. Đảm bảo Pull Request đã được mở trên GitHub (`gh pr list`).
+  2. Cập nhật description của Pull Request bằng `gh pr edit <PR_NUM> --body "..."`.
+  3. Thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+  4. Thực hiện `git push` lên remote repository (`origin <branch>`).
+
 - **Dọn dẹp tiến trình:** Bắt buộc diệt sạch các tiến trình nền (uvicorn cổng 8000, Node.js persistent worker, subprocess) sau khi kết thúc lượt phản hồi.

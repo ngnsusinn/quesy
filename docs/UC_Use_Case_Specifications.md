@@ -11,9 +11,10 @@
 
 ## 1. SƠ ĐỒ TỔNG THỂ USE CASE (SYSTEM USE CASE DIAGRAM)
 
-### 1.1. Quy tắc Quản trị Git Workflow & Không Tự Động Tạo Pull Request (Mandatory Git Rule)
-- **Bắt buộc:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
-- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
+### 1.1. Quy tắc Quản trị Git, Pull Request First & Continuous PR Description Sync (Mandatory Git Rule)
+- **Quy tắc tạo PR trước khi commit (PR First Rule):** Khi bắt đầu triển khai hoặc có nhánh làm việc (`feat`), BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`). Tuyệt đối không commit khi chưa tồn tại Pull Request.
+- **Quy tắc cập nhật mô tả PR liên tục (Continuous PR Description Sync):** Nếu đang tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh chính xác trạng thái kỹ thuật, các thay đổi mới nhất và kết quả kiểm thử.
+- Mọi tác vụ phát triển tuân thủ nghiêm ngặt chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 ```
                        ┌────────────────────────────────────────────────────────┐

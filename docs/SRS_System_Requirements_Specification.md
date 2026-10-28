@@ -34,8 +34,10 @@ Tài liệu này đặc tả chi tiết toàn bộ các yêu cầu kỹ thuật,
   - **Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4...) tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
   - Chỉ duy nhất Sub-Agent đảm nhận làm CI mới được phép đọc, viết, chỉnh sửa cấu hình CI/CD.
   - Sub-Agent CI có toàn quyền đọc và tiếp nhận thông tin từ các sub-agents khác để phục vụ việc đồng bộ CI.
-- **Quy chuẩn Git Commit & Push:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
-- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
+- **Quy chuẩn Git, Pull Request First & Continuous PR Description Sync:**
+  - **Quy tắc tạo PR trước khi commit (PR First Rule):** Khi bắt đầu triển khai hoặc có nhánh làm việc, BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`). Tuyệt đối không commit khi chưa tồn tại Pull Request.
+  - **Quy tắc cập nhật mô tả PR liên tục (Continuous PR Description Sync):** Nếu đang tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh chính xác trạng thái kỹ thuật, các thay đổi mới nhất và kết quả kiểm thử.
+  - Mọi tác vụ phát triển tuân thủ nghiêm ngặt chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 ### 1.5. Đối tượng Sử dụng & Phân nhiệm Kỹ thuật (Audience & Roles)
 - **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
@@ -659,19 +661,26 @@ ight)$$
      - **Preset 1 (Chuẩn Tốt nghiệp THPT 2025):** 34 câu, 10.0 điểm, thời gian 90 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định tính điểm bậc thang (1.0đ/câu = 4.0đ), và 6 câu Trả lời ngắn (0.5đ/câu = 3.0đ). Phân bổ Bloom chuẩn: 40% Biết (3.0đ) - 30% Hiểu (3.5đ) - 30% Vận dụng (3.5đ).
      - **Preset 2 (Kiểm tra Định kỳ / Giữa kỳ):** 20 câu, 10.0 điểm, thời gian 50-60 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 4 câu Trả lời ngắn (0.75đ/câu = 3.0đ). Phân bổ: ~50% Biết, 30% Hiểu, 20% Vận dụng.
      - **Preset 3 (Kiểm tra Cuối kỳ):** 28 câu, 10.0 điểm, thời gian 90 phút. Gồm 16 câu TN đơn (0.25đ/câu = 4.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 8 câu Trả lời ngắn (0.25đ/câu = 2.0đ). Phân bổ: 40% Biết, 35% Hiểu, 25% Vận dụng.
-  2. *Lưới Ma trận 2D Tương tác (Interactive 2D Grid):*
-     - Dòng: Phân nhóm theo Mạch nội dung $
-ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng câu hỏi (Problem Archetype) $
-ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
+  2. *Lưới Ma trận 2D Tương tác & Quản lý Dòng động (Interactive 2D Grid & Dynamic Row Management):*
+     - Dòng: Phân nhóm theo Mạch nội dung -> Yêu cầu cần đạt (YCCĐ) -> Dạng câu hỏi (Problem Archetype) -> Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
      - Cột: 3 Mức độ nhận thức: Biết (Nhận biết), Hiểu (Thông hiểu), Vận dụng.
      - Ô nhập liệu: Cho phép nhập số lượng câu hỏi cần lấy cho từng ô.
-     - Tính toán thời gian thực: Tự động tính tổng số câu từng dòng, tổng điểm từng dòng, tổng số câu theo từng cột nhận thức, tổng điểm theo từng cột nhận thức và tổng điểm toàn đề (chuẩn 10.0đ).
-     - Thanh đo lường Bloom: Hiển thị trực quan tỷ lệ % Biết, Hiểu, Vận dụng; cảnh báo màu hổ phách nếu độ lệch vượt quá $\pm 5\%$ so với tỷ lệ chuẩn của từng loại kỳ thi.
-  3. *Đối soát Tồn kho Thời gian thực (Live Inventory Checker):*
-     - Hệ thống kết nối cơ sở dữ liệu câu hỏi thực tế qua API `POST /api/v1/matrix/{id}/check-availability` hoặc `POST /api/v1/matrix/check-availability`.
+     - **Quản lý Dòng Động (Dynamic Rows):** Cho phép giáo viên bấm nút `+ Thêm dòng YCCĐ vào Ma trận` để bổ sung thêm mục tiêu khảo thí, chọn YCCĐ linh hoạt từ cây danh mục TT 32, và nút xóa dòng (`trash-2`) trên từng hàng với cơ chế tính toán lại tức thì.
+     - **Tính toán Điểm số Thời gian thực (Zero Hardcoded Scoring):**
+       * Loại bỏ hoàn toàn các giá trị điểm hardcode. Điểm số từng dòng được tính toán trực tiếp: `rowPoints = (biet * p_biet + hieu * p_hieu + vandung * p_vandung)`.
+       * Điểm toàn ma trận được tính bằng tổng thực tế các dòng: `totalPoints = sum(rowPoints)`.
+       * Hiển thị trạng thái đạt chuẩn nếu tổng điểm đạt 10.0đ hoặc hiển thị cảnh báo nếu lệch điểm.
+     - **Thanh đo lường Bloom Thực tế:** Tự động tính tỷ lệ phần trăm nhận thức chính xác:
+       * `% Biết = round(totalBiet / grandItems * 100)`
+       * `% Hiểu = round(totalHieu / grandItems * 100)`
+       * `% Vận dụng = max(0, 100 - %Biết - %Hiểu)`
+       * Tuyệt đối không hardcode tỷ lệ Bloom theo số câu cố định. Cảnh báo màu hổ phách nếu độ lệch vượt quá $\pm 5\%$ so với tỷ lệ chuẩn của từng loại kỳ thi.
+  3. *Đối soát Tồn kho Thời gian thực & Cảnh báo Thiếu câu (Live Inventory Checker & Deficit Alert):*
+     - Hệ thống kết nối cơ sở dữ liệu câu hỏi thực tế qua API `POST /api/v1/matrix/{id}/check-availability` hoặc đối soát trực tiếp với ngân hàng câu hỏi `state.itemBank`.
      - Với mỗi ô ma trận, đếm số câu hỏi có `status = 'APPROVED'` và `is_defective == False` khớp YCCĐ, mức độ và thể thức.
-     - Hiển thị badge trực quan: Xanh lá nếu đủ câu (ví dụ: `Kho: 15 câu (Đủ)`), Đỏ nếu thiếu câu (ví dụ: `Kho: 2 câu (Thiếu 2)`).
+     - Hiển thị badge trực quan công thái học:
+       * Đủ câu: Chip xanh lá `bg-emerald-50 text-emerald-700 border-emerald-200` (`Kho: X / Cần: Y`).
+       * Thiếu câu: Chip cảnh báo đỏ `bg-rose-50 text-rose-700 border-rose-200 font-bold` (`Kho: X / Cần: Y (Thiếu Z câu)`) kèm icon cảnh báo.
      - Tổng hợp cảnh báo toàn ma trận: Hiển thị danh sách ô thiếu câu và tổng số câu cần bổ sung vào Ngân hàng.
   4. *API Quản lý & Xuất bản Bản đặc tả Ma trận:*
      - Hỗ trợ cả 2 tiền tố route song song: `/api/v1/matrix` và `/api/v1/matrices`.
@@ -693,8 +702,12 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
      - Ràng buộc loại trừ: Loại bỏ các câu hỏi đã xuất hiện trong danh sách loại trừ hoặc các đề thi trong 30 ngày qua khi được kích hoạt.
      - Trọng số trắc lượng học (Psychometric Weighting): Ưu tiên câu hỏi có độ phân biệt tốt ($D \ge 0.3$) và độ khó cân đối ($p \approx 0.55$).
      - Đề gốc được lưu vào CSDL (`MasterExam` và `MasterExamItem`) phân theo 3 phần: Phần I (TN đơn), Phần II (Đúng/Sai), Phần III (Trả lời ngắn).
-  2. *Hiển thị Đề thi Gốc Đầy đủ Thông tin:*
+  2. *Hiển thị Đề thi Gốc Đầy đủ Cả 3 Thể thức Câu hỏi (Circular 32 & Decision 764):*
      - API `POST /api/v1/exams/generate` và `GET /api/v1/exams/{master_id}` trả về đầy đủ thân câu hỏi (`stem`), phương án trắc nghiệm (`options`), các khẳng định con (`sub_statements`), câu trả lời ngắn, mã YCCĐ, đồ thị TikZ SVG và KaTeX preview.
+     - **Hiển thị trực quan 3 thể thức chuẩn:**
+       * *Phần I - Trắc nghiệm 4 lựa chọn (SINGLE_CHOICE):* Lưới 4 phương án A, B, C, D; làm nổi bật phương án đúng bằng màu xanh lá (`bg-emerald-50 text-emerald-900 border-emerald-300 font-bold`); hiển thị badge `[Neo D]` nếu có mỏ neo vị trí.
+       * *Phần II - Trắc nghiệm Đúng/Sai (TRUE_FALSE_GROUP):* 4 khẳng định con a, b, c, d với nhãn rõ nét `[ĐÚNG]` (xanh lá) hoặc `[SAI]` (đỏ) kèm barem chấm bậc thang QĐ 764 (1 ý = 0.1đ, 2 ý = 0.25đ, 3 ý = 0.5đ, 4 ý = 1.0đ).
+       * *Phần III - Trắc nghiệm Trả lời ngắn (SHORT_ANSWER):* Hộp đáp số nổi bật (`Đáp án: <giá trị số>`) với định dạng số chuẩn và barem 0.5đ/câu.
      - Hiển thị badge Option Anchor nếu câu hỏi chứa phương án phụ thuộc vị trí.
   3. *Động cơ Đổi Câu hỏi Khác (In-Place Question Swap Engine):*
      - `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates`: Tìm kiếm các câu hỏi thay thế tiềm năng từ CSDL Question Bank:
@@ -703,13 +716,18 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
        * Cùng thể thức câu hỏi (`item_format`).
        * Trạng thái `status = 'APPROVED'` và `is_defective == False`.
        * Loại trừ tất cả các câu hỏi đang có mặt trong đề gốc.
+     - Nút "Đổi câu khác" công thái học (hover mượt mà, scale 0.97, icon `refresh-cw`). Modal đổi câu hỗ trợ xem trước đầy đủ cả 3 thể thức của các ứng viên trước khi giáo viên xác nhận chọn.
      - `POST /api/v1/exams/{master_id}/items/{item_id}/swap`: Thay thế câu hỏi chỉ định trong đề gốc bằng câu hỏi mới; tự động xóa các mã đề hoán vị cũ (`ExamVariant`) để yêu cầu trộn lại, bảo toàn tính nhất quán tuyệt đối.
   4. *Thanh Công Cụ Nguồn Đề Thi Gốc & Nhập từ Ma Trận Khảo Thí (Master Exam Source Toolbar):*
      - Bố trí trực tiếp ở đầu tab `#tab-shuffler` ngay dưới thanh tiến trình:
        * *Chọn Đề Gốc Đã Có:* Dropdown danh sách các đề thi gốc đã lưu trong hệ thống (`GET /api/v1/exams`). Khi người dùng chọn, tải thông tin và câu hỏi tương ứng.
        * *Tạo Đề Gốc từ Ma Trận Khảo Thí:* Dropdown danh sách ma trận (`GET /api/v1/matrix`) kèm nút bấm **`⚡ Sinh Đề Gốc từ Ma Trận Này`** (`POST /api/v1/exams/generate`), cho phép sinh đề gốc trực tiếp từ phân hệ Trộn Đề mà không cần thao tác trung gian.
        * *Đồng bộ Ma Trận Hiện Tại:* Nút bấm **`🔄 Đồng bộ từ Ma trận hiện tại`** cho phép đồng bộ ngay cấu hình ma trận đang mở trong Matrix Studio.
-       * *Thẻ Thông Tin Tổng Quan:* Hiển thị trực quan Tên đề thi, Môn học, Khối lớp, Thời gian làm bài, Tổng số câu hỏi, Thang điểm 10.0đ.
+       * *Thẻ Thông Tin Tổng Quan (Meta Bar):* Hiển thị trực quan Tên đề thi, Môn học, Khối lớp, Thời gian làm bài, Tổng số câu hỏi, Thang điểm 10.0đ và cơ cấu 3 phần.
+     - **Hiển thị Mã đề Hoán vị Đầy đủ 3 Thể thức (Variant View):**
+       * Khi xem các mã đề hoán vị (101, 102, 103, 104), hệ thống hiển thị chính xác toàn bộ nội dung của cả 3 thể thức theo thứ tự hoán vị của từng mã đề.
+     - **Bảng Ma Trận Đáp Án Đối Chiếu (Answer Key Matrix):**
+       * Lập bảng so sánh đáp án đối chiếu giữa Đề Gốc và 4 mã đề hoán vị: hiển thị ký tự (A, B, C, D) cho Phần I, chuỗi 4 khẳng định Đ/S cho Phần II, và giá trị số cho Phần III; kèm cột trạng thái mỏ neo Option Anchor.
 
 #### SRS-FEAT-08: Thuật toán Trộn Đề & Hoán vị Mã đề An toàn (Safe Shuffling Engine)
 - **Mô tả:** Sinh ra 4 mã đề hoán vị chuẩn (101, 102, 103, 104) từ Đề thi Gốc, tuân thủ nghiêm ngặt 4 nguyên tắc khảo thí an toàn.

@@ -159,9 +159,9 @@ floor))$.
 ## 8. QUẢN TRỊ PHÁT TRIỂN, CỔNG PRE-COMMIT CI GATE & QUY TẮC GIT WORKFLOW (DEVELOPMENT GOVERNANCE)
 
 - **NFR-DEV-01 (Quy chuẩn Git Commit & Push qua Cổng Pre-Commit CI):** Mọi thay đổi mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (100% test cases PASSED) trước khi thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`) và `git push` lên nhánh remote repository tương ứng.
-- **NFR-DEV-02 (Tuyệt đối Không Tự Động Tạo Pull Request):**
-  - Nghiêm cấm tuyệt đối các agent, tiến trình tự động hóa, hoặc script CI tự ý tạo Pull Request (`gh pr create`, REST API calls) hoặc tự động đẩy/cập nhật vào Pull Request.
-  - Hành động mở hoặc cập nhật Pull Request chỉ được phép thực hiện khi và chỉ khi có yêu cầu bằng lời nói rõ ràng, tường minh từ người dùng (explicit user prompt).
+- **NFR-DEV-02 (Quy tắc Tạo Pull Request Trước Khi Commit & Cập Nhật Mô Tả PR Liên Tục):**
+  - **Quy tắc tạo PR trước khi commit (PR First Rule):** Khi bắt đầu triển khai hoặc có nhánh làm việc (`feat`), BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`). Tuyệt đối không commit khi chưa tồn tại Pull Request.
+  - **Quy tắc cập nhật mô tả PR liên tục (Continuous PR Description Sync):** Nếu đang tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh chính xác trạng thái kỹ thuật, các thay đổi mới nhất và kết quả kiểm thử.
 - **NFR-DEV-03 (Dọn dẹp Tiến trình Nền):** Sau khi chạy thử nghiệm hoặc kiểm thử, toàn bộ các tiến trình nền (uvicorn cổng 8000, worker Node.js, subprocess) phải được dọn dẹp và tắt triệt để, không để tồn đọng tiến trình mồ côi.
 - **NFR-DEV-04 (Cổng Kiểm Soát Pre-Commit CI Gate & Vòng Lặp Sửa Lỗi CI Loop):**
   - **Pre-commit Gate:** Trước khi commit, bắt buộc phải test qua được CI. Tuyệt đối cấm commit khi CI chưa pass.

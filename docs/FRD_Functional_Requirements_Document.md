@@ -24,8 +24,10 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   - **Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4...) tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
   - Chỉ duy nhất Sub-Agent đảm nhận làm CI mới được phép đọc, viết, chỉnh sửa cấu hình CI/CD.
   - Sub-Agent CI có toàn quyền đọc và tiếp nhận thông tin từ các sub-agents khác để phục vụ việc đồng bộ CI.
-- **Quy chuẩn Git Commit & Push:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
-- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
+- **Quy chuẩn Git, Pull Request First & Continuous PR Description Sync:**
+  - **Quy tắc tạo PR trước khi commit (PR First Rule):** Khi bắt đầu triển khai hoặc có nhánh làm việc, BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`). Tuyệt đối không commit khi chưa tồn tại Pull Request.
+  - **Quy tắc cập nhật mô tả PR liên tục (Continuous PR Description Sync):** Nếu đang tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh chính xác trạng thái kỹ thuật, các thay đổi mới nhất và kết quả kiểm thử.
+  - Mọi tác vụ phát triển tuân thủ nghiêm ngặt chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 ### 1.3. Danh mục Phân hệ Chức năng
 - **MOD-01:** Phân hệ Tiếp nhận & Số hóa Đề thi bằng AI (AI Ingestion & Parsing)
@@ -768,19 +770,19 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
      - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0đ.
      - Phần III: 8 câu Trả lời ngắn $\times$ 0.25đ = 2.0đ.
      - Tỷ lệ phân bổ: 40% Biết, 35% Hiểu, 25% Vận dụng.
-- **Lưới Ma trận 2D Tương tác (Interactive 2D Matrix Grid):**
-  - Trục dọc: Phân cấp theo Mạch nội dung $
-ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng câu hỏi (Problem Archetype) $
-ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
+- **Lưới Ma trận 2D Tương tác & Quản lý Dòng động (Interactive 2D Matrix Grid & Dynamic Rows):**
+  - Trục dọc: Phân cấp theo Mạch nội dung -> Yêu cầu cần đạt (YCCĐ) -> Dạng câu hỏi (Problem Archetype) -> Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
   - Trục ngang: 3 Cột nhận thức: Biết (Nhận biết), Hiểu (Thông hiểu), Vận dụng.
-  - Tính toán thời gian thực: Tự động tính tổng câu, tổng điểm từng dòng; tổng câu, tổng điểm từng cột và tổng điểm toàn ma trận (thang 10.0đ).
-  - Thanh tiến trình phân bổ Bloom (Biết %, Hiểu %, Vận dụng %) với nhãn cảnh báo trực quan: Đạt chuẩn khảo thí khi tỷ lệ tiệm cận chuẩn của từng preset (dung sai $\pm 5\%$).
+  - **Quản lý Dòng động (Dynamic Rows):** Nút `+ Thêm dòng YCCĐ vào Ma trận` cho phép bổ sung hàng mới từ danh mục YCCĐ; nút xóa dòng (`trash-2`) trên mỗi hàng hỗ trợ xóa nhanh.
+  - **Tính toán Điểm số Thời gian thực (Zero Hardcoded Scoring):**
+    * Điểm số từng dòng tính toán thực tế: `rowPoints = (biet * p_biet + hieu * p_hieu + vandung * p_vandung)`.
+    * Điểm toàn ma trận = tổng điểm các dòng; tổng số câu = tổng số câu các dòng (tuyệt đối không hardcode '10.0đ').
+  - **Thanh tiến trình phân bổ Bloom Thời gian thực:** Tự động tính toán `% Biết`, `% Hiểu`, `% Vận dụng` từ số lượng câu thực tế (không hardcode tỷ lệ cố định), hiển thị nhãn cảnh báo trực quan: Đạt chuẩn khảo thí khi tỷ lệ tiệm cận chuẩn của từng preset (dung sai $\pm 5\%$).
 - **Đối soát Tồn kho Câu hỏi Thời gian thực (Live Inventory Checker):**
-  - Kết nối trực tiếp cơ sở dữ liệu Question Bank thông qua API kiểm tra tồn kho.
-  - Từng ô ma trận hiển thị trạng thái tồn kho thực tế:
-    * *Đủ câu:* Hiển thị màu xanh lá (`bg-emerald-100 text-emerald-800`), ví dụ: `Kho: 15/4 câu (Đủ)`.
-    * *Cảnh báo thiếu câu:* Hiển thị màu đỏ (`bg-rose-100 text-rose-800`), ví dụ: `Kho: 1/4 câu (Thiếu 3 câu)`.
+  - Kết nối trực tiếp cơ sở dữ liệu Question Bank thông qua API kiểm tra tồn kho hoặc đối soát trực tiếp `state.itemBank`.
+  - Từng ô ma trận hiển thị trạng thái tồn kho thực tế qua chip trực quan:
+    * *Đủ câu:* Chip xanh lá `bg-emerald-50 text-emerald-700 border-emerald-200`, ví dụ: `Kho: 15 / Cần: 5`.
+    * *Cảnh báo thiếu câu:* Chip đỏ `bg-rose-50 text-rose-700 border-rose-200 font-bold`, ví dụ: `Kho: 2 / Cần: 5 (Thiếu 3 câu)` kèm icon cảnh báo.
   - Cảnh báo toàn ma trận: Hiển thị tổng số câu thiếu và danh sách các ô thiếu câu trước khi sinh đề.
 - **API Hợp đồng Ma trận Đề thi:**
   - `POST /api/v1/matrix` (alias `/api/v1/matrices`): Lưu và ban hành ma trận đề thi.
@@ -815,11 +817,16 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
   - **Đầu vào:** `matrix_id`, `title`, cờ `exclude_30d` (loại trừ câu hỏi đã thi trong 30 ngày qua), `allow_partial`.
   - **Xử lý:** Lọc câu hỏi `status = 'APPROVED'`, `is_defective == False` từ CSDL; ưu tiên câu hỏi có độ phân biệt $D \ge 0.3$ và độ khó cân đối $p \approx 0.55$.
   - **Đầu ra:** Bản ghi `master_exams` và danh sách `master_exam_items` phân theo 3 phần (Phần I: TN đơn, Phần II: Đúng/Sai, Phần III: Trả lời ngắn).
-- **Hiển thị Đề thi Gốc Trực quan:**
+- **Hiển thị Đề thi Gốc Đầy đủ Cả 3 Thể thức (Circular 32 & Decision 764):**
   - Hiển thị đầy đủ thân câu hỏi, công thức toán KaTeX và đồ thị vector TikZ SVG.
+  - Render trực quan 3 thể thức câu hỏi:
+    * *Phần I (Trắc nghiệm đơn):* 4 phương án A, B, C, D; phương án đúng nổi bật bằng nền xanh lá viền xanh lá; nhãn `[Neo D]` nếu cố định.
+    * *Phần II (Đúng/Sai 4 khẳng định):* 4 khẳng định con a, b, c, d có nhãn `[ĐÚNG]` (xanh) hoặc `[SAI]` (đỏ) kèm barem bậc thang QĐ 764 (0.1đ - 0.25đ - 0.5đ - 1.0đ).
+    * *Phần III (Trả lời ngắn):* Ô đáp án số nổi bật (`Đáp số: <giá trị>`) với nhãn Phần III (0.5đ/câu).
   - Hiển thị nhãn thể thức, mã câu hỏi, mã YCCĐ và cờ Option Anchor nếu có phương án mỏ neo.
 - **Động cơ Đổi Câu hỏi Khác (In-Place Question Swap Engine):**
-  - Cho phép giáo viên thay thế một câu hỏi bất kỳ trong đề gốc bằng một câu hỏi tương đương từ ngân hàng.
+  - Nút "Đổi câu khác" công thái học (hover, scale 0.97, icon `refresh-cw`).
+  - Modal đổi câu hỗ trợ xem trước đầy đủ cả 3 thể thức câu hỏi của các ứng viên trước khi giáo viên chọn.
   - **Hợp đồng API:**
     * `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates`: Trả về danh sách câu hỏi ứng viên cùng YCCĐ, cùng mức độ Bloom, cùng thể thức, trạng thái APPROVED, không bị defective, loại trừ câu hỏi đang có trong đề gốc.
     * `POST /api/v1/exams/{master_id}/items/{item_id}/swap`:
@@ -828,7 +835,7 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
       - Tự động xóa các `ExamVariant` cũ để bắt buộc trộn lại.
       - Trả về `MasterExamItem` mới đã cập nhật.
 
-### 2.11. FR-06.2: Thuật toán Trộn Đề Hoán vị An toàn 4 Nguyên Tắc (Safe Shuffling Engine)
+### 2.11. FR-06.2: Thuật toán Trộn Đề Hoán vị An toàn 4 Nguyên Tắc & Ma Trận Đáp Án
 - **Màn hình:** `SCR-SHUFFLER` (Route: `/shuffler`, tab: `#tab-shuffler` - Bước 2)
 - **Đầu vào:** `master_exam_id`, danh sách mã đề cần tạo (`variant_codes: ["101", "102", "103", "104"]`).
 - **4 Nguyên tắc An toàn Tuyệt đối (QĐ 764/QĐ-BGDĐT):**
@@ -837,9 +844,12 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
   3. *Option Anchor Rule (Khóa mỏ neo phương án):* Tự động phát hiện phương án có `is_fixed = True` hoặc chứa từ khóa mỏ neo vị trí ("Cả A và B", "Cả hai đáp án", "Tất cả các đáp án trên", "Tất cả các ý trên", "Không có đáp án nào"...). **BẮT BUỘC KHÓA CỐ ĐỊNH phương án này tại vị trí cuối cùng (Vị trí D)** trong mọi mã đề hoán vị; chỉ hoán vị tự do các phương án còn lại (A, B, C). Đảm bảo tỷ lệ xác minh Option Anchor Rule đạt 100%.
   4. *Key Matrix Generator (Ma trận đáp án đối chiếu):* Tự động sinh bảng ma trận đối chiếu đáp án chéo giữa đề gốc và các mã đề hoán vị (101, 102, 103, 104...).
 - **Xem trước Mã đề & Xác minh Option Anchor:**
-  - Tab xem trước từng mã đề (Mã 101, 102, 103, 104) với huy hiệu xác minh Option Anchor Rule: `Option Anchor Rule: ĐẠT 100% (Khóa cố định tại vị trí D)`.
+  - Segmented control Apple HIG chuyển tab mượt mà giữa các mã đề (Mã 101, 102, 103, 104).
+  - Khung xem trước câu hỏi hiển thị đầy đủ cả 3 thể thức (Trắc nghiệm đơn hoán vị, Đúng/Sai 4 khẳng định, Trả lời ngắn).
+  - Huy hiệu xác minh Option Anchor Rule: `Option Anchor Rule: ĐẠT 100% (Khóa cố định tại vị trí D)`.
   - Hiển thị nhãn `[Neo D]` bên cạnh phương án mỏ neo.
-  - Bảng Ma trận Ánh xạ Đáp án đối chiếu giữa Đề gốc và 4 mã đề hoán vị.
+  - **Bảng Ma trận Ánh xạ Đáp án (Answer Key Matrix):** Hiển thị trực quan đáp án đối chiếu giữa Đề gốc và 4 mã đề hoán vị (A, B, C, D cho Phần I; chuỗi 4 khẳng định Đ/S cho Phần II; số thực cho Phần III), cột trạng thái Anchor rõ nét.
+  - Tải nhanh PDF của từng mã đề đang chọn (`Tải PDF Mã {code}`) và tải trọn gói ZIP.
 
 ---
 
