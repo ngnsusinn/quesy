@@ -169,14 +169,17 @@ Located in `backend/routers/composer.py` (`POST /api/v1/composer/save-to-bank`):
 
 Located in `backend/routers/matrix.py`, `backend/services/matrix_solver.py` & `frontend/` (`/matrix`):
 - **Statutory Compliance (Circular 22 & Decision 764):** Configures test blueprints based on official assessment guidelines.
-- **Standard Exam Presets:**
-  - **Preset 1 (National Graduation Exam 2025):** 34 items (12 Single Choice $\times$ 0.25 pt, 4 True/False $\times$ 1.0 pt, 6 Short Answer $\times$ 0.5 pt; standard 40% Recognition - 30% Comprehension - 30% Application ratio, 10.0 points total).
-  - **Preset 2 (Midterm / Periodic Assessment):** 20 items (12 Single Choice $\times$ 0.25 pt, 4 True/False $\times$ 1.0 pt, 4 Short Answer $\times$ 0.75 pt, 10.0 points total).
-  - **Preset 3 (Final / Semester Assessment):** 28 items (16 Single Choice $\times$ 0.25 pt, 4 True/False $\times$ 1.0 pt, 8 Short Answer $\times$ 0.25 pt, 10.0 points total).
-- **Interactive 2D Matrix Grid with Dynamic Rows:**
-  - Rows partitioned by Content Strand, Learning Outcome (YCCĐ), and Problem Archetype; columns mapped to 3 cognitive tiers (Recognition, Comprehension, Application) with real-time score summation and Bloom balance alerts.
-  - **Dynamic Row Management:** Add/remove YCCĐ rows dynamically (`+ Thêm dòng YCCĐ vào Ma trận`), pick learning outcomes from national taxonomy, and delete rows with immediate total score recalculation.
-  - **Dynamic Real-Time Scoring (Zero Hardcoding):** Calculates row points and matrix total points dynamically from cell values and statutory point weights (no hardcoded '10.0đ' totals or heuristic Bloom overrides).
+- **Clean Apple HIG Header Card & Ergonomic Toolbar:**
+  - Removed clunky hardcoded preset buttons from header row to prevent responsive layout shifts and text wrapping breaks.
+  - Placed the single-icon `Thêm dòng YCCĐ` button in an ergonomic toolbar beside the inventory indicators.
+- **Interactive 2D Matrix Grid with 4 Statutory Item Formats:**
+  - **Dynamic Item Format Selector:** Each row features an interactive format dropdown supporting 4 national standards:
+    1. *Single Choice 4 Options (`SINGLE_CHOICE`):* 0.25 pt / item (Part I standard).
+    2. *True/False 4 Statements (`TRUE_FALSE_GROUP`):* 1.0 pt / item with progressive grading barem (Part II standard).
+    3. *Short Answer Numeric (`SHORT_ANSWER`):* 0.5 pt / item (Part III standard).
+    4. *Essay (`ESSAY`):* 1.0 pt / item.
+  - **Dynamic Real-Time Scoring (Zero Hardcoding):** Row points and total matrix score are computed dynamically: `rowPoints = (biet + hieu + vandung) * formatPoint`, strictly enforcing a balanced 10.0-point total.
+  - **Dynamic Row Management & Add Row Modal:** Add/remove YCCĐ rows dynamically via Apple HIG modal with full Item Format selection, taxonomy mapping, and instant score updates.
 - **Real-Time Question Bank Inventory Checker:** Validates available approved questions in database per matrix cell, displaying visual indicators (green badge if sufficient, red alert badge with exact deficit if replenishment is required e.g. `Kho: X / Cần: Y`).
 - **Multi-Format Blueprint Specification Exporter (`GET /api/v1/matrix/{id}/spec`):** Exports official test specification document in Vector PDF, Excel-compatible UTF-8 BOM CSV, and structured JSON.
 

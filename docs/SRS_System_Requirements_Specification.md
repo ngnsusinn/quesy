@@ -654,27 +654,39 @@ ight)$$
 
 ### 4.3. Phân hệ Ma trận & Động cơ Sinh & Trộn Đề (Matrix & Safe Exam Engine)
 
-#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi 2D theo YCCĐ & Thư viện Presets (Interactive 2D Matrix Blueprint)
+#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi 2D theo YCCĐ & 4 Dạng thức Câu hỏi (Interactive 2D Matrix Blueprint)
 - **Mô tả:** Định nghĩa cấu trúc đề thi theo ma trận 2 chiều chuẩn hóa theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
 - **Yêu cầu kỹ thuật:**
-  1. *Thư viện Ma trận mẫu (Presets):*
-     - **Preset 1 (Chuẩn Tốt nghiệp THPT 2025):** 34 câu, 10.0 điểm, thời gian 90 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định tính điểm bậc thang (1.0đ/câu = 4.0đ), và 6 câu Trả lời ngắn (0.5đ/câu = 3.0đ). Phân bổ Bloom chuẩn: 40% Biết (3.0đ) - 30% Hiểu (3.5đ) - 30% Vận dụng (3.5đ).
-     - **Preset 2 (Kiểm tra Định kỳ / Giữa kỳ):** 20 câu, 10.0 điểm, thời gian 50-60 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 4 câu Trả lời ngắn (0.75đ/câu = 3.0đ). Phân bổ: ~50% Biết, 30% Hiểu, 20% Vận dụng.
-     - **Preset 3 (Kiểm tra Cuối kỳ):** 28 câu, 10.0 điểm, thời gian 90 phút. Gồm 16 câu TN đơn (0.25đ/câu = 4.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 8 câu Trả lời ngắn (0.25đ/câu = 2.0đ). Phân bổ: 40% Biết, 35% Hiểu, 25% Vận dụng.
+  1. *Thiết kế Header Card & Công thái học Chuẩn Apple HIG:*
+     - Loại bỏ hoàn toàn cụm nút Preset cứng khỏi thanh tiêu đề nhằm ngăn chặn hiện tượng tràn lề, co cụm và vỡ layout responsive.
+     - Tái cấu trúc thanh tham số: Tên bài thi, Khối lớp & Môn học, Thời lượng thi, Thang điểm tổng (10.0đ), Nút Lưu & Ban hành Ma trận, Xuất bản PDF/CSV.
+     - Chuyển nút **`Thêm dòng YCCĐ`** (`#btn-add-matrix-row`) về thanh công cụ của bảng ma trận, chuẩn hóa hiển thị duy nhất 1 icon plus tinh tế (khắc phục triệt để lỗi lặp `+ +`).
   2. *Lưới Ma trận 2D Tương tác & Quản lý Dòng động (Interactive 2D Grid & Dynamic Row Management):*
-     - Dòng: Phân nhóm theo Mạch nội dung -> Yêu cầu cần đạt (YCCĐ) -> Dạng câu hỏi (Problem Archetype) -> Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
-     - Cột: 3 Mức độ nhận thức: Biết (Nhận biết), Hiểu (Thông hiểu), Vận dụng.
-     - Ô nhập liệu: Cho phép nhập số lượng câu hỏi cần lấy cho từng ô.
-     - **Quản lý Dòng Động (Dynamic Rows):** Cho phép giáo viên bấm nút `+ Thêm dòng YCCĐ vào Ma trận` để bổ sung thêm mục tiêu khảo thí, chọn YCCĐ linh hoạt từ cây danh mục TT 32, và nút xóa dòng (`trash-2`) trên từng hàng với cơ chế tính toán lại tức thì.
-     - **Tính toán Điểm số Thời gian thực (Zero Hardcoded Scoring):**
-       * Loại bỏ hoàn toàn các giá trị điểm hardcode. Điểm số từng dòng được tính toán trực tiếp: `rowPoints = (biet * p_biet + hieu * p_hieu + vandung * p_vandung)`.
-       * Điểm toàn ma trận được tính bằng tổng thực tế các dòng: `totalPoints = sum(rowPoints)`.
-       * Hiển thị trạng thái đạt chuẩn nếu tổng điểm đạt 10.0đ hoặc hiển thị cảnh báo nếu lệch điểm.
+     - Dòng: Phân nhóm theo Mạch nội dung -> Yêu cầu cần đạt (YCCĐ) -> Dạng câu hỏi (Problem Archetype) -> Dạng thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`, `ESSAY`).
+     - Cột:
+       * Cột 1: Mạch Nội dung & YCCĐ / Dạng bài (sticky left).
+       * Cột 2: Dạng thức câu hỏi (Dropdown select: Trắc nghiệm 4 LC 0.25đ, Đúng/Sai 4 ý 1.0đ, Trả lời ngắn 0.5đ, Tự luận 1.0đ).
+       * Cột 3: 1. Nhận biết (Biết).
+       * Cột 4: 2. Thông hiểu (Hiểu).
+       * Cột 5: 3. Vận dụng (VD).
+       * Cột 6: Tổng câu (`biet + hieu + vandung`).
+       * Cột 7: Tổng điểm (`Tổng câu * formatPoints`).
+       * Cột 8: Thao tác (Xóa dòng).
+     - Ô nhập liệu nhận thức: Cho phép nhập số lượng câu hỏi cần lấy cho từng ô (Biết, Hiểu, Vận dụng).
+     - **Quản lý Dòng Động (Dynamic Rows) & Modal Thêm dòng:** Cho phép giáo viên bấm nút `Thêm dòng YCCĐ` mở Modal `#add-matrix-row-modal` để chọn Mạch nội dung, YCCĐ, Dạng bài, Dạng thức câu hỏi (`#modal-matrix-format`) và cơ số điểm nhận thức.
+     - **Tính toán Điểm số Thời gian thực Theo Dạng thức Câu hỏi (Real-Time Scoring by Item Format):**
+       * Điểm số từng dòng: `rowPoints = (Number(row.biet) + Number(row.hieu) + Number(row.vandung)) * MATRIX_FORMAT_POINTS[row.itemFormat]`.
+       * Điểm từng mức độ nhận thức:
+         + `totalPointsBiet = sum(row.biet * MATRIX_FORMAT_POINTS[row.itemFormat])`.
+         + `totalPointsHieu = sum(row.hieu * MATRIX_FORMAT_POINTS[row.itemFormat])`.
+         + `totalPointsVandung = sum(row.vandung * MATRIX_FORMAT_POINTS[row.itemFormat])`.
+       * Điểm toàn ma trận được tính bằng tổng thực tế các dòng: `totalPoints = sum(rowPoints) = totalPointsBiet + totalPointsHieu + totalPointsVandung`.
+       * Cân bằng chuẩn 10.0đ (loại bỏ hoàn toàn lỗi hiển thị lệch 11.0đ).
      - **Thanh đo lường Bloom Thực tế:** Tự động tính tỷ lệ phần trăm nhận thức chính xác:
        * `% Biết = round(totalBiet / grandItems * 100)`
        * `% Hiểu = round(totalHieu / grandItems * 100)`
        * `% Vận dụng = max(0, 100 - %Biết - %Hiểu)`
-       * Tuyệt đối không hardcode tỷ lệ Bloom theo số câu cố định. Cảnh báo màu hổ phách nếu độ lệch vượt quá $\pm 5\%$ so với tỷ lệ chuẩn của từng loại kỳ thi.
+       * Tuyệt đối không hardcode tỷ lệ Bloom theo số câu cố định. Cảnh báo màu hổ phách nếu độ lệch vượt quá $\pm 5\%$ so với tỷ lệ chuẩn 40% Biết - 30% Hiểu - 30% Vận dụng.
   3. *Đối soát Tồn kho Thời gian thực & Cảnh báo Thiếu câu (Live Inventory Checker & Deficit Alert):*
      - Hệ thống kết nối cơ sở dữ liệu câu hỏi thực tế qua API `POST /api/v1/matrix/{id}/check-availability` hoặc đối soát trực tiếp với ngân hàng câu hỏi `state.itemBank`.
      - Với mỗi ô ma trận, đếm số câu hỏi có `status = 'APPROVED'` và `is_defective == False` khớp YCCĐ, mức độ và thể thức.

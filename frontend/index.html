@@ -1152,19 +1152,6 @@
             </div>
             
             <div class="flex items-center space-x-2 flex-wrap gap-1">
-              <button id="btn-preset-thpt_2025" onclick="app.loadMatrixPreset('thpt_2025')" class="btn-preset btn-apple-secondary text-xs active">
-                Preset: Chuẩn TN THPT 2025 (34 câu)
-              </button>
-              <button id="btn-preset-midterm" onclick="app.loadMatrixPreset('midterm')" class="btn-preset btn-apple-secondary text-xs">
-                Preset: Kiểm tra Định kỳ (20 câu)
-              </button>
-              <button id="btn-preset-final" onclick="app.loadMatrixPreset('final')" class="btn-preset btn-apple-secondary text-xs">
-                Preset: Kiểm tra Cuối kỳ (28 câu)
-              </button>
-              <button id="btn-add-matrix-row" onclick="app.openAddMatrixRowModal()" class="btn-apple-primary text-xs py-1.5 px-3 flex items-center space-x-1">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span>+ Thêm dòng YCCĐ</span>
-              </button>
             </div>
           </div>
 
@@ -1217,9 +1204,15 @@
               <span class="font-bold text-slate-800">Lưới Cấu Hình Ma Trận 2D (YCCĐ & Dạng bài &times; 3 Cấp độ nhận thức)</span>
               <span class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-100 text-emerald-800 font-semibold">Tự động đối soát tồn kho câu hỏi</span>
             </div>
-            <div class="text-[11px] text-slate-500 flex items-center space-x-3">
-              <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>Đủ câu trong kho</span></span>
-              <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span>Cảnh báo thiếu câu</span></span>
+            <div class="flex items-center space-x-3">
+              <button id="btn-add-matrix-row" onclick="app.openAddMatrixRowModal()" class="btn-apple-primary text-xs py-1.5 px-3 flex items-center space-x-1.5 font-semibold">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Thêm dòng YCCĐ</span>
+              </button>
+              <div class="text-[11px] text-slate-500 flex items-center space-x-3">
+                <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>Đủ câu trong kho</span></span>
+                <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span>Cảnh báo thiếu câu</span></span>
+              </div>
             </div>
           </div>
 
@@ -1227,18 +1220,16 @@
             <table class="w-full text-left text-xs border-collapse">
               <thead>
                 <tr class="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
-                  <th class="p-3 w-72 sticky left-0 bg-slate-100 z-10">Mạch Nội dung & YCCĐ / Dạng bài</th>
+                  <th class="p-3 w-64 sticky left-0 bg-slate-100 z-10">Mạch Nội dung & YCCĐ / Dạng bài</th>
+                  <th class="p-3 w-44 text-center border-l border-slate-200 bg-slate-100">Dạng thức câu hỏi</th>
                   <th class="p-3 text-center border-l border-slate-200 bg-blue-50/50">
-                    <div class="text-blue-900">1. Biết (Nhận biết)</div>
-                    <div class="text-[10px] font-normal text-blue-700">TN Đơn (0.25đ)</div>
+                    <div class="text-blue-900">1. Nhận biết (Biết)</div>
                   </th>
                   <th class="p-3 text-center border-l border-slate-200 bg-indigo-50/50">
-                    <div class="text-indigo-900">2. Hiểu (Thông hiểu)</div>
-                    <div class="text-[10px] font-normal text-indigo-700">Đúng/Sai (1.0đ) / TN Đơn</div>
+                    <div class="text-indigo-900">2. Thông hiểu (Hiểu)</div>
                   </th>
                   <th class="p-3 text-center border-l border-slate-200 bg-emerald-50/50">
                     <div class="text-emerald-900">3. Vận dụng</div>
-                    <div class="text-[10px] font-normal text-emerald-700">Trả lời ngắn (0.5đ) / Vận dụng</div>
                   </th>
                   <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng câu</th>
                   <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng điểm</th>
@@ -1250,7 +1241,7 @@
               </tbody>
               <tfoot>
                 <tr class="bg-slate-50 font-bold text-slate-800 border-t-2 border-slate-300">
-                  <td class="p-3 sticky left-0 bg-slate-50">TỔNG CỘNG TOÀN MA TRẬN</td>
+                  <td colspan="2" class="p-3 sticky left-0 bg-slate-50">TỔNG CỘNG TOÀN MA TRẬN</td>
                   <td id="matrix-total-biet" class="p-3 text-center border-l border-slate-200 text-blue-800">12 câu (3.0đ)</td>
                   <td id="matrix-total-hieu" class="p-3 text-center border-l border-slate-200 text-indigo-800">10 câu (3.5đ)</td>
                   <td id="matrix-total-vandung" class="p-3 text-center border-l border-slate-200 text-emerald-800">12 câu (3.5đ)</td>
@@ -2048,6 +2039,15 @@
         <div>
           <label class="block font-bold text-slate-700 mb-1">Tên Dạng Bài / Chủ Đề</label>
           <input type="text" id="modal-matrix-archetype" value="Khảo sát sự biến thiên và vẽ đồ thị hàm số" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-medium">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Dạng Thức Câu Hỏi</label>
+          <select id="modal-matrix-format" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-semibold">
+            <option value="SINGLE_CHOICE">Trắc nghiệm 4 lựa chọn (0.25đ)</option>
+            <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý (1.0đ)</option>
+            <option value="SHORT_ANSWER">Trả lời ngắn (0.5đ)</option>
+            <option value="ESSAY">Tự luận (1.0đ)</option>
+          </select>
         </div>
         <div class="grid grid-cols-3 gap-3">
           <div>

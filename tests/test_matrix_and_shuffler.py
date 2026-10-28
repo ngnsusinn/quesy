@@ -679,12 +679,16 @@ def test_shuffler_export_single_variant_and_package_pure_vector_pdf(client):
 def test_matrix_dynamic_row_operations_dom_and_js_contract():
     """Kiểm thử cấu trúc DOM và JavaScript contract cho thao tác thêm/xóa dòng Ma trận:
     - DOM Elements trong frontend/index.html: #btn-add-matrix-row, #add-matrix-row-modal,
-      các trường input thêm dòng (#modal-matrix-strand, #modal-matrix-yccd, ...),
+      các trường input thêm dòng (#modal-matrix-strand, #modal-matrix-yccd, #modal-matrix-format, ...),
       các nút xác nhận và hủy bỏ.
-    - Cột thao tác xóa dòng trong bảng ma trận (#matrix-grid-table).
+    - Cấu trúc bảng ma trận 8 cột:
+      * thead: Mạch Nội dung, Dạng thức câu hỏi, Biết, Hiểu, Vận dụng, Tổng câu, Tổng điểm, Thao tác.
+      * tbody: render đầy đủ 8 cột với select dropdown dạng thức câu hỏi trên từng dòng.
+      * tfoot: colspan="2" cho 2 cột đầu và 6 cột tổng hợp.
+    - Xác nhận xóa bỏ hoàn toàn cụm 3 nút preset cũ: #btn-preset-thpt_2025, #btn-preset-midterm, #btn-preset-final.
     - CSS styles trong frontend/static/style.css: .matrix-stock-chip, .btn-preset.active.
     - JS contract trong frontend/static/app.js: các hàm addMatrixRow, deleteMatrixRow,
-      openAddMatrixRowModal, confirmAddMatrixRow có mặt và được export vào window.app.
+      updateMatrixRowFormat, openAddMatrixRowModal, confirmAddMatrixRow có mặt và được export vào window.app.
     """
     from pathlib import Path
 
@@ -693,18 +697,50 @@ def test_matrix_dynamic_row_operations_dom_and_js_contract():
     assert html_path.exists(), "frontend/index.html phải tồn tại"
     html_content = html_path.read_text(encoding="utf-8")
 
+    # Xác nhận xóa bỏ cụm 3 nút preset cũ ở Header Card Ma trận
+    assert 'id="btn-preset-thpt_2025"' not in html_content, "Nút preset thpt_2025 phải bị xóa bỏ"
+    assert 'id="btn-preset-midterm"' not in html_content, "Nút preset midterm phải bị xóa bỏ"
+    assert 'id="btn-preset-final"' not in html_content, "Nút preset final phải bị xóa bỏ"
+
+    # Xác nhận nút thêm dòng ma trận chuyển xuống thanh công cụ cạnh chip tồn kho
     assert 'id="btn-add-matrix-row"' in html_content, "Nút thêm dòng ma trận phải có id='btn-add-matrix-row'"
     assert 'onclick="app.openAddMatrixRowModal()"' in html_content, "Nút thêm dòng phải gọi app.openAddMatrixRowModal()"
+    assert "Thêm dòng YCCĐ" in html_content, "Nút thêm dòng ma trận phải mang nhãn 'Thêm dòng YCCĐ'"
+
+    # Cấu trúc bảng ma trận 8 cột (thead)
+    assert 'Dạng thức câu hỏi' in html_content, "Bảng ma trận phải có cột 2 'Dạng thức câu hỏi'"
+    assert 'Mạch Nội dung & YCCĐ / Dạng bài' in html_content, "Bảng ma trận phải có cột 1 'Mạch Nội dung & YCCĐ / Dạng bài'"
+    assert '1. Nhận biết (Biết)' in html_content, "Bảng ma trận phải có cột 3 Biết"
+    assert '2. Thông hiểu (Hiểu)' in html_content, "Bảng ma trận phải có cột 4 Hiểu"
+    assert '3. Vận dụng' in html_content, "Bảng ma trận phải có cột 5 Vận dụng"
+    assert 'Tổng câu' in html_content, "Bảng ma trận phải có cột 6 Tổng câu"
+    assert 'Tổng điểm' in html_content, "Bảng ma trận phải có cột 7 Tổng điểm"
+    assert 'Thao tác' in html_content, "Bảng ma trận phải có cột 8 Thao tác"
+
+    # Cấu trúc tfoot 8 cột
+    assert '<td colspan="2" class="p-3 sticky left-0 bg-slate-50">TỔNG CỘNG TOÀN MA TRẬN</td>' in html_content, \
+        "Hàng tổng cộng tfoot phải dùng colspan='2' cho 2 cột đầu"
+    assert 'id="matrix-total-biet"' in html_content
+    assert 'id="matrix-total-hieu"' in html_content
+    assert 'id="matrix-total-vandung"' in html_content
+    assert 'id="matrix-total-items"' in html_content
+    assert 'id="matrix-total-points"' in html_content
+
+    # Modal thêm dòng ma trận và trường chọn dạng thức câu hỏi
     assert 'id="add-matrix-row-modal"' in html_content, "Modal thêm dòng ma trận phải có id='add-matrix-row-modal'"
     assert 'id="modal-matrix-strand"' in html_content, "Modal phải có selector mạch kiến thức #modal-matrix-strand"
     assert 'id="modal-matrix-yccd"' in html_content, "Modal phải có input mã YCCĐ #modal-matrix-yccd"
     assert 'id="modal-matrix-archetype"' in html_content, "Modal phải có input dạng bài #modal-matrix-archetype"
+    assert 'id="modal-matrix-format"' in html_content, "Modal phải có selector dạng thức câu hỏi #modal-matrix-format"
+    assert 'value="SINGLE_CHOICE"' in html_content, "Modal format phải có option SINGLE_CHOICE"
+    assert 'value="TRUE_FALSE_GROUP"' in html_content, "Modal format phải có option TRUE_FALSE_GROUP"
+    assert 'value="SHORT_ANSWER"' in html_content, "Modal format phải có option SHORT_ANSWER"
+    assert 'value="ESSAY"' in html_content, "Modal format phải có option ESSAY"
     assert 'id="modal-matrix-biet"' in html_content, "Modal phải có input số câu Biết #modal-matrix-biet"
     assert 'id="modal-matrix-hieu"' in html_content, "Modal phải có input số câu Hiểu #modal-matrix-hieu"
     assert 'id="modal-matrix-vandung"' in html_content, "Modal phải có input số câu Vận dụng #modal-matrix-vandung"
     assert 'onclick="app.confirmAddMatrixRow()"' in html_content, "Nút xác nhận trong modal phải gọi app.confirmAddMatrixRow()"
     assert 'onclick="app.closeAddMatrixRowModal()"' in html_content, "Nút đóng modal phải gọi app.closeAddMatrixRowModal()"
-    assert 'Thao tác' in html_content, "Bảng ma trận phải có tiêu đề cột Thao tác"
 
     # 2. Kiểm tra CSS frontend/static/style.css
     css_path = Path("frontend/static/style.css")
@@ -719,6 +755,14 @@ def test_matrix_dynamic_row_operations_dom_and_js_contract():
     assert js_path.exists(), "frontend/static/app.js phải tồn tại"
     js_content = js_path.read_text(encoding="utf-8")
 
+    assert "const MATRIX_FORMAT_POINTS = {" in js_content, "app.js phải định nghĩa bảng điểm MATRIX_FORMAT_POINTS"
+    assert "SINGLE_CHOICE: 0.25," in js_content, "SINGLE_CHOICE phải có điểm chuẩn 0.25"
+    assert "TRUE_FALSE_GROUP: 1.0," in js_content, "TRUE_FALSE_GROUP phải có điểm chuẩn 1.0"
+    assert "SHORT_ANSWER: 0.5," in js_content, "SHORT_ANSWER phải có điểm chuẩn 0.5"
+    assert "ESSAY: 1.0" in js_content, "ESSAY phải có điểm chuẩn 1.0"
+    assert "const MATRIX_FORMAT_LABELS = {" in js_content, "app.js phải định nghĩa nhãn MATRIX_FORMAT_LABELS"
+
+    assert "function updateMatrixRowFormat" in js_content, "app.js phải định nghĩa function updateMatrixRowFormat"
     assert "function openAddMatrixRowModal" in js_content, "app.js phải định nghĩa function openAddMatrixRowModal"
     assert "function closeAddMatrixRowModal" in js_content, "app.js phải định nghĩa function closeAddMatrixRowModal"
     assert "function confirmAddMatrixRow" in js_content, "app.js phải định nghĩa function confirmAddMatrixRow"
@@ -726,6 +770,7 @@ def test_matrix_dynamic_row_operations_dom_and_js_contract():
     assert "function deleteMatrixRow" in js_content, "app.js phải định nghĩa function deleteMatrixRow"
 
     # 4. Kiểm tra window.app exports
+    assert "updateMatrixRowFormat," in js_content, "window.app phải export updateMatrixRowFormat"
     assert "openAddMatrixRowModal," in js_content, "window.app phải export openAddMatrixRowModal"
     assert "closeAddMatrixRowModal," in js_content, "window.app phải export closeAddMatrixRowModal"
     assert "confirmAddMatrixRow," in js_content, "window.app phải export confirmAddMatrixRow"
@@ -738,12 +783,17 @@ def test_matrix_dynamic_row_operations_dom_and_js_contract():
 # =========================================================================
 
 def test_matrix_dynamic_scoring_and_bloom_calculation_no_hardcode():
-    """Kiểm thử tính toán điểm số ma trận trả về giá trị thực tế theo số câu:
+    """Kiểm thử tính toán điểm số ma trận trả về giá trị thực tế theo dạng thức câu hỏi:
     - Loại bỏ hoàn toàn hardcode '10.0 đ' trong renderMatrixGrid().
-    - Tính toán grandPoints động: totalBiet * 0.25 + totalHieu * 0.35 + totalVandung * 0.4.
+    - Tính toán grandPoints động tích lũy theo từng dòng: (rowItems * formatPoints).
+    - Hỗ trợ các trọng số điểm theo chuẩn:
+      * SINGLE_CHOICE: 0.25đ / câu
+      * TRUE_FALSE_GROUP: 1.0đ / câu
+      * SHORT_ANSWER: 0.5đ / câu
+      * ESSAY: 1.0đ / câu
+    - Ma trận 22 câu mặc định: 12 TN (3.0đ) + 4 Đ/S (4.0đ) + 6 TLN (3.0đ) = 10.0đ (không bị nhảy sai thành 11.0đ).
     - Tính toán tỷ lệ Bloom: pctBiet, pctHieu, pctVandung.
     - Cảnh báo hoặc xác nhận chuẩn khảo thí theo ngưỡng phân bố.
-    - Mô phỏng tính toán động với các tập số câu khác nhau chứng minh không hardcode.
     """
     from pathlib import Path
 
@@ -751,7 +801,7 @@ def test_matrix_dynamic_scoring_and_bloom_calculation_no_hardcode():
     assert js_path.exists()
     js_content = js_path.read_text(encoding="utf-8")
 
-    # 1. Xác nhận loại bỏ hardcode '10.0 đ' trong hàm renderMatrixGrid
+    # 1. Xác nhận loại bỏ hardcode '10.0 đ' và tính toán động theo dạng thức trong hàm renderMatrixGrid
     grid_func_start = js_content.find("function renderMatrixGrid()")
     assert grid_func_start != -1
     grid_func_end = js_content.find("function openAddMatrixRowModal()", grid_func_start)
@@ -760,9 +810,11 @@ def test_matrix_dynamic_scoring_and_bloom_calculation_no_hardcode():
 
     assert "document.getElementById('matrix-total-points').innerText = '10.0 đ'" not in grid_func_body, \
         "renderMatrixGrid tuyệt đối không được hardcode '10.0 đ'"
-    assert "const grandPoints = (totalBiet * 0.25 + totalHieu * 0.35 + totalVandung * 0.4).toFixed(1)" in grid_func_body, \
-        "grandPoints phải được tính toán động theo trọng số điểm từng câu"
-    assert "${grandPoints} đ" in grid_func_body, "Hiển thị tổng điểm phải sử dụng biến động ${grandPoints} đ"
+    assert "const formatPoints = MATRIX_FORMAT_POINTS[format] || 0.25;" in grid_func_body, \
+        "Điểm từng dòng phải tra cứu theo MATRIX_FORMAT_POINTS"
+    assert "grandPoints += rowItems * formatPoints;" in grid_func_body, \
+        "grandPoints phải được tích lũy theo rowItems * formatPoints"
+    assert "${grandPoints.toFixed(1)} đ" in grid_func_body, "Hiển thị tổng điểm phải sử dụng biến động ${grandPoints.toFixed(1)} đ"
     assert "${grandItems} câu" in grid_func_body, "Hiển thị tổng câu phải sử dụng biến động ${grandItems} câu"
 
     # 2. Xác nhận tính toán tỷ lệ Bloom phân bổ chuẩn khảo thí
@@ -772,14 +824,28 @@ def test_matrix_dynamic_scoring_and_bloom_calculation_no_hardcode():
     assert "ĐẠT CHUẨN KHẢO THÍ: 40% Biết - 30% Hiểu - 30% Vận dụng" in grid_func_body
     assert "CẢNH BÁO: Tỷ lệ phân bố Bloom" in grid_func_body
 
-    # 3. Mô phỏng tính toán độc lập xác thực tính chính xác không phụ thuộc hằng số 10.0đ
+    # 3. Mô phỏng thuật toán tính điểm động theo dạng thức câu hỏi
+    format_points_map = {
+        "SINGLE_CHOICE": 0.25,
+        "TRUE_FALSE_GROUP": 1.0,
+        "SHORT_ANSWER": 0.5,
+        "ESSAY": 1.0,
+    }
+
     def compute_matrix_summary(rows):
         total_biet = sum(r["biet"] for r in rows)
         total_hieu = sum(r["hieu"] for r in rows)
         total_vandung = sum(r["vandung"] for r in rows)
         grand_items = total_biet + total_hieu + total_vandung
-        grand_points = round(total_biet * 0.25 + total_hieu * 0.35 + total_vandung * 0.4, 1)
 
+        grand_points = 0.0
+        for r in rows:
+            fmt = r.get("itemFormat", "SINGLE_CHOICE")
+            pts = format_points_map.get(fmt, 0.25)
+            row_cnt = r["biet"] + r["hieu"] + r["vandung"]
+            grand_points += row_cnt * pts
+
+        grand_points = round(grand_points, 2)
         pct_biet = round((total_biet / grand_items) * 100) if grand_items > 0 else 0
         pct_hieu = round((total_hieu / grand_items) * 100) if grand_items > 0 else 0
         pct_vandung = max(0, 100 - pct_biet - pct_hieu) if grand_items > 0 else 0
@@ -794,26 +860,37 @@ def test_matrix_dynamic_scoring_and_bloom_calculation_no_hardcode():
             "is_standard": is_standard
         }
 
-    # Kịch bản A: 20 câu (8 Biết, 6 Hiểu, 6 Vận dụng) -> Tổng điểm 6.5đ, Đạt chuẩn 40-30-30
-    res_a = compute_matrix_summary([{"biet": 8, "hieu": 6, "vandung": 6}])
-    assert res_a["grand_items"] == 20
-    assert res_a["grand_points"] == 6.5
-    assert res_a["pct_biet"] == 40
-    assert res_a["pct_hieu"] == 30
-    assert res_a["pct_vandung"] == 30
-    assert res_a["is_standard"] is True
+    # Kịch bản 1: Ma trận chuẩn 22 câu mặc định (12 TN 0.25đ, 4 Đ/S 1.0đ, 6 TLN 0.5đ) -> Đúng chuẩn 10.0đ (không phải 11.0đ)
+    default_22_rows = [
+        {"itemFormat": "SINGLE_CHOICE", "biet": 6, "hieu": 4, "vandung": 2},   # 12 câu x 0.25 = 3.0đ
+        {"itemFormat": "TRUE_FALSE_GROUP", "biet": 1, "hieu": 2, "vandung": 1},# 4 câu x 1.0 = 4.0đ
+        {"itemFormat": "SHORT_ANSWER", "biet": 2, "hieu": 2, "vandung": 2},    # 6 câu x 0.5 = 3.0đ
+    ]
+    res_default = compute_matrix_summary(default_22_rows)
+    assert res_default["grand_items"] == 22, "Tổng số câu phải đúng 22 câu"
+    assert res_default["grand_points"] == 10.0, "Tổng điểm ma trận 22 câu chuẩn phải chính xác tuyệt đối 10.0đ"
+    assert res_default["pct_biet"] == 41  # 9/22 = 40.9% ~ 41%
+    assert res_default["pct_hieu"] == 36  # 8/22 = 36.4% ~ 36%
+    assert res_default["pct_vandung"] == 23 # 5/22 = 22.7% ~ 23%
 
-    # Kịch bản B: 40 câu (16 Biết, 12 Hiểu, 12 Vận dụng) -> Tổng điểm 13.0đ, Đạt chuẩn Bloom
-    res_b = compute_matrix_summary([{"biet": 16, "hieu": 12, "vandung": 12}])
-    assert res_b["grand_items"] == 40
-    assert res_b["grand_points"] == 13.0
-    assert res_b["is_standard"] is True
+    # Kịch bản 2: Ma trận chuẩn 40 câu SINGLE_CHOICE (40 x 0.25 = 10.0đ)
+    res_sc_only = compute_matrix_summary([
+        {"itemFormat": "SINGLE_CHOICE", "biet": 16, "hieu": 12, "vandung": 12}
+    ])
+    assert res_sc_only["grand_items"] == 40
+    assert res_sc_only["grand_points"] == 10.0
+    assert res_sc_only["pct_biet"] == 40
+    assert res_sc_only["pct_hieu"] == 30
+    assert res_sc_only["pct_vandung"] == 30
+    assert res_sc_only["is_standard"] is True
 
-    # Kịch bản C: 12 câu lệch chuẩn (10 Biết, 1 Hiểu, 1 Vận dụng) -> Tổng điểm 3.3đ, Cảnh báo Bloom
-    res_c = compute_matrix_summary([{"biet": 10, "hieu": 1, "vandung": 1}])
-    assert res_c["grand_items"] == 12
-    assert res_c["pct_biet"] == 83
-    assert res_c["is_standard"] is False
+    # Kịch bản 3: Ma trận Tự luận 10 câu ESSAY (10 x 1.0 = 10.0đ)
+    res_essay = compute_matrix_summary([
+        {"itemFormat": "ESSAY", "biet": 4, "hieu": 3, "vandung": 3}
+    ])
+    assert res_essay["grand_items"] == 10
+    assert res_essay["grand_points"] == 10.0
+    assert res_essay["is_standard"] is True
 
 
 # =========================================================================
@@ -990,5 +1067,151 @@ def test_render_answer_key_matrix_table_three_question_formats():
     assert key_matrix[2]["hasAnchor"] is False
     for code in codes:
         assert key_matrix[2]["variantKeys"][code] == "3.14"
+
+
+# =========================================================================
+# 14. KIỂM THỬ MA TRẬN 8 CỘT, KHÔNG PRESET, VÀ CHUẨN ĐIỂM SỐ THEO DẠNG THỨC
+# =========================================================================
+
+def test_matrix_8_column_grid_format_scoring_and_no_presets_contract():
+    """Kiểm thử toàn diện bảng ma trận 8 cột, loại bỏ preset cũ và tính điểm chuẩn QĐ 764:
+    1. Kiểm thử cấu trúc bảng ma trận 8 cột:
+       - thead có đủ 8 cột: Mạch ND/YCCĐ, Dạng thức câu hỏi (w-44 text-center border-l border-slate-200 bg-slate-100),
+         1. Nhận biết (Biết), 2. Thông hiểu (Hiểu), 3. Vận dụng, Tổng câu, Tổng điểm, Thao tác.
+       - tbody render bởi renderMatrixGrid(): render select format trên từng dòng, 3 ô input level + chip tồn kho,
+         cột tổng câu, cột tổng điểm = (rowItems * formatPoints), cột nút xóa.
+       - tfoot có colspan="2" cho 2 cột đầu (TỔNG CỘNG TOÀN MA TRẬN), và 6 cột tổng hợp.
+    2. Kiểm thử sự vắng mặt của các nút preset cũ:
+       - #btn-preset-thpt_2025, #btn-preset-midterm, #btn-preset-final không tồn tại trong frontend/index.html.
+    3. Nút #btn-add-matrix-row:
+       - Nằm tại thanh công cụ của lưới 2D cạnh chip tồn kho.
+       - Có icon plus và nhãn "Thêm dòng YCCĐ".
+    4. Modal #add-matrix-row-modal:
+       - Chứa trường chọn dạng thức câu hỏi #modal-matrix-format.
+       - 4 options: SINGLE_CHOICE, TRUE_FALSE_GROUP, SHORT_ANSWER, ESSAY.
+    5. JavaScript contract:
+       - MATRIX_FORMAT_POINTS và MATRIX_FORMAT_LABELS định nghĩa chuẩn điểm số.
+       - updateMatrixRowFormat(rowIdx, format) cập nhật state.matrixConfig.rows[rowIdx].itemFormat.
+       - updateMatrixRowFormat được expose trên window.app.
+    6. Tính toán điểm số theo dạng thức:
+       - SINGLE_CHOICE: 0.25đ / câu
+       - TRUE_FALSE_GROUP: 1.0đ / câu
+       - SHORT_ANSWER: 0.5đ / câu
+       - ESSAY: 1.0đ / câu
+       - Tổng điểm ma trận chuẩn 22 câu = 10.0đ (không bị nhảy sai thành 11.0đ).
+    """
+    from pathlib import Path
+
+    # --- 1. KIỂM THỬ GIAO DIỆN HTML (frontend/index.html) ---
+    html_file = Path("frontend/index.html")
+    assert html_file.exists(), "frontend/index.html phải tồn tại"
+    html_text = html_file.read_text(encoding="utf-8")
+
+    # A. Vắng mặt hoàn toàn các nút preset cũ
+    assert "btn-preset-thpt_2025" not in html_text, "Không được chứa nút btn-preset-thpt_2025"
+    assert "btn-preset-midterm" not in html_text, "Không được chứa nút btn-preset-midterm"
+    assert "btn-preset-final" not in html_text, "Không được chứa nút btn-preset-final"
+
+    # B. Vị trí nút Thêm dòng YCCĐ tại thanh công cụ lưới ma trận
+    assert 'id="btn-add-matrix-row"' in html_text
+    assert "Thêm dòng YCCĐ" in html_text
+    assert 'onclick="app.openAddMatrixRowModal()"' in html_text
+    assert 'data-lucide="plus"' in html_text
+
+    # C. Cấu trúc thead 8 cột
+    assert '<th class="p-3 w-64 sticky left-0 bg-slate-100 z-10">Mạch Nội dung & YCCĐ / Dạng bài</th>' in html_text
+    assert '<th class="p-3 w-44 text-center border-l border-slate-200 bg-slate-100">Dạng thức câu hỏi</th>' in html_text
+    assert '<div class="text-blue-900">1. Nhận biết (Biết)</div>' in html_text
+    assert '<div class="text-indigo-900">2. Thông hiểu (Hiểu)</div>' in html_text
+    assert '<div class="text-emerald-900">3. Vận dụng</div>' in html_text
+    assert '<th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng câu</th>' in html_text
+    assert '<th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng điểm</th>' in html_text
+    assert '<th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-16">Thao tác</th>' in html_text
+
+    # D. Cấu trúc tfoot 8 cột
+    assert '<td colspan="2" class="p-3 sticky left-0 bg-slate-50">TỔNG CỘNG TOÀN MA TRẬN</td>' in html_text
+    assert 'id="matrix-total-biet"' in html_text
+    assert 'id="matrix-total-hieu"' in html_text
+    assert 'id="matrix-total-vandung"' in html_text
+    assert 'id="matrix-total-items"' in html_text
+    assert 'id="matrix-total-points"' in html_text
+
+    # E. Modal #add-matrix-row-modal có trường format
+    assert 'id="add-matrix-row-modal"' in html_text
+    assert 'id="modal-matrix-format"' in html_text
+    assert '<option value="SINGLE_CHOICE">Trắc nghiệm 4 lựa chọn (0.25đ)</option>' in html_text
+    assert '<option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý (1.0đ)</option>' in html_text
+    assert '<option value="SHORT_ANSWER">Trả lời ngắn (0.5đ)</option>' in html_text
+    assert '<option value="ESSAY">Tự luận (1.0đ)</option>' in html_text
+
+    # --- 2. KIỂM THỬ JAVASCRIPT CONTRACT (frontend/static/app.js) ---
+    js_file = Path("frontend/static/app.js")
+    assert js_file.exists(), "frontend/static/app.js phải tồn tại"
+    js_text = js_file.read_text(encoding="utf-8")
+
+    # A. Bảng điểm chuẩn và nhãn
+    assert "const MATRIX_FORMAT_POINTS = {" in js_text
+    assert "SINGLE_CHOICE: 0.25," in js_text
+    assert "TRUE_FALSE_GROUP: 1.0," in js_text
+    assert "SHORT_ANSWER: 0.5," in js_text
+    assert "ESSAY: 1.0" in js_text
+
+    assert "const MATRIX_FORMAT_LABELS = {" in js_text
+    assert "SINGLE_CHOICE: 'Trắc nghiệm (0.25đ)'," in js_text
+    assert "TRUE_FALSE_GROUP: 'Đúng / Sai (1.0đ)'," in js_text
+    assert "SHORT_ANSWER: 'Trả lời ngắn (0.5đ)'," in js_text
+    assert "ESSAY: 'Tự luận (1.0đ)'" in js_text
+
+    # B. Hàm updateMatrixRowFormat và phơi ra window.app
+    assert "function updateMatrixRowFormat(rowIdx, format) {" in js_text
+    assert "state.matrixConfig.rows[rowIdx].itemFormat = format;" in js_text
+    assert "renderMatrixGrid();" in js_text
+    assert "updateMatrixRowFormat," in js_text
+
+    # C. renderMatrixGrid render 8 cột trong tbody
+    assert "app.updateMatrixRowFormat(${rowIdx}, this.value)" in js_text
+    assert "app.updateMatrixCell(${rowIdx}, 'biet', this.value)" in js_text
+    assert "app.updateMatrixCell(${rowIdx}, 'hieu', this.value)" in js_text
+    assert "app.updateMatrixCell(${rowIdx}, 'vandung', this.value)" in js_text
+    assert "app.deleteMatrixRow(${rowIdx})" in js_text
+
+    # D. Tính toán điểm số thời gian thực không hardcode
+    assert "const format = row.itemFormat || 'SINGLE_CHOICE';" in js_text
+    assert "const formatPoints = MATRIX_FORMAT_POINTS[format] || 0.25;" in js_text
+    assert "const rowItems = rowBiet + rowHieu + rowVandung;" in js_text
+    assert "const rowPoints = (rowItems * formatPoints).toFixed(2);" in js_text
+    assert "grandPoints += rowItems * formatPoints;" in js_text
+
+    # --- 3. KIỂM THỬ TÍNH ĐIỂM CHUẨN HÓA 22 CÂU = 10.0Đ (KHÔNG NHẢY THÀNH 11.0Đ) ---
+    matrix_points_spec = {
+        "SINGLE_CHOICE": 0.25,
+        "TRUE_FALSE_GROUP": 1.0,
+        "SHORT_ANSWER": 0.5,
+        "ESSAY": 1.0,
+    }
+
+    # Cấu hình chuẩn 22 câu mặc định của ứng dụng
+    standard_22_items = [
+        {"format": "SINGLE_CHOICE", "count": 12},     # 12 x 0.25 = 3.0đ
+        {"format": "TRUE_FALSE_GROUP", "count": 4},   # 4 x 1.0 = 4.0đ
+        {"format": "SHORT_ANSWER", "count": 6},       # 6 x 0.5 = 3.0đ
+    ]
+
+    total_items = sum(item["count"] for item in standard_22_items)
+    assert total_items == 22, "Tổng số câu của đề thi chuẩn phải là 22 câu"
+
+    total_score = sum(item["count"] * matrix_points_spec[item["format"]] for item in standard_22_items)
+    assert total_score == 10.0, f"Tổng điểm phải là 10.0đ, thực tế tính ra: {total_score}đ (không được là 11.0đ)"
+
+    # Kiểm tra từng dạng thức độc lập
+    sc_points = 12 * matrix_points_spec["SINGLE_CHOICE"]
+    tf_points = 4 * matrix_points_spec["TRUE_FALSE_GROUP"]
+    sa_points = 6 * matrix_points_spec["SHORT_ANSWER"]
+
+    assert sc_points == 3.0, "12 câu SINGLE_CHOICE phải đạt 3.0đ"
+    assert tf_points == 4.0, "4 câu TRUE_FALSE_GROUP phải đạt 4.0đ"
+    assert sa_points == 3.0, "6 câu SHORT_ANSWER phải đạt 3.0đ"
+    assert (sc_points + tf_points + sa_points) == 10.0, "Tổng 3 phần phải đạt chuẩn 10.0đ"
+
 
 

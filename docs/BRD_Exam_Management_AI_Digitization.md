@@ -111,34 +111,34 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 
 ---
 
-### BR-04: MA TRẬN ĐỀ THI 2D THEO YCCĐ, PRESETS & ĐỐI SOÁT TỒN KHO THỜI GIAN THỰC
+### BR-04: MA TRẬN ĐỀ THI 2D THEO YCCĐ, 4 DẠNG THỨC CÂU HỎI & ĐỐI SOÁT TỒN KHO THỜI GIAN THỰC
 - **BR-04.1 Ma trận đề thi 2 chiều tương tác (Interactive 2D Matrix Grid):**
   - Căn cứ pháp lý: Thông tư 22/2021/TT-BGDĐT (đánh giá học sinh THCS và THPT) và Định dạng đề thi tốt nghiệp THPT từ năm 2025 (Quyết định 764/QĐ-BGDĐT).
+  - Tái cơ cấu Header Card theo Apple HIG: Loại bỏ hoàn toàn các nút Preset cứng gây tràn viền và vỡ layout; bố trí lại tiêu đề và thông số chung (Tên kỳ thi, Khối lớp & Môn học, Thời gian làm bài, Thang điểm tổng 10.0đ) tinh gọn, responsive.
+  - Vị trí công thái học chuẩn cho nút **"Thêm dòng YCCĐ"**: Đặt tại thanh công cụ của bảng ma trận với duy nhất 1 icon plus tinh tế (loại bỏ triệt để lỗi lặp `+ +`).
   - Trục dọc: Phân cấp theo Mạch nội dung (Strand) $
 ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng câu hỏi (Problem Archetype) và Thể thức câu hỏi (ItemFormat: `SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
-  - Trục ngang: 3 Cột cấp độ nhận thức bám sát Bảng động từ TT 32:
-    1. *Biết (Nhận biết):* TN đơn (0.25đ/câu).
-    2. *Hiểu (Thông hiểu):* Đúng/Sai (1.0đ/câu theo barem lũy tiến QĐ 764) hoặc TN đơn.
-    3. *Vận dụng:* Trả lời ngắn (0.5đ/câu) hoặc Vận dụng / Vận dụng cao.
-  - Tính toán thời gian thực: Tự động cộng dồn tổng số câu, tổng điểm từng dòng, tổng điểm từng cột và thang điểm tổng 10.0đ. Cảnh báo trực quan khi tổng điểm lệch khỏi 10.0đ.
+ightarrow$ Dạng câu hỏi (Problem Archetype) $
+ightarrow$ Dạng thức câu hỏi (ItemFormat: `SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`, `ESSAY`).
+  - Trục ngang:
+    * Cột 1: Mạch Nội dung & YCCĐ / Dạng bài (sticky left).
+    * Cột 2: Dạng thức câu hỏi (Dropdown select tương tác độc lập trên từng dòng: Trắc nghiệm 0.25đ, Đúng/Sai 1.0đ, Trả lời ngắn 0.5đ, Tự luận 1.0đ).
+    * Cột 3: 1. Nhận biết (Biết).
+    * Cột 4: 2. Thông hiểu (Hiểu).
+    * Cột 5: 3. Vận dụng (VD).
+    * Cột 6: Tổng câu.
+    * Cột 7: Tổng điểm.
+    * Cột 8: Thao tác (Xóa dòng).
+  - Tính toán điểm số thời gian thực theo Dạng thức câu hỏi (Real-Time Dynamic Scoring):
+    * Điểm mỗi dòng = (Biết + Hiểu + Vận dụng) $\times$ Hệ số điểm của dạng thức câu hỏi dòng đó (0.25đ đối với Trắc nghiệm, 1.0đ đối với Đúng/Sai bậc thang QĐ 764, 0.5đ đối với Trả lời ngắn, 1.0đ đối với Tự luận).
+    * Tổng điểm toàn ma trận = Tổng điểm tất cả các dòng; tự động cân bằng chuẩn 10.0đ (loại bỏ hoàn toàn lỗi hiển thị nhảy sai 11.0đ).
   - Thanh tiến trình phân bổ Bloom (Biết %, Hiểu %, Vận dụng %) với nhãn cảnh báo trực quan: Đạt chuẩn khảo thí khi tỷ lệ tiệm cận 40% Biết - 30% Hiểu - 30% Vận dụng (dung sai $\pm 5\%$).
-- **BR-04.2 Thư viện Ma trận mẫu (Exam Matrix Presets):**
-  1. *Preset 1: Chuẩn Tốt nghiệp THPT 2025 (34 câu, 10.0 điểm, thời gian 90 phút):*
-     - Phần I: 12 câu trắc nghiệm đơn $\times$ 0.25đ = 3.0 điểm.
-     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0 điểm.
-     - Phần III: 6 câu Trả lời ngắn $\times$ 0.5đ = 3.0 điểm.
-     - Tỷ lệ chuẩn: 40% Biết (3.0đ) - 30% Hiểu (3.5đ) - 30% Vận dụng (3.5đ).
-  2. *Preset 2: Kiểm tra Định kỳ / Giữa kỳ (20 câu, 10.0 điểm, thời gian 50-60 phút):*
-     - Phần I: 12 câu trắc nghiệm đơn $\times$ 0.25đ = 3.0 điểm.
-     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0 điểm.
-     - Phần III: 4 câu Trả lời ngắn $\times$ 0.75đ = 3.0 điểm.
-     - Tỷ lệ: ~50% Biết, 30% Hiểu, 20% Vận dụng.
-  3. *Preset 3: Kiểm tra Cuối kỳ (28 câu, 10.0 điểm, thời gian 90 phút):*
-     - Phần I: 16 câu trắc nghiệm đơn $\times$ 0.25đ = 4.0 điểm.
-     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0 điểm.
-     - Phần III: 8 câu Trả lời ngắn $\times$ 0.25đ = 2.0 điểm.
-     - Tỷ lệ: 40% Biết, 35% Hiểu, 25% Vận dụng.
+- **BR-04.2 Chuẩn hóa 4 Dạng thức Câu hỏi Khảo thí Quốc gia (4 Statutory Item Formats):**
+  1. *Trắc nghiệm nhiều lựa chọn (`SINGLE_CHOICE`):* Barem 0.25 điểm / câu.
+  2. *Đúng / Sai 4 ý (`TRUE_FALSE_GROUP`):* Barem 1.0 điểm / câu (chấm lũy tiến theo QĐ 764: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ).
+  3. *Trả lời ngắn (`SHORT_ANSWER`):* Barem 0.5 điểm / câu.
+  4. *Tự luận (`ESSAY`):* Barem 1.0 điểm / câu.
+  * Hỗ trợ chọn linh hoạt dạng thức câu hỏi ngay khi thêm dòng YCCĐ mới qua Modal Apple HIG (`#add-matrix-row-modal`).
 - **BR-04.3 Đối soát tồn kho câu hỏi thời gian thực (Live Inventory Checker):**
   - Hệ thống tự động kiểm tra đối soát số lượng câu hỏi thực tế trong CSDL Question Bank cho từng ô ma trận (`learning_outcome_id x cognitive_level x item_format x problem_archetype_id`).
   - Trạng thái hiển thị trực quan:

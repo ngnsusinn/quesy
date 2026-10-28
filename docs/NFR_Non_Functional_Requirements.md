@@ -143,9 +143,13 @@ floor))$.
 - **NFR-USA-01 (Đồng bộ Cuộn trang - Synchronized Scrolling):** Khi người dùng cuộn xem câu hỏi ở cột bên phải, khung xem tài liệu gốc bên trái di chuyển mượt mà đến đúng vùng tài liệu tương ứng với độ trễ phản hồi **$< 100$ ms**.
 - **NFR-USA-02 (Học nhanh - Learnability):** Giáo viên mới tiếp cận hệ thống có thể hoàn thành việc tải lên một đề thi và duyệt 10 câu hỏi đầu tiên vào ngân hàng trong vòng **$< 15$ phút** mà không cần tham gia lớp đào tạo trực tiếp.
 
-### 6.2. Tiêu chuẩn Khả năng Tiếp cận (Accessibility & Compatibility)
+### 6.2. Tiêu chuẩn Khả năng Tiếp cận & Giao diện Apple HIG (Accessibility & UI Ergonomics)
 - **NFR-USA-03 (Tương thích Trình duyệt):** Hoạt động đồng nhất 100% trên các trình duyệt phổ biến: Google Chrome (phiên bản $\ge 110$), Microsoft Edge (phiên bản $\ge 110$), Mozilla Firefox, và Safari trên MacOS/iPadOS.
 - **NFR-USA-04 (Tương thích Thiết bị):** Hỗ trợ tốt trên màn hình máy tính bàn, laptop (tối thiểu 1366x768) và máy tính bảng (iPad/Android tablet).
+- **NFR-USA-05 (Thiết Kế Header Card Chuẩn Apple HIG & Chống Tràn Bố Cục - Zero Layout Shift & Overflow):**
+  - Header Card của phân hệ Ma trận đề thi (`SCR-MATRIX-BUILDER`) đảm bảo tính thích ứng (Responsive) 100% trên các dải phân giải màn hình từ 1024px đến 2560px; loại bỏ hoàn toàn việc xếp chồng các nút preset dài chung hàng với tiêu đề gây đẩy lệch lề hoặc vỡ layout.
+  - Vị trí nút thao tác công thái học chuẩn: Nút **`Thêm dòng YCCĐ`** được đặt trên thanh công cụ của bảng ma trận với duy nhất 1 icon plus tinh tế (loại bỏ triệt để lỗi lặp `+ +`).
+  - Bảng ma trận 2D hỗ trợ cuộn ngang mượt mà (`overflow-x-auto`) với cột Mạch nội dung cố định sticky bên trái, các dropdown Dạng thức câu hỏi và ô nhập liệu nhận thức phản hồi xúc giác tức thì ($\le 16$ ms/thao tác), tự động tính toán lại điểm dòng và tổng điểm ma trận mà không gây giật lag giao diện.
 
 ---
 

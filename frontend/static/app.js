@@ -144,40 +144,33 @@
           strandName: 'Số, Đại số & Giải tích',
           yccdCode: 'TOAN12.GT.01',
           archetypeName: 'Cực trị hàm bậc 3 chứa m',
-          biet: 5,
-          hieu: 3,
-          vandung: 3,
+          itemFormat: 'SINGLE_CHOICE',
+          biet: 6,
+          hieu: 4,
+          vandung: 2,
           bankStock: { biet: 15, hieu: 12, vandung: 8 },
         },
         {
           id: 'row-2',
           strandName: 'Số, Đại số & Giải tích',
           yccdCode: 'TOAN12.GT.02',
-          archetypeName: 'Tiệm cận đứng, ngang đồ thị',
-          biet: 3,
+          archetypeName: 'Đúng/Sai: Khảo sát hàm số',
+          itemFormat: 'TRUE_FALSE_GROUP',
+          biet: 1,
           hieu: 2,
-          vandung: 2,
+          vandung: 1,
           bankStock: { biet: 10, hieu: 8, vandung: 6 },
         },
         {
           id: 'row-3',
           strandName: 'Hình học & Đo lường',
           yccdCode: 'TOAN12.HH.01',
-          archetypeName: 'Phương trình mặt phẳng Oxyz',
-          biet: 4,
-          hieu: 3,
-          vandung: 3,
-          bankStock: { biet: 14, hieu: 9, vandung: 7 },
-        },
-        {
-          id: 'row-4',
-          strandName: 'Thống kê & Xác suất',
-          yccdCode: 'TOAN12.XS.01',
-          archetypeName: 'Xác suất có điều kiện & Bayes',
+          archetypeName: 'Trả lời ngắn: Oxyz',
+          itemFormat: 'SHORT_ANSWER',
           biet: 2,
           hieu: 2,
           vandung: 2,
-          bankStock: { biet: 8, hieu: 6, vandung: 4 },
+          bankStock: { biet: 14, hieu: 9, vandung: 7 },
         },
       ],
     },
@@ -3107,6 +3100,19 @@
   // ============================================================================
   // 10. TAB 4: EXAM MATRIX BUILDER (INTERACTIVE 2D GRID WITH INVENTORY CHECK)
   // ============================================================================
+  const MATRIX_FORMAT_POINTS = {
+    SINGLE_CHOICE: 0.25,
+    TRUE_FALSE_GROUP: 1.0,
+    SHORT_ANSWER: 0.5,
+    ESSAY: 1.0
+  };
+  const MATRIX_FORMAT_LABELS = {
+    SINGLE_CHOICE: 'Trắc nghiệm (0.25đ)',
+    TRUE_FALSE_GROUP: 'Đúng / Sai (1.0đ)',
+    SHORT_ANSWER: 'Trả lời ngắn (0.5đ)',
+    ESSAY: 'Tự luận (1.0đ)'
+  };
+
   function renderMatrixGrid() {
     const tbody = document.getElementById('matrix-grid-tbody');
     if (!tbody) return;
@@ -3115,22 +3121,42 @@
     let totalBiet = 0;
     let totalHieu = 0;
     let totalVandung = 0;
+    let totalBietPoints = 0;
+    let totalHieuPoints = 0;
+    let totalVandungPoints = 0;
+    let grandPoints = 0;
 
     state.matrixConfig.rows.forEach((row, rowIdx) => {
-      totalBiet += Number(row.biet);
-      totalHieu += Number(row.hieu);
-      totalVandung += Number(row.vandung);
+      const format = row.itemFormat || 'SINGLE_CHOICE';
+      const formatPoints = MATRIX_FORMAT_POINTS[format] || 0.25;
 
-      const rowItems = Number(row.biet) + Number(row.hieu) + Number(row.vandung);
-      const rowPoints = (row.biet * 0.25 + row.hieu * 0.35 + row.vandung * 0.4).toFixed(2);
+      const rowBiet = Number(row.biet) || 0;
+      const rowHieu = Number(row.hieu) || 0;
+      const rowVandung = Number(row.vandung) || 0;
+
+      totalBiet += rowBiet;
+      totalHieu += rowHieu;
+      totalVandung += rowVandung;
+
+      const bietPts = rowBiet * formatPoints;
+      const hieuPts = rowHieu * formatPoints;
+      const vandungPts = rowVandung * formatPoints;
+
+      totalBietPoints += bietPts;
+      totalHieuPoints += hieuPts;
+      totalVandungPoints += vandungPts;
+
+      const rowItems = rowBiet + rowHieu + rowVandung;
+      const rowPoints = (rowItems * formatPoints).toFixed(2);
+      grandPoints += rowItems * formatPoints;
 
       // Stock check with visual matrix-stock-chip
-      const stockBietNeeded = Number(row.biet);
-      const stockBietOk = row.bankStock.biet >= stockBietNeeded;
-      const stockHieuNeeded = Number(row.hieu);
-      const stockHieuOk = row.bankStock.hieu >= stockHieuNeeded;
-      const stockVandungNeeded = Number(row.vandung);
-      const stockVandungOk = row.bankStock.vandung >= stockVandungNeeded;
+      const stockBietNeeded = rowBiet;
+      const stockBietOk = (row.bankStock?.biet || 0) >= stockBietNeeded;
+      const stockHieuNeeded = rowHieu;
+      const stockHieuOk = (row.bankStock?.hieu || 0) >= stockHieuNeeded;
+      const stockVandungNeeded = rowVandung;
+      const stockVandungOk = (row.bankStock?.vandung || 0) >= stockVandungNeeded;
 
       html += `
         <tr class="hover:bg-slate-50 transition-colors">
@@ -3140,22 +3166,32 @@
             <div class="text-[11px] text-slate-500">${row.archetypeName}</div>
           </td>
 
-          <!-- Col 1: Biết -->
+          <!-- Col 2: Dạng thức câu hỏi -->
+          <td class="p-2 text-center border-l border-slate-200 bg-white">
+            <select onchange="app.updateMatrixRowFormat(${rowIdx}, this.value)" class="text-xs font-semibold py-1 px-2 rounded border border-slate-200 bg-white w-full">
+              <option value="SINGLE_CHOICE" ${format === 'SINGLE_CHOICE' ? 'selected' : ''}>Trắc nghiệm (0.25đ)</option>
+              <option value="TRUE_FALSE_GROUP" ${format === 'TRUE_FALSE_GROUP' ? 'selected' : ''}>Đúng / Sai (1.0đ)</option>
+              <option value="SHORT_ANSWER" ${format === 'SHORT_ANSWER' ? 'selected' : ''}>Trả lời ngắn (0.5đ)</option>
+              <option value="ESSAY" ${format === 'ESSAY' ? 'selected' : ''}>Tự luận (1.0đ)</option>
+            </select>
+          </td>
+
+          <!-- Col 3: Biết -->
           <td class="p-2 text-center border-l border-slate-200 matrix-input-cell bg-blue-50/20">
-            <input type="number" min="0" max="20" value="${row.biet}" onchange="app.updateMatrixCell(${rowIdx}, 'biet', this.value)" class="focus:ring-2 focus:ring-blue-500">
-            <span class="matrix-inventory-stock matrix-stock-chip ${stockBietOk ? 'stock-ok' : 'stock-warn'}">Kho: ${row.bankStock.biet} / Cần: ${stockBietNeeded}</span>
+            <input type="number" min="0" max="20" value="${rowBiet}" onchange="app.updateMatrixCell(${rowIdx}, 'biet', this.value)" class="focus:ring-2 focus:ring-blue-500">
+            <span class="matrix-inventory-stock matrix-stock-chip ${stockBietOk ? 'stock-ok' : 'stock-warn'}">Kho: ${row.bankStock?.biet || 0} / Cần: ${stockBietNeeded}</span>
           </td>
 
-          <!-- Col 2: Hiểu -->
+          <!-- Col 4: Hiểu -->
           <td class="p-2 text-center border-l border-slate-200 matrix-input-cell bg-indigo-50/20">
-            <input type="number" min="0" max="20" value="${row.hieu}" onchange="app.updateMatrixCell(${rowIdx}, 'hieu', this.value)" class="focus:ring-2 focus:ring-indigo-500">
-            <span class="matrix-inventory-stock matrix-stock-chip ${stockHieuOk ? 'stock-ok' : 'stock-warn'}">Kho: ${row.bankStock.hieu} / Cần: ${stockHieuNeeded}</span>
+            <input type="number" min="0" max="20" value="${rowHieu}" onchange="app.updateMatrixCell(${rowIdx}, 'hieu', this.value)" class="focus:ring-2 focus:ring-indigo-500">
+            <span class="matrix-inventory-stock matrix-stock-chip ${stockHieuOk ? 'stock-ok' : 'stock-warn'}">Kho: ${row.bankStock?.hieu || 0} / Cần: ${stockHieuNeeded}</span>
           </td>
 
-          <!-- Col 3: Vận dụng -->
+          <!-- Col 5: Vận dụng -->
           <td class="p-2 text-center border-l border-slate-200 matrix-input-cell bg-emerald-50/20">
-            <input type="number" min="0" max="20" value="${row.vandung}" onchange="app.updateMatrixCell(${rowIdx}, 'vandung', this.value)" class="focus:ring-2 focus:ring-emerald-500">
-            <span class="matrix-inventory-stock matrix-stock-chip ${stockVandungOk ? 'stock-ok' : 'stock-warn'}">Kho: ${row.bankStock.vandung} / Cần: ${stockVandungNeeded}</span>
+            <input type="number" min="0" max="20" value="${rowVandung}" onchange="app.updateMatrixCell(${rowIdx}, 'vandung', this.value)" class="focus:ring-2 focus:ring-emerald-500">
+            <span class="matrix-inventory-stock matrix-stock-chip ${stockVandungOk ? 'stock-ok' : 'stock-warn'}">Kho: ${row.bankStock?.vandung || 0} / Cần: ${stockVandungNeeded}</span>
           </td>
 
           <!-- Total Items per Row -->
@@ -3183,12 +3219,11 @@
 
     // Totals
     const grandItems = totalBiet + totalHieu + totalVandung;
-    const grandPoints = (totalBiet * 0.25 + totalHieu * 0.35 + totalVandung * 0.4).toFixed(1);
-    document.getElementById('matrix-total-biet').innerText = `${totalBiet} câu (${(totalBiet * 0.25).toFixed(1)}đ)`;
-    document.getElementById('matrix-total-hieu').innerText = `${totalHieu} câu (${(totalHieu * 0.35).toFixed(1)}đ)`;
-    document.getElementById('matrix-total-vandung').innerText = `${totalVandung} câu (${(totalVandung * 0.4).toFixed(1)}đ)`;
+    document.getElementById('matrix-total-biet').innerText = `${totalBiet} câu (${totalBietPoints.toFixed(1)}đ)`;
+    document.getElementById('matrix-total-hieu').innerText = `${totalHieu} câu (${totalHieuPoints.toFixed(1)}đ)`;
+    document.getElementById('matrix-total-vandung').innerText = `${totalVandung} câu (${totalVandungPoints.toFixed(1)}đ)`;
     document.getElementById('matrix-total-items').innerText = `${grandItems} câu`;
-    document.getElementById('matrix-total-points').innerText = `${grandPoints} đ`;
+    document.getElementById('matrix-total-points').innerText = `${grandPoints.toFixed(1)} đ`;
 
     // Calculate Bloom Cognitive Level Ratio
     if (grandItems > 0) {
@@ -3215,6 +3250,12 @@
     }
   }
 
+  function updateMatrixRowFormat(rowIdx, format) {
+    if (!state.matrixConfig.rows[rowIdx]) return;
+    state.matrixConfig.rows[rowIdx].itemFormat = format;
+    renderMatrixGrid();
+  }
+
   function updateMatrixCell(rowIdx, field, val) {
     if (!state.matrixConfig.rows[rowIdx]) return;
     const num = Math.max(0, parseInt(val, 10) || 0);
@@ -3237,6 +3278,7 @@
     const strand = document.getElementById('modal-matrix-strand')?.value || 'Số, Đại số & Giải tích';
     const yccd = document.getElementById('modal-matrix-yccd')?.value || 'TOAN12.GT.05';
     const archetype = document.getElementById('modal-matrix-archetype')?.value || 'Dạng bài mới';
+    const format = document.getElementById('modal-matrix-format')?.value || 'SINGLE_CHOICE';
     const biet = parseInt(document.getElementById('modal-matrix-biet')?.value, 10) || 1;
     const hieu = parseInt(document.getElementById('modal-matrix-hieu')?.value, 10) || 1;
     const vandung = parseInt(document.getElementById('modal-matrix-vandung')?.value, 10) || 1;
@@ -3246,6 +3288,7 @@
       strandName: strand,
       yccdCode: yccd,
       archetypeName: archetype,
+      itemFormat: format,
       biet: biet,
       hieu: hieu,
       vandung: vandung,
@@ -3264,6 +3307,7 @@
         strandName: rowConfig.strandName || 'Số, Đại số & Giải tích',
         yccdCode: rowConfig.yccdCode || 'TOAN12.GT.05',
         archetypeName: rowConfig.archetypeName || 'Dạng bài mới',
+        itemFormat: rowConfig.itemFormat || 'SINGLE_CHOICE',
         biet: rowConfig.biet !== undefined ? rowConfig.biet : 1,
         hieu: rowConfig.hieu !== undefined ? rowConfig.hieu : 1,
         vandung: rowConfig.vandung !== undefined ? rowConfig.vandung : 1,
@@ -8366,6 +8410,7 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     renderItemBank,
     deleteBankQuestion,
     updateMatrixCell,
+    updateMatrixRowFormat,
     saveMatrixConfig,
     loadMatrixPreset,
     exportMatrixSpec,

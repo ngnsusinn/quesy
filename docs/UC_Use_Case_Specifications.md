@@ -168,33 +168,33 @@
 
 ---
 
-### UC-06: THIẾT LẬP MA TRẬN 2D, ÁP DỤNG PRESETS & ĐỐI SOÁT TỒN KHO
+### UC-06: THIẾT LẬP MA TRẬN 2D THEO YCCĐ & 4 DẠNG THỨC CÂU HỎI, ĐỐI SOÁT TỒN KHO & XUẤT BẢN BẢN ĐẶC TẢ
 - **Mã Use Case:** `UC-06`
-- **Tên Use Case:** Thiết lập Ma trận Đề thi 2D, Áp dụng Presets, Đối soát Tồn kho & Xuất bản Bản đặc tả
+- **Tên Use Case:** Thiết lập Ma trận Đề thi 2D theo YCCĐ & 4 Dạng thức Câu hỏi, Đối soát Tồn kho & Xuất bản Bản đặc tả
 - **Tác nhân chính:** Tổ trưởng Chuyên môn, Giáo viên
 - **Căn cứ pháp lý:** Thông tư 22/2021/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
 
 #### Luồng sự kiện chính:
 1. Người dùng truy cập phân hệ Ma trận đề thi (`/matrix`, tab `#tab-matrix`).
-2. Người dùng chọn áp dụng một trong 3 Ma trận mẫu (Presets):
-   - Preset 1: Chuẩn Tốt nghiệp THPT 2025 (34 câu, 10.0đ, thời gian 90 phút).
-   - Preset 2: Kiểm tra Định kỳ / Giữa kỳ (20 câu, 10.0đ, thời gian 50-60 phút).
-   - Preset 3: Kiểm tra Cuối kỳ (28 câu, 10.0đ, thời gian 90 phút).
-3. Hệ thống tải cây kiến thức và dựng lưới ma trận 2D tương tác:
-   - Trục dòng: Danh sách Mạch nội dung $
+2. Giao diện Header Card hiển thị tinh gọn theo Apple HIG: Tên kỳ thi, Khối lớp & Môn học, Thời gian thi và Thang điểm 10.0đ.
+3. Hệ thống dựng lưới ma trận 2D tương tác phân theo 4 Dạng thức câu hỏi và 3 Cấp độ nhận thức:
+   - Trục dòng: Phân cấp theo Mạch nội dung $
 ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng câu hỏi $
-ightarrow$ Thể thức câu hỏi.
-   - Trục ngang: 3 Cột nhận thức: Biết (0.25đ), Hiểu (1.0đ/0.25đ), Vận dụng (0.5đ/0.75đ).
-4. Người dùng điều chỉnh số lượng câu hỏi trong từng ô ma trận.
-5. Hệ thống tính toán thời gian thực:
-   - Tổng số câu và tổng điểm từng dòng.
-   - Tổng câu và tổng điểm từng cột.
-   - Thang điểm tổng tự động cân bằng đạt 10.0đ.
-   - Thanh phân bổ Bloom (%) hiển thị trực quan tỷ lệ Biết - Hiểu - Vận dụng và đưa ra cảnh báo nếu độ lệch $> \pm 5\%$.
+ightarrow$ Dạng bài tập $
+ightarrow$ Dạng thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`, `ESSAY`).
+   - Trục cột: Cột Dạng thức câu hỏi (Dropdown), Cột 1. Biết, Cột 2. Hiểu, Cột 3. Vận dụng, Tổng câu, Tổng điểm, Thao tác xóa dòng.
+4. Người dùng tinh chỉnh trực tiếp trên từng dòng:
+   - Thay đổi **Dạng thức câu hỏi**: Trắc nghiệm 4 lựa chọn (0.25đ), Đúng/Sai 4 ý (1.0đ theo barem lũy tiến QĐ 764), Trả lời ngắn (0.5đ), Tự luận (1.0đ).
+   - Nhập số lượng câu hỏi Biết, Hiểu, Vận dụng cho từng dòng.
+   - Thêm dòng YCCĐ mới qua nút **`Thêm dòng YCCĐ`** công thái học mở Modal `#add-matrix-row-modal` có chọn Dạng thức câu hỏi.
+5. Hệ thống tính toán thời gian thực theo Dạng thức câu hỏi (Real-Time Scoring):
+   - `Điểm dòng = (Biết + Hiểu + Vận dụng) * Điểm_Dạng_Thức`.
+   - Tổng điểm từng cấp độ nhận thức (Biết, Hiểu, Vận dụng).
+   - Thang điểm tổng tự động cân bằng chuẩn 10.0đ (loại bỏ hoàn toàn lỗi hiển thị lệch 11.0đ).
+   - Thanh phân bổ Bloom (%) hiển thị trực quan tỷ lệ Biết - Hiểu - Vận dụng và đưa ra cảnh báo nếu độ lệch $> \pm 5\%$ so với tỷ lệ chuẩn 40% - 30% - 30%.
 6. Hệ thống tự động thực hiện **Live Inventory Checker (Đối soát tồn kho câu hỏi)** với CSDL Question Bank:
-   - Hiển thị màu xanh lá kèm số câu khả dụng nếu đủ câu (`Kho: 15/4 câu (Đủ)`).
-   - Hiển thị màu đỏ cảnh báo nếu thiếu câu (`Kho: 1/4 câu (Thiếu 3 câu)`).
+   - Hiển thị màu xanh lá kèm số câu khả dụng nếu đủ câu (`Kho: 15 / Cần: 5`).
+   - Hiển thị màu đỏ cảnh báo nếu thiếu câu (`Kho: 2 / Cần: 5 (Thiếu 3 câu)`).
 7. Người dùng có thể nhấn nút "Xuất Bản Đặc Tả Ma Trận" để tải về bản đặc tả dưới dạng PDF Vector, CSV UTF-8 BOM hoặc JSON qua endpoint `GET /api/v1/matrix/{id}/spec`.
 8. Người dùng nhấn nút "Lưu và Ban hành Ma trận" hoặc "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề".
 9. Hệ thống lưu ma trận vào CSDL qua `POST /api/v1/matrix` và chuyển tiếp sang phân hệ Trộn đề an toàn.

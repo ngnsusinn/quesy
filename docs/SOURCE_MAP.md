@@ -398,7 +398,13 @@ ight., Environment undefined)
     + Quản lý phiên đăng nhập qua JWT HS256 lưu an toàn tại `localStorage` (`quesy_auth_token`), tự động đính kèm header `Authorization: Bearer <token>` vào các API requests.
     + Điều khiển giao diện header: Trạng thái chưa đăng nhập (Nút Đăng nhập / Đăng ký Apple HIG); Trạng thái đã đăng nhập (Avatar, Họ tên, Role badge `Giáo viên`/`Học sinh`/`Quản trị`, menu dropdown có chức năng Đăng xuất).
     + Modal Đăng nhập / Đăng ký (`#auth-modal`): Chuyển tab Đăng nhập & Đăng ký mượt mà, tích hợp đăng nhập OAuth Google và GitHub, đăng nhập nhanh tài khoản giáo viên/admin thử nghiệm.
-  - `app.matrix`: Quản lý ma trận đề thi 2 chiều, phân bổ số lượng câu theo mức độ nhận thức.
+  - `app.matrix`: Quản lý ma trận đề thi 2 chiều (`#tab-matrix`):
+    + Tái cấu trúc Header Card Apple HIG: Loại bỏ hoàn toàn các nút Preset cứng gây vỡ layout và tràn viền, thanh tham số tinh gọn, layout responsive.
+    + Nút `Thêm dòng YCCĐ` (`#btn-add-matrix-row`) đặt tại vị trí công thái học chuẩn trên thanh công cụ bảng ma trận với duy nhất 1 icon plus tinh tế (khắc phục triệt để lỗi lặp `+ +`).
+    + Cột Dạng thức câu hỏi (Item Format) tương tác trên từng dòng: Dropdown 4 dạng thức (`SINGLE_CHOICE` 0.25đ, `TRUE_FALSE_GROUP` 1.0đ, `SHORT_ANSWER` 0.5đ, `ESSAY` 1.0đ).
+    + Công thức tính điểm động theo dạng thức câu hỏi: Tự động tính điểm từng dòng, điểm từng mức độ nhận thức (Biết, Hiểu, Vận dụng) và tổng điểm toàn ma trận chuẩn hóa 10.0đ.
+    + Modal thêm dòng YCCĐ (`#add-matrix-row-modal`): Bổ sung chọn Dạng thức câu hỏi (`#modal-matrix-format`), Mạch nội dung, YCCĐ, Dạng bài và cơ số câu.
+    + Đối soát tồn kho câu hỏi thời gian thực (`matrix-stock-chip`), thanh tiến trình Bloom và xuất bản bản đặc tả (PDF A4 / CSV UTF-8 BOM / JSON).
   - `app.shuffler`: Quản lý nguồn đề gốc (chọn đề có sẵn hoặc sinh từ ma trận), thuật toán xáo trộn đề an toàn 4 nguyên tắc, tạo mã đề hoán vị và xuất bản ấn phẩm Vector PDF LaTeX.
   - `app.digitize`: Quản lý tải lên, theo dõi tiến trình WebSocket/Polling (0-100%) và màn hình đối chiếu song song HITL.
 
