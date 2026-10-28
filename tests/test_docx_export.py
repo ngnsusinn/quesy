@@ -138,23 +138,32 @@ def test_generate_variant_latex_structure_and_national_standards():
     # 1. Kiểm thử tạo mã LaTeX cho Đề thi (is_solution=False)
     latex_exam = generate_variant_latex(variant, is_solution=False)  # type: ignore[arg-type]
 
-    # Tiêu đề 2 cột chuẩn 0.38\textwidth / 0.58\textwidth và căn giữa
-    assert r"\begin{minipage}{0.38\textwidth}" in latex_exam
-    assert r"\begin{minipage}{0.58\textwidth}" in latex_exam
-    assert r"\centering \textbf{TRƯỜNG THPT CHUYÊN}\\" in latex_exam
-    assert r"\centering \textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG}\\" in latex_exam
+    # Tiêu đề 2 cột canonical 0.38\textwidth / 0.58\textwidth [t] và căn giữa, không có \begin{center} bọc ngoài
+    assert not latex_exam.startswith(r"\begin{center}")
+    assert r"\begin{minipage}[t]{0.38\textwidth}" in latex_exam
+    assert r"\begin{minipage}[t]{0.58\textwidth}" in latex_exam
+    assert r"\textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO}" in latex_exam
+    assert r"\textbf{TRƯỜNG THPT CHUYÊN}" in latex_exam
+    assert r"\textbf{KỲ THI TỐT NGHIỆP THPT}" in latex_exam
+    assert r"\textbf{MÔN TOÁN}" in latex_exam
     assert r"\framebox{\textbf{Mã đề: 205}}" in latex_exam
+    assert r"\rule{\textwidth}{0.5pt}" in latex_exam
 
     # PHẦN I
     assert r"\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.}" in latex_exam
     assert r"\choice{" in latex_exam
     assert r"\begin{center}" in latex_exam
     assert r"\begin{tikzpicture}" in latex_exam
+    assert "QQQBLOCKLATEXSAFE" not in latex_exam
 
-    # PHẦN II có reset câu về 1 bằng \setcounter{ex}{0} và \choiceTF[1]
+    # PHẦN II có reset câu về 1 bằng \setcounter{ex}{0} và \choiceTF[1] với từng khẳng định bọc trong ngoặc nhọn {...}
     assert r"\setcounter{ex}{0}" in latex_exam
     assert r"\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.}" in latex_exam
     assert r"\choiceTF[1]" in latex_exam
+    assert r"{\True Tập xác định" in latex_exam
+    assert r"{Đồ thị hàm số có tiệm cận đứng" in latex_exam
+    assert r"{\True Đồ thị hàm số có tiệm cận ngang" in latex_exam
+    assert r"{Hàm số nghịch biến trên từng khoảng xác định.}" in latex_exam
 
     # PHẦN III có reset câu về 1 và \shortans
     assert r"\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.}" in latex_exam
@@ -279,4 +288,214 @@ def test_export_exam_package_zip_comprehensive():
             zip_path.unlink()
     finally:
         db.close()
+
+
+def test_sanitize_latex_for_xetex_comprehensive():
+    """Kiểm thử sanitize_latex_for_xetex:
+    - Bare underscores như PERSIST_13951386, var_name ngoài math mode được escape thành \\_.
+    - Ký tự % và & ngoài math mode được escape thành \\% và \\&.
+    - Subscripts toán học như $x_1$, $$y_{max}$$, \\(a_i\\) giữ nguyên vẹn.
+    - TikZ environments và các khối lồng nhau giữ nguyên vẹn, không để sót placeholder QQQBLOCKLATEXSAFE.
+    """
+    from backend.services.latex_converter import sanitize_latex_for_xetex
+
+    # 1. Bare underscores ngoài math mode
+    inp1 = "Câu hỏi kiểm thử PERSIST_13951386 với biến var_name và param_val_2."
+    exp1 = r"Câu hỏi kiểm thử PERSIST\_13951386 với biến var\_name và param\_val\_2."
+    assert sanitize_latex_for_xetex(inp1) == exp1
+
+    # 2. Toàn vẹn subscripts trong math mode ($...$, $$...$$, \[...\])
+    inp2 = "Cho hàm số $y = f(x_1)$ với $x_1 < x_2$ và $$y_{max} = \\max_{x \\in D} f(x)$$."
+    res2 = sanitize_latex_for_xetex(inp2)
+    assert "$y = f(x_1)$" in res2
+    assert "$x_1 < x_2$" in res2
+    assert "$$y_{max} = \\max_{x \\in D} f(x)$$" in res2
+    assert "x\\_1" not in res2
+    assert "y\\_{max}" not in res2
+
+    # 3. Ký tự % và & ngoài math mode được escape
+    inp3 = "Tỉ lệ đạt 95% & xếp loại Giỏi."
+    exp3 = r"Tỉ lệ đạt 95\% \& xếp loại Giỏi."
+    assert sanitize_latex_for_xetex(inp3) == exp3
+
+    # 4. TikZ đơn lẻ và lồng trong \\begin{center}
+    inp4 = (
+        "Đồ thị hàm số như hình vẽ:\n"
+        "\\begin{center}\n"
+        "\\begin{tikzpicture}[scale=0.8]\n"
+        "\\draw[->] (-2,0) -- (2,0) node[right] {$x_1$};\n"
+        "\\draw[->] (0,-1) -- (0,3) node[above] {$y_{max}$};\n"
+        "\\draw[domain=-1.5:1.5,smooth,blue] plot (\\x,{(\\x)*(\\x)});\n"
+        "\\end{tikzpicture}\n"
+        "\\end{center}\n"
+        "với biến test_flag_01."
+    )
+    res4 = sanitize_latex_for_xetex(inp4)
+    assert "test\\_flag\\_01" in res4
+    assert "\\begin{tikzpicture}[scale=0.8]" in res4
+    assert "\\end{tikzpicture}" in res4
+    assert "node[right] {$x_1$}" in res4
+    assert "node[above] {$y_{max}$}" in res4
+    assert "QQQBLOCKLATEXSAFE" not in res4
+
+
+def test_generate_variant_latex_choice_tf_braces_and_canonical_header():
+    """Kiểm thử cấu trúc generate_variant_latex:
+    - \\choiceTF[1] BẮT BUỘC có cặp ngoặc nhọn {...} quanh từng khẳng định con.
+    - Tuyệt đối không có khẳng định trần không ngoặc nhọn.
+    - Header 2 cột canonical chuẩn (minipage [t] 0.38\\textwidth và 0.58\\textwidth, \\centering, \\hfill, \\rule{\\textwidth}{0.5pt}).
+    - Không có \\begin{center} bọc ngoài 2 minipage.
+    - Cuối tài liệu có vĩ thanh \\begin{center}\\textbf{--- HẾT ---}\\end{center}.
+    """
+    from types import SimpleNamespace
+    from backend.services.docx_exporter import generate_variant_latex
+
+    q_tf = SimpleNamespace(
+        id="q_tf_check",
+        item_format="TRUE_FALSE_GROUP",
+        stem="Xét tính đúng sai của hàm số $y = f(x)$ với biến config_id:",
+        options=[],
+        sub_statements=[
+            SimpleNamespace(content="Khẳng định thứ nhất với $x_1 = 0$", is_true=True, explanation="Giải thích 1"),
+            SimpleNamespace(content="Khẳng định thứ hai với $x_2 = 1$", is_true=False, explanation="Giải thích 2"),
+            SimpleNamespace(content="Khẳng định thứ ba với $x_3 = 2$", is_true=True, explanation="Giải thích 3"),
+            SimpleNamespace(content="Khẳng định thứ tư với $x_4 = 3$", is_true=False, explanation="Giải thích 4"),
+        ],
+        short_answer_key=None,
+        explanation="Hướng dẫn giải toàn diện."
+    )
+    item_tf = SimpleNamespace(
+        variant_order_index=1,
+        question=q_tf,
+        option_mapping=None,
+        answer_key="Đ-S-Đ-S"
+    )
+    variant = SimpleNamespace(
+        variant_code="301",
+        items=[item_tf],
+        master_exam=SimpleNamespace(
+            title="Đề Khảo Sát Toán Chuẩn",
+            subject=SimpleNamespace(name="Toán học", code="TOAN")
+        )
+    )
+
+    latex_code = generate_variant_latex(variant, is_solution=False)  # type: ignore[arg-type]
+
+    # 1. Header canonical checks
+    assert not latex_code.startswith(r"\begin{center}")
+    assert r"\begin{minipage}[t]{0.38\textwidth}" in latex_code
+    assert r"\begin{minipage}[t]{0.58\textwidth}" in latex_code
+    assert r"\framebox{\textbf{Mã đề: 301}}" in latex_code
+    assert r"\rule{\textwidth}{0.5pt}" in latex_code
+
+    # 2. \choiceTF[1] checks: tất cả khẳng định BẮT BUỘC bọc trong {...}
+    assert r"\choiceTF[1]" in latex_code
+    tf_idx = latex_code.find(r"\choiceTF[1]")
+    tf_block = latex_code[tf_idx:].split(r"\end{ex}")[0]
+    tf_lines = [line.strip() for line in tf_block.splitlines() if line.strip() and line.strip() != r"\choiceTF[1]"]
+
+    assert len(tf_lines) == 4, f"Cần đúng 4 khẳng định con, hiện có {len(tf_lines)}"
+    for idx, line in enumerate(tf_lines):
+        assert line.startswith("{") and line.endswith("}"), f"Khẳng định #{idx+1} '{line}' không được bọc trong cặp ngoặc nhọn {{...}}"
+
+    # 3. Vĩ thanh cuối tài liệu
+    assert r"\begin{center}\textbf{--- HẾT ---}\end{center}" in latex_code
+
+
+def test_pure_vector_pdf_tectonic_compilation_no_fallback_on_persist_and_tf(tmp_path):
+    """Kiểm thử biên dịch thực tế của đề thi từng bị lỗi 'Missing $ inserted':
+    - Đề thi chứa tag 'PERSIST_13951386' và câu hỏi Đúng/Sai 4 ý với subscripts.
+    - Xác nhận biên dịch Tectonic XeTeX thành công 100% ra file Vector PDF sắc nét (>10KB, bắt đầu bằng b'%PDF').
+    - Không bị fallback sang ReportLab (cả đề thi lẫn hướng dẫn giải).
+    """
+    from types import SimpleNamespace
+    from backend.services.docx_exporter import generate_variant_pdf, generate_solution_pdf
+
+    q1 = SimpleNamespace(
+        id="q_persist",
+        item_format="SINGLE_CHOICE",
+        stem="Câu hỏi kiểm thử PERSIST_13951386: Cho hàm số $f'(x) = 3x^2 - 6x$. Giá trị cực tiểu $y_{min}$ là:",
+        options=[
+            SimpleNamespace(label="A", content="$y_{min} = -4$", is_correct=True),
+            SimpleNamespace(label="B", content="$y_{min} = 0$", is_correct=False),
+            SimpleNamespace(label="C", content="$y_{min} = 4$", is_correct=False),
+            SimpleNamespace(label="D", content="$y_{min} = -2$", is_correct=False),
+        ],
+        sub_statements=[],
+        short_answer_key=None,
+        explanation="Đạo hàm $f'(x) = 0 \\Leftrightarrow x = 0$ hoặc $x = 2$. Cực tiểu tại $x = 2$."
+    )
+    it1 = SimpleNamespace(
+        variant_order_index=1,
+        question=q1,
+        option_mapping={"A": "A", "B": "B", "C": "C", "D": "D"},
+        answer_key="A"
+    )
+
+    q2 = SimpleNamespace(
+        id="q_tf_persist",
+        item_format="TRUE_FALSE_GROUP",
+        stem="Cho hàm số $y = \\dfrac{2x - 1}{x + 1}$ với hệ số a_coef và b_coef. Xét các khẳng định:",
+        options=[],
+        sub_statements=[
+            SimpleNamespace(content="Tập xác định $D = \\mathbb{R} \\setminus \\{-1\\}$.", is_true=True, explanation="Mẫu $x + 1 \\neq 0$."),
+            SimpleNamespace(content="Tiệm cận đứng là đường thẳng $x = -1$.", is_true=True, explanation="Nghiệm mẫu số."),
+            SimpleNamespace(content="Tiệm cận ngang là đường thẳng $y = 2$.", is_true=True, explanation="Bậc tử bằng bậc mẫu."),
+            SimpleNamespace(content="Hàm số nghịch biến trên từng khoảng xác định.", is_true=False, explanation="Đạo hàm dương, đồng biến."),
+        ],
+        short_answer_key=None,
+        explanation="Giải thích chi tiết 4 khẳng định a, b, c, d."
+    )
+    it2 = SimpleNamespace(
+        variant_order_index=2,
+        question=q2,
+        option_mapping=None,
+        answer_key="Đ-Đ-Đ-S"
+    )
+
+    q3 = SimpleNamespace(
+        id="q_sa_persist",
+        item_format="SHORT_ANSWER",
+        stem="Cho khối lăng trụ tam giác có diện tích đáy $S = 6$ và chiều cao $h = 5$. Thể tích $V$ là:",
+        options=[],
+        sub_statements=[],
+        short_answer_key="30",
+        explanation="Thể tích $V = S \\times h = 30$."
+    )
+    it3 = SimpleNamespace(
+        variant_order_index=3,
+        question=q3,
+        option_mapping=None,
+        answer_key="30"
+    )
+
+    variant = SimpleNamespace(
+        variant_code="901",
+        items=[it1, it2, it3],
+        master_exam=SimpleNamespace(
+            title="Kỳ Thi Tốt Nghiệp THPT - Bài Thi Toán",
+            subject=SimpleNamespace(name="Toán học", code="TOAN")
+        )
+    )
+
+    exam_pdf = tmp_path / "De_901.pdf"
+    sol_pdf = tmp_path / "LoiGiai_901.pdf"
+
+    # 1. Biên dịch Đề thi thành Vector PDF qua Tectonic XeTeX
+    ok_exam = generate_variant_pdf(variant, exam_pdf)  # type: ignore[arg-type]
+    assert ok_exam is True, "Biên dịch Đề thi thành PDF qua Tectonic thất bại"
+    assert exam_pdf.exists(), "Tệp De_901.pdf không tồn tại"
+    size_exam = exam_pdf.stat().st_size
+    assert size_exam > 10000, f"Kích thước PDF ({size_exam} bytes) quá nhỏ, nghi vấn fallback"
+    exam_bytes = exam_pdf.read_bytes()
+    assert exam_bytes.startswith(b"%PDF"), "De_901.pdf không bắt đầu bằng %PDF header"
+
+    # 2. Biên dịch Hướng dẫn giải thành Vector PDF qua Tectonic XeTeX
+    ok_sol = generate_solution_pdf(variant, sol_pdf)  # type: ignore[arg-type]
+    assert ok_sol is True, "Biên dịch Hướng dẫn giải thành PDF qua Tectonic thất bại"
+    assert sol_pdf.exists(), "Tệp LoiGiai_901.pdf không tồn tại"
+    size_sol = sol_pdf.stat().st_size
+    assert size_sol > 10000, f"Kích thước LoiGiai_901.pdf ({size_sol} bytes) quá nhỏ, nghi vấn fallback"
+    sol_bytes = sol_pdf.read_bytes()
+    assert sol_bytes.startswith(b"%PDF"), "LoiGiai_901.pdf không bắt đầu bằng %PDF header"
 

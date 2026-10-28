@@ -852,10 +852,18 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
 ### 2.12. FR-07.1: Xuất bản Đề thi Đơn lẻ & Đóng gói Trọn gói Ấn phẩm Khảo thí (.ZIP) Thuần Vector PDF LaTeX
 - **Động Cơ Biên Dịch Thuần Vector PDF LaTeX (Tectonic XeTeX Engine):**
   * Tích hợp thống nhất cùng kiến trúc biên dịch của phân hệ Soạn đề (`/composer`): Hàm `generate_variant_latex(variant, is_solution)` tự động chuyển hóa mô hình `ExamVariant` thành tài liệu LaTeX chuẩn Bộ GD&ĐT (gói lệnh `ex_test.sty` v3.3).
-  * Biên dịch qua Tectonic XeTeX Engine (`compile_latex_to_pdf`) với `mode="dethi"` cho mã đề thi và `mode="loigiai"` cho hướng dẫn giải chi tiết.
-  * Cấu trúc văn bản: Header 2 cột cân đối `minipage` (0.38 / 0.58 căn giữa), dòng thí sinh & khung mã đề `\framebox{\textbf{Mã đề: ...}}`, đường nét liền `
-ule{\textwidth}{0.5pt}`, Phần I `\choice`, Phần II `\choiceTF[1]` (reset `\setcounter{ex}{0}`), Phần III `\shortans` (reset `\setcounter{ex}{0}`), đồ thị TikZ và bảng biến thiên `tkz-tab` căn giữa tuyệt đối.
-  * Fallback an toàn: Nếu Tectonic chưa sẵn sàng, tự động chuyển tiếp sang Headless Chromium với phông chữ Computer Modern Unicode (CMU Serif) và MathJax SVG để bảo đảm luôn xuất bản thành công không nghẽn luồng.
+  * Quy cách mã LaTeX sinh tự động (`generate_variant_latex`):
+    - **Header 2 Cột Canonical:** Khối Header chuẩn mẫu khảo thí quốc gia: `\noindent`, `\begin{minipage}[t]{0.38\textwidth}\centering ... \end{minipage}`, `\hfill`, `\begin{minipage}[t]{0.58\textwidth}\centering ... \end{minipage}` (tuyệt đối không bọc ngoài bằng `\begin{center}` để tránh Overfull `\hbox` và thụt lề sai lệch).
+    - **Dòng thông tin thí sinh & Đường kẻ đơn:** `\noindent Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \framebox{\textbf{Mã đề: ...}}` kèm khoảng trống co giãn an toàn, phân cách duy nhất bằng đường nét liền mảnh `\noindent
+ule{\textwidth}{0.5pt}`.
+    - **Phần I (Nhiều phương án lựa chọn):** Môi trường `\begin{ex}` kết hợp `\choice{A}{B}{C}{D}`, tự động lột bỏ nhãn thừa (`A. `, `B. `), khoanh đáp án đúng `\True ` khi `is_solution=True`.
+    - **Phần II (Đúng/Sai bậc thang QĐ 764):** Môi trường `\begin{ex}` kết hợp `\choiceTF[1]`. **BẮT BUỘC BỌC MỌI KHẲNG ĐỊNH CON TRONG CẶP NGOẶC NHỌN `{{\True ...}}` HOẶC `{{...}}`**, tự động đệm (padding) đủ 4 khẳng định `{}` nếu câu hỏi thiếu ý, lột bỏ tiền tố nhãn thừa (`a) `, `b) `), chèn `\setcounter{ex}{0}` reset bộ đếm về 1. Triệt tiêu hoàn toàn lỗi nuốt nhầm token và vỡ cú pháp `Missing $ inserted`.
+    - **Phần III (Trả lời ngắn):** Môi trường `\begin{ex}` kết hợp `\shortans{...}`, chèn `\setcounter{ex}{0}` reset bộ đếm về 1.
+    - **Tự động làm sạch an toàn ký tự gạch dưới `_` qua `sanitize_latex_for_xetex`:** Tự động quét toàn bộ `stem`, `option.content`, `sub.content`, `explanation` và escape các dấu `_` nằm ngoài chế độ toán học thành `\_`, bảo toàn nguyên vẹn 100% cú pháp subscript `$x_1$`, `$\lim_{x \to 0}$` và các khối lệnh TikZ/Array, ngăn chặn triệt để lỗi biên dịch XeTeX `Missing $ inserted`.
+  * **Xuất bản đề thi và lời giải qua Tectonic XeTeX Engine:**
+    - `generate_variant_pdf(variant, output_pdf)`: Biên dịch qua `compile_latex_to_pdf` với `mode="dethi"`.
+    - `generate_solution_pdf(variant, output_pdf)`: Biên dịch trực tiếp qua `compile_latex_to_pdf` với `mode="loigiai"`, tự động hiển thị đáp án tô màu và khối lời giải chi tiết `\begin{loigiai}` kèm barem tính điểm bậc thang.
+    - Loại bỏ hoàn toàn sự phụ thuộc vào ReportLab fallback thô sơ gây lỗi font tiếng Việt và công thức text thô; chỉ sử dụng fallback Chromium CMU Serif vector khi môi trường Tectonic gặp sự cố hạ tầng.
 - **Tải file PDF Đơn lẻ cho từng Mã đề:**
   - API: `GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`.
   - Xuất trực tiếp file `De_Thi_Ma_{code}.pdf` chuẩn Vector PDF A4 Portrait 2 cột sắc nét theo quy cách Bộ GD&ĐT.

@@ -24,7 +24,7 @@ from backend.services.latex_pdf_exporter import (
     convert_latex_table_to_html,
 )
 from backend.services.tikz_renderer import render_tikz_to_svg, normalize_tikz_exam_standard
-from backend.services.latex_converter import sanitize_latex
+from backend.services.latex_converter import sanitize_latex, sanitize_latex_for_xetex
 
 logger = logging.getLogger("quesy.composer_service")
 
@@ -461,6 +461,7 @@ def ensure_full_latex_document(
             raw = re.sub(r'\\usepackage\{ex_test\}', lambda m: f"\\usepackage[{norm_mode}]{{ex_test}}", raw)
 
         raw = fix_immini_choice_nesting(raw)
+        raw = sanitize_latex_for_xetex(raw)
         return raw
 
     # Strip any accidental outer \begin{document} / \end{document} if no \documentclass
@@ -496,6 +497,7 @@ def ensure_full_latex_document(
         body = re.sub(r'samples=\d+', 'samples=35', body)
 
     body = fix_immini_choice_nesting(body)
+    body = sanitize_latex_for_xetex(body)
 
     preamble = f"""\\documentclass[12pt,a4paper]{{article}}
 \\usepackage{{fontspec}}

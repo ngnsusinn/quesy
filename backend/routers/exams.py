@@ -1,5 +1,6 @@
 import os
 import uuid
+import logging
 from pathlib import Path
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel, Field, ConfigDict
@@ -15,6 +16,7 @@ from backend.services.docx_exporter import (
 )
 
 router = APIRouter(prefix="/api/v1/exams", tags=["Exams"])
+logger = logging.getLogger("quesy.exams_router")
 
 
 # ==========================================
@@ -418,6 +420,7 @@ def export_zip(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.exception(f"Export ZIP failed: {e}")
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
 

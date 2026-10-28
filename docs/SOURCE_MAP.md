@@ -106,12 +106,12 @@ quesy/
 │   │   ├── composer_service.py        # Dịch vụ biên dịch LaTeX Hybrid 3 tầng, Dynamic Adaptive Timeout & bóc tách ex_test/câu hỏi đa dạng
 │   │   ├── crop_service.py            # Dịch vụ cắt và trích xuất ảnh đồ thị/bảng WebP (399 dòng)
 │   │   ├── deduplication.py           # Dịch vụ kiểm soát trùng lặp câu hỏi qua Vector Similarity (97 dòng)
-│   │   ├── docx_exporter.py           # Engine xuất bản đề thi hoán vị thuần Vector PDF LaTeX (Tectonic XeTeX & ex_test), Word MathType 7.0 OLE Vector WMF & gói ZIP ấn phẩm (2,980 dòng)
+│   │   ├── docx_exporter.py           # Engine xuất bản đề thi hoán vị thuần Vector PDF LaTeX (Tectonic XeTeX & ex_test v3.3, generate_variant_latex chuẩn hóa Header 2 cột canonical 0.38/0.58, bảo toàn ngoặc {...} cho \choiceTF[1], loại bỏ ReportLab fallback, hỗ trợ sinh lời giải chi tiết vector PDF qua mode="loigiai"), Word MathType 7.0 OLE Vector WMF & gói ZIP ấn phẩm (3,030 dòng)
 │   │   ├── docx_export.py             # Dịch vụ tạo tài liệu Word bổ trợ (220 dòng)
 │   │   ├── excel_exporter.py          # Xuất bản danh sách thí sinh và bảng điểm Excel (121 dòng)
 │   │   ├── grading.py                 # Hàm tính điểm Đúng/Sai lũy tiến theo QĐ 764 (15 dòng)
 │   │   ├── image_enhancer.py          # Tiền xử lý ảnh: Deskew OpenCV, CLAHE, Binarization (324 dòng)
-│   │   ├── latex_converter.py         # Chuyển đổi công thức Toán, mảng Array sang TikZ tkz-tab (1,459 dòng)
+│   │   ├── latex_converter.py         # Chuyển đổi công thức Toán, mảng Array sang TikZ tkz-tab, hàm sanitize_latex_for_xetex chống lỗi Missing $ inserted do ký tự gạch dưới '_' ngoài math mode (1,500 dòng)
 │   │   ├── latex_pdf_exporter.py      # Xuất bản PDF chuẩn LaTeX 100% CMU Serif & dfrac đầy đủ (750 dòng)
 │   │   ├── layout_segmenter.py        # Phân đoạn bố cục đề thi, nhận diện bảng và vùng hình ảnh (365 dòng)
 │   │   ├── mathjax_service.py         # Client giao tiếp với persistent Node.js MathJax worker (249 dòng)
@@ -466,6 +466,7 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
      2. Sau khi Sub-Agent 1 làm rõ nguyên nhân, **Sub-Agent 1 chỉ thị và bắt Sub-Agent 2 code lại (refactor / bug fix)**.
      3. Sau khi Sub-Agent 2 code lại xong, hệ thống **tiến hành tiếp tục trình tự tiếp theo:** kích hoạt lại Sub-Agent 3 và Sub-Agent 4 để kiểm thử lại mã nguồn mới.
      4. Lặp lại quy trình liên tục cho đến khi **hoàn thành 100% mọi yêu cầu mà không còn bất kỳ lỗi nào** mới được phép commit.
+   - **Quy tắc Miễn Chạy Lại Test (Zero Redundant Testing Rule):** Sau khi Sub-Agent 3 (CI test 100% pass) và Sub-Agent 4 (E2E browser pass) đã báo cáo đạt 100% PASS, Parent Agent tuyệt đối **KHÔNG ĐƯỢC CHẠY LẠI TEST SUITE (`pytest`) NỮA** mà tiến hành `git commit` và `git push` ngay lập tức để tối ưu hóa thời gian.
 
 - **Định nghĩa "Lỗi" bao trùm 5 nhóm:**
   1. Lỗi logic nghiệp vụ & backend (API exception 500/422, sai điểm QĐ 764, treo port/process).

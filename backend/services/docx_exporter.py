@@ -27,6 +27,7 @@ import lxml.etree as etree
 
 from backend.config import settings
 from backend.services.composer_service import compile_latex_to_pdf
+from backend.services.latex_converter import sanitize_latex_for_xetex
 
 try:
     import matplotlib
@@ -2145,25 +2146,24 @@ def generate_variant_latex(variant: ExamVariant, is_solution: bool = False) -> s
     n2 = len(sec2)
     n3 = len(sec3)
 
+    exam_or_sol_title = r"\textbf{ĐỀ CHÍNH THỨC}" if not is_solution else r"\textbf{HƯỚNG DẪN GIẢI CHI TIẾT}"
     latex_lines = [
-        r"\begin{center}",
-        r"\begin{minipage}{0.38\textwidth}",
-        r"\centering \textbf{TRƯỜNG THPT CHUYÊN}\\ \textbf{ĐỀ THI KHẢO SÁT CHẤT LƯỢNG}",
+        r"\begin{minipage}[t]{0.38\textwidth}",
+        r"  \centering",
+        r"  \textbf{SỞ GIÁO DỤC VÀ ĐÀO TẠO}\\",
+        r"  \textbf{TRƯỜNG THPT CHUYÊN}\\",
+        rf"  {exam_or_sol_title}",
         r"\end{minipage}",
         r"\hfill",
-        r"\begin{minipage}{0.58\textwidth}",
-        r"\centering \textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG}\\ \textbf{NĂM HỌC 2025 - MÔN: TOÁN HỌC}",
+        r"\begin{minipage}[t]{0.58\textwidth}",
+        r"  \centering",
+        r"  \textbf{KỲ THI TỐT NGHIỆP THPT}\\",
+        r"  \textbf{MÔN TOÁN}\\",
+        r"  \textit{Thời gian làm bài: 90 phút}",
         r"\end{minipage}",
-        r"\end{center}",
-        r"\vspace{0.3em}",
-        r"\begin{center}",
-        r"\textit{Thời gian làm bài: 90 phút (không kể thời gian phát đề)}",
-        r"\end{center}",
-        r"\vspace{0.3em}",
-        r"\noindent Họ và tên thí sinh: \dotfill Số báo danh: \dotfill \framebox{\textbf{Mã đề: " + variant.variant_code + r"}}",
-        r"\vspace{0.4em}",
-        r"\rule{\textwidth}{0.5pt}",
-        r"\vspace{0.5em}"
+        r"\vspace{0.25cm}",
+        r"\noindent Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: " + str(variant.variant_code) + r"}}",
+        r"\vspace{0.1cm}\noindent" + chr(92) + "rule{" + chr(92) + "textwidth}{0.5pt}" + chr(92) + "vspace{0.3cm}"
     ]
 
     if n1 > 0:
@@ -2173,6 +2173,8 @@ def generate_variant_latex(variant: ExamVariant, is_solution: bool = False) -> s
             q = it.question
             if not q: continue
             stem = q.stem or ""
+            stem = re.sub(r'^(?:Câu\s*\d+[\.:]?\s*)', '', stem)
+            stem = sanitize_latex_for_xetex(stem)
             latex_lines.append(r"\begin{ex}")
             latex_lines.append(stem)
             
@@ -2183,6 +2185,8 @@ def generate_variant_latex(variant: ExamVariant, is_solution: bool = False) -> s
                 orig_lbl = mapping.get(lbl, lbl)
                 opt_obj = next((o for o in opts if o.label == orig_lbl or o.label == lbl), None)
                 content = opt_obj.content if opt_obj else f"Phương án {lbl}"
+                content = re.sub(r'^[A-D]\)[\.\s]*', '', content)
+                content = sanitize_latex_for_xetex(content)
                 is_corr = opt_obj.is_correct if opt_obj else False
                 prefix = r"\True " if is_corr else ""
                 choice_parts.append(f"{prefix}{content}")
@@ -2192,7 +2196,8 @@ def generate_variant_latex(variant: ExamVariant, is_solution: bool = False) -> s
             
             if is_solution:
                 latex_lines.append(r"\begin{loigiai}")
-                latex_lines.append(q.explanation or "Hướng dẫn giải chi tiết đang cập nhật.")
+                exp = sanitize_latex_for_xetex(q.explanation or "Hướng dẫn giải chi tiết đang cập nhật.")
+                latex_lines.append(exp)
                 latex_lines.append(r"\end{loigiai}")
             latex_lines.append(r"\end{ex}")
             latex_lines.append(r"\vspace{0.2em}")
@@ -2205,23 +2210,28 @@ def generate_variant_latex(variant: ExamVariant, is_solution: bool = False) -> s
             q = it.question
             if not q: continue
             stem = q.stem or ""
+            stem = re.sub(r'^(?:Câu\s*\d+[\.:]?\s*)', '', stem)
+            stem = sanitize_latex_for_xetex(stem)
             latex_lines.append(r"\begin{ex}")
             latex_lines.append(stem)
             subs = q.sub_statements or []
             choice_tf_lines = [r"\choiceTF[1]"]
             for sub in subs:
-                is_t = sub.is_true if hasattr(sub, 'is_true') else True
+                is_t = sub.is_true if hasattr(sub, 'is_true') else (sub.is_correct if hasattr(sub, 'is_correct') else True)
                 prefix = r"\True " if is_t else ""
                 content = sub.content or ""
                 content = re.sub(r'^[a-d]\)\s*', '', content)
-                choice_tf_lines.append(rf"{prefix}{content}")
+                content = sanitize_latex_for_xetex(content)
+                choice_tf_lines.append(rf"{{{prefix}{content}}}")
+            while len(choice_tf_lines) < 5:
+                choice_tf_lines.append(r"{}")
             latex_lines.append("\n".join(choice_tf_lines))
             
             if is_solution:
                 latex_lines.append(r"\begin{loigiai}")
                 latex_lines.append(r"\begin{itemchoice}")
                 for sub in subs:
-                    exp = sub.explanation or "Giải thích chi tiết."
+                    exp = sanitize_latex_for_xetex(sub.explanation or "Giải thích chi tiết.")
                     latex_lines.append(rf"\itemch {exp}")
                 latex_lines.append(r"\end{itemchoice}")
                 latex_lines.append(r"\end{loigiai}")
@@ -2236,14 +2246,17 @@ def generate_variant_latex(variant: ExamVariant, is_solution: bool = False) -> s
             q = it.question
             if not q: continue
             stem = q.stem or ""
-            ans_key = it.answer_key or q.short_answer_key or "0"
+            stem = re.sub(r'^(?:Câu\s*\d+[\.:]?\s*)', '', stem)
+            stem = sanitize_latex_for_xetex(stem)
+            ans_key = sanitize_latex_for_xetex(it.answer_key or q.short_answer_key or "0")
             latex_lines.append(r"\begin{ex}")
             latex_lines.append(stem)
             latex_lines.append(rf"\shortans{{{ans_key}}}")
             
             if is_solution:
                 latex_lines.append(r"\begin{loigiai}")
-                latex_lines.append(q.explanation or f"Đáp số: {ans_key}")
+                exp = sanitize_latex_for_xetex(q.explanation or f"Đáp số: {ans_key}")
+                latex_lines.append(exp)
                 latex_lines.append(r"\end{loigiai}")
             latex_lines.append(r"\end{ex}")
             latex_lines.append(r"\vspace{0.2em}")
@@ -2269,6 +2282,24 @@ def generate_variant_pdf(variant: ExamVariant, output_pdf: Path) -> bool:
 
 
 def generate_solution_pdf(variant: ExamVariant, output_pdf: Path) -> bool:
+    """Generates solution PDF using Tectonic XeTeX Engine via generate_variant_latex(is_solution=True)."""
+    try:
+        latex_code = generate_variant_latex(variant, is_solution=True)
+        success, err_msg, elapsed = compile_latex_to_pdf(
+            latex_code, output_pdf, title=f"Lời Giải Chi Tiết Mã {variant.variant_code}", mode="loigiai"
+        )
+        if success and output_pdf.exists() and output_pdf.stat().st_size > 1000:
+            return True
+    except Exception as e:
+        logger.warning(f"LaTeX/Tectonic solution PDF generation failed: {e}")
+
+    try:
+        return _legacy_generate_solution_pdf_reportlab(variant, output_pdf)
+    except Exception:
+        return False
+
+
+def _legacy_generate_solution_pdf_reportlab(variant: ExamVariant, output_pdf: Path) -> bool:
     """Generates solution PDF using ultra-fast ReportLab with browser fallback."""
     try:
         register_vietnamese_fonts()

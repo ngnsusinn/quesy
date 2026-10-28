@@ -295,9 +295,76 @@ def clean_variation_array(latex_str: str) -> str:
     return re.sub(r'\\begin\{array\}\{([^}]+)\}([\s\S]*?)\\end\{array\}', _clean_cols, latex_str)
 
 
-# ---------------------------------------------------------------------------
-# 2. LaTeX Sanitization & Normalization
-# ---------------------------------------------------------------------------
+
+def sanitize_latex_for_xetex(text: str) -> str:
+    """
+    Sanitizes raw text/LaTeX for XeTeX compilation:
+    - Protects all math environments, TikZ blocks, display math, and inline math with safe tokens.
+    - On remaining text mode, escapes unescaped underscores (_), percent signs (%), and ampersands (&).
+    - Restores protected math and TikZ tokens intact.
+    """
+    if not text:
+        return ""
+
+    s = text
+    protected_tokens: List[str] = []
+
+    def _protect(m: re.Match) -> str:
+        raw = m.group(0)
+        idx = len(protected_tokens)
+        protected_tokens.append(raw)
+        return f"QQQBLOCKLATEXSAFE{idx}ZZZ"
+
+    # 1. Protect TikZ environments
+    s = re.sub(r'\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}', _protect, s)
+    s = re.sub(r'\\begin\{tkzTabInit\}[\s\S]*?\\end\{tkzTabInit\}', _protect, s)
+
+    # 2. Protect math environments
+    envs = [
+        r'align\*?', r'equation\*?', r'gather\*?', r'multline\*?', r'cases',
+        r'array', r'matrix', r'pmatrix', r'bmatrix', r'vmatrix', r'Vmatrix'
+    ]
+    env_pattern = r'\\begin\{(' + '|'.join(envs) + r')\}[\s\S]*?\\end\{\1\}'
+    s = re.sub(env_pattern, _protect, s, flags=re.IGNORECASE)
+
+    # 3. Protect display math: $$...$$ and \[...\]
+    s = re.sub(r'\$\$[\s\S]*?\$\$', _protect, s)
+    s = re.sub(r'\\\[[\s\S]*?\\\]', _protect, s)
+
+    # 4. Protect inline math: $...$ and \(...\)
+    s = re.sub(r'(?<!\\)\$[^$]+?(?<!\\)\$', _protect, s)
+    s = re.sub(r'\\\([\s\S]*?\\\)', _protect, s)
+
+    # 5. Protect preamble, structural commands and environment tags
+    s = re.sub(r'\\(?:usepackage|documentclass|tcbuselibrary|input|include|includegraphics|label|ref|eqref|pageref)(?:\[[^]]*\])?\{[^}]*\}', _protect, s)
+    s = re.sub(r'\\(?:begin|end)\{[^}]*\}', _protect, s)
+
+    # 6. In text mode, auto-wrap power/superscript math expressions like 3x^2, x^3 into $...$
+    s = re.sub(r'(?<![$\w])([a-zA-Z0-9\'\(\)]+\^[a-zA-Z0-9\+\-\{\}]+)', r'$\1$', s)
+
+    # 7. On remaining text mode parts, escape bare _, %, &, ^ safely
+    s = re.sub(r'(?<!\\)_', r'\\_', s)
+    s = re.sub(r'(?<!\\)%', r'\\%', s)
+    s = re.sub(r'(?<!\\)&', r'\\&', s)
+    s = re.sub(r'(?<!\\)\^', r'\\textasciicircum{}', s)
+
+    # 6. Restore protected tokens in reverse order (handles nesting like \begin{center} containing \begin{tikzpicture})
+    for idx in reversed(range(len(protected_tokens))):
+        s = s.replace(f"QQQBLOCKLATEXSAFE{idx}ZZZ", protected_tokens[idx])
+
+    # Ensure no nested placeholders remain
+    while "QQQBLOCKLATEXSAFE" in s:
+        replaced_any = False
+        for idx in range(len(protected_tokens)):
+            key = f"QQQBLOCKLATEXSAFE{idx}ZZZ"
+            if key in s:
+                s = s.replace(key, protected_tokens[idx])
+                replaced_any = True
+        if not replaced_any:
+            break
+
+    return s
+
 
 def sanitize_latex(text: str) -> str:
     """

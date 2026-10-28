@@ -722,11 +722,17 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
   - Tab xem trước từng mã đề (Mã 101, 102, 103, 104) với huy hiệu xác minh Option Anchor Rule đạt 100%.
   - Bảng ma trận đáp án tổng hợp (Answer Key Matrix Table).
   - **Xuất Bản Thuần Vector PDF LaTeX Chuẩn Quốc Gia (Tectonic XeTeX Engine):**
-    * Thay thế toàn bộ engine PDF đơn giản/ReportLab bằng kiến trúc biên dịch LaTeX thuần túy chuẩn Quốc gia (`ex_test.sty` v3.3) qua Tectonic XeTeX Engine (hoặc Chromium CMU Serif vector fallback) — đồng nhất 100% với phân hệ Soạn đề (`/composer`).
-    * Mã nguồn LaTeX được tổng hợp tự động (`generate_variant_latex`): Header 2 cột cân đối `minipage` (0.38 / 0.58 căn giữa), khung mã đề, dòng thông tin thí sinh `\dotfill`, nét liền đơn `
-ule{\textwidth}{0.5pt}`, Phần I `\choice` hoán vị an toàn, Phần II `\choiceTF[1]` kèm `\setcounter{ex}{0}`, Phần III `\shortans` kèm `\setcounter{ex}{0}`, toàn bộ đồ thị TikZ và bảng biến thiên `tkz-tab` căn giữa trang giấy.
+    * Loại bỏ hoàn toàn engine PDF đơn giản/ReportLab gây lỗi font tiếng Việt và công thức text thô, thay thế 100% bằng kiến trúc biên dịch LaTeX thuần túy chuẩn Quốc gia (`ex_test.sty` v3.3) qua Tectonic XeTeX Engine (kết hợp Chromium CMU Serif vector fallback) — đồng nhất tuyệt đối với phân hệ Soạn đề (`/composer`).
+    * Mã nguồn LaTeX được tổng hợp tự động (`generate_variant_latex`):
+      - Header 2 cột canonical cân đối: `\noindent`, `\begin{minipage}[t]{0.38\textwidth}\centering ... \end{minipage}`, `\hfill`, `\begin{minipage}[t]{0.58\textwidth}\centering ... \end{minipage}` (tuyệt đối không bọc ngoài bằng `\begin{center}`).
+      - Dòng thông tin thí sinh `Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \framebox{\textbf{Mã đề: ...}}` và đường kẻ đơn duy nhất `\noindent
+ule{\textwidth}{0.5pt}`.
+      - Phần I: `\choice` 4 phương án hoán vị an toàn, làm sạch nhãn tiền tố thừa.
+      - Phần II: `\choiceTF[1]` BẮT BUỘC bọc từng khẳng định con trong cặp ngoặc nhọn `{{\True ...}}` hoặc `{{...}}`, tự động padding đủ 4 khẳng định, kèm `\setcounter{ex}{0}` reset bộ đếm về 1.
+      - Phần III: `\shortans` kèm `\setcounter{ex}{0}` reset bộ đếm về 1.
+      - Tích hợp hàm làm sạch `sanitize_latex_for_xetex`: Tự động tìm và escape toàn bộ ký tự gạch dưới `_` nằm ngoài chế độ toán học thành `\_`, bảo toàn nguyên vẹn cú pháp subscript `$x_1$` trong math mode và các khối TikZ, triệt tiêu vĩnh viễn lỗi biên dịch `Missing $ inserted`.
     * Tải file PDF độc lập cho từng mã đề (`GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`): Kết xuất file `De_Thi_Ma_{code}.pdf` chuẩn Vector PDF LaTeX sắc nét.
-    * Tải trọn gói ấn phẩm đề thi (.ZIP) (`GET /api/v1/exams/{master_id}/export-zip?format=pdf`): Đóng gói đầy đủ `De_{code}.pdf`, `LoiGiai_{code}.pdf` (với barem chấm bậc thang trong `\begin{loigiai}`), `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), và `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
+    * Tải trọn gói ấn phẩm đề thi (.ZIP) (`GET /api/v1/exams/{master_id}/export-zip?format=pdf`): Đóng gói đầy đủ `De_{code}.pdf` (chế độ `[dethi]`), `LoiGiai_{code}.pdf` (chế độ `[loigiai]` với barem chấm bậc thang trong `\begin{loigiai}` và `\begin{itemchoice}`), `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), và `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 
 ---
 

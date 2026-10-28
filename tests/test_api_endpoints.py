@@ -602,5 +602,86 @@ def test_api_questions_limit_1000_and_sqlite_persistence(client):
     assert res_5001.status_code == 422
 
 
+def test_api_exam_latex_sanitization_and_canonical_true_false_format(client):
+    """Kiểm thử API và quy trình xử lý đề thi chứa underscore và True/False:
+    - Tạo câu hỏi có bare underscores như 'VAR_PARAM_999' ngoài math mode.
+    - Tạo câu hỏi Đúng/Sai với 4 khẳng định con.
+    - Xác nhận hàm sanitize_latex_for_xetex tự động escape dấu gạch dưới mà không làm ảnh hưởng math subscripts.
+    - Xác nhận generate_variant_latex định dạng \\choiceTF[1] bọc từng khẳng định trong {...}.
+    """
+    from backend.services.latex_converter import sanitize_latex_for_xetex
+    from backend.services.docx_exporter import generate_variant_latex
+    from types import SimpleNamespace
+
+    # 1. Tạo câu hỏi Đúng/Sai qua API
+    payload_tf = {
+        "stem": "Cho hàm số $y = \\dfrac{x_1 - 1}{x + 1}$ với hằng số SYSTEM_PARAM_01. Xét tính đúng sai:",
+        "subject_id": "subj-toan",
+        "grade_id": "grade-12",
+        "learning_outcome_id": "TOAN12.GT.01",
+        "cognitive_level": "COMPREHENSION",
+        "item_format": "TRUE_FALSE_GROUP",
+        "options": [],
+        "sub_statements": [
+            {"label": "a", "content": "Tập xác định với $D = \\mathbb{R} \\setminus \\{-1\\}$", "is_correct": True, "explanation": "Mẫu số khác 0."},
+            {"label": "b", "content": "Tiệm cận đứng là $x = -1$", "is_correct": True, "explanation": "Nghiệm mẫu số."},
+            {"label": "c", "content": "Tiệm cận ngang là $y = 1$", "is_correct": True, "explanation": "Giới hạn tại vô cực."},
+            {"label": "d", "content": "Đạo hàm luôn âm với mọi $x \\neq -1$", "is_correct": False, "explanation": "Đạo hàm dương."},
+        ],
+        "explanation": "Lời giải chi tiết cho câu hỏi Đúng Sai."
+    }
+
+    create_resp = client.post("/api/v1/questions", json=payload_tf)
+    assert create_resp.status_code == 201, create_resp.text
+    created_tf = create_resp.json()
+    assert created_tf["item_format"] == "TRUE_FALSE_GROUP"
+
+    # 2. Kiểm thử sanitize_latex_for_xetex trên stem
+    sanitized_stem = sanitize_latex_for_xetex(payload_tf["stem"])
+    assert "SYSTEM\\_PARAM\\_01" in sanitized_stem
+    assert "$y = \\dfrac{x_1 - 1}{x + 1}$" in sanitized_stem
+    assert "x\\_1" not in sanitized_stem
+
+    # 3. Kiểm thử generate_variant_latex với format \choiceTF[1] có {...}
+    mock_substatements = [
+        SimpleNamespace(content=s["content"], is_correct=s["is_correct"], explanation=s["explanation"])
+        for s in payload_tf["sub_statements"]
+    ]
+    mock_q = SimpleNamespace(
+        id=created_tf["id"],
+        item_format="TRUE_FALSE_GROUP",
+        stem=payload_tf["stem"],
+        options=[],
+        sub_statements=mock_substatements,
+        short_answer_key=None,
+        explanation=payload_tf["explanation"]
+    )
+    mock_it = SimpleNamespace(
+        variant_order_index=1,
+        question=mock_q,
+        option_mapping=None,
+        answer_key="Đ-Đ-Đ-S"
+    )
+    mock_variant = SimpleNamespace(
+        variant_code="505",
+        items=[mock_it],
+        master_exam=SimpleNamespace(
+            title="Đề Thi Khảo Sát",
+            subject=SimpleNamespace(name="Toán học", code="TOAN")
+        )
+    )
+
+    latex_out = generate_variant_latex(mock_variant, is_solution=False)  # type: ignore[arg-type]
+    assert r"\choiceTF[1]" in latex_out
+    assert r"{\True Tập xác định với $D = \mathbb{R} \setminus \{-1\}$}" in latex_out
+    assert r"{\True Tiệm cận đứng là $x = -1$}" in latex_out
+    assert r"{\True Tiệm cận ngang là $y = 1$}" in latex_out
+    assert r"{Đạo hàm luôn âm với mọi $x \neq -1$}" in latex_out
+    assert "SYSTEM\\_PARAM\\_01" in latex_out
+    assert r"\framebox{\textbf{Mã đề: 505}}" in latex_out
+    assert not latex_out.startswith(r"\begin{center}")
+
+
+
 
 
