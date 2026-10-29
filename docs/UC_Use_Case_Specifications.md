@@ -2,18 +2,19 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.
-- **Ngày phát hành:** 2026-10-24
+- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input text, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, cơ chế render KaTeX toàn diện triệt tiêu lỗi văn bản thô, và chuẩn hóa hệ thống dropdown select Apple HIG (.apple-select).
+- **Ngày phát hành:** 2026-10-28
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
 ---
 
 ## 1. SƠ ĐỒ TỔNG THỂ USE CASE (SYSTEM USE CASE DIAGRAM)
 
-### 1.1. Quy tắc Quản trị Git Workflow & Không Tự Động Tạo Pull Request (Mandatory Git Rule)
-- **Bắt buộc:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
-- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
+### 1.1. Quy tắc Quản trị Git, Pull Request First & Continuous PR Description Sync (Mandatory Git Rule)
+- **Quy tắc tạo PR trước khi commit (PR First Rule):** Khi bắt đầu triển khai hoặc có nhánh làm việc (`feat`), BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`). Tuyệt đối không commit khi chưa tồn tại Pull Request.
+- **Quy tắc cập nhật mô tả PR liên tục (Continuous PR Description Sync):** Nếu đang tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh chính xác trạng thái kỹ thuật, các thay đổi mới nhất và kết quả kiểm thử.
+- Mọi tác vụ phát triển tuân thủ nghiêm ngặt chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 ```
                        ┌────────────────────────────────────────────────────────┐
@@ -158,45 +159,55 @@
 #### Luồng sự kiện chính:
 1. Khi khởi động ứng dụng hoặc F5 tải lại trang, client thực thi `fetchQuestionsFromDB()` gọi API `GET /api/v1/questions?limit=1000`.
 2. Hệ thống nạp toàn bộ danh sách câu hỏi thực tế từ SQLite vào `state.itemBank`.
-3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`) và cập nhật bộ đếm badge thời gian thực.
-4. Hệ thống kiểm tra: Nếu CSDL đã có dữ liệu (`state.itemBank.length > 0`), tuyệt đối KHÔNG kích hoạt `seedInitialQuestions()`, bảo toàn 100% dữ liệu thực.
-5. Khi người dùng thực hiện tạo câu hỏi mới, import LaTeX hàng loạt, chỉnh sửa câu hỏi, xóa câu hỏi hoặc bấm "LƯU VÀO NGÂN HÀNG" từ phân hệ Soạn đề, các thay đổi được ghi trực tiếp vào SQLite và client tự động kích hoạt `fetchQuestionsFromDB()` để đồng bộ lại dữ liệu.
+3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`), áp dụng chuẩn hóa `formatStemForDisplay` cho mọi stem/options/sub-statements, phân trang theo cơ chế Apple HIG (`state.bankPagination = { currentPage: 1, pageSize: 12 }`), chỉ render danh sách câu hỏi của trang hiện tại và kích hoạt `renderKaTeX(container)` đảm bảo $100\%$ công thức toán học được biên dịch sắc nét (không sót text thô, tốc độ kết xuất $< 10$ms).
+4. Thanh điều khiển phân trang `#bank-pagination-controls` hiển thị thông tin dải câu hỏi (`Hiển thị X - Y trong tổng số N câu hỏi`), các nút chuyển trang Trước/Sau, dải nút số trang thông minh với trang active xanh Apple `#0071e3`, và dropdown chọn số câu/trang (`12`, `24`, `48` câu/trang). Khi chuyển trang, giao diện tự động cuộn mượt về đầu danh sách `#bank-cards-grid`.
+5. Toàn bộ các box chọn bộ lọc taxonomy áp dụng class `.apple-select` với icon chevron SVG slate-500, loại bỏ hoàn toàn class `font-mono` tại `#bank-filter-yccd` để giữ vững typography sans-serif Apple HIG; ô tìm kiếm `#bank-search-input` trang bị đệm an toàn 36px (`padding-left: 2.25rem !important;`) và icon kính lúp `pointer-events-none` chống đè placeholder và tối ưu nhận focus chuột. Khi người dùng thay đổi bất kỳ bộ lọc nào, hệ thống tự động reset `currentPage = 1`.
+6. Hệ thống kiểm tra: Nếu CSDL đã có dữ liệu (`state.itemBank.length > 0`), tuyệt đối KHÔNG kích hoạt `seedInitialQuestions()`, bảo toàn 100% dữ liệu thực.
+7. Khi người dùng thực hiện tạo câu hỏi mới, import LaTeX hàng loạt, chỉnh sửa câu hỏi, xóa câu hỏi hoặc bấm "LƯU VÀO NGÂN HÀNG" từ phân hệ Soạn đề, các thay đổi được ghi trực tiếp vào SQLite và client tự động kích hoạt `fetchQuestionsFromDB()` để đồng bộ lại dữ liệu.
 
 #### Luồng ngoại lệ (Offline Fallback):
 - Khi CSDL SQLite hoàn toàn rỗng hoặc máy chủ Backend chưa được kích hoạt, hệ thống mới kích hoạt `seedInitialQuestions()` làm dữ liệu mẫu dự phòng ngoại tuyến.
 
 ---
 
-### UC-06: THIẾT LẬP MA TRẬN 2D, ÁP DỤNG PRESETS & ĐỐI SOÁT TỒN KHO
+### UC-06: THIẾT LẬP BẢNG MA TRẬN PHÂN CẤP ĐA TẦNG (CHƯƠNG · BÀI · DẠNG x 3 PHẦN x 4 MỨC ĐỘ), ĐỐI SOÁT TỒN KHO & SINH ĐỀ THI GỐC
 - **Mã Use Case:** `UC-06`
-- **Tên Use Case:** Thiết lập Ma trận Đề thi 2D, Áp dụng Presets, Đối soát Tồn kho & Xuất bản Bản đặc tả
+- **Tên Use Case:** Thiết lập Bảng Ma trận Phân cấp Đa tầng theo YCCĐ & 3 Phần x 4 Cấp độ Nhận thức NB-TH-VD-VDC, Đối soát Tồn kho Thời gian thực & Khởi tạo Đề thi Gốc
 - **Tác nhân chính:** Tổ trưởng Chuyên môn, Giáo viên
-- **Căn cứ pháp lý:** Thông tư 22/2021/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
+- **Căn cứ pháp lý:** Thông tư 32/2018/TT-BGDĐT, Thông tư 22/2021/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
 
 #### Luồng sự kiện chính:
 1. Người dùng truy cập phân hệ Ma trận đề thi (`/matrix`, tab `#tab-matrix`).
-2. Người dùng chọn áp dụng một trong 3 Ma trận mẫu (Presets):
-   - Preset 1: Chuẩn Tốt nghiệp THPT 2025 (34 câu, 10.0đ, thời gian 90 phút).
-   - Preset 2: Kiểm tra Định kỳ / Giữa kỳ (20 câu, 10.0đ, thời gian 50-60 phút).
-   - Preset 3: Kiểm tra Cuối kỳ (28 câu, 10.0đ, thời gian 90 phút).
-3. Hệ thống tải cây kiến thức và dựng lưới ma trận 2D tương tác:
-   - Trục dòng: Danh sách Mạch nội dung $
-ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng câu hỏi $
-ightarrow$ Thể thức câu hỏi.
-   - Trục ngang: 3 Cột nhận thức: Biết (0.25đ), Hiểu (1.0đ/0.25đ), Vận dụng (0.5đ/0.75đ).
-4. Người dùng điều chỉnh số lượng câu hỏi trong từng ô ma trận.
+2. Giao diện Header Card hiển thị tinh gọn theo Apple HIG: Tên kỳ thi, Khối lớp & Môn học, Thời gian thi (sử dụng dropdown `#matrix-param-time` tích hợp class `.apple-select` đồng bộ hoàn hảo kích thước với các input text) và Thang điểm 10.0đ.
+3. Hệ thống dựng Bảng Ma trận Phân cấp Đa tầng tương tác:
+   - **Cột 1 (Chương · Bài · Dạng - Sticky Left):**
+     * Cây phân tầng 3 cấp: Chương (Topic) -> Bài học (Lesson) -> Dạng bài tập (Problem Archetype / YCCĐ).
+     * Tên dạng bài tập được biên dịch công thức toán học KaTeX trực quan.
+     * Người dùng sử dụng các nút trên thanh công cụ Cột 1:
+       + Nút **"Mở hết" (Expand All)** và **"Đóng hết" (Collapse All)** để gập/mở cây.
+       + **Ô tìm kiếm dạng bài (`#matrix-search-archetype`):** Gõ từ khóa để lọc các dạng bài hoặc bài học cần cấu hình; trang bị đệm an toàn 36px (`padding-left: 2.25rem !important;`) và icon `pointer-events-none` triệt tiêu lỗi che đè placeholder và cho phép click thẳng vào input.
+       + **Checkbox "Dạng có câu":** Lọc ẩn các dạng bài không có câu hỏi trong ngân hàng.
+       + **Presets Khảo thí:** Chọn áp dụng nhanh ma trận mẫu Chuẩn THPT 2025 (22 câu 10.0đ), Định kỳ (20 câu), hoặc Cuối kỳ (28 câu).
+   - **3 Nhóm Cột Lớn (Chuẩn Định Dạng 2025) x 4 Cột Con Nhận Thức:**
+     * Nhóm Phần I (Trắc nghiệm 4 lựa chọn, 0.25đ/câu): Gồm 4 cột con NB, TH, VD, VDC.
+     * Nhóm Phần II (Đúng / Sai 4 ý, 1.0đ/câu theo barem QĐ 764): Gồm 4 cột con NB, TH, VD, VDC.
+     * Nhóm Phần III (Trả lời ngắn, 0.5đ/câu): Gồm 4 cột con NB, TH, VD, VDC.
+     * Cột ngoài cùng: Tổng câu và Tổng điểm từng dòng.
+4. Người dùng nhập số lượng câu hỏi cần rút vào các ô giao nhau giữa Dạng bài và (Phần thi, Cấp độ nhận thức):
+   - Các ô nhập liệu (`.matrix-input-cell`, `<input type="number">`) được ẩn hoàn toàn spin buttons mặc định của trình duyệt (`-webkit-appearance: none`, `-moz-appearance: textfield`).
+   - Khi rê chuột vào ô `.matrix-input-cell` hoặc thẻ `<input>`, con trỏ chuột chuyển ngay sang con trỏ soạn thảo đen đậm tương phản cao chuẩn SVG (`cursor: url("data:image/svg+xml,...") 12 12, text !important;`), đảm bảo độ nổi bật 100% trên nền sáng.
+   - Caret nhấp nháy chuyển màu đen đậm sắc nét (`caret-color: #000000 !important;`).
+   - Ô `.matrix-input-cell` phản hồi vi tương tác hover nổi bật: nền chuyển xanh nhạt `rgba(0, 113, 227, 0.08)`, viền thẻ input chuyển xanh Apple `#0071e3` cùng bóng đổ `0 0 0 2px rgba(0, 113, 227, 0.25)`.
+   - Thao tác nhấp chuột vào bất kỳ vị trí nào trong ô `td.matrix-input-cell` tự động kích hoạt focus và bôi đen số trong input (Click-to-Focus).
+   - Mỗi ô input đi kèm chip badge hiển thị tồn kho câu hỏi thực tế trong CSDL Question Bank (`Kho: {stock}`).
+   - Chip badge tự động chuyển màu xanh lá (`stock-ok`) nếu đủ câu khả dụng hoặc màu đỏ cảnh báo (`stock-warn`) nếu số lượng chọn lớn hơn số câu trong kho.
 5. Hệ thống tính toán thời gian thực:
-   - Tổng số câu và tổng điểm từng dòng.
-   - Tổng câu và tổng điểm từng cột.
-   - Thang điểm tổng tự động cân bằng đạt 10.0đ.
-   - Thanh phân bổ Bloom (%) hiển thị trực quan tỷ lệ Biết - Hiểu - Vận dụng và đưa ra cảnh báo nếu độ lệch $> \pm 5\%$.
-6. Hệ thống tự động thực hiện **Live Inventory Checker (Đối soát tồn kho câu hỏi)** với CSDL Question Bank:
-   - Hiển thị màu xanh lá kèm số câu khả dụng nếu đủ câu (`Kho: 15/4 câu (Đủ)`).
-   - Hiển thị màu đỏ cảnh báo nếu thiếu câu (`Kho: 1/4 câu (Thiếu 3 câu)`).
-7. Người dùng có thể nhấn nút "Xuất Bản Đặc Tả Ma Trận" để tải về bản đặc tả dưới dạng PDF Vector, CSV UTF-8 BOM hoặc JSON qua endpoint `GET /api/v1/matrix/{id}/spec`.
-8. Người dùng nhấn nút "Lưu và Ban hành Ma trận" hoặc "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề".
-9. Hệ thống lưu ma trận vào CSDL qua `POST /api/v1/matrix` và chuyển tiếp sang phân hệ Trộn đề an toàn.
+   - Cập nhật số câu và điểm subtotal cho từng Bài học và từng Chương.
+   - Cập nhật tổng số câu & điểm từng Phần (I, II, III) trên Thanh Footer Cố Định (`#matrix-sticky-footer`).
+   - Cập nhật thang phân bổ nhận thức Bloom 4 màu: NB % - TH % - VD % - VDC %.
+6. Người dùng có thể nhấn nút "Xuất Bản Đặc Tả Ma Trận" để tải về bản đặc tả dưới dạng PDF Vector, CSV UTF-8 BOM hoặc JSON qua endpoint `GET /api/v1/matrix/{id}/spec`.
+7. Người dùng nhấn nút **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** (`#btn-matrix-generate-exam`) trên thanh Footer cố định.
+8. Hệ thống lưu ma trận vào CSDL qua `POST /api/v1/matrix`, kích hoạt API `POST /api/v1/exams/generate` và chuyển tiếp mượt mà sang phân hệ Trộn đề an toàn (`#tab-shuffler`), sẵn sàng cho khâu hoán vị mã đề và xuất bản ấn phẩm khảo thí.
 
 ---
 
@@ -440,8 +451,13 @@ ightarrow$ Thể thức câu hỏi.
     1. *Lọc cây kiến thức 6 tầng & Bộ lọc thứ cấp:*
        - Người dùng chọn Khối lớp -> Môn học -> Mạch nội dung TT 32 -> Chủ đề -> Bài học -> YCCĐ.
        - Chọn Dạng câu hỏi, Mức độ nhận thức (Biết, Hiểu, Vận dụng, Vận dụng cao), Thể thức (Trắc nghiệm, Đúng/Sai, Trả lời ngắn).
-       - Nhập từ khóa tìm kiếm: Hệ thống tự động lọc danh sách với độ trễ < 150ms.
-    2. *Thêm câu hỏi mới (+ Thêm thủ công):*
+       - Nhập từ khóa tìm kiếm: Hệ thống tự động lọc danh sách với độ trễ < 150ms và tự động reset trang hiện tại về trang 1 (`state.bankPagination.currentPage = 1`).
+    2. *Phân trang danh sách câu hỏi chuẩn Apple HIG:*
+       - Hệ thống hiển thị câu hỏi theo trang (mặc định 12 câu/trang, tùy chọn 24 hoặc 48 câu/trang qua dropdown `#bank-page-size-select`).
+       - Dải hiển thị ghi rõ `Hiển thị X - Y trong tổng số N câu hỏi`.
+       - Người dùng bấm nút `< Trước` hoặc `Sau >` hoặc nhấp vào số trang cụ thể trên thanh `#bank-pagination-controls`.
+       - Giao diện nạp ngay câu hỏi của trang đó, chỉ biên dịch KaTeX cho trang hiện tại (<10ms) và cuộn mượt về đầu danh sách.
+    3. *Thêm câu hỏi mới (+ Thêm thủ công):*
        - Người dùng bấm nút `+ Thêm câu hỏi thủ công`.
        - Hệ thống mở Modal Thêm mới (`#question-create-modal`).
        - Chọn thể thức: SINGLE_CHOICE (4 options A-D, radio chọn đáp án đúng, checkbox khóa D), TRUE_FALSE_GROUP (4 ý a-d, switch Đúng/Sai), hoặc SHORT_ANSWER (ô nhập kết quả và dung sai).

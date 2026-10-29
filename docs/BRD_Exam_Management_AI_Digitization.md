@@ -3,9 +3,9 @@
 **Dự án:** Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học  
 **Tên mã dự án (Project Code):** QUESY  
 **Mục tiêu cốt lõi:** Giải quyết triệt để các rào cản và nút thắt cổ chai trong quy trình số hóa đề thi, tự động tái tạo đồ thị vector, chuẩn hóa công thức toán học, trộn đề an toàn chống vỡ logic và xuất bản ấn phẩm khảo thí in ấn chuyên nghiệp.  
-**Phiên bản (Version):** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
-**Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
-**Ngày phát hành:** 2026-10-27
+- **Phiên bản (Version):** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+- **Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
+- **Ngày phát hành:** 2026-10-29
 
 ---
 
@@ -18,9 +18,11 @@
 | 2.5 | 2026-10-18 | BA Team & Tech Lead | Tái cơ cấu toàn diện tài liệu theo định hướng Giải pháp & Giá trị thực tế: Tích hợp bộ dựng đồ thị vector SVG TikZ/PGFPlots tự động có Auto-clipping, 4 quy tắc toán học KaTeX, động cơ Safe Shuffling (Option Anchor), chấm điểm bậc thang và xuất bản Word OMML native. | Ban Giám đốc & PM |
 | 2.6 | 2026-10-21 | BA Team & Tech Lead | Tích hợp chuẩn xuất bản MathType 7.0 OLE Vector WMF (double-click editable), dịch vụ MathJax Persistent Worker Engine (~14ms/công thức), và chuyển đổi bảng thống kê `\begin{array}` thành Word Table `<w:tbl>` chống lỗi đen PDF. | Ban Giám đốc & PM |
 | 2.7 | 2026-10-21 | BA Team & Tech Lead | Chuẩn hóa nhị phân DSMT7 Native Preamble, bản ghi TeX Input Language, bổ sung embellishment vectơ (`\vec`, `\overrightarrow`), đạt $100\%$ Vector WMF tuyệt đối, giải quyết triệt để lỗi OLE activation trong Microsoft Word. | Ban Giám đốc & PM |
-| 3.0 | 2026-10-24 | BA Team & Tech Lead | Tích hợp Động cơ Thay thế Câu hỏi Thông minh (Question Replacement Engine), Cơ chế bảo toàn khối mã Chat Bubble (Safe Chat Sync), và Quy chuẩn Quản trị Git Workflow (Chỉ commit và push, tuyệt đối không tự động tạo PR). | Ban Giám đốc & PM |
+| 3.0 | 2026-10-24 | BA Team & Tech Lead | Tích hợp Động cơ Thay thế Câu hỏi Thông minh (Question Replacement Engine), Cơ chế bảo toàn khối mã Chat Bubble (Safe Chat Sync). | Ban Giám đốc & PM |
 | 3.3 | 2026-10-25 | BA Team & Tech Lead | Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Lưu Đề từ Soạn thảo vào Ngân hàng. | Ban Giám đốc & PM |
-| **3.4** | 2026-10-27 | BA Team & Lead Architect | **Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D (TT 22 & QĐ 764), 3 Ma trận mẫu Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản đặc tả (PDF/CSV/JSON), Động cơ Sinh Đề Gốc kèm Đổi câu hỏi tương đương, Động cơ Trộn Đề An Toàn 4 Nguyên Tắc (Option Anchor 100%), và Đóng gói Ấn phẩm Khảo thí (.ZIP/.PDF).** | Ban Giám đốc & PM |
+| 3.4 | 2026-10-27 | BA Team & Lead Architect | Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D (TT 22 & QĐ 764), 3 Ma trận mẫu Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản đặc tả (PDF/CSV/JSON), Động cơ Sinh Đề Gốc kèm Đổi câu hỏi tương đương, Động cơ Trộn Đề An Toàn 4 Nguyên Tắc (Option Anchor 100%), và Đóng gói Ấn phẩm Khảo thí (.ZIP/.PDF). | Ban Giám đốc & PM |
+| 3.5 | 2026-10-28 | BA Team & Tech Lead | Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals (loại bỏ hoàn toàn chuỗi văn bản thô $ ... $), Chuẩn Hóa Dropdown Box Apple HIG Unified Select (.apple-select) với icon chevron SVG, bo góc 12px, triệt tiêu class font-mono lệch chuẩn, khắc phục dropdown Thời gian làm bài và đồng bộ toàn diện trải nghiệm người dùng. | Ban Giám đốc & PM |
+| **3.6** | 2026-10-29 | BA Team & Lead UX | **Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Bold Black Text Cursor & Caret tại các ô Ma trận đề và trường text inputs (SVG I-beam 2.8px tương phản cao, caret-color #000000, hover nổi bật ô ma trận), Hệ thống Phân trang Ngân hàng Câu hỏi Chuẩn Apple HIG (state bankPagination, phân trang dải câu hỏi, chuyển trang, dropdown 12/24/48 câu/trang, auto-reset page 1 khi lọc, render KaTeX on-demand <10ms, cuộn mượt về đầu trang).** | Ban Giám đốc & PM |
 
 ---
 
@@ -110,34 +112,36 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 
 ---
 
-### BR-04: MA TRẬN ĐỀ THI 2D THEO YCCĐ, PRESETS & ĐỐI SOÁT TỒN KHO THỜI GIAN THỰC
-- **BR-04.1 Ma trận đề thi 2 chiều tương tác (Interactive 2D Matrix Grid):**
-  - Căn cứ pháp lý: Thông tư 22/2021/TT-BGDĐT (đánh giá học sinh THCS và THPT) và Định dạng đề thi tốt nghiệp THPT từ năm 2025 (Quyết định 764/QĐ-BGDĐT).
-  - Trục dọc: Phân cấp theo Mạch nội dung (Strand) $
-ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng câu hỏi (Problem Archetype) và Thể thức câu hỏi (ItemFormat: `SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
-  - Trục ngang: 3 Cột cấp độ nhận thức bám sát Bảng động từ TT 32:
-    1. *Biết (Nhận biết):* TN đơn (0.25đ/câu).
-    2. *Hiểu (Thông hiểu):* Đúng/Sai (1.0đ/câu theo barem lũy tiến QĐ 764) hoặc TN đơn.
-    3. *Vận dụng:* Trả lời ngắn (0.5đ/câu) hoặc Vận dụng / Vận dụng cao.
-  - Tính toán thời gian thực: Tự động cộng dồn tổng số câu, tổng điểm từng dòng, tổng điểm từng cột và thang điểm tổng 10.0đ. Cảnh báo trực quan khi tổng điểm lệch khỏi 10.0đ.
-  - Thanh tiến trình phân bổ Bloom (Biết %, Hiểu %, Vận dụng %) với nhãn cảnh báo trực quan: Đạt chuẩn khảo thí khi tỷ lệ tiệm cận 40% Biết - 30% Hiểu - 30% Vận dụng (dung sai $\pm 5\%$).
-- **BR-04.2 Thư viện Ma trận mẫu (Exam Matrix Presets):**
-  1. *Preset 1: Chuẩn Tốt nghiệp THPT 2025 (34 câu, 10.0 điểm, thời gian 90 phút):*
-     - Phần I: 12 câu trắc nghiệm đơn $\times$ 0.25đ = 3.0 điểm.
-     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0 điểm.
-     - Phần III: 6 câu Trả lời ngắn $\times$ 0.5đ = 3.0 điểm.
-     - Tỷ lệ chuẩn: 40% Biết (3.0đ) - 30% Hiểu (3.5đ) - 30% Vận dụng (3.5đ).
-  2. *Preset 2: Kiểm tra Định kỳ / Giữa kỳ (20 câu, 10.0 điểm, thời gian 50-60 phút):*
-     - Phần I: 12 câu trắc nghiệm đơn $\times$ 0.25đ = 3.0 điểm.
-     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0 điểm.
-     - Phần III: 4 câu Trả lời ngắn $\times$ 0.75đ = 3.0 điểm.
-     - Tỷ lệ: ~50% Biết, 30% Hiểu, 20% Vận dụng.
-  3. *Preset 3: Kiểm tra Cuối kỳ (28 câu, 10.0 điểm, thời gian 90 phút):*
-     - Phần I: 16 câu trắc nghiệm đơn $\times$ 0.25đ = 4.0 điểm.
-     - Phần II: 4 câu Đúng/Sai 4 khẳng định $\times$ 1.0đ = 4.0 điểm.
-     - Phần III: 8 câu Trả lời ngắn $\times$ 0.25đ = 2.0 điểm.
-     - Tỷ lệ: 40% Biết, 35% Hiểu, 25% Vận dụng.
+### BR-04: MA TRẬN ĐỀ THI PHÂN CẤP ĐA TẦNG (CHƯƠNG · BÀI · DẠNG &times; 3 PHẦN &times; 4 CẤP ĐỘ NB-TH-VD-VDC), ĐỐI SOÁT TỒN KHO & THANH FOOTER CỐ ĐỊNH
+- **BR-04.1 Bảng ma trận phân cấp đa tầng (Hierarchical Multi-Tier Matrix Table):**
+  - Căn cứ pháp lý: Thông tư 32/2018/TT-BGDĐT, Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi tốt nghiệp THPT từ năm 2025 (Quyết định 764/QĐ-BGDĐT).
+  - Tái cơ cấu Header Card theo Apple HIG: Tinh gọn tham số chung (Tên kỳ thi, Khối lớp & Môn học, Thời gian làm bài với `.apple-select`, Thang điểm tổng 10.0đ), tích hợp cụm xuất bản đặc tả (PDF/CSV UTF-8 BOM/JSON).
+  - **Cột 1: Cấu trúc Cây Phân Cấp Chương · Bài · Dạng (Tree Column - Sticky Left):**
+    * Phân tầng trực quan: `Chương (Topic) -> Bài học (Lesson) -> Dạng bài tập (Problem Archetype / YCCĐ)`.
+    * Bộ công cụ điều khiển trên thanh công cụ Cột 1:
+      + Nút **"Mở hết" (Expand All)** và **"Đóng hết" (Collapse All)** hỗ trợ điều khiển cây nhanh chóng.
+      + **Ô tìm kiếm dạng bài (Live Search Input):** Lọc theo thời gian thực tên dạng bài, mã YCCĐ hoặc bài học/chương.
+      + **Checkbox "Dạng có câu":** Khi kích hoạt, chỉ hiển thị những dạng bài có số tồn kho câu hỏi khả dụng $> 0$ hoặc đã được cấu hình $> 0$.
+  - **3 Nhóm Cột Lớn (Chuẩn Định Dạng Đề Thi 2025) &times; 4 Cột Con Nhận Thức:**
+    * **Nhóm Phần I: Trắc nghiệm 4 lựa chọn (SINGLE_CHOICE):** Barem chuẩn 0.25 điểm / câu. Gồm 4 cột con: `NB` (Nhận biết), `TH` (Thông hiểu), `VD` (Vận dụng), `VDC` (Vận dụng cao).
+    * **Nhóm Phần II: Đúng / Sai 4 ý (TRUE_FALSE_GROUP):** Barem 1.0 điểm / câu (chấm bậc thang theo QĐ 764: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ). Gồm 4 cột con: `NB`, `TH`, `VD`, `VDC`.
+    * **Nhóm Phần III: Trả lời ngắn (SHORT_ANSWER):** Barem 0.5 điểm / câu. Gồm 4 cột con: `NB`, `TH`, `VD`, `VDC`.
+    * *(Kiến trúc mở rộng: Phần IV - Tự luận ESSAY).*
+    * **Cột Ngoài Cùng:** Cột `Tổng câu` và Cột `Tổng điểm` cho từng dạng bài (và subtotal của từng bài học/chương).
+  - **Ô nhập liệu và Đối soát tồn kho thời gian thực (Live Inventory on Input Cell):**
+    * Từng ô giao giữa Dạng bài và (Phần thi, Cấp độ) gồm một ô input số lượng ($\ge 0$) và chip badge hiển thị tồn kho thực tế (`Kho: {stock}`).
+    * Phản hồi màu sắc: Xanh lá (`stock-ok`) khi tồn kho đủ đáp ứng; Đỏ cảnh báo (`stock-warn`) khi nhu cầu vượt quá tồn kho khả dụng.
+  - **Thanh Footer Cố Định (Sticky Bottom Action Bar):**
+    * Cố định ở đáy màn hình với hiệu ứng kính mờ (backdrop-blur) và đổ bóng nổi bật.
+    * Thống kê trực tiếp thời gian thực: Tổng số câu & điểm Phần I, Phần II, Phần III; Tổng cộng toàn đề (chuẩn 10.0đ).
+    * Thanh đo lường tỷ lệ nhận thức 4 mức độ: NB % - TH % - VD % - VDC % (với cảnh báo khi chênh lệch so với chuẩn khảo thí).
+    * Cụm nút hành động chuẩn Apple HIG: Nút Đặt lại (Reset), Nút Nạp Presets mẫu (THPT 2025 22 câu 10đ, Đánh giá định kỳ 20 câu, Cuối kỳ 28 câu), và nút chính **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** kích hoạt trực tiếp chu trình lưu ma trận và sinh đề gốc.
+- **BR-04.2 Chuẩn hóa 4 Dạng thức Câu hỏi Khảo thí Quốc gia (4 Statutory Item Formats):**
+  1. *Trắc nghiệm nhiều lựa chọn (`SINGLE_CHOICE`):* Barem 0.25 điểm / câu.
+  2. *Đúng / Sai 4 ý (`TRUE_FALSE_GROUP`):* Barem 1.0 điểm / câu (chấm lũy tiến theo QĐ 764: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ).
+  3. *Trả lời ngắn (`SHORT_ANSWER`):* Barem 0.5 điểm / câu.
+  4. *Tự luận (`ESSAY`):* Barem 1.0 điểm / câu.
+  * Hỗ trợ chọn linh hoạt dạng thức câu hỏi ngay khi thêm dòng YCCĐ mới qua Modal Apple HIG (`#add-matrix-row-modal`).
 - **BR-04.3 Đối soát tồn kho câu hỏi thời gian thực (Live Inventory Checker):**
   - Hệ thống tự động kiểm tra đối soát số lượng câu hỏi thực tế trong CSDL Question Bank cho từng ô ma trận (`learning_outcome_id x cognitive_level x item_format x problem_archetype_id`).
   - Trạng thái hiển thị trực quan:
@@ -202,12 +206,14 @@ ightarrow$ Dạng câu hỏi (Problem Archetype) và Thể thức câu hỏi (It
 | **RULE-05** | Ngưỡng Cảnh báo Trùng lặp AI Vector | Nếu độ tương đồng cosine >= 0.90 giữa câu hỏi mới và câu hỏi hiện có trong DB, hệ thống bắt buộc kích hoạt modal cảnh báo màu đỏ và chặn lưu tự động. |
 | **RULE-06** | Cơ cấu Ma trận Đề thi Đánh giá Định kỳ | Tỷ lệ điểm các câu hỏi trong đề kiểm tra phải nằm trong biên độ cấu hình ma trận quy định (dung sai $\pm 5\%$). |
 | **RULE-07** | Bảo toàn Khối mã Chat Bubble & Động cơ Thay thế Câu hỏi | Khi người dùng ra lệnh thay thế câu thứ N, hệ thống tự động bóc tách câu cũ làm `old_text` và gán câu mới làm `new_text`. Khối code trong chat bubble tuyệt đối không bị nuốt mất nếu không có diff hợp lệ gửi sang editor. |
-| **RULE-08** | Quy chuẩn Git Workflow - Không Tự Động Tạo PR | Chỉ thực hiện `git commit` và `git push` lên repository; tuyệt đối không tự động tạo hoặc cập nhật Pull Request trừ khi có yêu cầu bằng lời nói rõ ràng từ người dùng. |
+| **RULE-08** | Quy chuẩn Quản trị Git - PR First & Continuous PR Description Sync | Khi triển khai, bắt buộc tạo Pull Request trước khi commit (`gh pr create`). Nếu tồn tại Pull Request trước khi commit thì mỗi lần commit/push bắt buộc cập nhật lại description (`gh pr edit <PR_NUM> --body "..."`) phản ánh chính xác trạng thái kỹ thuật và kết quả test. |
 | **RULE-09** | Bảo mật Định danh & Mật khẩu Băm | Mật khẩu người dùng bắt buộc băm qua PBKDF2-HMAC-SHA256 (600.000 vòng lặp, salt 32 bytes); phiên làm việc quản lý qua JWT HS256 (thời hạn 7 ngày); bảo vệ an toàn ngân hàng đề thi. |
 | **RULE-10** | Tích lũy Ngân hàng Chuẩn hóa từ Soạn thảo | Khi lưu đề thi từ Composer vào Ngân hàng, hệ thống bắt buộc bóc tách trọn vẹn cả 3 thể thức QĐ 764, bảo toàn đồ thị TikZ, BBT `tkz-tab`, lời giải chi tiết và tự động gán nhãn YCCĐ. |
 | **RULE-11** | Bảo toàn 4 Nguyên Tắc Trộn Đề An Toàn (Safe Shuffling) | Hoán vị mã đề bắt buộc tuân thủ 100%: Section Integrity (đảo trong cùng phần), Passage Integrity (bảo toàn ngữ liệu câu chùm), Option Anchor Rule (khóa mỏ neo tại vị trí D), và Key Matrix (bảng đối chiếu đáp án). |
 | **RULE-12** | Đối soát Tồn kho Ma trận & Ràng buộc Khả dụng | Trước khi rút đề, hệ thống đối soát số lượng câu hỏi khả dụng theo từng ô ma trận; nếu thiếu câu phải đưa ra cảnh báo chính xác (số lượng thiếu, YCCĐ, mức độ) và chặn rút đề nếu không bật cờ allow_partial. |
 | **RULE-13** | Hoán đổi Câu hỏi Đề Gốc Độc lập (In-Place Item Swap) | Khi đổi câu hỏi trong Master Exam, câu mới bắt buộc cùng YCCĐ, cùng mức độ nhận thức Bloom và cùng thể thức thi; hệ thống tự động làm mới đề gốc và hủy bỏ các mã đề hoán vị cũ để đảm bảo tính nhất quán. |
+| **RULE-14** | Con Trỏ Chuột Soạn Thảo Đen Tương Phản Cao (High-Contrast Text Cursor) | Con trỏ chuột khi rê vào các ô ma trận (.matrix-input-cell) và các trường text inputs bắt buộc hiển thị con trỏ SVG I-beam đen đậm có viền trắng tương phản cao (24x24, hotspot 12 12); caret đen đậm (#000000) trên nền sáng; hover ô ma trận có phản hồi viền xanh và nền nhạt. |
+| **RULE-15** | Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG (Item Bank Pagination) | Danh sách ngân hàng câu hỏi bắt buộc phân trang (mặc định 12, tùy chọn 24, 48 câu/trang), chỉ render KaTeX cho trang hiện tại; thanh phân trang hiển thị dải số, nút Trước/Sau, dải số trang thông minh; tự động reset về trang 1 khi lọc và cuộn mượt về đầu danh sách khi chuyển trang. |
 
 ---
 
@@ -217,8 +223,8 @@ ightarrow$ Dạng câu hỏi (Problem Archetype) và Thể thức câu hỏi (It
 |:---|:---|:---|:---:|:---|
 | **BR-01** | AI Số hoá Đề thi & Studio HITL | AI Parsing Engine & HITL | P0 | Giảm 90% thời gian gõ lại đề thủ công |
 | **BR-02** | Dựng Đồ thị TikZ SVG & Chuẩn hóa Toán | TikZ Renderer & LaTeX Sanitizer | P0 | Hiển thị đồ thị vector sắc nét, chống lỗi KaTeX |
-| **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa & CRUD | Taxonomy & Item Bank | P0 | Quản lý vòng đời đầy đủ, lọc 6 tầng TT 32, xuất/nhập đa định dạng, chống trùng lặp |
-| **BR-04** | Ma trận Đề thi 2D theo YCCĐ & Đối soát Tồn kho | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối cấu trúc TT 22 & QĐ 764, 3 Presets, xuất bản bản đặc tả |
+| **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa, CRUD & Phân trang HIG | Taxonomy & Item Bank | P0 | Quản lý vòng đời đầy đủ, lọc 6 tầng TT 32, phân trang chống tràn DOM, tải KaTeX on-demand <10ms |
+| **BR-04** | Ma trận Đề thi Phân cấp Đa tầng & Con trỏ Tương phản cao | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối TT 22 & QĐ 764, tồn kho thời gian thực, con trỏ text đen đậm công thái học cao |
 | **BR-05** | Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc | Safe Shuffling Engine & Master Exam | P0 | Chống lỗi logic đáp án neo, bảo toàn bài đọc, đổi câu hỏi linh hoạt, sinh ma trận đáp án |
 | **BR-06** | Xuất bản Vector PDF, Word OMML & Gói ZIP | Export Service & Publishing Pipeline | P0 | Xuất bản in ấn 1-click, đóng gói trọn gói ZIP đề thi, lời giải, barem bậc thang và phiếu OMR |
 | **BR-07** | Trợ lý Soạn thảo AI & Thay thế Câu hỏi Thông minh | Composer Copilot & Question Replacement Engine | P0 | Hỗ trợ giáo viên chỉnh sửa/thay thế câu hỏi 1-click, bảo toàn code và trải nghiệm mượt mà |

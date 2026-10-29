@@ -17,7 +17,10 @@
         - **Quy tắc không chạy test lặp lại sau khi Sub-Agent 3 & 4 đã pass:** Sau khi Sub-Agent 3 và Sub-Agent 4 đã hoàn tất kiểm thử và báo cáo đạt 100% PASS (CI test pass, cú pháp JS 0 lỗi, E2E browser pass), Parent Agent **tuyệt đối KHÔNG CẦN chạy test (pytest) lại nữa**, mà tiến hành `git commit` và `git push` ngay lập tức để tối ưu hóa thời gian và tránh lặp lại công việc dư thừa.
         - **Vòng lặp sửa lỗi CI (CI Loop):** Nếu CI không pass (bất kỳ test case nào fail hoặc môi trường CI bị lỗi):
           `CI Test Thất bại` → `Phân tích nguyên nhân` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 chạy lại CI test` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT** (chỉ Sub-Agent 3 chạy test trong vòng lặp này).
-        - Sau khi Sub-Agent 3 và 4 pass 100%, thực hiện `git commit` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+        - **Quy tắc tạo PR trước khi commit & cập nhật description mỗi lần commit (PR First & Continuous PR Description Sync):**
+          + Trước khi commit: Bắt buộc phải tạo Pull Request trước (`gh pr create`) từ nhánh hiện tại vào `main` (nếu chưa có PR nào đang mở).
+          + Nếu có tồn tại 1 Pull Request trước khi commit: Mỗi khi commit, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh đầy đủ các thay đổi kỹ thuật mới nhất, sau đó mới thực hiện `git commit` và `git push`.
+        - Sau khi Sub-Agent 3 và 4 pass 100%, thực hiện cập nhật PR description, `git commit` và `git push` ngay với thông điệp rõ ràng, tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 2. **CHUẨN MỰC KHẢO THÍ QUỐC GIA:**
    - **Thông tư 32/2018/TT-BGDĐT:** Phân cấp cây kiến thức 6 tầng theo Yêu cầu cần đạt (YCCĐ) và Dạng câu hỏi. **Tuyệt đối không phân chia theo các bộ sách giáo khoa thương mại** (như Cánh diều, Kết nối tri thức, Chân trời sáng tạo).
@@ -86,7 +89,7 @@
         - **QUY TẮC MIỄN CHẠY LẠI TEST (ZERO REDUNDANT TESTING RULE):**
           - Khi Sub-Agent 3 đã xác nhận 100% test cases pass trên môi trường giả lập CI và Sub-Agent 4 đã nghiệm thu 100% pass trên trình duyệt thật:
           - **Parent Agent tuyệt đối KHÔNG ĐƯỢC CHẠY LẠI TEST SUITE (`pytest`) NỮA.** Việc kiểm thử tự động đã được Sub-Agent 3 và Sub-Agent 4 thực thi trọn vẹn và hoàn tất.
-          - Parent Agent tiến hành kiểm tra cổng mạng, dọn dẹp tiến trình, `git commit` và `git push` ngay lập tức.
+          - Parent Agent tiến hành kiểm tra cổng mạng, dọn dẹp tiến trình, cập nhật description của Pull Request đang mở (`gh pr edit <PR_NUM> --body "..."`), sau đó mới thực hiện `git commit` và `git push` ngay lập tức.
 
    - **ĐỊNH NGHĨA TOÀN DIỆN VỀ "LỖI" TRONG KIỂM THỬ (COMPREHENSIVE DEFECT DEFINITION):**
      - **Bắt buộc:** Khái niệm "Lỗi" trong kiểm thử của Sub-Agent 3 và Sub-Agent 4 tuyệt đối **không chỉ giới hạn ở lỗi logic nghiệp vụ hay lỗi backend**, mà bao trùm toàn diện 5 nhóm khuyết tật phần mềm:

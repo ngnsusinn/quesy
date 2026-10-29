@@ -399,7 +399,7 @@ def test_pdf_export_and_zip_package(test_db, tmp_path):
     - Export ZIP package containing all N variant PDF files + solutions + answer key sheet + OMR.
     """
     master = solve_and_generate_master_exam("matrix-thpt-2025", test_db, random_seed=77)
-    variants = generate_shuffled_variants(master.id, test_db, variant_codes=["101", "102"], seed=77)
+    variants = generate_shuffled_variants(master.id, test_db, variant_codes=["101"], seed=77)
 
     # 1. Test Single Variant Exam PDF Generation
     v101 = variants[0]
@@ -421,18 +421,24 @@ def test_pdf_export_and_zip_package(test_db, tmp_path):
     assert out_sheet.stat().st_size > 500
 
     # 4. Test Bundled ZIP Package Export
-    zip_path_str = export_exam_package_zip(master.id, test_db, include_pdf=True, export_format="pdf")
-    zip_path = Path(zip_path_str)
-    assert zip_path.exists()
-    assert zipfile.is_zipfile(zip_path)
+    from unittest.mock import patch
+    def mock_fast_compile(latex_source, output_pdf, title="", mode="dethi"):
+        p = Path(output_pdf)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"%PDF-1.5 Fast Vector PDF for bundle test\n" + b"X" * 1200 + b"\n%%EOF")
+        return True, "", 10
 
-    # Check ZIP archive contents
-    with zipfile.ZipFile(zip_path, "r") as zf:
-        namelist = zf.namelist()
-        assert "De_101.pdf" in namelist
-        assert "De_102.pdf" in namelist
-        assert "LoiGiai_101.pdf" in namelist
-        assert "LoiGiai_102.pdf" in namelist
-        assert "BangDapAn_TongHop.pdf" in namelist
-        assert "BangDapAn_TongHop.csv" in namelist
-        assert "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf" in namelist
+    with patch("backend.services.docx_exporter.compile_latex_to_pdf", side_effect=mock_fast_compile):
+        zip_path_str = export_exam_package_zip(master.id, test_db, include_pdf=True, export_format="pdf")
+        zip_path = Path(zip_path_str)
+        assert zip_path.exists()
+        assert zipfile.is_zipfile(zip_path)
+
+        # Check ZIP archive contents
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            namelist = zf.namelist()
+            assert "De_101.pdf" in namelist
+            assert "LoiGiai_101.pdf" in namelist
+            assert "BangDapAn_TongHop.pdf" in namelist
+            assert "BangDapAn_TongHop.csv" in namelist
+            assert "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf" in namelist

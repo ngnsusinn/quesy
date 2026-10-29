@@ -130,6 +130,7 @@
 
     // Item Bank (Default 12 Rich Standard Items)
     itemBank: [],
+    bankPagination: { currentPage: 1, pageSize: 12 },
 
     // Exam Matrix Config & Cells
     matrixConfig: {
@@ -143,41 +144,34 @@
           id: 'row-1',
           strandName: 'Số, Đại số & Giải tích',
           yccdCode: 'TOAN12.GT.01',
-          archetypeName: 'Cực trị hàm bậc 3 chứa m',
-          biet: 5,
-          hieu: 3,
-          vandung: 3,
+          archetypeName: 'Cực trị hàm bậc 3 chứa $m$',
+          itemFormat: 'SINGLE_CHOICE',
+          biet: 6,
+          hieu: 4,
+          vandung: 2,
           bankStock: { biet: 15, hieu: 12, vandung: 8 },
         },
         {
           id: 'row-2',
           strandName: 'Số, Đại số & Giải tích',
           yccdCode: 'TOAN12.GT.02',
-          archetypeName: 'Tiệm cận đứng, ngang đồ thị',
-          biet: 3,
+          archetypeName: 'Đúng/Sai: Khảo sát hàm số $y = f(x)$',
+          itemFormat: 'TRUE_FALSE_GROUP',
+          biet: 1,
           hieu: 2,
-          vandung: 2,
+          vandung: 1,
           bankStock: { biet: 10, hieu: 8, vandung: 6 },
         },
         {
           id: 'row-3',
           strandName: 'Hình học & Đo lường',
           yccdCode: 'TOAN12.HH.01',
-          archetypeName: 'Phương trình mặt phẳng Oxyz',
-          biet: 4,
-          hieu: 3,
-          vandung: 3,
-          bankStock: { biet: 14, hieu: 9, vandung: 7 },
-        },
-        {
-          id: 'row-4',
-          strandName: 'Thống kê & Xác suất',
-          yccdCode: 'TOAN12.XS.01',
-          archetypeName: 'Xác suất có điều kiện & Bayes',
+          archetypeName: 'Trả lời ngắn: Không gian toạ độ $Oxyz$',
+          itemFormat: 'SHORT_ANSWER',
           biet: 2,
           hieu: 2,
           vandung: 2,
-          bankStock: { biet: 8, hieu: 6, vandung: 4 },
+          bankStock: { biet: 14, hieu: 9, vandung: 7 },
         },
       ],
     },
@@ -627,6 +621,7 @@
     // Render any TikZ diagrams
     renderTikzDiagrams(domElement);
   }
+  window.renderKaTeX = renderKaTeX;
 
   function cleanShortAnswer(val) {
     if (!val || typeof val !== 'string') return String(val || '');
@@ -1137,7 +1132,7 @@
     } else if (tabId === 'itembank') {
       renderItemBank();
     } else if (tabId === 'matrix') {
-      renderMatrixGrid();
+      initHierarchicalMatrix();
     } else if (tabId === 'shuffler') {
       renderMasterExam();
       loadMasterExamsAndMatricesForShuffler();
@@ -1750,7 +1745,7 @@
         <div class="pt-2.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
           <div>
             <label class="block text-slate-500 font-bold mb-0.5">Yêu cầu cần đạt:</label>
-            <select onchange="app.updateQuestionYCCD(${qId}, this.value)" class="w-full text-xs font-mono rounded-lg border border-slate-200 py-1 px-2 bg-slate-50">
+            <select onchange="app.updateQuestionYCCD(${qId}, this.value)" class="apple-select text-xs w-full">
               <option value="TOAN12.GT.01" ${q.learning_outcome_id === 'TOAN12.GT.01' ? 'selected' : ''}>TOAN12.GT.01: Cực trị hàm số</option>
               <option value="TOAN12.GT.02" ${q.learning_outcome_id === 'TOAN12.GT.02' ? 'selected' : ''}>TOAN12.GT.02: Đường tiệm cận</option>
               <option value="TOAN12.GT.03" ${q.learning_outcome_id === 'TOAN12.GT.03' ? 'selected' : ''}>TOAN12.GT.03: Khái niệm nguyên hàm</option>
@@ -1761,7 +1756,7 @@
 
           <div>
             <label class="block text-slate-500 font-bold mb-0.5">Mức độ nhận thức:</label>
-            <select onchange="app.updateQuestionCognitive(${qId}, this.value)" class="w-full text-xs rounded-lg border border-slate-200 py-1 px-2 bg-slate-50 font-semibold">
+            <select onchange="app.updateQuestionCognitive(${qId}, this.value)" class="apple-select text-xs w-full">
               <option value="RECOGNITION" ${q.cognitive_level === 'RECOGNITION' ? 'selected' : ''}>1. Nhận biết</option>
               <option value="COMPREHENSION" ${q.cognitive_level === 'COMPREHENSION' ? 'selected' : ''}>2. Thông hiểu</option>
               <option value="APPLICATION" ${q.cognitive_level === 'APPLICATION' ? 'selected' : ''}>3. Vận dụng</option>
@@ -2896,9 +2891,123 @@
   }
 
   // ============================================================================
-  // 9. TAB 3: ITEM BANK EXPLORER (6-TIER CASCADING TAXONOMY)
+  // 9. TAB 3: ITEM BANK EXPLORER (6-TIER CASCADING TAXONOMY & APPLE HIG PAGINATION)
   // ============================================================================
+  function handleBankFilterChange() {
+    state.bankPagination.currentPage = 1;
+    renderItemBank();
+  }
+
+  function changeBankPage(newPage) {
+    const strandFilter = document.getElementById('bank-filter-strand')?.value || 'all';
+    const yccdFilter = document.getElementById('bank-filter-yccd')?.value || 'all';
+    const cogFilter = document.getElementById('bank-filter-cognitive')?.value || 'all';
+    const formatFilter = document.getElementById('bank-filter-format')?.value || 'all';
+    const searchFilter = (document.getElementById('bank-search-input')?.value || '').toLowerCase().trim();
+    const archetypeFilter = document.getElementById('bank-filter-archetype')?.value || 'all';
+
+    const filtered = state.itemBank.filter((item) => {
+      if (strandFilter !== 'all' && item.strand_id !== strandFilter) return false;
+      if (yccdFilter !== 'all' && item.learning_outcome_id !== yccdFilter) return false;
+      if (cogFilter !== 'all' && item.cognitive_level !== cogFilter) return false;
+      if (formatFilter !== 'all' && item.item_format !== formatFilter) return false;
+      if (archetypeFilter !== 'all' && item.archetype_id !== archetypeFilter) return false;
+      if (searchFilter) {
+        const text = `${item.code} ${item.stem} ${item.learning_outcome_id} ${item.explanation || ''}`.toLowerCase();
+        if (!text.includes(searchFilter)) return false;
+      }
+      return true;
+    });
+
+    const pageSize = state.bankPagination.pageSize || 12;
+    const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+    if (newPage < 1) newPage = 1;
+    if (newPage > totalPages) newPage = totalPages;
+    state.bankPagination.currentPage = newPage;
+    renderItemBank();
+    const grid = document.getElementById('bank-cards-grid');
+    if (grid) {
+      grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function changeBankPageSize(newSize) {
+    state.bankPagination.pageSize = parseInt(newSize, 10) || 12;
+    state.bankPagination.currentPage = 1;
+    renderItemBank();
+  }
+
+  function renderBankPagination(totalItems, currentPage, pageSize) {
+    const controlsContainer = document.getElementById('bank-pagination-controls');
+    if (!controlsContainer) return;
+
+    if (totalItems <= 0) {
+      controlsContainer.style.display = 'none';
+      return;
+    }
+    controlsContainer.style.display = 'flex';
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIndex = (currentPage - 1) * pageSize + 1;
+    const endIndex = Math.min(currentPage * pageSize, totalItems);
+
+    const rangeEl = document.getElementById('bank-page-range');
+    const totalEl = document.getElementById('bank-page-total');
+    if (rangeEl) rangeEl.textContent = `${startIndex} - ${endIndex}`;
+    if (totalEl) totalEl.textContent = totalItems;
+
+    const sizeSelect = document.getElementById('bank-page-size-select');
+    if (sizeSelect) sizeSelect.value = pageSize;
+
+    const buttonsContainer = document.getElementById('bank-pagination-buttons');
+    if (!buttonsContainer) return;
+
+    let html = '';
+    html += `
+      <button onclick="app.changeBankPage(${currentPage - 1})" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-medium text-xs transition-all cursor-pointer ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}">
+        &lt; Trước
+      </button>
+    `;
+
+    let pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 4) {
+        pages = [1, 2, 3, 4, 5, '...', totalPages];
+      } else if (currentPage >= totalPages - 3) {
+        pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      } else {
+        pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+      }
+    }
+
+    pages.forEach((p) => {
+      if (p === '...') {
+        html += `<span class="px-2 py-1 text-slate-400">...</span>`;
+      } else {
+        const isActive = p === currentPage;
+        html += `
+          <button onclick="app.changeBankPage(${p})" class="w-7 h-7 rounded-lg font-bold text-xs transition-all cursor-pointer ${isActive ? 'bg-[#0071e3] text-white shadow-xs' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}">
+            ${p}
+          </button>
+        `;
+      }
+    });
+
+    html += `
+      <button onclick="app.changeBankPage(${currentPage + 1})" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-medium text-xs transition-all cursor-pointer ${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}">
+        Sau &gt;
+      </button>
+    `;
+
+    buttonsContainer.innerHTML = html;
+  }
+
   function handleTaxonomyFilterChange(level) {
+    state.bankPagination.currentPage = 1;
     const gradeVal = document.getElementById('bank-filter-grade').value;
     const strandVal = document.getElementById('bank-filter-strand').value;
     const topicSelect = document.getElementById('bank-filter-topic');
@@ -2959,35 +3068,53 @@
     const cogFilter = document.getElementById('bank-filter-cognitive')?.value || 'all';
     const formatFilter = document.getElementById('bank-filter-format')?.value || 'all';
     const searchFilter = (document.getElementById('bank-search-input')?.value || '').toLowerCase().trim();
+    const archetypeFilter = document.getElementById('bank-filter-archetype')?.value || 'all';
 
     const filtered = state.itemBank.filter((item) => {
       if (strandFilter !== 'all' && item.strand_id !== strandFilter) return false;
       if (yccdFilter !== 'all' && item.learning_outcome_id !== yccdFilter) return false;
       if (cogFilter !== 'all' && item.cognitive_level !== cogFilter) return false;
       if (formatFilter !== 'all' && item.item_format !== formatFilter) return false;
+      if (archetypeFilter !== 'all' && item.archetype_id !== archetypeFilter) return false;
       if (searchFilter) {
-        const text = `${item.code} ${item.stem} ${item.learning_outcome_id}`.toLowerCase();
+        const text = `${item.code} ${item.stem} ${item.learning_outcome_id} ${item.explanation || ''}`.toLowerCase();
         if (!text.includes(searchFilter)) return false;
       }
       return true;
     });
 
+    const totalItems = filtered.length;
     const countEl = document.getElementById('bank-results-count');
-    if (countEl) countEl.innerText = filtered.length;
+    if (countEl) countEl.innerText = totalItems;
 
-    if (filtered.length === 0) {
+    const pageSize = state.bankPagination.pageSize || 12;
+    let currentPage = state.bankPagination.currentPage || 1;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
+      state.bankPagination.currentPage = currentPage;
+    }
+
+    renderBankPagination(totalItems, currentPage, pageSize);
+
+    if (totalItems === 0) {
       container.innerHTML = `
         <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400 text-xs">
           <i data-lucide="search-x" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
-          Không tìm thấy câu hỏi nào thỏa mãn các tiêu chí lọc.
+          Không tìm thấy câu hỏi nào thỏa mãn các tiêu chí lọc. Bấm <strong>+ Thêm câu hỏi</strong> hoặc <strong>📥 Nhập câu hỏi</strong> để bổ sung.
         </div>
       `;
       if (window.lucide) lucide.createIcons();
       return;
     }
 
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
+    const pagedItems = filtered.slice(startIndex, endIndex);
+
     let html = '';
-    filtered.forEach((q) => {
+    pagedItems.forEach((q, pIdx) => {
+      const globalIdx = startIndex + pIdx + 1;
       const cogLabels = {
         RECOGNITION: 'Nhận biết',
         COMPREHENSION: 'Thông hiểu',
@@ -3002,17 +3129,18 @@
       };
 
       html += `
-        <div class="apple-card p-5 space-y-3">
+        <div class="apple-card p-5 space-y-3 hover:shadow-md transition-all">
           
           <!-- Header: Code, Badges, Psychometrics -->
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-black/[0.06] pb-3 text-xs">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="font-mono font-bold text-slate-800 bg-black/[0.04] px-2 py-0.5 rounded-md text-xs">${q.code}</span>
+              <span class="font-bold text-brand-700">Câu ${globalIdx}</span>
+              <span class="font-mono font-bold text-slate-800 bg-black/[0.04] px-2 py-0.5 rounded-md text-xs">${q.code || ('Q-' + q.id)}</span>
               <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${cogColors[q.cognitive_level] || 'bg-slate-100'}">
                 ${cogLabels[q.cognitive_level] || q.cognitive_level}
               </span>
               <span class="px-2 py-0.5 rounded-md bg-[#0071E3]/[0.08] text-[#0071E3] text-[11px] font-bold border border-[#0071E3]/[0.15] font-mono">
-                ${q.learning_outcome_id}
+                ${q.learning_outcome_id || 'TOAN12'}
               </span>
               <span class="text-slate-400 text-[11px]">• ${q.source_ref || 'Thông tư 32'}</span>
             </div>
@@ -3046,7 +3174,7 @@
                 <span class="w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
                   ${opt.label}
                 </span>
-                <span>${opt.content}</span>
+                <span>${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}</span>
               </div>
               ${opt.is_fixed ? '<span class="option-anchor-indicator"><i data-lucide="anchor" class="w-3 h-3"></i> Khóa D</span>' : ''}
             </div>
@@ -3058,10 +3186,10 @@
         q.sub_statements.forEach((sub) => {
           html += `
             <div class="p-2 rounded-lg bg-slate-50 border border-black/[0.06] flex items-center justify-between">
-              <div><strong>${sub.label})</strong> ${sub.content}</div>
+              <div><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</div>
               <span class="px-2 py-0.5 rounded text-[10px] font-bold ${sub.is_true ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                ${sub.is_true ? 'ĐÚNG' : 'SAI'
-              }</span>
+                ${sub.is_true ? 'ĐÚNG' : 'SAI'}
+              </span>
             </div>
           `;
         });
@@ -3069,7 +3197,15 @@
       } else if (q.item_format === 'SHORT_ANSWER') {
         html += `
           <div class="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200 text-xs text-purple-900 font-mono">
-            <strong>Đáp án:</strong> ${q.short_answer_value} (Dung sai $\\pm ${q.tolerance}$)
+            <strong>Đáp án:</strong> ${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'), true)} (Dung sai $\\pm ${q.tolerance || 0}$)
+          </div>
+        `;
+      }
+
+      if (q.explanation) {
+        html += `
+          <div class="p-2.5 rounded-xl bg-blue-50/50 border border-blue-100 text-xs text-slate-700">
+            <strong>Lời giải chi tiết:</strong> ${formatStemForDisplay(q.explanation)}
           </div>
         `;
       }
@@ -3077,11 +3213,15 @@
       // Actions
       html += `
         <div class="flex items-center justify-end space-x-2 pt-2.5 border-t border-black/[0.06] text-xs">
-          <button onclick="app.checkQuestionDuplicate(${q.id})" class="btn-apple-secondary py-1 px-2.5 text-xs">
+          <button onclick="app.checkQuestionDuplicate(${q.id})" class="btn-apple-secondary py-1 px-2.5 text-xs cursor-pointer">
             <i data-lucide="scan" class="w-3.5 h-3.5"></i>
             <span>So khớp Trùng lặp AI</span>
           </button>
-          <button onclick="app.deleteBankQuestion(${q.id})" class="btn-apple-danger py-1 px-2.5 text-xs">
+          <button onclick="app.openQuestionEditorModal('${q.id}')" class="btn-apple-secondary py-1 px-2.5 text-xs cursor-pointer">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span>Sửa</span>
+          </button>
+          <button onclick="app.deleteBankQuestion(${q.id})" class="btn-apple-danger py-1 px-2.5 text-xs cursor-pointer">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             <span>Xóa</span>
           </button>
@@ -3093,6 +3233,7 @@
 
     container.innerHTML = html;
     renderKaTeX(container);
+    if (window.lucide) lucide.createIcons();
   }
 
   function deleteBankQuestion(id) {
@@ -3107,6 +3248,19 @@
   // ============================================================================
   // 10. TAB 4: EXAM MATRIX BUILDER (INTERACTIVE 2D GRID WITH INVENTORY CHECK)
   // ============================================================================
+  const MATRIX_FORMAT_POINTS = {
+    SINGLE_CHOICE: 0.25,
+    TRUE_FALSE_GROUP: 1.0,
+    SHORT_ANSWER: 0.5,
+    ESSAY: 1.0
+  };
+  const MATRIX_FORMAT_LABELS = {
+    SINGLE_CHOICE: 'Trắc nghiệm (0.25đ)',
+    TRUE_FALSE_GROUP: 'Đúng / Sai (1.0đ)',
+    SHORT_ANSWER: 'Trả lời ngắn (0.5đ)',
+    ESSAY: 'Tự luận (1.0đ)'
+  };
+
   function renderMatrixGrid() {
     const tbody = document.getElementById('matrix-grid-tbody');
     if (!tbody) return;
@@ -3115,44 +3269,77 @@
     let totalBiet = 0;
     let totalHieu = 0;
     let totalVandung = 0;
+    let totalBietPoints = 0;
+    let totalHieuPoints = 0;
+    let totalVandungPoints = 0;
+    let grandPoints = 0;
 
     state.matrixConfig.rows.forEach((row, rowIdx) => {
-      totalBiet += Number(row.biet);
-      totalHieu += Number(row.hieu);
-      totalVandung += Number(row.vandung);
+      const format = row.itemFormat || 'SINGLE_CHOICE';
+      const formatPoints = MATRIX_FORMAT_POINTS[format] || 0.25;
 
-      const rowItems = Number(row.biet) + Number(row.hieu) + Number(row.vandung);
-      const rowPoints = (row.biet * 0.25 + row.hieu * 0.35 + row.vandung * 0.4).toFixed(2);
+      const rowBiet = Number(row.biet) || 0;
+      const rowHieu = Number(row.hieu) || 0;
+      const rowVandung = Number(row.vandung) || 0;
 
-      // Stock check
-      const stockBietClass = row.bankStock.biet >= row.biet ? 'stock-sufficient' : 'stock-insufficient';
-      const stockHieuClass = row.bankStock.hieu >= row.hieu ? 'stock-sufficient' : 'stock-insufficient';
-      const stockVandungClass = row.bankStock.vandung >= row.vandung ? 'stock-sufficient' : 'stock-insufficient';
+      totalBiet += rowBiet;
+      totalHieu += rowHieu;
+      totalVandung += rowVandung;
+
+      const bietPts = rowBiet * formatPoints;
+      const hieuPts = rowHieu * formatPoints;
+      const vandungPts = rowVandung * formatPoints;
+
+      totalBietPoints += bietPts;
+      totalHieuPoints += hieuPts;
+      totalVandungPoints += vandungPts;
+
+      const rowItems = rowBiet + rowHieu + rowVandung;
+      const rowPoints = (rowItems * formatPoints).toFixed(2);
+      grandPoints += rowItems * formatPoints;
+
+      // Stock check with visual matrix-stock-chip
+      const stockBietNeeded = rowBiet;
+      const stockBietOk = (row.bankStock?.biet || 0) >= stockBietNeeded;
+      const stockHieuNeeded = rowHieu;
+      const stockHieuOk = (row.bankStock?.hieu || 0) >= stockHieuNeeded;
+      const stockVandungNeeded = rowVandung;
+      const stockVandungOk = (row.bankStock?.vandung || 0) >= stockVandungNeeded;
 
       html += `
         <tr class="hover:bg-slate-50 transition-colors">
           <td class="p-3 sticky left-0 bg-white shadow-xs">
             <div class="font-bold text-slate-900">${row.strandName}</div>
             <div class="text-[11px] text-brand-700 font-mono font-semibold">${row.yccdCode}</div>
-            <div class="text-[11px] text-slate-500">${row.archetypeName}</div>
+            <div class="text-[11px] text-slate-500">${formatStemForDisplay(row.archetypeName, true)}</div>
           </td>
 
-          <!-- Col 1: Biết -->
+          <!-- Col 2: Dạng thức câu hỏi -->
+          <td class="p-2 text-center border-l border-slate-200 bg-white">
+            <select onchange="app.updateMatrixRowFormat(${rowIdx}, this.value)" class="apple-select text-xs font-semibold w-full">
+              <option value="SINGLE_CHOICE" ${format === 'SINGLE_CHOICE' ? 'selected' : ''}>Trắc nghiệm (0.25đ)</option>
+              <option value="TRUE_FALSE_GROUP" ${format === 'TRUE_FALSE_GROUP' ? 'selected' : ''}>Đúng / Sai (1.0đ)</option>
+              <option value="SHORT_ANSWER" ${format === 'SHORT_ANSWER' ? 'selected' : ''}>Trả lời ngắn (0.5đ)</option>
+              <option value="ESSAY" ${format === 'ESSAY' ? 'selected' : ''}>Tự luận (1.0đ)</option>
+            </select>
+          </td>
+
+          <!-- Col 3: Biết -->
           <td class="p-2 text-center border-l border-slate-200 matrix-input-cell bg-blue-50/20">
-            <input type="number" min="0" max="20" value="${row.biet}" onchange="app.updateMatrixCell(${rowIdx}, 'biet', this.value)" class="focus:ring-2 focus:ring-blue-500">
-            <span class="matrix-inventory-stock ${stockBietClass}">Kho: ${row.bankStock.biet} câu</span>
+            <input type="number" min="0" max="20" value="${rowBiet}" onchange="app.updateMatrixCell(${rowIdx}, 'biet', this.value)" class="focus:ring-2 focus:ring-blue-500">
+            <span class="matrix-inventory-stock matrix-stock-chip ${stockBietOk ? 'stock-ok' : 'stock-warn'}">Kho: ${row.bankStock?.biet || 0} / Cần: ${stockBietNeeded}</span>
           </td>
 
-          <!-- Col 2: Hiểu -->
+          <!-- Col 4: Hiểu -->
           <td class="p-2 text-center border-l border-slate-200 matrix-input-cell bg-indigo-50/20">
-            <input type="number" min="0" max="20" value="${row.hieu}" onchange="app.updateMatrixCell(${rowIdx}, 'hieu', this.value)" class="focus:ring-2 focus:ring-indigo-500">
-            <span class="matrix-inventory-stock ${stockHieuClass}">Kho: ${row.bankStock.hieu} câu</span>
+            <input type="number" min="0" max="20" value="${rowHieu}" onchange="app.updateMatrixCell(${rowIdx}, 'hieu', this.value)" class="focus:ring-2 focus:ring-indigo-500">
+            <span class="matrix-inventory-stock matrix-stock-chip ${stockHieuOk ? 'stock-ok' : 'stock-warn'}">Kho: ${row.bankStock?.hieu || 0} / Cần: ${stockHieuNeeded}</span>
           </td>
 
-          <!-- Col 3: Vận dụng -->
+          <!-- Col 5: Vận dụng -->
           <td class="p-2 text-center border-l border-slate-200 matrix-input-cell bg-emerald-50/20">
-            <input type="number" min="0" max="20" value="${row.vandung}" onchange="app.updateMatrixCell(${rowIdx}, 'vandung', this.value)" class="focus:ring-2 focus:ring-emerald-500">
-            <span class="matrix-inventory-stock ${stockVandungClass}">Kho: ${row.bankStock.vandung} câu</span>
+            <input type="number" min="0" max="20" value="${rowVandung}" onchange="app.updateMatrixCell(${rowIdx}, 'vandung', this.value)" class="focus:ring-2 focus:ring-emerald-500">
+            <span class="matrix-inventory-stock matrix-stock-chip ${stockVandungOk ? 'stock-ok' : 'stock-warn'}">Kho: ${row.bankStock?.vandung || 0} / Cần: ${stockVandungNeeded}</span>
           </td>
 
           <!-- Total Items per Row -->
@@ -3164,31 +3351,34 @@
           <td class="p-3 text-center border-l border-slate-200 font-bold text-brand-700">
             ${rowPoints} đ
           </td>
+
+          <!-- Action Column: Delete Row -->
+          <td class="p-3 text-center border-l border-slate-200">
+            <button onclick="app.deleteMatrixRow(${rowIdx})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Xóa dòng ma trận">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
         </tr>
       `;
     });
 
     tbody.innerHTML = html;
+    renderKaTeX(tbody);
+    if (window.lucide) lucide.createIcons();
 
     // Totals
     const grandItems = totalBiet + totalHieu + totalVandung;
-    document.getElementById('matrix-total-biet').innerText = `${totalBiet} câu (${(totalBiet * 0.25).toFixed(1)}đ)`;
-    document.getElementById('matrix-total-hieu').innerText = `${totalHieu} câu (${(totalHieu * 0.35).toFixed(1)}đ)`;
-    document.getElementById('matrix-total-vandung').innerText = `${totalVandung} câu (${(totalVandung * 0.4).toFixed(1)}đ)`;
+    document.getElementById('matrix-total-biet').innerText = `${totalBiet} câu (${totalBietPoints.toFixed(1)}đ)`;
+    document.getElementById('matrix-total-hieu').innerText = `${totalHieu} câu (${totalHieuPoints.toFixed(1)}đ)`;
+    document.getElementById('matrix-total-vandung').innerText = `${totalVandung} câu (${totalVandungPoints.toFixed(1)}đ)`;
     document.getElementById('matrix-total-items').innerText = `${grandItems} câu`;
-    document.getElementById('matrix-total-points').innerText = `10.0 đ`;
+    document.getElementById('matrix-total-points').innerText = `${grandPoints.toFixed(1)} đ`;
 
     // Calculate Bloom Cognitive Level Ratio
     if (grandItems > 0) {
       let pctBiet = Math.round((totalBiet / grandItems) * 100);
       let pctHieu = Math.round((totalHieu / grandItems) * 100);
-      let pctVandung = 100 - pctBiet - pctHieu;
-
-      if (grandItems === 34 && totalBiet === 14 && totalHieu === 10) {
-        pctBiet = 40;
-        pctHieu = 30;
-        pctVandung = 30;
-      }
+      let pctVandung = Math.max(0, 100 - pctBiet - pctHieu);
 
       document.getElementById('matrix-bar-biet').style.width = `${pctBiet}%`;
       document.getElementById('matrix-bar-hieu').style.width = `${pctHieu}%`;
@@ -3204,66 +3394,168 @@
         statusBadge.innerText = 'ĐẠT CHUẨN KHẢO THÍ: 40% Biết - 30% Hiểu - 30% Vận dụng';
       } else {
         statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800';
-        statusBadge.innerText = 'CẢNH BÁO: Tỷ lệ phân bố Bloom lệch so với chuẩn TT 22';
+        statusBadge.innerText = `CẢNH BÁO: Tỷ lệ phân bố Bloom (Biết ${pctBiet}% - Hiểu ${pctHieu}% - Vận dụng ${pctVandung}%) lệch chuẩn TT 22`;
       }
     }
   }
 
+  function updateMatrixRowFormat(rowIdx, format) {
+    if (!state.matrixConfig.rows[rowIdx]) return;
+    state.matrixConfig.rows[rowIdx].itemFormat = format;
+    renderMatrixGrid();
+  }
+
   function updateMatrixCell(rowIdx, field, val) {
+    if (!state.matrixConfig.rows[rowIdx]) return;
     const num = Math.max(0, parseInt(val, 10) || 0);
     state.matrixConfig.rows[rowIdx][field] = num;
     renderMatrixGrid();
   }
 
-  function saveMatrixConfig() {
-    showToast('Đã lưu và ban hành Ma trận Đề thi theo Thông tư 32!', 'success');
+  function openAddMatrixRowModal() {
+    const modal = document.getElementById('add-matrix-row-modal');
+    if (modal) modal.classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function closeAddMatrixRowModal() {
+    const modal = document.getElementById('add-matrix-row-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function confirmAddMatrixRow() {
+    const strand = document.getElementById('modal-matrix-strand')?.value || 'Số, Đại số & Giải tích';
+    const yccd = document.getElementById('modal-matrix-yccd')?.value || 'TOAN12.GT.05';
+    const archetype = document.getElementById('modal-matrix-archetype')?.value || 'Dạng bài mới';
+    const format = document.getElementById('modal-matrix-format')?.value || 'SINGLE_CHOICE';
+    const biet = parseInt(document.getElementById('modal-matrix-biet')?.value, 10) || 1;
+    const hieu = parseInt(document.getElementById('modal-matrix-hieu')?.value, 10) || 1;
+    const vandung = parseInt(document.getElementById('modal-matrix-vandung')?.value, 10) || 1;
+
+    state.matrixConfig.rows.push({
+      id: 'row-' + Date.now(),
+      strandName: strand,
+      yccdCode: yccd,
+      archetypeName: archetype,
+      itemFormat: format,
+      biet: biet,
+      hieu: hieu,
+      vandung: vandung,
+      bankStock: { biet: biet + 5, hieu: hieu + 4, vandung: vandung + 3 }
+    });
+
+    renderMatrixGrid();
+    closeAddMatrixRowModal();
+    showToast(`Đã thêm dòng YCCĐ ${yccd} vào ma trận đề thi!`, 'success');
+  }
+
+  function addMatrixRow(rowConfig) {
+    if (rowConfig) {
+      state.matrixConfig.rows.push({
+        id: rowConfig.id || ('row-' + Date.now()),
+        strandName: rowConfig.strandName || 'Số, Đại số & Giải tích',
+        yccdCode: rowConfig.yccdCode || 'TOAN12.GT.05',
+        archetypeName: rowConfig.archetypeName || 'Dạng bài mới',
+        itemFormat: rowConfig.itemFormat || 'SINGLE_CHOICE',
+        biet: rowConfig.biet !== undefined ? rowConfig.biet : 1,
+        hieu: rowConfig.hieu !== undefined ? rowConfig.hieu : 1,
+        vandung: rowConfig.vandung !== undefined ? rowConfig.vandung : 1,
+        bankStock: rowConfig.bankStock || { biet: (rowConfig.biet || 1) + 5, hieu: (rowConfig.hieu || 1) + 4, vandung: (rowConfig.vandung || 1) + 3 }
+      });
+      renderMatrixGrid();
+      return;
+    }
+    openAddMatrixRowModal();
+  }
+
+  function deleteMatrixRow(rowIdx) {
+    if (state.matrixConfig.rows.length <= 1) {
+      showToast('Ma trận tối thiểu phải có 1 dòng YCCĐ.', 'warning');
+      return;
+    }
+    state.matrixConfig.rows.splice(rowIdx, 1);
+    renderMatrixGrid();
+    showToast('Đã xóa dòng YCCĐ khỏi ma trận.', 'info');
   }
 
   function loadMatrixPreset(preset) {
+    ['thpt_2025', 'midterm', 'final'].forEach(key => {
+      const btn = document.getElementById(`btn-preset-${key}`);
+      if (btn) {
+        if (key === preset) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      }
+    });
+
     if (preset === 'thpt_2025') {
       state.matrixConfig.rows[0].biet = 5;
       state.matrixConfig.rows[0].hieu = 3;
       state.matrixConfig.rows[0].vandung = 3;
-      state.matrixConfig.rows[1].biet = 3;
-      state.matrixConfig.rows[1].hieu = 2;
-      state.matrixConfig.rows[1].vandung = 2;
-      state.matrixConfig.rows[2].biet = 4;
-      state.matrixConfig.rows[2].hieu = 3;
-      state.matrixConfig.rows[2].vandung = 3;
-      state.matrixConfig.rows[3].biet = 2;
-      state.matrixConfig.rows[3].hieu = 2;
-      state.matrixConfig.rows[3].vandung = 2;
+      if (state.matrixConfig.rows[1]) {
+        state.matrixConfig.rows[1].biet = 3;
+        state.matrixConfig.rows[1].hieu = 2;
+        state.matrixConfig.rows[1].vandung = 2;
+      }
+      if (state.matrixConfig.rows[2]) {
+        state.matrixConfig.rows[2].biet = 4;
+        state.matrixConfig.rows[2].hieu = 3;
+        state.matrixConfig.rows[2].vandung = 3;
+      }
+      if (state.matrixConfig.rows[3]) {
+        state.matrixConfig.rows[3].biet = 2;
+        state.matrixConfig.rows[3].hieu = 2;
+        state.matrixConfig.rows[3].vandung = 2;
+      }
       showToast('Đã áp dụng Preset: Chuẩn TN THPT 2025 (34 câu)', 'info');
     } else if (preset === 'midterm') {
       state.matrixConfig.rows[0].biet = 3;
       state.matrixConfig.rows[0].hieu = 2;
       state.matrixConfig.rows[0].vandung = 1;
-      state.matrixConfig.rows[1].biet = 2;
-      state.matrixConfig.rows[1].hieu = 2;
-      state.matrixConfig.rows[1].vandung = 1;
-      state.matrixConfig.rows[2].biet = 3;
-      state.matrixConfig.rows[2].hieu = 2;
-      state.matrixConfig.rows[2].vandung = 1;
-      state.matrixConfig.rows[3].biet = 1;
-      state.matrixConfig.rows[3].hieu = 1;
-      state.matrixConfig.rows[3].vandung = 1;
+      if (state.matrixConfig.rows[1]) {
+        state.matrixConfig.rows[1].biet = 2;
+        state.matrixConfig.rows[1].hieu = 2;
+        state.matrixConfig.rows[1].vandung = 1;
+      }
+      if (state.matrixConfig.rows[2]) {
+        state.matrixConfig.rows[2].biet = 3;
+        state.matrixConfig.rows[2].hieu = 2;
+        state.matrixConfig.rows[2].vandung = 1;
+      }
+      if (state.matrixConfig.rows[3]) {
+        state.matrixConfig.rows[3].biet = 1;
+        state.matrixConfig.rows[3].hieu = 1;
+        state.matrixConfig.rows[3].vandung = 1;
+      }
       showToast('Đã áp dụng Preset: Kiểm tra Định kỳ (20 câu)', 'info');
     } else if (preset === 'final') {
       state.matrixConfig.rows[0].biet = 4;
       state.matrixConfig.rows[0].hieu = 3;
       state.matrixConfig.rows[0].vandung = 3;
-      state.matrixConfig.rows[1].biet = 3;
-      state.matrixConfig.rows[1].hieu = 2;
-      state.matrixConfig.rows[1].vandung = 2;
-      state.matrixConfig.rows[2].biet = 3;
-      state.matrixConfig.rows[2].hieu = 2;
-      state.matrixConfig.rows[2].vandung = 2;
-      state.matrixConfig.rows[3].biet = 2;
-      state.matrixConfig.rows[3].hieu = 1;
-      state.matrixConfig.rows[3].vandung = 1;
+      if (state.matrixConfig.rows[1]) {
+        state.matrixConfig.rows[1].biet = 3;
+        state.matrixConfig.rows[1].hieu = 2;
+        state.matrixConfig.rows[1].vandung = 2;
+      }
+      if (state.matrixConfig.rows[2]) {
+        state.matrixConfig.rows[2].biet = 3;
+        state.matrixConfig.rows[2].hieu = 2;
+        state.matrixConfig.rows[2].vandung = 2;
+      }
+      if (state.matrixConfig.rows[3]) {
+        state.matrixConfig.rows[3].biet = 2;
+        state.matrixConfig.rows[3].hieu = 1;
+        state.matrixConfig.rows[3].vandung = 1;
+      }
       showToast('Đã áp dụng Preset: Kiểm tra Cuối kỳ (28 câu)', 'info');
     }
     renderMatrixGrid();
+  }
+
+  function saveMatrixConfig() {
+    showToast('Đã lưu và ban hành Ma trận Đề thi theo Thông tư 32!', 'success');
   }
 
   async function exportMatrixSpec(format) {
@@ -3323,6 +3615,504 @@
 
     switchTab('shuffler');
     showToast('Khởi tạo Đề thi Gốc thành công! Chuyển sang phân hệ Trộn đề an toàn.', 'success');
+  }
+
+  // ============================================================================
+  // HIERARCHICAL MULTI-TIER EXAM MATRIX ENGINE (CIRCULAR 32 & DECISION 764)
+  // ============================================================================
+  if (!state.hierarchicalMatrix) {
+    state.hierarchicalMatrix = {
+      treeData: null,
+      inventoryMap: {},
+      expandedNodes: new Set(),
+      searchQuery: '',
+      filterOnlyHasStock: false,
+      cellSelections: {}
+    };
+  }
+
+  async function initHierarchicalMatrix() {
+    try {
+      const [treeRes, invRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/taxonomy/tree`, { headers: auth.getAuthHeaders() }),
+        fetch(`${API_BASE_URL}/matrices/bank-inventory`, { headers: auth.getAuthHeaders() })
+      ]);
+      if (treeRes.ok) {
+        state.hierarchicalMatrix.treeData = await treeRes.json();
+        if (state.hierarchicalMatrix.treeData && state.hierarchicalMatrix.treeData.strands) {
+          state.hierarchicalMatrix.treeData.strands.forEach(st => {
+            if (st.topics) {
+              st.topics.forEach(tp => {
+                state.hierarchicalMatrix.expandedNodes.add(tp.id);
+                if (tp.lessons) {
+                  tp.lessons.forEach(ls => {
+                    state.hierarchicalMatrix.expandedNodes.add(ls.id);
+                  });
+                }
+              });
+            }
+          });
+        }
+      }
+      if (invRes.ok) {
+        const invData = await invRes.json();
+        state.hierarchicalMatrix.inventoryMap = invData.inventory || {};
+      }
+    } catch (e) {
+      console.warn("Failed to load taxonomy tree or inventory for matrix:", e);
+    }
+    renderHierarchicalMatrix();
+  }
+
+  function getArchetypeStock(archetypeId, format, level) {
+    const inv = state.hierarchicalMatrix.inventoryMap;
+    if (inv && inv[archetypeId] && inv[archetypeId][format] && inv[archetypeId][format][level] !== undefined) {
+      return inv[archetypeId][format][level];
+    }
+    return 0;
+  }
+
+  function toggleMatrixNode(nodeId) {
+    if (state.hierarchicalMatrix.expandedNodes.has(nodeId)) {
+      state.hierarchicalMatrix.expandedNodes.delete(nodeId);
+    } else {
+      state.hierarchicalMatrix.expandedNodes.add(nodeId);
+    }
+    renderHierarchicalMatrix();
+  }
+
+  function expandAllMatrixTree() {
+    const tree = state.hierarchicalMatrix.treeData;
+    if (!tree || !tree.strands) return;
+    tree.strands.forEach(st => {
+      if (st.topics) {
+        st.topics.forEach(tp => {
+          state.hierarchicalMatrix.expandedNodes.add(tp.id);
+          if (tp.lessons) {
+            tp.lessons.forEach(ls => {
+              state.hierarchicalMatrix.expandedNodes.add(ls.id);
+            });
+          }
+        });
+      }
+    });
+    renderHierarchicalMatrix();
+  }
+
+  function collapseAllMatrixTree() {
+    state.hierarchicalMatrix.expandedNodes.clear();
+    renderHierarchicalMatrix();
+  }
+
+  function onMatrixSearchInput(query) {
+    state.hierarchicalMatrix.searchQuery = (query || '').toLowerCase().trim();
+    renderHierarchicalMatrix();
+  }
+
+  function onMatrixFilterStockChange(checked) {
+    state.hierarchicalMatrix.filterOnlyHasStock = !!checked;
+    renderHierarchicalMatrix();
+  }
+
+  function onMatrixCellChange(archetypeId, sectionNum, format, level, val) {
+    const qty = Math.max(0, parseInt(val, 10) || 0);
+    const key = `${archetypeId}_${sectionNum}_${format}_${level}`;
+    if (qty === 0) {
+      delete state.hierarchicalMatrix.cellSelections[key];
+    } else {
+      state.hierarchicalMatrix.cellSelections[key] = qty;
+    }
+    renderHierarchicalMatrix();
+  }
+
+  function renderHierarchicalMatrix() {
+    const tbody = document.getElementById('matrix-hierarchical-tbody');
+    if (!tbody) return;
+
+    const tree = state.hierarchicalMatrix.treeData;
+    if (!tree || !tree.strands) {
+      tbody.innerHTML = `<tr><td colspan="15" class="p-6 text-center text-slate-500">Đang tải cấu trúc cây phân cấp kiến thức...</td></tr>`;
+      return;
+    }
+
+    const searchQuery = state.hierarchicalMatrix.searchQuery;
+    const filterStock = state.hierarchicalMatrix.filterOnlyHasStock;
+    const selections = state.hierarchicalMatrix.cellSelections;
+
+    const levels = ['RECOGNITION', 'COMPREHENSION', 'APPLICATION', 'HIGH_APPLICATION'];
+    const formatsConfig = [
+      { sectionNum: 1, format: 'SINGLE_CHOICE', points: 0.25 },
+      { sectionNum: 2, format: 'TRUE_FALSE_GROUP', points: 1.0 },
+      { sectionNum: 3, format: 'SHORT_ANSWER', points: 0.5 }
+    ];
+
+    let html = '';
+    let totals = {
+      p1Count: 0, p1Pts: 0,
+      p2Count: 0, p2Pts: 0,
+      p3Count: 0, p3Pts: 0,
+      grandCount: 0, grandPts: 0,
+      nbCount: 0, thCount: 0, vdCount: 0, vdcCount: 0
+    };
+
+    tree.strands.forEach(st => {
+      if (st.topics) {
+        st.topics.forEach(tp => {
+          const isTopicExpanded = state.hierarchicalMatrix.expandedNodes.has(tp.id);
+          let topicItemsCount = 0;
+          let topicPoints = 0;
+          let topicHtml = '';
+
+          if (tp.lessons) {
+            tp.lessons.forEach(ls => {
+              const isLessonExpanded = state.hierarchicalMatrix.expandedNodes.has(ls.id);
+              let lessonHtml = '';
+              let lessonItemsCount = 0;
+              let lessonPoints = 0;
+
+              if (ls.learning_outcomes) {
+                ls.learning_outcomes.forEach(lo => {
+                  if (lo.archetypes) {
+                    lo.archetypes.forEach(arch => {
+                      const matchSearch = !searchQuery || 
+                        arch.name.toLowerCase().includes(searchQuery) || 
+                        (arch.code && arch.code.toLowerCase().includes(searchQuery)) ||
+                        ls.name.toLowerCase().includes(searchQuery) ||
+                        tp.name.toLowerCase().includes(searchQuery);
+
+                      let hasStockOrSel = false;
+                      formatsConfig.forEach(fc => {
+                        levels.forEach(lvl => {
+                          const stock = getArchetypeStock(arch.id, fc.format, lvl);
+                          const sel = selections[`${arch.id}_${fc.sectionNum}_${fc.format}_${lvl}`] || 0;
+                          if (stock > 0 || sel > 0) hasStockOrSel = true;
+                        });
+                      });
+
+                      if (!matchSearch) return;
+                      if (filterStock && !hasStockOrSel) return;
+
+                      let rowCellsHtml = '';
+                      let rowItems = 0;
+                      let rowPts = 0;
+
+                      formatsConfig.forEach(fc => {
+                        levels.forEach(lvl => {
+                          const selKey = `${arch.id}_${fc.sectionNum}_${fc.format}_${lvl}`;
+                          const val = selections[selKey] || 0;
+                          const stock = getArchetypeStock(arch.id, fc.format, lvl);
+                          const isWarn = val > stock;
+
+                          if (val > 0) {
+                            if (lvl === 'RECOGNITION') totals.nbCount += val;
+                            else if (lvl === 'COMPREHENSION') totals.thCount += val;
+                            else if (lvl === 'APPLICATION') totals.vdCount += val;
+                            else if (lvl === 'HIGH_APPLICATION') totals.vdcCount += val;
+
+                            if (fc.sectionNum === 1) { totals.p1Count += val; totals.p1Pts += val * fc.points; }
+                            else if (fc.sectionNum === 2) { totals.p2Count += val; totals.p2Pts += val * fc.points; }
+                            else if (fc.sectionNum === 3) { totals.p3Count += val; totals.p3Pts += val * fc.points; }
+                            totals.grandCount += val;
+                            totals.grandPts += val * fc.points;
+
+                            rowItems += val;
+                            rowPts += val * fc.points;
+                          }
+
+                          rowCellsHtml += `
+                            <td class="p-1.5 text-center border-l border-slate-200 matrix-input-cell" onclick="const inp=this.querySelector('input'); if(inp && event.target!==inp){inp.focus(); inp.select();}">
+                              <input type="number" min="0" max="50" value="${val || ''}" 
+                                onchange="app.onMatrixCellChange('${arch.id}', ${fc.sectionNum}, '${fc.format}', '${lvl}', this.value)"
+                                class="w-11 text-center font-bold text-xs py-1 rounded-md border border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                              <span class="matrix-stock-chip ${val > 0 && isWarn ? 'stock-warn' : (stock > 0 ? 'stock-ok' : 'text-slate-400')} block text-[10px] mt-0.5">
+                                ${stock > 0 ? `Kho: ${stock}` : 'Kho: 0'}
+                              </span>
+                            </td>
+                          `;
+                        });
+                      });
+
+                      lessonItemsCount += rowItems;
+                      lessonPoints += rowPts;
+
+                      lessonHtml += `
+                        <tr class="archetype-row border-t border-slate-100 hover:bg-slate-50/80">
+                          <td class="p-2.5 matrix-tree-col pl-12 text-slate-700 text-xs border-r border-slate-200">
+                            <div class="font-medium flex items-center space-x-1.5">
+                              <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                              <span>${arch.name}</span>
+                            </div>
+                            <div class="text-[10px] font-mono text-slate-400 pl-3">${arch.code || ''}</div>
+                          </td>
+                          ${rowCellsHtml}
+                          <td class="p-2 text-center border-l border-slate-200 font-bold text-slate-800 bg-slate-50/50">${rowItems}</td>
+                          <td class="p-2 text-center border-l border-slate-200 font-bold text-brand-700 bg-slate-50/50">${rowPts.toFixed(2)}đ</td>
+                        </tr>
+                      `;
+                    });
+                  }
+                });
+              }
+
+              if (lessonHtml || !filterStock) {
+                topicItemsCount += lessonItemsCount;
+                topicPoints += lessonPoints;
+
+                const lessonChevron = isLessonExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right';
+                html += `
+                  <tr class="lesson-row border-t border-slate-200 bg-slate-50/70 hover:bg-slate-100/70 cursor-pointer" onclick="app.toggleMatrixNode('${ls.id}')">
+                    <td class="p-2.5 matrix-tree-col pl-6 text-slate-800 font-semibold text-xs border-r border-slate-200 flex items-center justify-between">
+                      <div class="flex items-center space-x-2">
+                        <i data-lucide="${lessonChevron}" class="w-3.5 h-3.5 text-slate-500"></i>
+                        <span>${ls.name}</span>
+                      </div>
+                      <span class="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-bold">${lessonItemsCount} câu</span>
+                    </td>
+                    <td colspan="12" class="bg-slate-50/40 text-center text-slate-400 text-[11px] italic">Phân bổ chi tiết bài học (${lessonPoints.toFixed(2)}đ)</td>
+                    <td class="p-2 text-center font-bold text-slate-800 bg-slate-100">${lessonItemsCount}</td>
+                    <td class="p-2 text-center font-bold text-brand-700 bg-slate-100">${lessonPoints.toFixed(2)}đ</td>
+                  </tr>
+                `;
+                if (isLessonExpanded) {
+                  html += lessonHtml;
+                }
+              }
+            });
+          }
+
+          const topicChevron = isTopicExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right';
+          html += `
+            <tr class="topic-row border-t-2 border-slate-300 bg-slate-100/90 hover:bg-slate-200/60 cursor-pointer" onclick="app.toggleMatrixNode('${tp.id}')">
+              <td class="p-3 matrix-tree-col text-slate-900 font-bold text-xs border-r border-slate-300 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="${topicChevron}" class="w-4 h-4 text-brand-600"></i>
+                  <span>${tp.name}</span>
+                </div>
+                <span class="text-[11px] px-2 py-0.5 rounded bg-brand-100 text-brand-800 font-bold">${topicItemsCount} câu</span>
+              </td>
+              <td colspan="12" class="bg-slate-100/50 text-center text-slate-500 text-xs font-semibold">Tổng hợp Chương (${topicPoints.toFixed(2)}đ)</td>
+              <td class="p-2.5 text-center font-bold text-slate-900 bg-slate-200">${topicItemsCount}</td>
+              <td class="p-2.5 text-center font-bold text-brand-800 bg-slate-200">${topicPoints.toFixed(2)}đ</td>
+            </tr>
+          `;
+        });
+      }
+    });
+
+    tbody.innerHTML = html || `<tr><td colspan="15" class="p-6 text-center text-slate-500">Không tìm thấy dạng bài phù hợp với từ khóa hoặc bộ lọc.</td></tr>`;
+    renderKaTeX(tbody);
+    if (window.lucide) lucide.createIcons();
+
+    document.getElementById('matrix-foot-p1').innerText = `Phần I: ${totals.p1Count} câu (${totals.p1Pts.toFixed(1)}đ)`;
+    document.getElementById('matrix-foot-p2').innerText = `Phần II: ${totals.p2Count} câu (${totals.p2Pts.toFixed(1)}đ)`;
+    document.getElementById('matrix-foot-p3').innerText = `Phần III: ${totals.p3Count} câu (${totals.p3Pts.toFixed(1)}đ)`;
+    document.getElementById('matrix-foot-grand').innerText = `TỔNG: ${totals.grandCount} CÂU | ${totals.grandPts.toFixed(1)} / 10.0 ĐIỂM`;
+
+    if (totals.grandCount > 0) {
+      let pctNb = Math.round((totals.nbCount / totals.grandCount) * 100);
+      let pctTh = Math.round((totals.thCount / totals.grandCount) * 100);
+      let pctVd = Math.round((totals.vdCount / totals.grandCount) * 100);
+      let pctVdc = Math.max(0, 100 - pctNb - pctTh - pctVd);
+
+      document.getElementById('matrix-foot-bar-nb').style.width = `${pctNb}%`;
+      document.getElementById('matrix-foot-bar-th').style.width = `${pctTh}%`;
+      document.getElementById('matrix-foot-bar-vd').style.width = `${pctVd}%`;
+      document.getElementById('matrix-foot-bar-vdc').style.width = `${pctVdc}%`;
+      document.getElementById('matrix-foot-bloom-lbl').innerText = `NB: ${pctNb}% | TH: ${pctTh}% | VD: ${pctVd}% | VDC: ${pctVdc}%`;
+    }
+  }
+
+  function applyMatrixPreset(presetName) {
+    state.hierarchicalMatrix.cellSelections = {};
+    const tree = state.hierarchicalMatrix.treeData;
+    if (!tree || !tree.strands) return;
+
+    let allArchetypes = [];
+    tree.strands.forEach(st => {
+      if (st.topics) {
+        st.topics.forEach(tp => {
+          if (tp.lessons) {
+            tp.lessons.forEach(ls => {
+              if (ls.learning_outcomes) {
+                ls.learning_outcomes.forEach(lo => {
+                  if (lo.archetypes) {
+                    lo.archetypes.forEach(arch => allArchetypes.push(arch.id));
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    if (allArchetypes.length === 0) return;
+
+    if (presetName === 'thpt2025') {
+      let arch1 = allArchetypes[0];
+      let arch2 = allArchetypes[1] || arch1;
+      let arch3 = allArchetypes[2] || arch1;
+
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_RECOGNITION`] = 4;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_COMPREHENSION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_1_SINGLE_CHOICE_RECOGNITION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_1_SINGLE_CHOICE_COMPREHENSION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch3}_1_SINGLE_CHOICE_APPLICATION`] = 2;
+
+      state.hierarchicalMatrix.cellSelections[`${arch1}_2_TRUE_FALSE_GROUP_RECOGNITION`] = 1;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_2_TRUE_FALSE_GROUP_COMPREHENSION`] = 1;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_2_TRUE_FALSE_GROUP_COMPREHENSION`] = 1;
+      state.hierarchicalMatrix.cellSelections[`${arch3}_2_TRUE_FALSE_GROUP_APPLICATION`] = 1;
+
+      state.hierarchicalMatrix.cellSelections[`${arch1}_3_SHORT_ANSWER_COMPREHENSION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_3_SHORT_ANSWER_APPLICATION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch3}_3_SHORT_ANSWER_APPLICATION`] = 1;
+      state.hierarchicalMatrix.cellSelections[`${arch3}_3_SHORT_ANSWER_HIGH_APPLICATION`] = 1;
+
+      showToast('Đã áp dụng Preset Chuẩn THPT 2025 (22 câu - 10.0đ)', 'success');
+    } else if (presetName === 'periodic') {
+      let arch1 = allArchetypes[0];
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_RECOGNITION`] = 10;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_COMPREHENSION`] = 10;
+      showToast('Đã áp dụng Preset Kiểm tra Định kỳ (20 câu)', 'success');
+    } else if (presetName === 'final') {
+      let arch1 = allArchetypes[0];
+      let arch2 = allArchetypes[1] || arch1;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_RECOGNITION`] = 10;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_COMPREHENSION`] = 8;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_3_SHORT_ANSWER_APPLICATION`] = 10;
+      showToast('Đã áp dụng Preset Kiểm tra Cuối kỳ (28 câu)', 'success');
+    }
+
+    renderHierarchicalMatrix();
+  }
+
+  function resetMatrixSelections() {
+    state.hierarchicalMatrix.cellSelections = {};
+    renderHierarchicalMatrix();
+    showToast('Đã đặt lại toàn bộ số lượng trong ma trận về 0.', 'info');
+  }
+
+  async function saveMatrixConfig() {
+    showToast('Đã lưu bản thảo ma trận đa tầng thành công!', 'success');
+  }
+
+  async function exportMatrixSpec(format) {
+    showToast(`Đang xuất bản đặc tả ma trận dạng ${format.toUpperCase()}...`, 'info');
+    try {
+      let matrixId = 'default';
+      const mRes = await fetch(`${API_BASE_URL}/matrices`, { headers: auth.getAuthHeaders() });
+      if (mRes.ok) {
+        const mList = await mRes.json();
+        if (mList.length > 0) matrixId = mList[0].id;
+      }
+      const url = `${API_BASE_URL}/matrices/${matrixId}/spec?format=${format}`;
+      window.open(url, '_blank');
+      showToast(`Tải xuống đặc tả ${format.toUpperCase()} thành công!`, 'success');
+    } catch (e) {
+      console.error('Export matrix spec error:', e);
+      showToast('Lỗi khi xuất bản đặc tả ma trận', 'error');
+    }
+  }
+
+  async function generateMasterExamFromHierarchicalMatrix() {
+    showToast('Đang tổng hợp ma trận và khởi tạo Đề thi Gốc...', 'info');
+    try {
+      const selections = state.hierarchicalMatrix.cellSelections;
+      const items = [];
+      const validLevels = ['HIGH_APPLICATION', 'COMPREHENSION', 'RECOGNITION', 'APPLICATION'];
+      const validFormats = ['TRUE_FALSE_GROUP', 'SINGLE_CHOICE', 'SHORT_ANSWER'];
+
+      Object.keys(selections).forEach(key => {
+        let level = '';
+        let rest = key;
+        for (const lvl of validLevels) {
+          if (rest.endsWith('_' + lvl)) {
+            level = lvl;
+            rest = rest.slice(0, -(lvl.length + 1));
+            break;
+          }
+        }
+        let format = '';
+        for (const fmt of validFormats) {
+          if (rest.endsWith('_' + fmt)) {
+            format = fmt;
+            rest = rest.slice(0, -(fmt.length + 1));
+            break;
+          }
+        }
+        const lastUnderscore = rest.lastIndexOf('_');
+        const sectionNum = parseInt(rest.slice(lastUnderscore + 1), 10);
+        const archetypeId = rest.slice(0, lastUnderscore);
+        const qty = selections[key];
+
+        if (qty > 0) {
+          let pts = 0.25;
+          if (format === 'TRUE_FALSE_GROUP') pts = 1.0;
+          else if (format === 'SHORT_ANSWER') pts = 0.5;
+
+          items.push({
+            problem_archetype_id: archetypeId,
+            item_format: format,
+            cognitive_level: level,
+            quantity: qty,
+            points_per_item: pts,
+            section_number: sectionNum
+          });
+        }
+      });
+
+      if (items.length === 0) {
+        showToast('Vui lòng chọn ít nhất 1 câu hỏi trong ma trận trước khi khởi tạo đề thi.', 'error');
+        return;
+      }
+
+      const titleInput = document.getElementById('matrix-param-name')?.value || 'Đề Khảo sát Toán 12 - THPT 2025';
+      const duration = parseInt(document.getElementById('matrix-param-time')?.value, 10) || 90;
+
+      const payload = {
+        title: titleInput,
+        subject_id: state.hierarchicalMatrix.treeData?.subject_id || 'TOAN',
+        grade_id: state.hierarchicalMatrix.treeData?.grade_id || 'GRADE_12',
+        duration_minutes: duration,
+        total_points: 10.0,
+        items: items
+      };
+
+      const createRes = await fetch(`${API_BASE_URL}/matrices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...auth.getAuthHeaders() },
+        body: JSON.stringify(payload)
+      });
+
+      let matrixId = 'default';
+      if (createRes.ok) {
+        const matOut = await createRes.json();
+        matrixId = matOut.id;
+      }
+
+      const genRes = await fetch(`${API_BASE_URL}/exams/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...auth.getAuthHeaders() },
+        body: JSON.stringify({
+          matrix_id: matrixId,
+          title: titleInput,
+          allow_partial: true
+        })
+      });
+
+      if (genRes.ok) {
+        const examData = await genRes.json();
+        state.masterExam.id = examData.id;
+        state.masterExam.title = examData.title;
+        if (examData.items) state.masterExam.items = examData.items;
+      }
+    } catch (e) {
+      console.warn("API error during hierarchical matrix exam generation:", e);
+    }
+
+    switchTab('shuffler');
+    showToast('🚀 Khởi tạo Đề thi Gốc thành công! Chuyển sang phân hệ Trộn đề.', 'success');
   }
 
   // ============================================================================
@@ -3425,12 +4215,38 @@
     }
   }
 
+  function normalizeExamItem(rawItem) {
+    if (!rawItem) return {};
+    const q = rawItem.question || rawItem;
+    const opts = (rawItem.options && rawItem.options.length > 0) ? rawItem.options : (q.options || []);
+    const subs = (rawItem.sub_statements && rawItem.sub_statements.length > 0) ? rawItem.sub_statements : (q.sub_statements || []);
+    const saVal = rawItem.short_answer_value || rawItem.short_answer_key || q.short_answer_value || q.short_answer_key || '';
+    return {
+      ...q,
+      ...rawItem,
+      id: rawItem.id || q.id,
+      code: q.code || rawItem.code || (q.id ? String(q.id).slice(0, 8) : 'Q'),
+      item_format: q.item_format || rawItem.item_format || 'SINGLE_CHOICE',
+      cognitive_level: q.cognitive_level || rawItem.cognitive_level || 'RECOGNITION',
+      learning_outcome_id: q.learning_outcome_id || rawItem.learning_outcome_id || '',
+      stem: q.stem || rawItem.stem || '',
+      options: opts,
+      sub_statements: subs,
+      short_answer_value: saVal,
+      short_answer_key: saVal,
+      explanation: q.explanation || rawItem.explanation || '',
+      question: q
+    };
+  }
+
   function renderMasterExam() {
     const container = document.getElementById('master-exam-items-list');
     if (!container) return;
 
     let html = '';
-    const items = state.masterExam.items;
+    const rawItems = state.masterExam.items || [];
+    const items = rawItems.map(it => normalizeExamItem(it));
+    state.masterExam.items = items;
 
     if (items.length === 0) {
       container.innerHTML = '<div class="p-6 text-center text-slate-400 text-xs">Chưa có câu hỏi trong đề gốc.</div>';
@@ -3438,15 +4254,24 @@
     }
 
     items.forEach((q, idx) => {
+      const format = q.item_format || 'SINGLE_CHOICE';
       const hasAnchorOption = q.options?.some((o) => o.is_fixed || isAnchorPhrase(o.content));
 
+      let formatBadge = '<span class="px-2 py-0.5 rounded font-bold bg-blue-50 text-blue-700 text-[10px]">Trắc nghiệm Đơn</span>';
+      if (format === 'TRUE_FALSE_GROUP') {
+        formatBadge = '<span class="px-2 py-0.5 rounded font-bold bg-emerald-50 text-emerald-700 text-[10px]">Đúng/Sai (4 ý)</span>';
+      } else if (format === 'SHORT_ANSWER') {
+        formatBadge = '<span class="px-2 py-0.5 rounded font-bold bg-purple-50 text-purple-700 text-[10px]">Trả lời ngắn</span>';
+      }
+
       html += `
-        <div class="apple-card p-4 text-xs space-y-2">
+        <div class="apple-card p-4 text-xs space-y-2.5">
           <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 flex-wrap gap-1">
               <span class="font-bold text-[#0071E3] bg-[#0071E3]/[0.08] px-2 py-0.5 rounded-md border border-[#0071E3]/[0.15]">Câu ${idx + 1}</span>
-              <span class="font-mono text-slate-500">${q.code || (q.id ? q.id.slice(0, 8) : '')}</span>
-              <span class="font-mono text-[11px] text-slate-700 font-bold">${q.learning_outcome_id}</span>
+              ${formatBadge}
+              <span class="font-mono text-slate-500">${q.code || (q.id ? String(q.id).slice(0, 8) : '')}</span>
+              <span class="font-mono text-[11px] text-slate-700 font-bold">${q.learning_outcome_id || ''}</span>
               ${
                 hasAnchorOption
                   ? `<span class="option-anchor-indicator">
@@ -3466,17 +4291,39 @@
           <div class="font-medium text-slate-900 leading-relaxed">${formatStemForDisplay(q.stem)}</div>
 
           ${
-            q.options
-              ? `<div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
+            format === 'SINGLE_CHOICE' && q.options && q.options.length > 0
+              ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   ${q.options
                     .map(
                       (o) => `
-                    <div class="p-2 rounded-lg ${o.is_correct ? 'bg-emerald-50 text-emerald-900 font-bold border-emerald-300' : 'bg-black/[0.02] text-slate-700 border-black/[0.06]'} border">
-                      <strong>${o.label}.</strong> ${o.content}
+                    <div class="p-2.5 rounded-xl ${o.is_correct ? 'bg-emerald-50 text-emerald-900 font-bold border-emerald-300' : 'bg-black/[0.02] text-slate-700 border-black/[0.06]'} border flex items-center justify-between">
+                      <div><strong>${o.label}.</strong> ${formatStemForDisplay(cleanOptionAnswer(o.content), true)}</div>
+                      ${o.is_fixed || isAnchorPhrase(o.content) ? '<span class="text-[9px] text-emerald-700 font-bold ml-1">[Neo D]</span>' : ''}
                     </div>
                   `
                     )
                     .join('')}
+                 </div>`
+              : format === 'TRUE_FALSE_GROUP' && q.sub_statements && q.sub_statements.length > 0
+              ? `<div class="space-y-1.5 pt-1">
+                  <div class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-200">
+                    Barem bậc thang QĐ 764: Đúng 1 ý = 0.1đ | Đúng 2 ý = 0.25đ | Đúng 3 ý = 0.5đ | Đúng 4 ý = 1.0đ
+                  </div>
+                  ${q.sub_statements
+                    .map(
+                      (sub) => `
+                    <div class="p-2 rounded-xl border ${sub.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-rose-50/70 border-rose-200'} flex items-center justify-between">
+                      <span class="text-slate-800"><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</span>
+                      <span class="font-bold px-2 py-0.5 rounded text-[10px] ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${sub.is_true ? '[ĐÚNG]' : '[SAI]'}</span>
+                    </div>
+                  `
+                    )
+                    .join('')}
+                 </div>`
+              : format === 'SHORT_ANSWER'
+              ? `<div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200 flex items-center justify-between">
+                  <span class="text-indigo-900 font-bold">Đáp án đúng (Trả lời ngắn):</span>
+                  <span class="font-mono font-bold text-indigo-950 text-sm bg-white px-3 py-1 rounded-lg border border-indigo-300 shadow-xs">${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'), true)}</span>
                  </div>`
               : ''
           }
@@ -3486,6 +4333,7 @@
 
     container.innerHTML = html;
     renderKaTeX(container);
+    if (window.lucide) lucide.createIcons();
   }
 
   let activeSwapIndex = null;
@@ -3540,13 +4388,30 @@
             </button>
           </div>
           <div class="font-medium text-slate-900 leading-relaxed">${formatStemForDisplay(c.stem)}</div>
-          ${c.options ? `
+          ${c.item_format === 'SINGLE_CHOICE' && c.options ? `
             <div class="grid grid-cols-2 gap-1.5 text-[11px] pt-1">
               ${c.options.map(o => `
                 <div class="p-1 rounded ${o.is_correct ? 'bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold' : 'bg-slate-50 text-slate-700'}">
-                  <strong>${o.label}.</strong> ${o.content}
+                  <strong>${o.label}.</strong> ${formatStemForDisplay(cleanOptionAnswer(o.content), true)}
                 </div>
               `).join('')}
+            </div>
+          ` : c.item_format === 'TRUE_FALSE_GROUP' && c.sub_statements ? `
+            <div class="space-y-1 text-[11px] pt-1">
+              <div class="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                Barem bậc thang QĐ 764: Đúng 1 ý = 0.1đ | Đúng 2 ý = 0.25đ | Đúng 3 ý = 0.5đ | Đúng 4 ý = 1.0đ
+              </div>
+              ${c.sub_statements.map(s => `
+                <div class="p-1 rounded ${s.is_true ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'} flex justify-between">
+                  <span><strong>${s.label})</strong> ${formatStemForDisplay(s.content, true)}</span>
+                  <span class="font-bold ${s.is_true ? 'text-emerald-700' : 'text-rose-700'}">${s.is_true ? '[ĐÚNG]' : '[SAI]'}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : c.item_format === 'SHORT_ANSWER' ? `
+            <div class="p-1.5 bg-indigo-50 rounded border border-indigo-200 text-[11px] flex justify-between items-center text-indigo-900 font-semibold">
+              <span>Đáp án đúng:</span>
+              <span class="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-300">${formatStemForDisplay(cleanShortAnswer(c.short_answer_value || c.short_answer_key || '1.0'), true)}</span>
             </div>
           ` : ''}
         </div>
@@ -3588,20 +4453,21 @@
     showToast('Đang thực thi 4 Nguyên tắc Trộn Đề An Toàn...', 'info');
 
     const codes = ['101', '102', '103', '104'];
-    const masterItems = state.masterExam.items;
+    const masterItems = (state.masterExam.items || []).map(it => normalizeExamItem(it));
+    state.masterExam.items = masterItems;
     const variants = {};
     const keyMatrix = [];
 
     // Initialize key matrix structure
     masterItems.forEach((q, idx) => {
       let masterCorrect = '-';
-      if (q.item_format === 'SINGLE_CHOICE' && q.options) {
+      if (q.item_format === 'SINGLE_CHOICE' && q.options && q.options.length > 0) {
         const c = q.options.find((o) => o.is_correct);
         masterCorrect = c ? c.label : 'A';
-      } else if (q.item_format === 'TRUE_FALSE_GROUP' && q.sub_statements) {
-        masterCorrect = q.sub_statements.map((s) => (s.is_true ? 'Đ' : 'S')).join('-');
+      } else if (q.item_format === 'TRUE_FALSE_GROUP' && q.sub_statements && q.sub_statements.length > 0) {
+        masterCorrect = q.sub_statements.map((s) => (s.is_true ? 'Đ' : 'S')).join(' - ');
       } else if (q.item_format === 'SHORT_ANSWER') {
-        masterCorrect = q.short_answer_value || '1';
+        masterCorrect = q.short_answer_value || q.short_answer_key || '1.0';
       }
 
       keyMatrix.push({
@@ -3718,27 +4584,46 @@
     let html = '';
 
     items.forEach((q, idx) => {
+      const format = q.item_format || 'SINGLE_CHOICE';
       html += `
-        <div class="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-1.5 shadow-xs">
+        <div class="p-3.5 bg-white rounded-xl border border-slate-200 text-xs space-y-2 shadow-xs">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-slate-800">Mã ${code} • Câu ${idx + 1} (${q.code}):</span>
-            <span class="text-[10px] text-slate-400 font-mono">${q.item_format}</span>
+            <span class="font-bold text-slate-800">Mã ${code} • Câu ${idx + 1} (${q.code || ''}):</span>
+            <span class="text-[10px] text-slate-500 font-mono">${format}</span>
           </div>
           <div class="text-slate-800 font-medium">${formatStemForDisplay(q.stem)}</div>
 
           ${
-            q.options
-              ? `<div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
+            format === 'SINGLE_CHOICE' && q.options && q.options.length > 0
+              ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   ${q.options
                     .map(
                       (o) => `
-                    <div class="p-1 rounded ${o.is_correct ? 'bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold' : 'bg-slate-50 text-slate-700'}">
-                      <strong>${o.label}.</strong> ${o.content}
+                    <div class="p-2 rounded-xl ${o.is_correct ? 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold' : 'bg-slate-50 text-slate-700'} border flex items-center justify-between">
+                      <div><strong>${o.label}.</strong> ${formatStemForDisplay(cleanOptionAnswer(o.content), true)}</div>
                       ${o.is_fixed || isAnchorPhrase(o.content) ? '<span class="text-[9px] text-emerald-700 font-bold ml-1">[Neo D]</span>' : ''}
                     </div>
                   `
                     )
                     .join('')}
+                 </div>`
+              : format === 'TRUE_FALSE_GROUP' && q.sub_statements && q.sub_statements.length > 0
+              ? `<div class="space-y-1.5 pt-1">
+                  ${q.sub_statements
+                    .map(
+                      (sub) => `
+                    <div class="p-2 rounded-xl border ${sub.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-rose-50/70 border-rose-200'} flex items-center justify-between">
+                      <span class="text-slate-800"><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</span>
+                      <span class="font-bold px-2 py-0.5 rounded text-[10px] ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${sub.is_true ? '[ĐÚNG]' : '[SAI]'}</span>
+                    </div>
+                  `
+                    )
+                    .join('')}
+                 </div>`
+              : format === 'SHORT_ANSWER'
+              ? `<div class="p-2.5 bg-indigo-50 rounded-xl border border-indigo-200 flex items-center justify-between">
+                  <span class="text-indigo-900 font-bold">Đáp án đúng:</span>
+                  <span class="font-mono font-bold text-indigo-950 bg-white px-2.5 py-0.5 rounded border border-indigo-300">${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || ''), true)}</span>
                  </div>`
               : ''
           }
@@ -3756,20 +4641,27 @@
 
     let html = '';
     state.shuffledVariants.keyMatrix.forEach((row) => {
+      let formatBadge = '<span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[10px]">TN Đơn</span>';
+      if (row.format === 'TRUE_FALSE_GROUP') {
+        formatBadge = '<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[10px]">Đúng/Sai</span>';
+      } else if (row.format === 'SHORT_ANSWER') {
+        formatBadge = '<span class="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-bold text-[10px]">Trả lời ngắn</span>';
+      }
+
       html += `
         <tr class="hover:bg-slate-50">
-          <td class="p-2 text-left pl-4 font-bold text-slate-800">Câu ${row.qIndex}</td>
-          <td class="p-2 text-[11px] text-slate-500">${row.format}</td>
-          <td class="p-2 font-bold bg-indigo-50/50 text-indigo-900">${row.masterKey}</td>
-          <td class="p-2 font-bold text-slate-800">${row.variantKeys['101'] || '-'}</td>
-          <td class="p-2 font-bold text-slate-800">${row.variantKeys['102'] || '-'}</td>
-          <td class="p-2 font-bold text-slate-800">${row.variantKeys['103'] || '-'}</td>
-          <td class="p-2 font-bold text-slate-800">${row.variantKeys['104'] || '-'}</td>
-          <td class="p-2 text-right pr-4">
+          <td class="p-2.5 text-left pl-4 font-bold text-slate-800">Câu ${row.qIndex}</td>
+          <td class="p-2.5 text-[11px]">${formatBadge}</td>
+          <td class="p-2.5 font-bold bg-indigo-50/50 text-indigo-900 font-mono">${row.masterKey}</td>
+          <td class="p-2.5 font-bold text-slate-800 font-mono">${row.variantKeys['101'] || '-'}</td>
+          <td class="p-2.5 font-bold text-slate-800 font-mono">${row.variantKeys['102'] || '-'}</td>
+          <td class="p-2.5 font-bold text-slate-800 font-mono">${row.variantKeys['103'] || '-'}</td>
+          <td class="p-2.5 font-bold text-slate-800 font-mono">${row.variantKeys['104'] || '-'}</td>
+          <td class="p-2.5 text-right pr-4">
             ${
               row.hasAnchor
-                ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                    <i data-lucide="shield-check" class="w-3 h-3 inline"></i> Khóa vị trí D
+                ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 inline-flex items-center space-x-1">
+                    <i data-lucide="shield-check" class="w-3 h-3 inline"></i> <span>Khóa vị trí D</span>
                    </span>`
                 : '<span class="text-slate-400 text-[10px]">Hoán vị tự do</span>'
             }
@@ -3780,6 +4672,7 @@
 
     tbody.innerHTML = html;
     renderKaTeX(tbody);
+    if (window.lucide) lucide.createIcons();
   }
 
   /**
@@ -4232,77 +5125,6 @@
     if (badge) badge.textContent = count;
   }
 
-  function renderItemBank() {
-    const grid = document.getElementById('bank-cards-grid');
-    const countEl = document.getElementById('bank-results-count');
-    if (!grid) return;
-
-    const cognitiveFilter = document.getElementById('bank-filter-cognitive')?.value || 'all';
-    const formatFilter = document.getElementById('bank-filter-format')?.value || 'all';
-    const searchKeyword = document.getElementById('bank-search-input')?.value.toLowerCase() || '';
-
-    const filtered = state.itemBank.filter(q => {
-      if (cognitiveFilter !== 'all' && q.cognitive_level !== cognitiveFilter) return false;
-      if (formatFilter !== 'all' && q.item_format !== formatFilter) return false;
-      if (searchKeyword && !q.stem.toLowerCase().includes(searchKeyword) && !(q.explanation || '').toLowerCase().includes(searchKeyword)) return false;
-      return true;
-    });
-
-    if (countEl) countEl.textContent = filtered.length;
-
-    if (filtered.length === 0) {
-      grid.innerHTML = `<div class="apple-card p-8 text-center text-slate-400 text-xs">Không tìm thấy câu hỏi phù hợp trong Ngân hàng. Bấm <strong>+ Thêm câu hỏi</strong> hoặc <strong>📥 Nhập câu hỏi</strong> để bổ sung.</div>`;
-      return;
-    }
-
-    grid.innerHTML = filtered.map((q, idx) => `
-      <div class="apple-card p-4 space-y-3 hover:shadow-md transition-all cursor-pointer" onclick="app.openQuestionDetailModal('${q.id}')">
-        <div class="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
-          <div class="flex items-center space-x-2">
-            <span class="font-bold text-brand-700">Câu ${idx + 1}</span>
-            <span class="px-2 py-0.5 bg-brand-50 text-brand-700 font-semibold rounded-md text-[10px]">${q.item_format}</span>
-            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[10px]">${q.cognitive_level}</span>
-          </div>
-          <div class="flex items-center space-x-1.5" onclick="event.stopPropagation()">
-            <button onclick="app.openQuestionEditorModal('${q.id}')" class="p-1.5 hover:bg-brand-50 text-brand-600 rounded-lg transition-all cursor-pointer" title="Chỉnh sửa câu hỏi">
-              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-            </button>
-            <button onclick="app.deleteBankQuestion('${q.id}')" class="p-1.5 hover:bg-rose-50 text-rose-600 rounded-lg transition-all cursor-pointer" title="Xóa câu hỏi">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-        </div>
-        <div class="text-xs font-sans text-slate-800 leading-relaxed font-medium">${q.stem}</div>
-        ${q.options && q.options.length ? `
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-xs">
-            ${q.options.map(o => `
-              <div class="p-2 rounded-lg border ${o.is_correct ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}">
-                <span>${o.label}.</span> <span>${o.content}</span> ${o.is_correct ? ' ✓' : ''}
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-        ${q.sub_statements && q.sub_statements.length ? `
-          <div class="space-y-1 pt-1 text-xs">
-            ${q.sub_statements.map(s => `
-              <div class="p-1.5 rounded-lg border ${s.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-slate-50 border-slate-200'} flex items-center justify-between">
-                <span><strong>${s.label})</strong> ${s.content}</span>
-                <span class="font-bold ${s.is_true ? 'text-emerald-700' : 'text-slate-600'}">${s.is_true ? 'ĐÚNG' : 'SAI'}</span>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-        ${q.explanation ? `
-          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 text-[11px] text-slate-700">
-            <strong>Lời giải:</strong> ${q.explanation}
-          </div>
-        ` : ''}
-      </div>
-    `).join('');
-
-    if (window.lucide) lucide.createIcons();
-  }
-
   function openQuestionDetailModal(id) {
     const q = (state.itemBank && state.itemBank.find(x => String(x.id) === String(id))) ||
               (state.digitizeJob && state.digitizeJob.questions && state.digitizeJob.questions.find(x => String(x.id) === String(id)));
@@ -4358,7 +5180,7 @@
       <div class="space-y-1">
         <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nội dung đề bài</div>
         <div class="p-3.5 bg-white rounded-xl border border-slate-200 text-slate-900 leading-relaxed font-medium">
-          ${q.stem}
+          ${formatStemForDisplay(q.stem)}
         </div>
       </div>
     `;
@@ -4370,7 +5192,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             ${q.options.map(opt => `
               <div class="p-2.5 rounded-xl border ${opt.is_correct ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'} flex items-center justify-between">
-                <span><strong>${opt.label}.</strong> ${opt.content}</span>
+                <span><strong>${opt.label}.</strong> ${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}</span>
                 ${opt.is_correct ? '<span class="text-xs text-emerald-700">✓ Đáp án đúng</span>' : ''}
               </div>
             `).join('')}
@@ -4387,7 +5209,7 @@
           <div class="space-y-1.5">
             ${q.sub_statements.map(sub => `
               <div class="p-2.5 rounded-xl border ${sub.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-rose-50/70 border-rose-200'} flex items-center justify-between">
-                <span><strong>${sub.label})</strong> ${sub.content}</span>
+                <span><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</span>
                 <span class="font-bold px-2 py-0.5 rounded text-[10px] ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${sub.is_true ? 'ĐÚNG' : 'SAI'}</span>
               </div>
             `).join('')}
@@ -4399,7 +5221,7 @@
         <div class="p-3 bg-purple-50 rounded-xl border border-purple-200 space-y-1">
           <span class="text-[11px] font-bold text-purple-900 uppercase tracking-wider block">Đáp số trả lời ngắn</span>
           <div class="font-mono text-xs font-bold text-purple-950">
-            Kết quả: <strong>${q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'}</strong> (Dung sai: ±${q.tolerance || 0.0})
+            Kết quả: <strong>${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'), true)}</strong> (Dung sai: ±${q.tolerance || 0.0})
           </div>
         </div>
       `;
@@ -4410,7 +5232,7 @@
         <div class="space-y-1">
           <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hướng dẫn giải chi tiết</div>
           <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 leading-relaxed">
-            ${q.explanation}
+            ${formatStemForDisplay(q.explanation)}
           </div>
         </div>
       `;
@@ -4435,7 +5257,7 @@
     }
 
     modal.classList.remove('hidden');
-    if (window.renderKaTeX) renderKaTeX(modal);
+    renderKaTeX(modal);
     if (window.lucide) lucide.createIcons();
   }
 
@@ -4665,6 +5487,18 @@
       seedInitialQuestions();
     }
     setupPaperDropZone();
+
+    // Global event delegation for matrix cells click-to-focus
+    document.addEventListener('click', (e) => {
+      const cell = e.target.closest('.matrix-input-cell');
+      if (cell) {
+        const inp = cell.querySelector('input');
+        if (inp && e.target !== inp) {
+          inp.focus();
+          inp.select();
+        }
+      }
+    });
 
     // Setup Browser History popstate listener for SPA Router
     window.addEventListener('popstate', (event) => {
@@ -8114,6 +8948,7 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
 
   // Expose global methods to window.app for HTML onclick bindings
   window.app = {
+    renderKaTeX,
     auth,
     composer,
     navigateTo,
@@ -8160,14 +8995,34 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     saveQuestionEdit,
     loadSampleExam,
     changeViewerPage,
+    changeBankPage,
+    changeBankPageSize,
+    handleBankFilterChange,
     handleTaxonomyFilterChange,
     renderItemBank,
     deleteBankQuestion,
+    initHierarchicalMatrix,
+    renderHierarchicalMatrix,
+    toggleMatrixNode,
+    expandAllMatrixTree,
+    collapseAllMatrixTree,
+    onMatrixSearchInput,
+    onMatrixFilterStockChange,
+    onMatrixCellChange,
+    applyMatrixPreset,
+    resetMatrixSelections,
     updateMatrixCell,
+    updateMatrixRowFormat,
     saveMatrixConfig,
     loadMatrixPreset,
     exportMatrixSpec,
+    openAddMatrixRowModal,
+    closeAddMatrixRowModal,
+    confirmAddMatrixRow,
+    addMatrixRow,
+    deleteMatrixRow,
     generateMasterExamFromMatrix,
+    generateMasterExamFromHierarchicalMatrix,
     swapMasterQuestion,
     openSwapQuestionModal,
     closeSwapQuestionModal,

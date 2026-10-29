@@ -3,8 +3,8 @@
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Phiên bản:** v3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
-> **Cập nhật lần cuối:** 27/10/2026
+> **Phiên bản:** v3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+> **Cập nhật lần cuối:** 29/10/2026
 
 ---
 
@@ -17,7 +17,7 @@ Quesy được xây dựng theo kiến trúc **Module-based Monolith** kết h�
    - *Soạn đề & Biên dịch Hybrid:* `composer_service.py` kết nối Remote Tectonic XeTeX Engine Docker (host `armbian:8090`), gói lệnh chuẩn quốc gia `ex_test.sty` (v3.3.6), động cơ Canonical Preamble Injection (tự động nhúng ngầm fontspec, amsmath, tikz, tkz-tab, tcolorbox, xparse, ex_test v3.3, geometry A4), hỗ trợ ô soạn thảo tinh gọn Preamble-Free Question Editor, và AI Inline Diff Replacer.
    - *Số hóa 2-Pass AI Decoupled:* Tiền xử lý ảnh OpenCV/Pillow, phân đoạn layout, Pass 1 trích xuất văn bản/đáp án, Pass 2 dựng mã TikZ/Array song song.
    - *Xuất bản MathType OLE Word & CMU Serif PDF:* Dựng luồng nhị phân CFB MTEF v5 + ảnh vector WMF (APM header chuẩn) sửa 2 chiều trong Microsoft Word; chuyển đổi bảng biến thiên sang `<w:tbl>` native.
-   - *Ma trận & Trộn đề An toàn:* Giải bài toán ma trận 2 chiều theo YCCĐ, hoán vị mã đề an toàn, tính điểm Đúng/Sai lũy tiến theo QĐ 764.
+   - *Ma trận & Trộn đề An toàn:* Bảng ma trận phân cấp đa tầng (Chương · Bài · Dạng x 3 Phần x 4 Mức độ NB-TH-VD-VDC), kiểm tra tồn kho thời gian thực, sticky footer, giải bài toán ma trận rút đề gốc, hoán vị mã đề an toàn, tính điểm Đúng/Sai lũy tiến theo QĐ 764.
 4. **Data Persistence & Storage Layer:**
    - Cơ sở dữ liệu: SQLite / PostgreSQL quản trị qua SQLAlchemy ORM (19 thực thể chuẩn hóa).
    - Hệ thống đĩa đệm (Storage): `storage/uploads/` (tệp đề thi), `storage/assets/` (hình ảnh trích xuất WebP), `storage/cache/mathjax/` (đệm WMF/SVG), `storage/cache/composer/` (đệm PDF biên dịch).
@@ -34,8 +34,9 @@ Quesy được xây dựng theo kiến trúc **Module-based Monolith** kết h�
 │              │                            │                            │               │
 │  ┌───────────┴─────────────┐  ┌───────────┴─────────────┐              │               │
 │  │   Ma trận đề (Matrix)   │  │   Trộn đề (Shuffler)    │              │               │
-│  │  - 2 Chiều YCCĐ x Mức độ│  │  - Safe Shuffling       │              │               │
-│  │  - Constraint Solver    │  │  - Chấm Đúng/Sai QĐ 764 │              │               │
+│  │  - Bảng đa tầng C-B-D   │  │  - Safe Shuffling       │              │               │
+│  │  - 3 Phần x 4 Mức độ    │  │  - Chấm Đúng/Sai QĐ 764 │              │               │
+│  │  - Tồn kho & Footer     │  │                         │              │               │
 │  └───────────┬─────────────┘  └───────────┬─────────────┘              │               │
 └──────────────┼────────────────────────────┼────────────────────────────┼───────────────┘
                │ HTTP / JSON REST API       │                            │
@@ -389,18 +390,35 @@ ight., Environment undefined)
       * Modal Xem chi tiết (`#question-detail-modal`): Xem công thức KaTeX/TikZ sắc nét, barem điểm bậc thang QĐ 764, chỉ số khảo thí trắc nghiệm ($p, D$), cây phân loại chuẩn.
       * Modal Sửa câu hỏi (`#question-edit-modal`): Cho phép cập nhật toàn diện stem, phương án A-D, cờ khóa neo D, khẳng định a-d, đáp án ngắn, dung sai, YCCĐ và lời giải chi tiết.
       * Chức năng Xóa câu hỏi: Hộp thoại xác nhận, xóa triệt để cascade CSDL, tự động cập nhật ngay số lượng và làm mới danh sách.
+    + *Hệ thống Phân trang Ngân hàng Chuẩn Apple HIG (Item Bank Pagination):*
+      * Quản trị trạng thái qua `state.bankPagination = { currentPage: 1, pageSize: 12 }` (hỗ trợ chọn 12, 24, 48 câu/trang).
+      * Cắt lát mảng câu hỏi sau khi lọc (`filtered.slice(start, end)`), chỉ render DOM và gọi `renderKaTeX(container)` cho các câu hỏi trên trang hiện tại, giảm thời gian render từ ~200ms xuống <10ms.
+      * Thanh phân trang `#bank-pagination-controls`: hiển thị dải số câu hỏi, cụm nút Trước/Sau, dải số trang thông minh với active Apple Blue `#0071e3`, dropdown chọn kích thước `.apple-select`.
+      * Tự động reset về trang 1 khi thay đổi bất kỳ bộ lọc nào và cuộn mượt (`smooth scroll`) về đầu danh sách câu hỏi.
     + *Xuất & Nhập Ngân hàng Câu hỏi:*
       * Xuất danh sách: Hỗ trợ xuất sang PDF vector in ấn (khổ A4, Times/CMU Serif), CSV UTF-8 BOM chuẩn Excel tiếng Việt, LaTeX `.tex` thuần gói `ex_test.sty`.
       * Nhập câu hỏi: Nhập từ file văn bản/mã LaTeX/JSON, tự động phân tích cú pháp, kiểm tra trùng lặp và đẩy vào CSDL.
     + *Cảnh báo Trùng lặp AI & Auto-tagging:* Tính toán Cosine Similarity ($\ge 0.90$), tự động phân tích và gắn mã YCCĐ theo nội dung câu hỏi.
     + *Đồng bộ Huy hiệu Số lượng:* Tự động đồng bộ số lượng câu hỏi thực tế trên badge `#bank-count-badge`.
   - `app.auth`: Quản lý hệ thống xác thực người dùng & phân quyền RBAC:
-    + Quản lý phiên đăng nhập qua JWT HS256 lưu an toàn tại `localStorage` (`quesy_auth_token`), tự động đính kèm header `Authorization: Bearer <token>` vào các API requests.
+    + Quản lý phiên đăng nhập qua JWT HS256 lưu an toàn tại `localStorage` (`quesy_auth_token`), tự động đính kèm header `Authorization: Bearer *** vào các API requests.
     + Điều khiển giao diện header: Trạng thái chưa đăng nhập (Nút Đăng nhập / Đăng ký Apple HIG); Trạng thái đã đăng nhập (Avatar, Họ tên, Role badge `Giáo viên`/`Học sinh`/`Quản trị`, menu dropdown có chức năng Đăng xuất).
     + Modal Đăng nhập / Đăng ký (`#auth-modal`): Chuyển tab Đăng nhập & Đăng ký mượt mà, tích hợp đăng nhập OAuth Google và GitHub, đăng nhập nhanh tài khoản giáo viên/admin thử nghiệm.
-  - `app.matrix`: Quản lý ma trận đề thi 2 chiều, phân bổ số lượng câu theo mức độ nhận thức.
+  - `app.matrix`: Quản lý ma trận đề thi 2 chiều (`#tab-matrix`):
+    + Tái cấu trúc Header Card Apple HIG: Loại bỏ hoàn toàn các nút Preset cứng gây vỡ layout và tràn viền, thanh tham số tinh gọn, layout responsive.
+    + Nút `Thêm dòng YCCĐ` (`#btn-add-matrix-row`) đặt tại vị trí công thái học chuẩn trên thanh công cụ bảng ma trận với duy nhất 1 icon plus tinh tế (khắc phục triệt để lỗi lặp `+ +`).
+    + Cột Dạng thức câu hỏi (Item Format) tương tác trên từng dòng: Dropdown 4 dạng thức (`SINGLE_CHOICE` 0.25đ, `TRUE_FALSE_GROUP` 1.0đ, `SHORT_ANSWER` 0.5đ, `ESSAY` 1.0đ).
+    + Công thức tính điểm động theo dạng thức câu hỏi: Tự động tính điểm từng dòng, điểm từng mức độ nhận thức (Biết, Hiểu, Vận dụng) và tổng điểm toàn ma trận chuẩn hóa 10.0đ.
+    + Modal thêm dòng YCCĐ (`#add-matrix-row-modal`): Bổ sung chọn Dạng thức câu hỏi (`#modal-matrix-format`), Mạch nội dung, YCCĐ, Dạng bài và cơ số câu.
+    + Đối soát tồn kho câu hỏi thời gian thực (`matrix-stock-chip`), thanh tiến trình Bloom và xuất bản bản đặc tả (PDF A4 / CSV UTF-8 BOM / JSON).
   - `app.shuffler`: Quản lý nguồn đề gốc (chọn đề có sẵn hoặc sinh từ ma trận), thuật toán xáo trộn đề an toàn 4 nguyên tắc, tạo mã đề hoán vị và xuất bản ấn phẩm Vector PDF LaTeX.
   - `app.digitize`: Quản lý tải lên, theo dõi tiến trình WebSocket/Polling (0-100%) và màn hình đối chiếu song song HITL.
+  - **Hệ thống Thành phần Giao diện Chuẩn Apple HIG (Design System & Micro-interactions):**
+    + *Unified Dropdown Select (.apple-select):* Class CSS độc quyền chuẩn Apple HIG thay thế mũi tên mặc định của hệ điều hành bằng icon chevron SVG slate-500 `#64748b`, bo góc 12px, padding `0.45rem 2.2rem 0.45rem 0.75rem`, hiệu ứng focus hào quang Apple Blue (`#0071e3`), áp dụng đồng bộ 100% cho toàn bộ 19 select tĩnh và các select sinh động. Xóa bỏ hoàn toàn lỗi font monospace trên ô chọn YCCĐ (`#bank-filter-yccd`) và đồng bộ hoàn hảo ô thời gian làm bài (`#matrix-param-time`).
+    + *Toàn Diện Động Cơ KaTeX (Global renderKaTeX Engine):* Expose `window.renderKaTeX` và `window.app.renderKaTeX`, chuẩn hóa chuỗi qua `formatStemForDisplay(cleanOptionAnswer(...), true)`, phủ kín toàn bộ các điểm kết xuất (Ngân hàng, Ma trận 2D, Modal chi tiết, Đề gốc, Đề hoán vị), triệt tiêu 100% tình trạng sót chuỗi văn bản thô `$ ... $` của công thức toán.
+    + *Search Input with Leading Icon Spacing (.search-input-with-icon):* Định nghĩa `padding-left: 2.25rem !important;` (36px) cho `#matrix-search-archetype`, `#bank-search-input` và class `.search-input-with-icon`, khắc phục triệt để việc rule `.apple-input, input[type="text"]` ghi đè `pl-8` gây đè chữ placeholder lên icon kính lúp. Icon trang bị `pointer-events-none` chuyển tiếp click chuột vào input.
+    + *High-Contrast Bold Black Text Cursor & Caret System (.matrix-input-cell & Inputs):* Triệt tiêu hoàn toàn spin buttons trên Chromium/WebKit và Firefox (`::-webkit-inner-spin-button { -webkit-appearance: none }`, `appearance: textfield`). Thiết lập con trỏ chuột dạng SVG I-beam màu đen đậm nét 2.8px kết hợp viền trắng tương phản 1.0px (`cursor: url("data:image/svg+xml,...") 12 12, text !important;`) cho toàn bộ `.matrix-input-cell`, `.matrix-input-cell input`, `input[type="text"]`, `input[type="number"]`, `input[type="search"]`, `input[type="email"]`, `input[type="password"]`, `.apple-input`, `.search-input-with-icon`, và `textarea`. Thiết lập `caret-color: #000000 !important;` cho các input sáng màu và ô số ma trận. Khi hover ô `.matrix-input-cell`: nền xanh nhạt `rgba(0, 113, 227, 0.08)`, viền input `#0071e3`, bóng đổ `0 0 0 2px rgba(0, 113, 227, 0.25)`. Hỗ trợ Click-to-Focus toàn ô (nhấp vào bất kỳ đâu trên `td.matrix-input-cell` tự động focus và bôi đen input).
+    + *Bank Pagination Controls Component (#bank-pagination-controls):* Thanh điều khiển phân trang tối giản chuẩn Apple HIG nằm dưới lưới câu hỏi ngân hàng, bao gồm hiển thị dải số `X - Y trong tổng số N câu hỏi`, dải nút số trang thông minh với nút active xanh Apple `#0071e3`, nút Trước/Sau tự động disabled ở biên, và dropdown chọn kích thước `.apple-select` (12 / 24 / 48 câu/trang).
 
 ---
 
@@ -492,16 +510,25 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
 
 ---
 
-## 10. QUY TRÌNH QUẢN TRỊ PHIÊN BẢN & GIT WORKFLOW (STRICT PRE-COMMIT CI GATE, COMMIT & PUSH ONLY)
+## 10. QUY TRÌNH QUẢN TRỊ GIT, PULL REQUEST FIRST & CONTINUOUS PR DESCRIPTION SYNC
 
 - **Cổng Kiểm Soát Bắt Buộc Trước Khi Commit (Pre-Commit CI Gate):**
   - **Bắt buộc:** Trước khi thực hiện `git commit`, mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (`pytest`, syntax check, môi trường tương đương CI). Tuyệt đối cấm commit khi CI test chưa pass 100%.
   - **Vòng lặp sửa lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
     `CI thất bại` → `Sub-Agent 2 sửa code / Sub-Agent 3 cập nhật CI & test` → `Sub-Agent 3 chạy lại CI test` → `Lặp lại quy trình` cho đến khi **100% PASS CI mới được phép thực hiện commit**.
+
+- **Quy Tắc Tạo Pull Request Trước Khi Commit (PR First Rule):**
+  - Khi bắt đầu triển khai một chu trình phát triển (tính năng mới, sửa lỗi, refactor) hoặc có nhánh làm việc (`feat`), BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`).
+  - Nếu nhánh chưa có commit khác biệt với `main` (GitHub API không cho phép tạo PR rỗng), thì ngay sau khi có commit đầu tiên của chu trình (hoặc WIP commit), BẮT BUỘC phải tạo Pull Request TRƯỚC khi commit các bước tiếp theo, bảo đảm luôn có Pull Request tồn tại trước khi hoàn tất chu trình.
+
+- **Quy Tắc Cập Nhật Mô Tả PR Liên Tục (Continuous PR Description Sync Rule):**
+  - Nếu có tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó bằng GitHub CLI (`gh pr edit <PR_NUM> --body "..."`).
+  - Nội dung mô tả PR phải phản ánh chính xác trạng thái kỹ thuật mới nhất, các thành phần đã sửa đổi, kết quả kiểm thử (100% PASS) và các tài liệu kỹ thuật đã đồng bộ.
+
 - **Quy trình Commit & Push:**
-  1. Sau khi 100% test cases vượt qua trên CI, thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
-  2. Thực hiện `git push` lên nhánh làm việc (remote branch).
-- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO/CẬP NHẬT PULL REQUEST:**
-  - Nghiêm cấm các sub-agent tự ý chạy lệnh `gh pr create` hoặc gọi GitHub REST API để mở Pull Request.
-  - Nghiêm cấm tự động cập nhật hoặc đẩy vào Pull Request có sẵn trừ khi Người dùng (User) yêu cầu bằng lời nói rõ ràng, cụ thể.
+  1. Đảm bảo Pull Request đã được mở trên GitHub (`gh pr list`).
+  2. Cập nhật description của Pull Request bằng `gh pr edit <PR_NUM> --body "..."`.
+  3. Thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
+  4. Thực hiện `git push` lên remote repository (`origin <branch>`).
+
 - **Dọn dẹp tiến trình:** Bắt buộc diệt sạch các tiến trình nền (uvicorn cổng 8000, Node.js persistent worker, subprocess) sau khi kết thúc lượt phản hồi.

@@ -3,8 +3,9 @@ from pydantic import BaseModel, Field, ConfigDict
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response, FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from backend.database import get_db
-from backend.models import ExamMatrix, MatrixItem
+from backend.models import ExamMatrix, MatrixItem, Question
 from backend.services.matrix_solver import check_matrix_availability
 from backend.config import EXPORTS_DIR
 import csv
@@ -21,12 +22,13 @@ router_singular = APIRouter(prefix="/api/v1/matrix", tags=["Matrices"])
 class MatrixItemCreate(BaseModel):
     learning_outcome_id: Optional[str] = None
     problem_archetype_id: Optional[str] = None
-    cognitive_level: str = "RECOGNITION"  # RECOGNITION, COMPREHENSION, APPLICATION
+    cognitive_level: str = "RECOGNITION"  # RECOGNITION, COMPREHENSION, APPLICATION, HIGH_APPLICATION
     item_format: str = "SINGLE_CHOICE"  # SINGLE_CHOICE, TRUE_FALSE_GROUP, SHORT_ANSWER, PASSAGE_GROUP, ESSAY
     quantity: int = 1
     question_count: Optional[int] = None
     points_per_item: float = 0.25
     points_per_question: Optional[float] = None
+    section_number: int = 1
 
 
 class MatrixItemOut(BaseModel):
@@ -38,6 +40,7 @@ class MatrixItemOut(BaseModel):
     item_format: str
     quantity: int
     points_per_item: float
+    section_number: int = 1
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -73,6 +76,52 @@ class ExamMatrixOut(BaseModel):
 # ==========================================
 # ENDPOINTS
 # ==========================================
+
+@router.get("/bank-inventory")
+@router_singular.get("/bank-inventory")
+def get_bank_inventory(
+    subject_id: Optional[str] = None,
+    grade_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Returns approved question counts grouped by problem_archetype_id x item_format x cognitive_level."""
+    query = db.query(
+        Question.problem_archetype_id,
+        Question.question_type,
+        Question.cognitive_level,
+        func.count(Question.id)
+    ).filter(Question.problem_archetype_id.isnot(None))
+
+    if subject_id:
+        query = query.filter(Question.subject_id == subject_id)
+    if grade_id:
+        query = query.filter(Question.grade_id == grade_id)
+
+    results = query.group_by(
+        Question.problem_archetype_id,
+        Question.question_type,
+        Question.cognitive_level
+    ).all()
+
+    inventory = {}
+    total_approved = 0
+    for arch_id, q_type, cog_level, cnt in results:
+        if not arch_id:
+            continue
+        if arch_id not in inventory:
+            inventory[arch_id] = {}
+        if q_type not in inventory[arch_id]:
+            inventory[arch_id][q_type] = {}
+        inventory[arch_id][q_type][cog_level] = cnt
+        total_approved += cnt
+
+    return {
+        "subject_id": subject_id,
+        "grade_id": grade_id,
+        "total_approved_questions": total_approved,
+        "inventory": inventory
+    }
+
 
 @router.get("", response_model=List[ExamMatrixOut])
 @router_singular.get("", response_model=List[ExamMatrixOut])

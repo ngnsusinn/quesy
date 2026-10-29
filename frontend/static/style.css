@@ -104,13 +104,33 @@ button:active, .btn-apple-primary:active, .btn-apple-secondary:active, .btn-appl
 }
 
 /* Apple Native Form Inputs & Selects */
-select, input[type="text"], input[type="number"], textarea {
-  font-family: inherit;
-  border-radius: 10px;
+.apple-input,
+input[type="text"]:not(#composer-compact-input):not(#composer-chat-input),
+input[type="number"] {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif !important;
+  border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.12);
-  background-color: rgba(0, 0, 0, 0.025);
+  background-color: #ffffff;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  height: 34px;
   color: #1d1d1f;
   transition: all 120ms ease;
+  box-sizing: border-box;
+}
+
+textarea:not(#composer-editor-input):not(#composer-chat-input) {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif !important;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background-color: #ffffff;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  color: #1d1d1f;
+  transition: all 120ms ease;
+  box-sizing: border-box;
 }
 
 select:focus, input[type="text"]:not(#composer-compact-input):focus, input[type="number"]:focus, textarea:not(#composer-editor-input):not(#composer-chat-input):focus {
@@ -118,6 +138,40 @@ select:focus, input[type="text"]:not(#composer-compact-input):focus, input[type=
   border-color: var(--apple-blue);
   background-color: #ffffff;
   box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
+}
+
+.apple-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 14px 14px;
+  padding: 0.45rem 2.2rem 0.45rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif !important;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  height: 34px;
+  box-sizing: border-box;
+  color: #1d1d1f;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.apple-select:hover {
+  border-color: rgba(0, 0, 0, 0.22);
+  background-color: #fbfbfd;
+}
+
+.apple-select:focus {
+  outline: none;
+  border-color: #0071e3;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
 }
 
 /* Clean Chat Input with zero inner border / shadow and high-contrast dark mode text */
@@ -636,10 +690,22 @@ body.in-composer #tab-composer {
   letter-spacing: 0.02em;
 }
 
+/* Search inputs with leading search icon */
+#matrix-search-archetype,
+#bank-search-input,
+.search-input-with-icon {
+  padding-left: 2.25rem !important; /* 36px: 10px margin + 14px icon + 12px clear gap */
+}
+
 /* --- Matrix Grid Custom Cells --- */
 .matrix-input-cell {
   position: relative;
   transition: all 0.15s;
+  cursor: pointer;
+}
+
+.matrix-input-cell:hover {
+  background-color: rgba(0, 113, 227, 0.05);
 }
 
 .matrix-input-cell input {
@@ -651,7 +717,22 @@ body.in-composer #tab-composer {
   border: 1px solid rgba(0, 0, 0, 0.12);
   background-color: #ffffff;
   color: #1d1d1f;
+  cursor: text !important;
+  caret-color: #0071e3 !important;
   transition: all 0.15s ease;
+}
+
+/* Triệt tiêu nút spin button mặc định trên WebKit/Blink (Chrome, Edge, Safari, Opera) */
+.matrix-input-cell input::-webkit-outer-spin-button,
+.matrix-input-cell input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+/* Triệt tiêu nút spin button trên Firefox */
+.matrix-input-cell input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
 }
 
 .matrix-input-cell input:focus {
@@ -667,6 +748,36 @@ body.in-composer #tab-composer {
   display: block;
 }
 
+.matrix-stock-chip {
+  display: inline-block;
+  padding: 0.125rem 0.35rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  border: 1px solid transparent;
+}
+.matrix-stock-chip.stock-ok {
+  background-color: #ecfdf5;
+  color: #15803d;
+  border-color: #a7f3d0;
+}
+.matrix-stock-chip.stock-warn {
+  background-color: #fff1f2;
+  color: #b91c1c;
+  border-color: #fecdd3;
+  font-weight: 700;
+}
+
+.btn-preset {
+  transition: all 0.15s ease;
+}
+.btn-preset.active {
+  background-color: #e0e7ff !important;
+  color: #3730a3 !important;
+  border-color: #c7d2fe !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
 .stock-sufficient {
   color: #1b7a36;
 }
@@ -674,6 +785,45 @@ body.in-composer #tab-composer {
 .stock-insufficient {
   color: var(--apple-red);
   font-weight: 700;
+}
+
+/* Hierarchical Matrix Tree & Sticky Footer */
+.matrix-tree-col {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background-color: #ffffff;
+  min-width: 320px;
+  max-width: 420px;
+  border-right: 1px solid rgba(0,0,0,0.08);
+}
+.matrix-sticky-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+}
+.topic-row {
+  background-color: #f8fafc;
+  font-weight: 700;
+  color: #0f172a;
+}
+.lesson-row {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: #1e293b;
+}
+.archetype-row {
+  background-color: #ffffff;
+  font-weight: 400;
+  color: #334155;
+}
+.archetype-row:hover {
+  background-color: rgba(0, 113, 227, 0.03);
 }
 
 /* --- Apple Dialog / Modal Sheet --- */
@@ -869,4 +1019,42 @@ body.in-composer #tab-composer {
 .composer-chat-image-thumb:hover {
   transform: scale(1.02);
   border-color: #c084fc;
+}
+
+/* --- High-Contrast Bold Black Text Cursor & Caret (§1 UI Specs) --- */
+:root {
+  --high-contrast-text-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23000000' stroke-width='2.8' stroke-linecap='square'/%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23ffffff' stroke-width='1' stroke-linecap='square'/%3E%3C/svg%3E") 12 12, text;
+}
+
+input[type="text"]:not([readonly]):not([disabled]):not(#composer-chat-input):not(#composer-compact-input),
+input[type="number"]:not([readonly]):not([disabled]),
+input[type="search"]:not([readonly]):not([disabled]),
+input[type="email"]:not([readonly]):not([disabled]),
+input[type="password"]:not([readonly]):not([disabled]),
+textarea:not([readonly]):not([disabled]):not(#composer-chat-input):not(#composer-editor-input),
+.apple-input,
+.search-input-with-icon,
+.matrix-input-cell,
+.matrix-input-cell input {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23000000' stroke-width='2.8' stroke-linecap='square'/%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23ffffff' stroke-width='1' stroke-linecap='square'/%3E%3C/svg%3E") 12 12, text !important;
+  caret-color: #000000 !important;
+}
+
+/* Enhanced Matrix Input Cell Hover & Focus */
+.matrix-input-cell:hover {
+  background-color: rgba(0, 113, 227, 0.08) !important;
+}
+
+.matrix-input-cell:hover input {
+  border-color: #0071e3 !important;
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25) !important;
+  background-color: #ffffff !important;
+}
+
+.matrix-input-cell input:focus {
+  border-color: #0071e3 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.35) !important;
+  background-color: #ffffff !important;
+  caret-color: #000000 !important;
 }

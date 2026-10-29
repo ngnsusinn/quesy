@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
+- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap) và đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF).
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input, phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm hiển thị toán học, và chuẩn hóa giao diện dropdown box Apple HIG (.apple-select) đồng bộ 100% typography sans-serif.
 - **Ngày phát hành:** 2026-10-27  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
@@ -34,8 +34,10 @@ Tài liệu này đặc tả chi tiết toàn bộ các yêu cầu kỹ thuật,
   - **Mọi sub-agent khác (Sub-Agent 1, Sub-Agent 2, Sub-Agent 4...) tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
   - Chỉ duy nhất Sub-Agent đảm nhận làm CI mới được phép đọc, viết, chỉnh sửa cấu hình CI/CD.
   - Sub-Agent CI có toàn quyền đọc và tiếp nhận thông tin từ các sub-agents khác để phục vụ việc đồng bộ CI.
-- **Quy chuẩn Git Commit & Push:** Mọi tác vụ phát triển, sửa lỗi và nâng cấp tính năng chỉ thực hiện `git commit` và `git push` lên nhánh remote repository.
-- **TUYỆT ĐỐI KHÔNG TỰ ĐỘNG TẠO PULL REQUEST (`gh pr create`, API PR...)** hoặc tự động cập nhật vào Pull Request trừ khi Người dùng (User) có yêu cầu rõ ràng bằng lời nói (explicit user prompt). Mọi hành vi tự động tạo PR khi chưa có lệnh trực tiếp đều vi phạm quy chuẩn quản trị dự án.
+- **Quy chuẩn Git, Pull Request First & Continuous PR Description Sync:**
+  - **Quy tắc tạo PR trước khi commit (PR First Rule):** Khi bắt đầu triển khai hoặc có nhánh làm việc, BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`). Tuyệt đối không commit khi chưa tồn tại Pull Request.
+  - **Quy tắc cập nhật mô tả PR liên tục (Continuous PR Description Sync):** Nếu đang tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh chính xác trạng thái kỹ thuật, các thay đổi mới nhất và kết quả kiểm thử.
+  - Mọi tác vụ phát triển tuân thủ nghiêm ngặt chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`).
 
 ### 1.5. Đối tượng Sử dụng & Phân nhiệm Kỹ thuật (Audience & Roles)
 - **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
@@ -652,37 +654,42 @@ ight)$$
 
 ### 4.3. Phân hệ Ma trận & Động cơ Sinh & Trộn Đề (Matrix & Safe Exam Engine)
 
-#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi 2D theo YCCĐ & Thư viện Presets (Interactive 2D Matrix Blueprint)
-- **Mô tả:** Định nghĩa cấu trúc đề thi theo ma trận 2 chiều chuẩn hóa theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
+#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi Phân cấp Đa tầng (Chương · Bài · Dạng x 3 Phần x 4 Mức độ NB-TH-VD-VDC)
+- **Mô tả:** Định nghĩa cấu trúc đề thi theo Bảng Ma trận Phân cấp Đa tầng chuẩn hóa theo Thông tư 32/2018/TT-BGDĐT, Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
 - **Yêu cầu kỹ thuật:**
-  1. *Thư viện Ma trận mẫu (Presets):*
-     - **Preset 1 (Chuẩn Tốt nghiệp THPT 2025):** 34 câu, 10.0 điểm, thời gian 90 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định tính điểm bậc thang (1.0đ/câu = 4.0đ), và 6 câu Trả lời ngắn (0.5đ/câu = 3.0đ). Phân bổ Bloom chuẩn: 40% Biết (3.0đ) - 30% Hiểu (3.5đ) - 30% Vận dụng (3.5đ).
-     - **Preset 2 (Kiểm tra Định kỳ / Giữa kỳ):** 20 câu, 10.0 điểm, thời gian 50-60 phút. Gồm 12 câu TN đơn (0.25đ/câu = 3.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 4 câu Trả lời ngắn (0.75đ/câu = 3.0đ). Phân bổ: ~50% Biết, 30% Hiểu, 20% Vận dụng.
-     - **Preset 3 (Kiểm tra Cuối kỳ):** 28 câu, 10.0 điểm, thời gian 90 phút. Gồm 16 câu TN đơn (0.25đ/câu = 4.0đ), 4 câu Đúng/Sai 4 khẳng định (1.0đ/câu = 4.0đ), và 8 câu Trả lời ngắn (0.25đ/câu = 2.0đ). Phân bổ: 40% Biết, 35% Hiểu, 25% Vận dụng.
-  2. *Lưới Ma trận 2D Tương tác (Interactive 2D Grid):*
-     - Dòng: Phân nhóm theo Mạch nội dung $
-ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng câu hỏi (Problem Archetype) $
-ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`).
-     - Cột: 3 Mức độ nhận thức: Biết (Nhận biết), Hiểu (Thông hiểu), Vận dụng.
-     - Ô nhập liệu: Cho phép nhập số lượng câu hỏi cần lấy cho từng ô.
-     - Tính toán thời gian thực: Tự động tính tổng số câu từng dòng, tổng điểm từng dòng, tổng số câu theo từng cột nhận thức, tổng điểm theo từng cột nhận thức và tổng điểm toàn đề (chuẩn 10.0đ).
-     - Thanh đo lường Bloom: Hiển thị trực quan tỷ lệ % Biết, Hiểu, Vận dụng; cảnh báo màu hổ phách nếu độ lệch vượt quá $\pm 5\%$ so với tỷ lệ chuẩn của từng loại kỳ thi.
-  3. *Đối soát Tồn kho Thời gian thực (Live Inventory Checker):*
-     - Hệ thống kết nối cơ sở dữ liệu câu hỏi thực tế qua API `POST /api/v1/matrix/{id}/check-availability` hoặc `POST /api/v1/matrix/check-availability`.
-     - Với mỗi ô ma trận, đếm số câu hỏi có `status = 'APPROVED'` và `is_defective == False` khớp YCCĐ, mức độ và thể thức.
-     - Hiển thị badge trực quan: Xanh lá nếu đủ câu (ví dụ: `Kho: 15 câu (Đủ)`), Đỏ nếu thiếu câu (ví dụ: `Kho: 2 câu (Thiếu 2)`).
-     - Tổng hợp cảnh báo toàn ma trận: Hiển thị danh sách ô thiếu câu và tổng số câu cần bổ sung vào Ngân hàng.
-  4. *API Quản lý & Xuất bản Bản đặc tả Ma trận:*
+  1. *Thiết kế Header Card & Công thái học Chuẩn Apple HIG:*\n     - Bố trí thanh tham số tinh gọn: Tên bài thi, Khối lớp & Môn học, Thời lượng thi với dropdown `.apple-select` đồng nhất kích thước, Thang điểm tổng (10.0đ), Nút Lưu & Ban hành Ma trận, Xuất bản PDF/CSV UTF-8 BOM/JSON.
+  2. *Cột 1: Cấu trúc Cây Phân Cấp Chương · Bài · Dạng (Tree Column - Sticky Left):*
+     - Trục dọc phân cấp 3 tầng: `Chương (Topic) -> Bài học (Lesson) -> Dạng bài tập (Problem Archetype / YCCĐ)`.
+     - Sticky left (`sticky left-0 z-10 bg-white min-w-[320px] max-w-[400px]`) bảo đảm luôn cố định tên chương/bài/dạng khi cuộn ngang 12 cột nhận thức.
+     - Thanh công cụ điều khiển Cột 1:
+       * Nút **"Mở hết" (Expand All)** và **"Đóng hết" (Collapse All)** giúp đóng/mở toàn bộ các nhánh cây tức thì.
+       * **Ô tìm kiếm dạng bài (Live Search Input):** Lọc theo thời gian thực các dạng bài hoặc bài học khớp từ khóa, tự động mở các nhánh khớp và làm nổi bật kết quả.
+       * **Checkbox "Dạng có câu":** Khi được tích chọn, lọc ẩn các dạng bài có số tồn kho bằng 0, chỉ giữ lại các dạng bài có câu hỏi khả dụng hoặc đã được cấu hình $> 0$.
+  3. *Lưới Ma trận 3 Nhóm Cột Lớn (Chuẩn Định Dạng Đề Thi 2025) x 4 Cột Con Nhận Thức:*
+     - Nhóm Phần I: Trắc nghiệm 4 lựa chọn (0.25đ/câu) $\times$ [NB, TH, VD, VDC].
+     - Nhóm Phần II: Đúng / Sai 4 ý (1.0đ/câu bậc thang QĐ 764) $\times$ [NB, TH, VD, VDC].
+     - Nhóm Phần III: Trả lời ngắn (0.5đ/câu) $\times$ [NB, TH, VD, VDC].
+     - *(Mở rộng: Phần IV - Tự luận 1.0đ/câu).*
+     - Cột Ngoài Cùng: `Tổng câu` và `Tổng điểm` cho từng dạng bài (và subtotal của từng bài học/chương).
+  4. *Ô Nhập Liệu (Matrix Input Cell) & Đối Soát Tồn Kho Thời Gian Thực:*
+     - Mỗi ô lá giao nhau gồm một input số lượng câu ($\ge 0$) và chip badge hiển thị tồn kho thực tế (`Kho: {stock}`).
+     - Đổi màu thời gian thực: Chip xanh lá `stock-ok` khi đủ câu; Chip đỏ cảnh báo `stock-warn` khi nhu cầu lớn hơn tồn kho khả dụng (`Kho: {avail} / Cần: {needed}`).
+     - Tại các hàng Chương và Bài học: Hiển thị subtotal tự động tính toán từ các dạng bài con.
+  5. *Thanh Footer Cố Định (Sticky Bottom Action Bar):*
+     - Bám dính cố định ở đáy màn hình với hiệu ứng kính mờ `backdrop-blur` và đổ bóng nổi bật.
+     - Thống kê trực tiếp: Tổng số câu & điểm từng Phần (I, II, III); Tổng cộng toàn đề (chuẩn 10.0đ).
+     - Thanh đo lường tỷ lệ nhận thức 4 mức độ: NB % - TH % - VD % - VDC % (với cảnh báo khi chênh lệch so với chuẩn khảo thí).
+     - Cụm nút hành động: Đặt lại (Reset), Nạp Presets mẫu (THPT 2025 22 câu 10đ, Đánh giá định kỳ 20 câu, Cuối kỳ 28 câu), và nút chính **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** (`#btn-matrix-generate-exam`) tự động lưu ma trận, gọi API sinh đề gốc và chuyển sang tab Trộn đề (`#tab-shuffler`).
+  6. *API Quản lý & Xuất bản Bản đặc tả Ma trận:*
      - Hỗ trợ cả 2 tiền tố route song song: `/api/v1/matrix` và `/api/v1/matrices`.
+     - `GET /api/v1/matrices/bank-inventory`: Cung cấp số lượng tồn kho câu hỏi gom nhóm theo `(archetype_id, format, level)`.
      - `POST /api/v1/matrix`: Lưu và ban hành ma trận vào CSDL.
      - `GET /api/v1/matrix`: Danh sách các ma trận đã ban hành.
      - `GET /api/v1/matrix/{id}`: Chi tiết bản đặc tả ma trận.
      - `GET /api/v1/matrix/{id}/spec`: Xuất bản bản đặc tả ma trận đề thi ra 3 định dạng (`format=json`, `format=csv`, `format=pdf`):
        * `json`: Payload chi tiết cấu trúc ma trận và thống kê tồn kho.
        * `csv`: File bảng tính CSV có gắn mã ký tự UTF-8 BOM (`\ufeff`) hiển thị chuẩn tiếng Việt trên Excel.
-       * `pdf`: Bản đặc tả in ấn A4 Portrait chuẩn quy cách Bộ GD&ĐT gồm Khung Ma trận phân bổ 2D và Bảng Đặc tả chi tiết từng câu hỏi.
-     - Nút "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề": Lưu ma trận hiện tại, gọi API sinh đề gốc từ ma trận và chuyển mượt sang Tab Trộn đề.
+       * `pdf`: Bản đặc tả in ấn A4 Portrait chuẩn quy cách Bộ GD&ĐT gồm Khung Ma trận Phân cấp Đa tầng và Bảng Đặc tả chi tiết từng câu hỏi.
 
 #### SRS-FEAT-07: Động cơ Sinh Đề Gốc theo Ràng buộc Ma trận (CSP Solver) & Đổi Câu Tương Đương (In-Place Item Swap)
 - **Mô tả:** Tự động giải bài toán thỏa mãn ràng buộc (Constraint Satisfaction Problem - CSP) để rút câu hỏi từ ngân hàng thành Đề Thi Gốc (Master Exam) và hỗ trợ giáo viên thẩm định, đổi câu hỏi linh hoạt.
@@ -693,8 +700,12 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
      - Ràng buộc loại trừ: Loại bỏ các câu hỏi đã xuất hiện trong danh sách loại trừ hoặc các đề thi trong 30 ngày qua khi được kích hoạt.
      - Trọng số trắc lượng học (Psychometric Weighting): Ưu tiên câu hỏi có độ phân biệt tốt ($D \ge 0.3$) và độ khó cân đối ($p \approx 0.55$).
      - Đề gốc được lưu vào CSDL (`MasterExam` và `MasterExamItem`) phân theo 3 phần: Phần I (TN đơn), Phần II (Đúng/Sai), Phần III (Trả lời ngắn).
-  2. *Hiển thị Đề thi Gốc Đầy đủ Thông tin:*
+  2. *Hiển thị Đề thi Gốc Đầy đủ Cả 3 Thể thức Câu hỏi (Circular 32 & Decision 764):*
      - API `POST /api/v1/exams/generate` và `GET /api/v1/exams/{master_id}` trả về đầy đủ thân câu hỏi (`stem`), phương án trắc nghiệm (`options`), các khẳng định con (`sub_statements`), câu trả lời ngắn, mã YCCĐ, đồ thị TikZ SVG và KaTeX preview.
+     - **Hiển thị trực quan 3 thể thức chuẩn:**
+       * *Phần I - Trắc nghiệm 4 lựa chọn (SINGLE_CHOICE):* Lưới 4 phương án A, B, C, D; làm nổi bật phương án đúng bằng màu xanh lá (`bg-emerald-50 text-emerald-900 border-emerald-300 font-bold`); hiển thị badge `[Neo D]` nếu có mỏ neo vị trí.
+       * *Phần II - Trắc nghiệm Đúng/Sai (TRUE_FALSE_GROUP):* 4 khẳng định con a, b, c, d với nhãn rõ nét `[ĐÚNG]` (xanh lá) hoặc `[SAI]` (đỏ) kèm barem chấm bậc thang QĐ 764 (1 ý = 0.1đ, 2 ý = 0.25đ, 3 ý = 0.5đ, 4 ý = 1.0đ).
+       * *Phần III - Trắc nghiệm Trả lời ngắn (SHORT_ANSWER):* Hộp đáp số nổi bật (`Đáp án: <giá trị số>`) với định dạng số chuẩn và barem 0.5đ/câu.
      - Hiển thị badge Option Anchor nếu câu hỏi chứa phương án phụ thuộc vị trí.
   3. *Động cơ Đổi Câu hỏi Khác (In-Place Question Swap Engine):*
      - `GET /api/v1/exams/{master_id}/items/{item_id}/replacement-candidates`: Tìm kiếm các câu hỏi thay thế tiềm năng từ CSDL Question Bank:
@@ -703,13 +714,18 @@ ightarrow$ Thể thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_
        * Cùng thể thức câu hỏi (`item_format`).
        * Trạng thái `status = 'APPROVED'` và `is_defective == False`.
        * Loại trừ tất cả các câu hỏi đang có mặt trong đề gốc.
+     - Nút "Đổi câu khác" công thái học (hover mượt mà, scale 0.97, icon `refresh-cw`). Modal đổi câu hỗ trợ xem trước đầy đủ cả 3 thể thức của các ứng viên trước khi giáo viên xác nhận chọn.
      - `POST /api/v1/exams/{master_id}/items/{item_id}/swap`: Thay thế câu hỏi chỉ định trong đề gốc bằng câu hỏi mới; tự động xóa các mã đề hoán vị cũ (`ExamVariant`) để yêu cầu trộn lại, bảo toàn tính nhất quán tuyệt đối.
   4. *Thanh Công Cụ Nguồn Đề Thi Gốc & Nhập từ Ma Trận Khảo Thí (Master Exam Source Toolbar):*
      - Bố trí trực tiếp ở đầu tab `#tab-shuffler` ngay dưới thanh tiến trình:
        * *Chọn Đề Gốc Đã Có:* Dropdown danh sách các đề thi gốc đã lưu trong hệ thống (`GET /api/v1/exams`). Khi người dùng chọn, tải thông tin và câu hỏi tương ứng.
        * *Tạo Đề Gốc từ Ma Trận Khảo Thí:* Dropdown danh sách ma trận (`GET /api/v1/matrix`) kèm nút bấm **`⚡ Sinh Đề Gốc từ Ma Trận Này`** (`POST /api/v1/exams/generate`), cho phép sinh đề gốc trực tiếp từ phân hệ Trộn Đề mà không cần thao tác trung gian.
        * *Đồng bộ Ma Trận Hiện Tại:* Nút bấm **`🔄 Đồng bộ từ Ma trận hiện tại`** cho phép đồng bộ ngay cấu hình ma trận đang mở trong Matrix Studio.
-       * *Thẻ Thông Tin Tổng Quan:* Hiển thị trực quan Tên đề thi, Môn học, Khối lớp, Thời gian làm bài, Tổng số câu hỏi, Thang điểm 10.0đ.
+       * *Thẻ Thông Tin Tổng Quan (Meta Bar):* Hiển thị trực quan Tên đề thi, Môn học, Khối lớp, Thời gian làm bài, Tổng số câu hỏi, Thang điểm 10.0đ và cơ cấu 3 phần.
+     - **Hiển thị Mã đề Hoán vị Đầy đủ 3 Thể thức (Variant View):**
+       * Khi xem các mã đề hoán vị (101, 102, 103, 104), hệ thống hiển thị chính xác toàn bộ nội dung của cả 3 thể thức theo thứ tự hoán vị của từng mã đề.
+     - **Bảng Ma Trận Đáp Án Đối Chiếu (Answer Key Matrix):**
+       * Lập bảng so sánh đáp án đối chiếu giữa Đề Gốc và 4 mã đề hoán vị: hiển thị ký tự (A, B, C, D) cho Phần I, chuỗi 4 khẳng định Đ/S cho Phần II, và giá trị số cho Phần III; kèm cột trạng thái mỏ neo Option Anchor.
 
 #### SRS-FEAT-08: Thuật toán Trộn Đề & Hoán vị Mã đề An toàn (Safe Shuffling Engine)
 - **Mô tả:** Sinh ra 4 mã đề hoán vị chuẩn (101, 102, 103, 104) từ Đề thi Gốc, tuân thủ nghiêm ngặt 4 nguyên tắc khảo thí an toàn.
@@ -815,6 +831,89 @@ ightarrow$ Yêu cầu cần đạt (`yccd`).
      - Trả về payload JSON chi tiết số lượng câu hỏi lưu thành công theo từng thể thức (`counts: { single_choice, true_false, short_answer }`, `total_saved`).
      - Tự động cập nhật số đếm trên badge `#bank-count-badge` và làm mới dữ liệu tab Ngân hàng câu hỏi ngay lập tức.
 
+#### SRS-FEAT-14: Cơ Chế Biên Dịch KaTeX Toàn Diện & Chuẩn Hóa Công Thức Toán Toàn Hệ Thống
+- **Mô tả:** Triệt tiêu hoàn toàn lỗi hiển thị văn bản thô `$ ... $` của công thức toán học (`$y = \dfrac{x_1 - 1}{x + 1}$`, `$D = \mathbb{R} \setminus \{-1\}$`, `$x = -1$`, `$y = 1$`, `$x \neq -1$`) trên tất cả các thẻ câu hỏi và bảng ma trận.
+- **Yêu cầu kỹ thuật:**
+  1. *Expose Toàn Cục Hàm `renderKaTeX`:* Hàm `renderKaTeX(domElement)` phải được phơi ra phạm vi toàn cục (`window.renderKaTeX = renderKaTeX;` và `window.app.renderKaTeX = renderKaTeX;`), đảm bảo các lệnh gọi từ modal hoặc component bên ngoài luôn thực thi thành công.
+  2. *Bao Phủ Điểm Kết Xuất KaTeX (Render Coverage):*
+     - **Bảng Ngân hàng Câu hỏi (`renderItemBank`):** Gọi `renderKaTeX(container)` sau khi kết xuất danh sách card câu hỏi; đồng thời chuẩn hóa toàn bộ các lựa chọn `opt.content` và khẳng định `sub.content` qua `formatStemForDisplay(..., true)`.
+     - **Lưới Ma trận Đề thi 2D (`renderMatrixGrid`):** Bắt buộc gọi `renderKaTeX(tbody)` sau khi nạp HTML bảng, đảm bảo các ký hiệu toán học trong tên Dạng bài (Problem Archetype, ví dụ: `$m$`, `$Oxyz$`, `$f(x)$`) được biên dịch sắc nét.
+     - **Modal Xem Chi Tiết Câu Hỏi (`openQuestionDetailModal`):** Chuẩn hóa toàn diện thân câu hỏi (`formatStemForDisplay(q.stem)`), phương án trắc nghiệm (`formatStemForDisplay(cleanOptionAnswer(opt.content), true)`), khẳng định Đúng/Sai (`formatStemForDisplay(sub.content, true)`), kết quả trả lời ngắn, và lời giải chi tiết (`formatStemForDisplay(q.explanation)`). Gọi `renderKaTeX(modal)` ngay khi modal mở.
+     - **Phân hệ Sinh & Trộn Đề (`renderMasterExam`, `renderVariantView`, `openSwapQuestionModal`):** Chuẩn hóa và biên dịch KaTeX cho toàn bộ các đề mục câu hỏi, phương án lựa chọn và các ý khẳng định con.
+  3. *Chuẩn Hóa Ký Hiệu Toán Học Trước Khi Render:* Mọi nội dung câu hỏi và đáp án phải được tiền xử lý qua `formatStemForDisplay` và `formatLatexRules` (xử lý phân số `\dfrac`, tập hợp `\setminus`, số thập phân `{,}`, ngoặc kích thước động `\left`/`
+ight`, và đồ thị TikZ vector SVG).
+
+#### SRS-FEAT-15: Chuẩn Hóa Giao Diện Dropdown Box Chuẩn Apple HIG (.apple-select) & Triệt Tiêu Lỗi Font Monospace
+- **Mô tả:** Đồng bộ hóa 100% diện mạo các ô chọn dropdown (Select boxes) trên toàn bộ ứng dụng theo tiêu chuẩn Apple Human Interface Guidelines (HIG), loại bỏ nút mũi tên xám thô mặc định của hệ điều hành và triệt tiêu lỗi font chữ monospace không đồng nhất.
+- **Yêu cầu kỹ thuật:**
+  1. *Xây Dựng Class CSS Chuẩn `.apple-select`:*
+     - Triệt tiêu mũi tên mặc định của hệ điều hành: `appearance: none; -webkit-appearance: none; -moz-appearance: none;`.
+     - Tích hợp biểu tượng mũi tên chevron vector SVG tinh tế màu slate-500 (`stroke='%2364748b'`) căn giữa lề phải (`right 0.75rem center`, kích thước `14px 14px`).
+     - Bo góc mềm mại `border-radius: 12px`, padding công thái học `0.45rem 2.2rem 0.45rem 0.75rem`.
+     - Đường viền mờ tinh tế `border: 1px solid rgba(0, 0, 0, 0.12)`, nền trắng `#ffffff`, đổ bóng vi mô `box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04)`.
+     - Hiệu ứng Focus Apple Blue: Viền `#0071e3`, quầng hào quang nhẹ `box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15)`, chuyển động mượt mà `120ms cubic-bezier(0.2, 0, 0, 1)`.
+  2. *Triệt Tiêu Hoàn Toàn Lỗi Font Monospace Trên Dropdown Bộ Lọc:*
+     - Loại bỏ hoàn toàn class `font-mono` tại ô chọn **"6. Yêu cầu cần đạt"** (`#bank-filter-yccd`), đưa typography về font sans-serif chuẩn Apple (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif`), đồng nhất 100% với 5 box chọn còn lại.
+  3. *Khắc Phục Lỗi Dropdown Thời Gian Làm Bài Ma Trận Đề (`#matrix-param-time`):*
+     - Áp dụng class `apple-select w-full text-xs` cho ô chọn Thời gian làm bài (`#matrix-param-time`), đảm bảo chiều cao, góc bo 12px, padding và đường viền khớp hoàn hảo với các ô input text bên cạnh (`#matrix-param-name`).
+  4. *Áp Dụng Đồng Bộ Toàn Hệ Thống:*
+     - Toàn bộ 19 thẻ `<select>` tĩnh trong `frontend/index.html` và 3 thẻ `<select>` sinh động trong `frontend/static/app.js` (gồm dropdown dạng thức câu hỏi trong bảng ma trận 2D `updateMatrixRowFormat` và HITL taxonomy selectors) bắt buộc phải tích hợp class `.apple-select`.
+
+### 4.16. Yêu Cầu Giao Diện & Công Thái Học: Chống Đè Icon Tìm Kiếm & Chống Biến Mất Con Trỏ Ô Ma Trận
+- **Mã Yêu Cầu:** `SRS-FEAT-16`
+- **Mô tả:** Khắc phục triệt để 2 lỗi giao diện người dùng phát sinh trên các trường nhập liệu tìm kiếm và bảng ma trận đề thi:
+  1. *Khắc Phục Lỗi Icon Kính Lúp Đè Lên Text Placeholder (Search Icon Collision):*
+     - Định danh vị trí: Ô tìm kiếm dạng bài trong Ma trận đề thi (`#matrix-search-archetype`) và ô tìm kiếm ngân hàng câu hỏi (`#bank-search-input`).
+     - Căn nguyên kỹ thuật: Rule `.apple-input, input[type="text"]` trong `frontend/static/style.css` có độ ưu tiên CSS cao hơn class `pl-8` của Tailwind, ghi đè `padding-left: 0.75rem` (12px), trong khi icon nằm tại `left: 2.5` (10px - 24px), khiến văn bản placeholder bắt đầu ngay tại 12px và đè trực tiếp lên icon kính lúp.
+     - Quy chuẩn giải pháp: Thiết lập rule CSS chuyên biệt `#matrix-search-archetype, #bank-search-input, .search-input-with-icon { padding-left: 2.25rem !important; }` đảm bảo khoảng đệm an toàn 36px (10px lề + 14px icon + 12px khoảng thở). Bổ sung class `pointer-events-none` trên thẻ `<i>` icon kính lúp để thao tác click vào icon luôn truyền thẳng tới input.
+  2. *Khắc Phục Lỗi Con Trỏ Chuột Biến Mất Khi Rê Vào Ô Ma Trận (Matrix Input Cell Cursor Glitch):*
+     - Định danh vị trí: Các ô nhập số lượng câu hỏi trong bảng ma trận đề thi (`.matrix-input-cell`, `<input type="number">`).
+     - Căn nguyên kỹ thuật: Trình duyệt Chromium trên Windows tự động render spin button mặc định (`::-webkit-inner-spin-button`) chiếm 18-20px trong ô input hẹp (44px `w-11`), gây xung đột render phần cứng khiến con trỏ chuột bị ẩn/biến mất; đồng thời thẻ input và ô td chưa định nghĩa `cursor` và `caret-color` tường minh.
+     - Quy chuẩn giải pháp:
+       + Ẩn hoàn toàn spin buttons trên mọi trình duyệt:
+         `.matrix-input-cell input::-webkit-outer-spin-button, .matrix-input-cell input::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0 !important; }`
+         `.matrix-input-cell input[type="number"] { -moz-appearance: textfield !important; appearance: textfield !important; }`
+       + Hỗ trợ Click-to-Focus toàn ô: Nhấp chuột vào bất kỳ vị trí nào trong thẻ `td.matrix-input-cell` tự động focus và bôi đen số trong thẻ `<input>` bên trong.
+
+### 4.17. Yêu Cầu Con Trỏ Soạn Thảo Đen Nổi Bật (High-Contrast Bold Black Text Cursor & Caret)
+- **Mã Yêu Cầu:** `SRS-FEAT-17`
+- **Mô tả:** Nâng cấp toàn diện trải nghiệm con trỏ chuột và caret soạn thảo văn bản, khắc phục triệt để hiện tượng con trỏ text mặc định của Windows/Chromium quá mảnh, chìm màu hoặc vô hình trên nền sáng:
+  1. *Định nghĩa Custom High-Contrast SVG I-beam Cursor:*
+     - Khai báo con trỏ chuột dạng SVG I-beam màu đen đậm nét 2.8px kết hợp viền tương phản trắng 1.0px trung tâm, tọa độ điểm neo trọng tâm `12 12`:
+       `cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23000000' stroke-width='2.8' stroke-linecap='square'/%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23ffffff' stroke-width='1' stroke-linecap='square'/%3E%3C/svg%3E") 12 12, text !important;`
+     - Tỷ lệ nhận diện quang học đạt 100% trên mọi sắc độ nền: nổi bật tuyệt đối trên nền trắng/sáng của bảng ma trận và các input text; đồng thời viền trắng đảm bảo nhìn rõ cả khi di chuyển qua các mảng nền tối.
+  2. *Phạm Vi Áp Dụng:*
+     - Áp dụng trên toàn bộ các trường nhập liệu số của bảng ma trận: `.matrix-input-cell`, `.matrix-input-cell input`.
+     - Áp dụng trên toàn bộ các trường nhập text, search, email, password: `input[type="text"]`, `input[type="number"]`, `input[type="search"]`, `input[type="email"]`, `input[type="password"]`, `.apple-input`, `.search-input-with-icon`, và các `textarea` thông thường.
+  3. *Thiết Lập Caret Màu Đen Đậm Rõ Nét:*
+     - Bắt buộc thiết lập `caret-color: #000000 !important;` cho toàn bộ các input sáng màu và ô số ma trận, bảo đảm vạch nhấp nháy đen đậm, rõ nét khi gõ phím. (Ngoại trừ ô chat Dark Code Editor duy trì caret tím sáng `#c084fc` trên nền `#141824`).
+  4. *Hiệu Ứng Vi Tương Tác Hover Trên Ô Ma Trận (`.matrix-input-cell`):*
+     - Khi rê chuột vào ô `.matrix-input-cell`: Tự động đổi màu nền sang xanh Apple nhạt `background-color: rgba(0, 113, 227, 0.08) !important;`.
+     - Thẻ `<input>` bên trong được kích hoạt viền xanh Apple `#0071e3` cùng hào quang bóng đổ `box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25) !important;`, tạo phản hồi trực quan tức thì.
+
+### 4.18. Yêu Cầu Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG (Item Bank Pagination)
+- **Mã Yêu Cầu:** `SRS-FEAT-18`
+- **Mô tả:** Triệt tiêu hoàn toàn tình trạng render dồn dập toàn bộ 240+ câu hỏi ra DOM 1 lần gây giật lag và cuộn trang quá dài; chuyển đổi sang cơ chế phân trang linh hoạt (Pagination System) chuẩn Apple HIG kết hợp on-demand math rendering:
+  1. *Cấu Trúc Quản Lý Trạng Thái Phân Trang (State Management):*
+     - Bổ sung cấu trúc trạng thái trong state ứng dụng:
+       `state.bankPagination = { currentPage: 1, pageSize: 12 };`
+     - Hỗ trợ 3 mức kích thước trang: `12 câu/trang`, `24 câu/trang`, `48 câu/trang`.
+  2. *Cơ Chế Cắt Lát & On-Demand KaTeX Rendering:*
+     - Mảng câu hỏi sau khi lọc (`filtered`) được cắt lát chính xác theo trang:
+       `const startIndex = (state.bankPagination.currentPage - 1) * state.bankPagination.pageSize;`
+       `const endIndex = Math.min(startIndex + state.bankPagination.pageSize, totalItems);`
+       `const pagedItems = filtered.slice(startIndex, endIndex);`
+     - Hệ thống chỉ tạo DOM và gọi `renderKaTeX(container)` cho đúng `pagedItems` của trang hiện tại (tối đa 12-48 câu). Thời gian kết xuất DOM và biên dịch KaTeX giảm từ ~200ms xuống $< 10$ms, triệt tiêu hoàn toàn nghẽn tài nguyên trình duyệt.
+  3. *Thanh Điều Khiển Phân Trang Apple HIG (`#bank-pagination-controls`):*
+     - Định danh DOM: Nằm ngay bên dưới `#bank-cards-grid`.
+     - *Khu vực thông tin:* Hiển thị trực quan: `Hiển thị X - Y trong tổng số N câu hỏi`.
+     - *Khu vực nút số trang:* Nút `< Trước` (disabled khi `currentPage === 1`), danh sách các nút số trang kèm thuật toán dấu ba chấm thông minh `...` (trang active nổi bật với `bg-[#0071e3] text-white font-bold shadow-xs`), nút `Sau >` (disabled khi `currentPage === totalPages`).
+     - *Khu vực chọn số lượng/trang:* Dropdown `#bank-page-size-select` với class `.apple-select`, cho phép chọn nhanh 12 / 24 / 48 câu/trang.
+  4. *Tự Động Reset Khi Thay Đổi Bộ Lọc:*
+     - Mỗi khi người dùng tương tác với bất kỳ bộ lọc nào (tìm kiếm từ khóa, đổi cấp học, môn, mạch, chủ đề, bài học, YCCĐ, dạng bài, mức độ nhận thức, thể thức câu hỏi), hệ thống tự động reset `state.bankPagination.currentPage = 1`.
+  5. *Cuộn Mượt Về Đầu Danh Sách (Smooth Scroll-to-Top):*
+     - Khi chuyển trang (`changeBankPage`), hệ thống tự động thực hiện cuộn mượt (`scrollIntoView({ behavior: 'smooth', block: 'start' })`) về đầu danh sách `#bank-cards-grid`, mang lại cảm giác mượt mà 60 FPS.
+
 ---
 
 ## 5. THIẾT KẾ CƠ SỞ DỮ LIỆU LOGIC (LOGICAL DATA MODEL)
@@ -879,4 +978,9 @@ ightarrow$ Yêu cầu cần đạt (`yccd`).
 | **SRS-FEAT-11** | Test tự động + UI Test | Đăng ký, đăng nhập tài khoản mật khẩu (PBKDF2/SHA256 băm an toàn); cấp JWT HS256 chuẩn; hỗ trợ OAuth Google/GitHub; phân quyền RBAC (`TEACHER`, `ADMIN`, `STUDENT`); lưu token `quesy_auth_token` và đồng bộ header Authorization. |
 | **SRS-FEAT-12** | Test chức năng + UI Test | Thực thi đầy đủ CRUD câu hỏi; mở Modal Thêm mới, Modal Chi tiết, Modal Sửa, Xóa câu hỏi; lọc 6 tầng TT 32 cascading chuẩn; xuất danh sách ra PDF vector / CSV UTF-8 BOM / LaTeX; nhập câu hỏi; cập nhật ngay số lượng badge `#bank-count-badge`. |
 | **SRS-FEAT-13** | Test tích hợp + E2E | Nút chuyên biệt `📥 LƯU VÀO NGÂN HÀNG` trên toolbar Composer trích xuất trọn vẹn câu hỏi trắc nghiệm đơn, đúng/sai QĐ 764, trả lời ngắn, TikZ, BBT, lời giải chi tiết; tự động gắn tag YCCĐ AI; trả về chi tiết số lượng câu theo từng thể thức và cập nhật tức thì `#bank-count-badge`. |
+| **SRS-FEAT-14** | E2E Browser Test + UI Test | 100% công thức toán học (`$y = \dfrac{x_1 - 1}{x + 1}$`, `$D = \mathbb{R} \setminus \{-1\}$`, `$x = -1$`, `$y = 1$`, `$x \neq -1$`) trên thẻ câu hỏi Ngân hàng, Ma trận đề, Modal Chi tiết, Đề gốc và Đề hoán vị được biên dịch KaTeX sắc nét; không còn sót bất kỳ chuỗi văn bản thô `$ ... $` nào. |
+| **SRS-FEAT-15** | UI Audit + Cross-browser Test | 100% dropdown select áp dụng class `.apple-select` với icon chevron SVG slate-500, bo góc 12px, không còn mũi tên xám thô OS; ô chọn `#matrix-param-time` đồng bộ kích thước và viền với các input bên cạnh; ô `#bank-filter-yccd` xóa sạch class `font-mono` và hiển thị font sans-serif đồng nhất. |
+| **SRS-FEAT-16** | UI Audit + E2E Browser Test | 100% ô tìm kiếm kèm icon (`#matrix-search-archetype`, `#bank-search-input`) có padding-left >= 2.25rem (36px), triệt tiêu hoàn toàn hiện tượng icon đè lên placeholder; icon gắn `pointer-events-none`; các ô số ma trận (`.matrix-input-cell`) ẩn 100% spin buttons mặc định, click toàn ô tự động focus vào input. |
+| **SRS-FEAT-17** | UI Audit + Cross-browser Test | Con trỏ chuột chuyển thành SVG I-beam đen đậm có viền tương phản cao (`cursor: url(...) 12 12, text !important;`) trên toàn bộ các ô ma trận và các input text; `caret-color: #000000 !important;` trên các ô input sáng màu; hover `.matrix-input-cell` hiển thị nền xanh nhạt `rgba(0, 113, 227, 0.08)`, viền input xanh `#0071e3` và bóng `0 0 0 2px rgba(0, 113, 227, 0.25)`. |
+| **SRS-FEAT-18** | E2E Browser Test + Đo kiểm | Phân trang Ngân hàng câu hỏi chuẩn Apple HIG: thanh `#bank-pagination-controls` hiển thị chính xác dải số câu `X - Y trong tổng số N câu hỏi`; chuyển trang Trước/Sau và số trang mượt mà; dropdown chọn 12/24/48 câu/trang; tự động reset về trang 1 khi lọc; render KaTeX theo trang on-demand $< 10$ms; cuộn mượt về đầu danh sách khi chuyển trang. |
 | **SRS-VERIF-CI** | Test CI Runner + Pre-Commit Gate | 100% test cases vượt qua trên môi trường CI runner (`pytest`, syntax check) trước khi commit; tuân thủ nghiêm ngặt nguyên tắc Strict CI Isolation (chỉ duy nhất Sub-Agent CI đọc/ghi CI, cấm các sub-agent khác truy cập đọc); vòng lặp sửa lỗi CI loop lặp lại cho đến khi pass mới commit. |

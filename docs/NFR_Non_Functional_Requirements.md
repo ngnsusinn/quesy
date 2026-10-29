@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
+- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, hệ thống xác thực an toàn (PBKDF2/SHA256, JWT HS256, OAuth 2.0), tốc độ trích xuất lưu đề từ Composer vào Ngân hàng (<= 1.5s), độ trễ truy vấn lọc ngân hàng câu hỏi 6 tầng (P95 <= 150ms), hiệu năng phân hệ Ma trận đề thi 2D (tốc độ đối soát tồn kho <= 200ms, xuất bản bản đặc tả PDF <= 1.0s, CSV UTF-8 BOM <= 200ms), hiệu năng động cơ sinh & trộn đề an toàn (thời gian rút đề gốc <= 2.0s, đổi câu hỏi tương đương <= 300ms, sinh 4 mã đề hoán vị an toàn <= 1.5s), độ chính xác tuyệt đối 100% của Option Anchor Rule tại vị trí D, tốc độ đóng gói trọn bộ ấn phẩm khảo thí ZIP <= 10s, tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, hệ thống xác thực an toàn (PBKDF2/SHA256, JWT HS256, OAuth 2.0), tốc độ trích xuất lưu đề từ Composer vào Ngân hàng (<= 1.5s), độ trễ truy vấn lọc ngân hàng câu hỏi 6 tầng (P95 <= 150ms), hiệu năng phân trang Ngân hàng câu hỏi on-demand KaTeX (<= 50ms, tiết kiệm 85% DOM), hiệu năng phân hệ Ma trận đề thi 2D (tốc độ đối soát tồn kho <= 200ms, xuất bản bản đặc tả PDF <= 1.0s, CSV UTF-8 BOM <= 200ms), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input text, hiệu năng động cơ sinh & trộn đề an toàn (thời gian rút đề gốc <= 2.0s, đổi câu hỏi tương đương <= 300ms, sinh 4 mã đề hoán vị an toàn <= 1.5s), độ chính xác tuyệt đối 100% của Option Anchor Rule tại vị trí D, tốc độ đóng gói trọn bộ ấn phẩm khảo thí ZIP <= 10s, tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow, độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
 - **Ngày phát hành:** 2026-10-27
 
 ---
@@ -40,13 +40,14 @@ Tài liệu này xác định các tiêu chuẩn kỹ thuật phi chức năng (
 ### 2.2. Tốc độ Sinh Đề & Trộn Mã đề (Exam Engine Performance)
 - **NFR-PERF-05 (Thời gian sinh đề gốc từ ma trận YCCĐ):** Thuật toán tìm kiếm và lấy câu hỏi thỏa mãn ma trận (Constraint Solver) cho đề 34 câu (hoặc 50 câu) phải hoàn thành trong vòng **$< 2$ giây** trên kho dữ liệu ngân hàng câu hỏi.
 - **NFR-PERF-06 (Thời gian trộn đề và sinh 4 mã đề hoán vị):** Quá trình chạy thuật toán hoán vị an toàn 4 nguyên tắc, kiểm tra cờ neo vị trí (Option Anchor) và xuất ra ma trận ánh xạ đáp án cho 4 mã đề phải hoàn thành trong **$< 1.5$ giây**.
-- **NFR-PERF-17 (Thời gian Kiểm tra Đối soát Tồn kho Ma trận):** Thao tác đối soát số lượng câu hỏi khả dụng theo từng ô ma trận trong Question Bank qua API `POST /api/v1/matrix/{id}/check-availability` đạt thời gian đáp ứng **$\le 200$ ms**.
-- **NFR-PERF-18 (Thời gian Xuất bản Bản đặc tả Ma trận Đề thi):** Tiến trình kết xuất Bản đặc tả Ma trận Đề thi ra file PDF Vector đạt **$\le 1.0$ giây**, và file CSV UTF-8 BOM đạt **$\le 200$ ms**.
+- **NFR-PERF-17 (Thời gian Kiểm tra Đối soát Tồn kho & Truy Vấn Ma trận Đa Tầng):** Thao tác đối soát số lượng câu hỏi khả dụng theo từng ô ma trận trong Question Bank qua API `POST /api/v1/matrix/{id}/check-availability` hoặc API tổng hợp tồn kho `GET /api/v1/matrices/bank-inventory` đạt thời gian đáp ứng **$\le 150$ ms**. Thao tác render cây ma trận phân cấp đa tầng (Chương · Bài · Dạng x 12 cột nhận thức) trên trình duyệt hoàn tất trong vòng **$\le 100$ ms**.
+- **NFR-PERF-18 (Thời gian Xuất bản Bản đặc tả Ma trận Đề thi Phân Cấp):** Tiến trình kết xuất Bản đặc tả Ma trận Đề thi ra file PDF Vector đạt **$\le 1.0$ giây**, và file CSV UTF-8 BOM đạt **$\le 200$ ms**.
 - **NFR-PERF-19 (Thời gian Hoán đổi Câu hỏi Đề Gốc - In-Place Question Swap):** Thao tác tìm kiếm ứng viên tương đương và hoán đổi một câu hỏi trong đề gốc qua API `POST /api/v1/exams/{master_id}/items/{item_id}/swap` hoàn thành trong vòng **$\le 300$ ms**.
 - **NFR-ACC-02 (Độ Chính xác 100% của Option Anchor Rule tại vị trí D):** Trong 100% các lần hoán vị mã đề (kiểm thử 100+ vòng lặp), các phương án có chứa từ ngữ phụ thuộc vị trí ("Cả A và B", "Tất cả các đáp án trên", "Không có đáp án nào"...) hoặc cờ `is_fixed = True` bắt buộc phải nằm cố định tại vị trí D, không bao giờ xuất hiện ở A, B, C.
 
 ### 2.3. Hiệu năng Giao diện, Render Công thức & Xuất bản (Frontend & Engine Performance)
 - **NFR-PERF-07 (Tốc độ render công thức KaTeX):** Trên màn hình Studio Hậu kiểm chứa 50 câu hỏi đầy đủ công thức toán, thời gian render ban đầu (First Contentful Paint) không quá **1.2 giây**; tốc độ khung hình khi cuộn trang (Scrolling Frame Rate) phải duy trì ổn định $\ge 60$ FPS.
+- **NFR-PERF-21 (Hiệu Năng Phân Trang Ngân Hàng & Tải KaTeX Theo Trang On-Demand):** Khi ngân hàng có $> 240$ câu hỏi, thời gian kết xuất DOM và biên dịch KaTeX cho mỗi trang (12, 24 hoặc 48 câu) không quá **50 ms** (so với $> 800\text{ ms}$ khi render dồn dập toàn bộ 240+ câu cùng lúc); dung lượng bộ nhớ DOM giảm $85\%$, FCP tức thì $\le 10\text{ ms}$, cuộn trang duy trì $60\text{ FPS}$ mượt mà.
 - **NFR-PERF-08 (Độ trễ Đồng bộ Cuộn trang - Synchronized Scrolling):** Khi người dùng chọn câu hỏi bên phải, khung xem tài liệu gốc bên trái cuộn đến vị trí tương ứng với độ trễ phản hồi **$< 100$ ms**.
 - **NFR-PERF-09 (Độ trễ API thông thường):** Các API truy vấn tìm kiếm câu hỏi theo YCCĐ, lấy danh mục cây bài học/dạng bài có độ trễ $P95 < 200$ ms.
 - **NFR-PERF-10 (Tốc độ Xử lý MathJax Persistent Worker):** Dịch vụ daemon Node.js MathJax chuyển đổi TeX sang MathML / SVG / Vector WMF phải hoàn thành trong **$< 20$ ms/công thức**, bảo đảm không tạo điểm nghẽn (bottleneck) trong tiến trình xuất bản.
@@ -143,9 +144,30 @@ floor))$.
 - **NFR-USA-01 (Đồng bộ Cuộn trang - Synchronized Scrolling):** Khi người dùng cuộn xem câu hỏi ở cột bên phải, khung xem tài liệu gốc bên trái di chuyển mượt mà đến đúng vùng tài liệu tương ứng với độ trễ phản hồi **$< 100$ ms**.
 - **NFR-USA-02 (Học nhanh - Learnability):** Giáo viên mới tiếp cận hệ thống có thể hoàn thành việc tải lên một đề thi và duyệt 10 câu hỏi đầu tiên vào ngân hàng trong vòng **$< 15$ phút** mà không cần tham gia lớp đào tạo trực tiếp.
 
-### 6.2. Tiêu chuẩn Khả năng Tiếp cận (Accessibility & Compatibility)
+### 6.2. Tiêu chuẩn Khả năng Tiếp cận & Giao diện Apple HIG (Accessibility & UI Ergonomics)
 - **NFR-USA-03 (Tương thích Trình duyệt):** Hoạt động đồng nhất 100% trên các trình duyệt phổ biến: Google Chrome (phiên bản $\ge 110$), Microsoft Edge (phiên bản $\ge 110$), Mozilla Firefox, và Safari trên MacOS/iPadOS.
 - **NFR-USA-04 (Tương thích Thiết bị):** Hỗ trợ tốt trên màn hình máy tính bàn, laptop (tối thiểu 1366x768) và máy tính bảng (iPad/Android tablet).
+- **NFR-USA-05 (Thiết Kế Header Card Chuẩn Apple HIG & Chống Tràn Bố Cục - Zero Layout Shift & Overflow):**
+  - Header Card của phân hệ Ma trận đề thi (`SCR-MATRIX-BUILDER`) đảm bảo tính thích ứng (Responsive) 100% trên các dải phân giải màn hình từ 1024px đến 2560px; loại bỏ hoàn toàn việc xếp chồng các nút preset dài chung hàng với tiêu đề gây đẩy lệch lề hoặc vỡ layout.
+  - Vị trí nút thao tác công thái học chuẩn: Nút **`Thêm dòng YCCĐ`** được đặt trên thanh công cụ của bảng ma trận với duy nhất 1 icon plus tinh tế (loại bỏ triệt để lỗi lặp `+ +`).
+  - Bảng ma trận 2D hỗ trợ cuộn ngang mượt mà (`overflow-x-auto`) với cột Mạch nội dung cố định sticky bên trái, các dropdown Dạng thức câu hỏi và ô nhập liệu nhận thức phản hồi xúc giác tức thì ($\le 16$ ms/thao tác), tự động tính toán lại điểm dòng và tổng điểm ma trận mà không gây giật lag giao diện.
+- **NFR-USA-06 (Tính Nhất Quán Giao Diện Apple Select & Triệt Tiêu Font Monospace):**
+  - Toàn bộ các dropdown (`<select>`) trên toàn hệ thống áp dụng class `.apple-select`, ẩn triệt để nút mũi tên mặc định của hệ điều hành, thay bằng icon SVG chevron slate-500 `#64748b` chuẩn mực.
+  - Ô chọn Thời gian làm bài (`#matrix-param-time`) phải đạt độ đồng nhất 100% về chiều cao, padding và viền bo 12px với các ô input bên cạnh.
+  - Loại bỏ hoàn toàn font monospace khỏi các ô chọn bộ lọc taxonomy (`#bank-filter-yccd`), bảo đảm typography sans-serif Apple HIG đồng bộ 100%.
+- **NFR-USA-07 (Độ Bao Phủ KaTeX Toàn Diện & Không Sót Text Thô):**
+  - Tỷ lệ công thức toán học được biên dịch KaTeX đạt **100%** trên toàn bộ các thành phần hiển thị: Ngân hàng câu hỏi, Bảng ma trận đề 2D, Modal xem chi tiết câu hỏi, Đề gốc, Đề hoán vị và Modal đổi câu hỏi.
+  - Tỷ lệ sót ký hiệu thô `$ ... $` do thiếu hàm biên dịch hoặc thiếu formatStemForDisplay bằng **0%**.
+- **NFR-USA-08 (Độ Rộng Đệm An Toàn Ô Tìm Kiếm Kèm Icon - Anti-Icon Collision):**
+  - 100% các ô tìm kiếm tích hợp icon dẫn đầu (`#matrix-search-archetype`, `#bank-search-input`) bắt buộc duy trì padding-left tối thiểu $\ge 2.25\text{rem}$ ($36\text{px}$) bất kể quy tắc kế thừa CSS toàn cục, đảm bảo khoảng cách an toàn giữa icon ($10\text{px}-24\text{px}$) và văn bản placeholder bắt đầu từ $36\text{px}$ (khoảng thở $\ge 12\text{px}$).
+  - Tỷ lệ che khuất icon lên văn bản bằng **0%**. Thẻ icon kích hoạt `pointer-events: none` cho phép $100\%$ sự kiện nhấp chuột truyền thẳng vào trường nhập liệu.
+- **NFR-USA-09 (Con Trỏ Soạn Thảo Đen Nổi Bật & Nhận Diện Tương Phản Cao - High-Contrast Black Text Cursor & Caret):**
+  - 100% các ô nhập số lượng ma trận (`.matrix-input-cell`, `<input type="number">`) và các trường nhập liệu text/search/email/password/textarea áp dụng con trỏ SVG I-beam màu đen đậm nét 2.8px viền trắng 1.0px (`cursor: url("data:image/svg+xml,...") 12 12, text !important;`).
+  - Tỷ lệ nhận diện thị giác của con trỏ chuột đạt **100%** trên mọi sắc độ nền (trắng, xám, xanh hover và tối), triệt tiêu hoàn toàn hiện tượng con trỏ I-beam mặc định của hệ điều hành quá mảnh hoặc bị chìm màu khiến người dùng không nhìn thấy.
+  - Thiết lập `caret-color: #000000 !important;` cho toàn bộ các input sáng màu và ô ma trận, đảm bảo vạch nhấp nháy đen đậm rõ nét.
+  - Hiệu ứng vi tương tác hover trên `.matrix-input-cell` phản hồi tức thì ($\le 16\text{ ms}$): nền xanh nhạt `rgba(0, 113, 227, 0.08)`, viền input xanh Apple `#0071e3`, bóng đổ `box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25)`. Click toàn ô tự động focus và bôi đen input đạt **100%**.
+- **NFR-USA-10 (Trải Nghiệm Phân Trang Chuẩn Apple HIG - Item Bank Pagination UX):**
+  - Thanh phân trang `#bank-pagination-controls` cung cấp 3 kích thước trang (12, 24, 48 câu/trang), dải số trang thông minh với active Apple Blue `#0071e3`, điều hướng Trước/Sau tự động vô hiệu hóa ở biên, tự động reset về trang 1 khi lọc, và cuộn mượt về đầu danh sách câu hỏi đạt tốc độ khung hình 60 FPS.
 
 ---
 
@@ -159,9 +181,9 @@ floor))$.
 ## 8. QUẢN TRỊ PHÁT TRIỂN, CỔNG PRE-COMMIT CI GATE & QUY TẮC GIT WORKFLOW (DEVELOPMENT GOVERNANCE)
 
 - **NFR-DEV-01 (Quy chuẩn Git Commit & Push qua Cổng Pre-Commit CI):** Mọi thay đổi mã nguồn bắt buộc phải vượt qua toàn diện bài kiểm thử CI trên runner (100% test cases PASSED) trước khi thực hiện `git commit` tuân thủ chuẩn Conventional Commits (`feat:`, `fix:`, `docs:`, `perf:`, `refactor:`) và `git push` lên nhánh remote repository tương ứng.
-- **NFR-DEV-02 (Tuyệt đối Không Tự Động Tạo Pull Request):**
-  - Nghiêm cấm tuyệt đối các agent, tiến trình tự động hóa, hoặc script CI tự ý tạo Pull Request (`gh pr create`, REST API calls) hoặc tự động đẩy/cập nhật vào Pull Request.
-  - Hành động mở hoặc cập nhật Pull Request chỉ được phép thực hiện khi và chỉ khi có yêu cầu bằng lời nói rõ ràng, tường minh từ người dùng (explicit user prompt).
+- **NFR-DEV-02 (Quy tắc Tạo Pull Request Trước Khi Commit & Cập Nhật Mô Tả PR Liên Tục):**
+  - **Quy tắc tạo PR trước khi commit (PR First Rule):** Khi bắt đầu triển khai hoặc có nhánh làm việc (`feat`), BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`). Tuyệt đối không commit khi chưa tồn tại Pull Request.
+  - **Quy tắc cập nhật mô tả PR liên tục (Continuous PR Description Sync):** Nếu đang tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh chính xác trạng thái kỹ thuật, các thay đổi mới nhất và kết quả kiểm thử.
 - **NFR-DEV-03 (Dọn dẹp Tiến trình Nền):** Sau khi chạy thử nghiệm hoặc kiểm thử, toàn bộ các tiến trình nền (uvicorn cổng 8000, worker Node.js, subprocess) phải được dọn dẹp và tắt triệt để, không để tồn đọng tiến trình mồ côi.
 - **NFR-DEV-04 (Cổng Kiểm Soát Pre-Commit CI Gate & Vòng Lặp Sửa Lỗi CI Loop):**
   - **Pre-commit Gate:** Trước khi commit, bắt buộc phải test qua được CI. Tuyệt đối cấm commit khi CI chưa pass.

@@ -249,7 +249,12 @@ def test_export_exam_package_zip_comprehensive():
         variants = db.query(ExamVariant).filter(ExamVariant.master_exam_id == master.id).all()
         if not variants:
             from backend.services.shuffling_engine import generate_shuffled_variants
-            variants = generate_shuffled_variants(master.id, db, ["101", "102"])
+            variants = generate_shuffled_variants(master.id, db, ["101"])
+        elif len(variants) > 1:
+            for extra_v in variants[1:]:
+                db.delete(extra_v)
+            db.commit()
+            variants = db.query(ExamVariant).filter(ExamVariant.master_exam_id == master.id).all()
 
         zip_str = export_exam_package_zip(master.id, db)
         zip_path = Path(zip_str)

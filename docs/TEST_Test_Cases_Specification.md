@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
+- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 209+ Tests (100% Passed)  
-- **Ngày lập:** 2026-10-27  
+- **Tổng số kịch bản tự động hóa:** 220+ Tests (100% Passed)  
+- **Ngày lập:** 2026-10-29  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
 ---
@@ -42,6 +42,7 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 | **TS-09** | Soạn đề LaTeX AI, Live PDF & Save-to-Bank 3 Thể Thức | FR-02.1, FR-02.2, NFR-COMP-02 | 118 | P0 (Must Have) |
 | **TS-10** | Quản trị CI/CD & Cổng Pre-Commit Gate | NFR-DEV-01..06, TC-DEV-01..02 | 2 | P0 (Critical) |
 | **TS-11** | Hệ Thống Xác Thực Auth (PBKDF2, JWT, OAuth Google/GitHub, RBAC) | BR-05.2, FR-08, AUTH-01 | 19 | P0 (Critical) |
+| **TS-12** | Con Trỏ Soạn Thảo Đen Tương Phản Cao & Phân Trang Ngân Hàng Apple HIG | BR-03, BR-04, FR-04.9, FR-05.6, NFR-USA-09,10 | 5 | P0 (Must Have) |
 
 ---
 
@@ -157,46 +158,53 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 
 ---
 
-### TEST SUITE 05: MA TRẬN ĐỀ THI 2D THEO YCCĐ & ĐỐI SOÁT TỒN KHO
+### TEST SUITE 05: BẢNG MA TRẬN PHÂN CẤP ĐA TẦNG (CHƯƠNG · BÀI · DẠNG x 3 PHẦN x 4 MỨC ĐỘ) & ĐỐI SOÁT TỒN KHO
 
-#### TC-MATRIX-01: Thiết lập Lưới Ma trận 2D & Tải 3 Presets Chuẩn Hóa
-- **Mô tả:** Kiểm tra khả năng tải và áp dụng chính xác 3 preset ma trận đề thi mẫu theo TT 22 & QĐ 764.
+#### TC-MATRIX-01: Thiết lập Bảng Ma trận Phân cấp Đa tầng & Tải Presets Chuẩn Hóa
+- **Mô tả:** Kiểm tra khả năng hiển thị cây phân cấp Chương · Bài · Dạng, 12 cột nhận thức (3 Phần x 4 Cấp độ NB-TH-VD-VDC) và áp dụng các preset ma trận mẫu chuẩn Bộ GD&ĐT 2025.
 - **Các bước thực hiện:**
   1. Truy cập tab `#tab-matrix`.
   2. Bấm nút áp dụng lần lượt: `Preset 1 (Chuẩn TN THPT 2025)`, `Preset 2 (Kiểm tra Định kỳ)`, `Preset 3 (Kiểm tra Cuối kỳ)`.
 - **Kết quả kỳ vọng:**
-  - Preset 1: Điền đúng 34 câu, 10.0đ (12 TN đơn, 4 Đúng/Sai, 6 Trả lời ngắn), tỷ lệ Bloom đạt 40% Biết - 30% Hiểu - 30% Vận dụng.
-  - Preset 2: Điền đúng 20 câu, 10.0đ (12 TN đơn, 4 Đúng/Sai, 4 Trả lời ngắn).
-  - Preset 3: Điền đúng 28 câu, 10.0đ (16 TN đơn, 4 Đúng/Sai, 8 Trả lời ngắn).
-  - Lưới ma trận render mượt mà, không gián đoạn giao diện.
+  - Cột 1 hiển thị cây phân tầng rõ nét: Chương (Topic) -> Bài học (Lesson) -> Dạng bài (Problem Archetype) kèm các nút "Mở hết", "Đóng hết", tìm kiếm dạng bài và checkbox "Dạng có câu".
+  - Preset 1: Điền đúng 22 câu (12 TN đơn x 0.25đ = 3.0đ, 4 Đúng/Sai x 1.0đ = 4.0đ, 6 Trả lời ngắn x 0.5đ = 3.0đ), tổng điểm đạt 10.0đ chuẩn xác, tỷ lệ nhận thức phân bổ trên cả 4 mức độ NB-TH-VD-VDC.
+  - Lưới ma trận render mượt mà $\le 100$ ms, không gián đoạn giao diện.
 
-#### TC-MATRIX-02: Tính toán Thời gian thực & Cảnh báo Tỷ lệ Bloom
-- **Mô tả:** Kiểm tra cơ chế tự động tính tổng câu, tổng điểm từng dòng/cột và nhãn cảnh báo Bloom khi người dùng thay đổi giá trị ô ma trận.
+#### TC-MATRIX-02: Tính toán Thời gian thực, Subtotal & Thanh Footer Cố Định
+- **Mô tả:** Kiểm tra cơ chế tự động tính tổng câu, tổng điểm từng ô, subtotal từng bài/chương và cập nhật thời gian thực trên thanh Footer cố định ở đáy màn hình.
 - **Các bước thực hiện:**
-  1. Thay đổi số lượng câu hỏi ở ô Biết thành 20 câu, Hiểu 2 câu, Vận dụng 2 câu.
+  1. Nhập số lượng câu hỏi tại các ô giao giữa dạng bài và thể thức/mức độ nhận thức.
+  2. Quan sát subtotal tại các hàng Bài học và hàng Chương.
+  3. Kiểm tra các chỉ số tổng hợp tại thanh Footer cố định (`#matrix-sticky-footer`).
 - **Kết quả kỳ vọng:**
-  - Tổng câu và tổng điểm các dòng/cột cập nhật tức thì.
-  - Thanh tiến trình Bloom chuyển màu hổ phách kèm nhãn cảnh báo: "CẢNH BÁO: Tỷ lệ phân bố Bloom lệch so với chuẩn TT 22".
+  - Subtotal từng bài và chương cập nhật tức thì khi thay đổi giá trị ô input con.
+  - Thanh Footer hiển thị đầy đủ tổng số câu & điểm từng Phần (I, II, III), tổng câu toàn đề, tổng điểm toàn đề (10.0đ).
+  - Thanh tỷ lệ nhận thức 4 màu (NB, TH, VD, VDC) cập nhật phần trăm chính xác.
 
-#### TC-MATRIX-03: Đối soát Tồn kho Thời gian thực (Live Inventory Checker)
-- **Mô tả:** Kiểm tra tính năng đối soát số lượng câu hỏi thực tế trong CSDL Question Bank cho từng ô ma trận.
+#### TC-MATRIX-03: Đối soát Tồn kho Thời gian thực trên Từng Ô (Live Cell Inventory) & Lọc "Dạng Có Câu"
+- **Mô tả:** Kiểm tra tính năng hiển thị tồn kho câu hỏi thực tế (`Kho: {stock}`) tại từng ô và tính năng lọc checkbox "Dạng có câu".
 - **Các bước thực hiện:**
-  1. Gọi API `POST /api/v1/matrix/{id}/check-availability` hoặc kích hoạt kiểm tra trên giao diện.
+  1. Quan sát chip badge tồn kho bên dưới từng ô input trong bảng ma trận.
+  2. Tích chọn checkbox "Dạng có câu" (`#matrix-filter-has-stock`).
+  3. Gõ từ khóa vào ô tìm kiếm dạng bài (`#matrix-search-archetype`).
 - **Kết quả kỳ vọng:**
-  - Các ô có đủ câu hỏi APPROVED hiển thị badge xanh (`Kho: X/Y câu (Đủ)`).
-  - Các ô thiếu câu hiển thị badge đỏ (`Kho: X/Y câu (Thiếu Z câu)`).
-  - Trả về danh sách cảnh báo chi tiết các ô bị thiếu.
+  - Các ô có đủ câu hỏi APPROVED hiển thị badge xanh (`Kho: X`).
+  - Các ô có số lượng yêu cầu lớn hơn tồn kho hiển thị badge đỏ cảnh báo (`Kho: X / Cần: Y`).
+  - Khi bật checkbox "Dạng có câu", các dạng bài có số tồn kho bằng 0 tự động ẩn đi, chỉ giữ lại các dạng có câu hoặc đã được cấu hình $> 0$.
+  - Ô tìm kiếm lọc chính xác các node khớp từ khóa.
 
-#### TC-MATRIX-04: Xuất bản Bản Đặc tả Ma trận Đề thi (PDF / CSV UTF-8 BOM / JSON)
-- **Mô tả:** Kiểm tra endpoint xuất bản bản đặc tả ma trận đề thi.
+#### TC-MATRIX-04: Xuất bản Bản Đặc tả Ma trận Đề thi (PDF / CSV UTF-8 BOM / JSON) & Tạo Đề Thi Gốc
+- **Mô tả:** Kiểm tra endpoint xuất bản bản đặc tả ma trận đề thi và hành động bấm nút "Tạo đề thi gốc & Sang trộn đề".
 - **Các bước thực hiện:**
   1. Gửi request `GET /api/v1/matrix/{id}/spec?format=json`.
   2. Gửi request `GET /api/v1/matrix/{id}/spec?format=csv`.
   3. Gửi request `GET /api/v1/matrix/{id}/spec?format=pdf`.
+  4. Nhấn nút **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** (`#btn-matrix-generate-exam`) trên thanh Footer cố định.
 - **Kết quả kỳ vọng:**
-  - Format JSON trả về cấu trúc ma trận, phân bổ YCCĐ và tồn kho.
+  - Format JSON trả về cấu trúc ma trận phân cấp đa tầng, phân bổ YCCĐ và tồn kho.
   - Format CSV có chứa tiền tố UTF-8 BOM (`\ufeff`), mở bằng Excel tiếng Việt không bị lỗi font.
-  - Format PDF trả về file Vector PDF chuẩn in ấn A4 Portrait gồm Khung ma trận 2D và Bảng đặc tả chi tiết.
+  - Format PDF trả về file Vector PDF chuẩn in ấn A4 Portrait gồm Khung ma trận phân cấp đa tầng và Bảng đặc tả chi tiết.
+  - Nút Tạo đề tự động lưu ma trận, gọi API sinh đề gốc từ ma trận và chuyển mượt mà sang tab Trộn đề (`#tab-shuffler`).
 
 ---
 
@@ -621,6 +629,89 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 #### TC-AUTH-08: Phân quyền Vai trò RBAC (require_role)
 - **Mô tả:** Kiểm tra dependency phân quyền `require_role("ADMIN")` và `require_role("TEACHER")`.
 - **Kết quả kỳ vọng:** Admin truy cập được mọi vai trò; user thường truy cập tài nguyên Admin bị từ chối 403 "Required role: ADMIN".
+
+---
+
+### TS-09: KIỂM THỬ RENDER KATEX TOÀN DIỆN & GIAO DIỆN APPLE SELECT (.apple-select)
+
+#### TC-KATEX-01: Biên Dịch KaTeX Toàn Diện Trên Thẻ Câu Hỏi Ngân Hàng (Ảnh 1 Verification)
+- **Mô tả:** Mở màn hình Ngân hàng câu hỏi (`/bank`), tải các câu hỏi Đúng/Sai (TRUE_FALSE_GROUP) và Trắc nghiệm đơn chứa công thức phức tạp (`$y = \dfrac{x_1 - 1}{x + 1}$`, `$D = \mathbb{R} \setminus \{-1\}$`, `$x = -1$`, `$y = 1$`, `$x \neq -1$`).
+- **Thao tác:** Khởi tạo `renderItemBank()`, kiểm tra DOM các thẻ câu hỏi và các khẳng định con (a, b, c, d).
+- **Kết quả kỳ vọng:** Các phần tử chứa lớp `.katex` hoặc `.katex-html` được render hoàn hảo, $0\%$ chuỗi thô `$ ... $` còn sót lại trên giao diện.
+
+#### TC-KATEX-02: Biên Dịch KaTeX Trong Bảng Ma Trận Đề 2D (`renderMatrixGrid`)
+- **Mô tả:** Mở màn hình Ma trận đề (`/matrix`), thêm hoặc tải dòng ma trận có Dạng bài chứa ký hiệu toán học (`row.archetypeName`: `$m$`, `$Oxyz$`, `$f(x)$`).
+- **Thao tác:** Kiểm tra phần tử `#matrix-grid-tbody` sau khi chạy `renderMatrixGrid()`.
+- **Kết quả kỳ vọng:** Hàm `renderKaTeX(tbody)` được thực thi tự động, các ký hiệu toán học hiển thị trực quan dưới dạng ký tự toán sắc nét, không hiển thị text thô.
+
+#### TC-KATEX-03: Biên Dịch KaTeX Toàn Diện Trong Modal Xem Chi Tiết Câu Hỏi (`openQuestionDetailModal`)
+- **Mô tả:** Click nút "Xem chi tiết" của một câu hỏi bất kỳ để mở `#question-detail-modal`.
+- **Thao tác:** Kiểm tra `window.renderKaTeX` tồn tại (không `undefined`), và toàn bộ thân câu hỏi, phương án A-D, khẳng định con a-d, kết quả trả lời ngắn, và hướng dẫn giải được biên dịch KaTeX chuẩn xác.
+- **Kết quả kỳ vọng:** Modal mở ra mượt mà, KaTeX render tức thì $\le 50$ms, không có lỗi console error.
+
+#### TC-UI-SELECT-01: Kiểm Thử Giao Diện Dropdown Box Apple HIG Unified Select (.apple-select)
+- **Mô tả:** Kiểm tra toàn bộ 19 thẻ `<select>` tĩnh trong `frontend/index.html` và dynamic select trong `frontend/static/app.js`.
+- **Thao tác:** Thanh tra CSS Computed Styles trên DevTools cho thẻ `select.apple-select`.
+- **Kết quả kỳ vọng:**
+  * Mũi tên mặc định của hệ điều hành bị ẩn triệt để (`appearance: none`).
+  * Có icon SVG chevron slate-500 `#64748b` căn lề phải.
+  * Bo góc mềm mại đúng `12px` (`border-radius: 12px`).
+  * Padding chuẩn `0.45rem 2.2rem 0.45rem 0.75rem`.
+  * Khi focus hiển thị viền xanh Apple `#0071e3` kèm quầng sáng `box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15)`.
+
+#### TC-UI-SELECT-02: Kiểm Thử Đồng Bộ Kích Thước Dropdown Thời Gian Làm Bài (`#matrix-param-time` - Ảnh 2)
+- **Mô tả:** Kiểm tra ô chọn "Thời gian làm bài" (`#matrix-param-time`) trên thanh cấu hình Ma trận đề thi (`#tab-matrix`).
+- **Thao tác:** So sánh chiều cao (`height` / `computed bounding rect`), góc bo, viền và padding của `#matrix-param-time` với ô input text bên cạnh (`#matrix-param-name`).
+- **Kết quả kỳ vọng:** Kích thước chiều cao khớp 100%, bo góc 12px đồng nhất, không còn mũi tên xám thô mặc định của hệ điều hành.
+
+#### TC-UI-SELECT-03: Triệt Tiêu Lỗi Font Monospace Trên Dropdown Bộ Lọc (`#bank-filter-yccd` - Ảnh 3)
+- **Mô tả:** Kiểm tra ô chọn "6. Yêu cầu cần đạt" (`#bank-filter-yccd`) trong thanh bộ lọc Ngân hàng câu hỏi (`#tab-bank`).
+- **Thao tác:** Đọc thuộc tính `className` và computed `font-family` của `#bank-filter-yccd`.
+- **Kết quả kỳ vọng:** Hoàn toàn không còn class `font-mono`; font chữ hiển thị chuẩn sans-serif Apple HIG (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif`), đồng nhất 100% với 5 dropdown taxonomy còn lại.
+
+---
+
+### TS-12: CON TRỎ SOẠN THẢO ĐEN TƯƠNG PHẢN CAO & PHÂN TRANG NGÂN HÀNG APPLE HIG
+
+#### TC-CURSOR-01: Kiểm Thử Con Trỏ Soạn Thảo Đen Tương Phản Cao (High-Contrast Bold Black Text Cursor & Caret)
+- **Mô tả:** Kiểm tra kiểu dáng con trỏ chuột và màu nhấp nháy caret trên các ô số ma trận và toàn bộ các trường nhập text.
+- **Thao tác:** Rê chuột và focus vào các phần tử: `.matrix-input-cell`, `.matrix-input-cell input`, `input[type="text"]`, `input[type="number"]`, `input[type="search"]`, `textarea`, `.apple-input`.
+- **Kết quả kỳ vọng:**
+  * Thuộc tính `cursor` trả về SVG Data URI I-beam màu đen nét 2.8px viền trắng 1.0px với fallback `text !important`.
+  * Thuộc tính `caret-color` trên các input sáng màu và ô ma trận trả về `#000000` (rgb(0, 0, 0)).
+  * Con trỏ chuột nổi bật rõ nét 100% trên nền sáng và không bị biến mất hay vô hình.
+
+#### TC-CURSOR-02: Kiểm Thử Hiệu Ứng Vi Tương Tác Hover Trên Ô Ma Trận (`.matrix-input-cell`)
+- **Mô tả:** Kiểm tra phản hồi trực quan khi rê chuột vào các ô nhập số lượng của bảng ma trận đề thi.
+- **Thao tác:** Di chuyển con trỏ chuột vào vùng thẻ `td.matrix-input-cell`.
+- **Kết quả kỳ vọng:**
+  * Nền của `td.matrix-input-cell` chuyển sang màu xanh nhạt `rgba(0, 113, 227, 0.08)`.
+  * Thẻ `<input>` bên trong kích hoạt viền xanh Apple `#0071e3` cùng bóng hào quang `box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25)`.
+  * Nhấp chuột vào bất kỳ vị trí nào trong ô `td` kích hoạt focus và bôi đen số trong thẻ input (Click-to-Focus).
+
+#### TC-BANK-PAGINATION-01: Kiểm Thử Cơ Chế Phân Trang Cắt Lát (Slice Paging) & Thanh Điều Khiển Apple HIG
+- **Mô tả:** Kiểm tra việc chia trang danh sách câu hỏi trong Ngân hàng (`/bank`).
+- **Thao tác:** Nạp ngân hàng câu hỏi (240+ câu), kiểm tra số lượng card câu hỏi hiển thị trong `#bank-cards-grid` và thanh `#bank-pagination-controls`.
+- **Kết quả kỳ vọng:**
+  * Số lượng thẻ câu hỏi được render trong DOM đúng bằng `state.bankPagination.pageSize` (mặc định 12 câu), không render dồn dập toàn bộ 240+ câu.
+  * Thanh `#bank-pagination-controls` hiển thị: `Hiển thị 1 - 12 trong tổng số 240 câu hỏi` (hoặc tổng số câu thực tế).
+  * Nút `< Trước` ở trạng thái disabled khi đang ở trang 1.
+  * Nhấp nút `Sau >` hoặc nút trang 2: chuyển sang trang 2, render 12 câu tiếp theo, cập nhật dải hiển thị `Hiển thị 13 - 24...`.
+  * Chuyển đổi dropdown `#bank-page-size-select` sang 24 hoặc 48: hiển thị đúng 24 hoặc 48 câu/trang và tính toán lại tổng số trang.
+
+#### TC-BANK-PAGINATION-02: Kiểm Thử Tự Động Reset Về Trang 1 Khi Lọc & Cuộn Mượt Về Đầu Danh Sách
+- **Mô tả:** Kiểm tra hành vi tự động reset trang khi người dùng tương tác với bộ lọc, và hành vi cuộn trang mượt mà.
+- **Thao tác:** Đang ở trang 3, thực hiện gõ từ khóa tìm kiếm vào `#bank-search-input` hoặc chọn mức độ nhận thức / YCCĐ / thể thức câu hỏi. Bấm nút chuyển trang.
+- **Kết quả kỳ vọng:**
+  * `state.bankPagination.currentPage` tự động reset về 1, hiển thị kết quả từ câu 1 của danh sách lọc mới.
+  * Khi chuyển trang, giao diện kích hoạt `scrollIntoView({ behavior: 'smooth', block: 'start' })` đưa cuộn trang về đầu danh sách `#bank-cards-grid`.
+
+#### TC-BANK-PAGINATION-03: Kiểm Thử Hiệu Năng Render KaTeX Theo Trang On-Demand (<50ms)
+- **Mô tả:** Đo lường thời gian thực thi của hàm `renderItemBank()` và `renderKaTeX()`.
+- **Thao tác:** Sử dụng `console.time` đo thời gian từ khi gọi `renderItemBank()` đến khi hoàn tất render KaTeX trên trang 12 câu.
+- **Kết quả kỳ vọng:**
+  * Thời gian thực thi $\le 50$ms (thường đạt $< 10$ms).
+  * Không phát sinh lỗi console error (`console.error`), giao diện phản hồi tức thì 60 FPS.
 
 ---
 

@@ -1003,7 +1003,7 @@
             <!-- Tier 1: Grade -->
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">1. Cấp học / Khối lớp</label>
-              <select id="bank-filter-grade" onchange="app.handleTaxonomyFilterChange('grade')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+              <select id="bank-filter-grade" onchange="app.handleTaxonomyFilterChange('grade')" class="apple-select w-full text-xs">
                 <option value="12">Lớp 12 (Cấp THPT)</option>
                 <option value="11">Lớp 11 (Cấp THPT)</option>
                 <option value="10">Lớp 10 (Cấp THPT)</option>
@@ -1013,7 +1013,7 @@
             <!-- Tier 2: Subject -->
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">2. Môn học</label>
-              <select id="bank-filter-subject" onchange="app.handleTaxonomyFilterChange('subject')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+              <select id="bank-filter-subject" onchange="app.handleTaxonomyFilterChange('subject')" class="apple-select w-full text-xs">
                 <option value="toan">Toán học</option>
                 <option value="vatli">Vật lí</option>
                 <option value="hoahoc">Hóa học</option>
@@ -1024,7 +1024,7 @@
             <!-- Tier 3: Strand (Mạch nội dung TT 32) -->
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">3. Mạch nội dung (Thông tư 32)</label>
-              <select id="bank-filter-strand" onchange="app.handleTaxonomyFilterChange('strand')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+              <select id="bank-filter-strand" onchange="app.handleTaxonomyFilterChange('strand')" class="apple-select w-full text-xs">
                 <option value="all">Tất cả các Mạch</option>
                 <option value="giai-tich">Mạch 1: Số, Đại số & Giải tích</option>
                 <option value="hinh-hoc">Mạch 2: Hình học & Đo lường</option>
@@ -1036,7 +1036,7 @@
             <!-- Tier 4: Topic (Chủ đề) -->
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">4. Chủ đề / Chuyên đề</label>
-              <select id="bank-filter-topic" onchange="app.handleTaxonomyFilterChange('topic')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+              <select id="bank-filter-topic" onchange="app.handleTaxonomyFilterChange('topic')" class="apple-select w-full text-xs">
                 <option value="all">Tất cả Chủ đề</option>
               </select>
             </div>
@@ -1044,7 +1044,7 @@
             <!-- Tier 5: Lesson (Bài học) -->
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">5. Bài học / Đơn vị kiến thức</label>
-              <select id="bank-filter-lesson" onchange="app.handleTaxonomyFilterChange('lesson')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500">
+              <select id="bank-filter-lesson" onchange="app.handleTaxonomyFilterChange('lesson')" class="apple-select w-full text-xs">
                 <option value="all">Tất cả Bài học</option>
               </select>
             </div>
@@ -1052,7 +1052,7 @@
             <!-- Tier 6: Learning Outcome (YCCĐ) -->
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">6. Yêu cầu cần đạt</label>
-              <select id="bank-filter-yccd" onchange="app.handleTaxonomyFilterChange('yccd')" class="w-full text-xs rounded-xl border border-slate-300 py-1.5 px-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-500 font-mono">
+              <select id="bank-filter-yccd" onchange="app.handleTaxonomyFilterChange('yccd')" class="apple-select w-full text-xs">
                 <option value="all">Tất cả Mã YCCĐ</option>
               </select>
             </div>
@@ -1063,7 +1063,7 @@
             <!-- Problem Archetype -->
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-1">Dạng câu hỏi (Problem Archetype)</label>
-              <select id="bank-filter-archetype" onchange="app.renderItemBank()" class="w-full text-xs rounded-xl border border-slate-200 py-1.5 px-2 bg-white">
+              <select id="bank-filter-archetype" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
                 <option value="all">Tất cả Dạng bài</option>
               </select>
             </div>
@@ -1071,7 +1071,7 @@
             <!-- Cognitive Level -->
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-1">Mức độ nhận thức</label>
-              <select id="bank-filter-cognitive" onchange="app.renderItemBank()" class="w-full text-xs rounded-xl border border-slate-200 py-1.5 px-2 bg-white">
+              <select id="bank-filter-cognitive" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
                 <option value="all">Tất cả Mức độ</option>
                 <option value="RECOGNITION">Nhận biết</option>
                 <option value="COMPREHENSION">Thông hiểu</option>
@@ -1083,7 +1083,7 @@
             <!-- Item Format (QĐ 764) -->
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-1">Thể thức câu hỏi (QĐ 764)</label>
-              <select id="bank-filter-format" onchange="app.renderItemBank()" class="w-full text-xs rounded-xl border border-slate-200 py-1.5 px-2 bg-white">
+              <select id="bank-filter-format" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
                 <option value="all">Tất cả Thể thức</option>
                 <option value="SINGLE_CHOICE">Trắc nghiệm đơn (4 lựa chọn)</option>
                 <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý</option>
@@ -1095,8 +1095,8 @@
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-1">Tìm kiếm từ khóa / Mã câu</label>
               <div class="relative">
-                <input type="text" id="bank-search-input" oninput="app.renderItemBank()" placeholder="Nhập từ khóa hoặc công thức..." class="w-full text-xs rounded-xl border border-slate-200 py-1.5 pl-8 pr-3 bg-white focus:ring-2 focus:ring-brand-500">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+                <input type="text" id="bank-search-input" oninput="app.handleBankFilterChange()" placeholder="Nhập từ khóa hoặc công thức..." class="w-full text-xs rounded-xl border border-slate-200 py-1.5 pl-8 pr-3 bg-white focus:ring-2 focus:ring-brand-500 search-input-with-icon">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none"></i>
               </div>
             </div>
           </div>
@@ -1135,10 +1135,26 @@
           <!-- Dynamic Bank Items render here -->
         </div>
 
+        <!-- Bank Pagination Controls (Apple HIG) -->
+        <div id="bank-pagination-controls" class="apple-card p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 mt-4 transition-all">
+          <div id="bank-pagination-info" class="font-medium text-slate-600">
+            Hiển thị <span class="font-bold text-slate-900" id="bank-page-range">1 - 12</span> trong tổng số <span class="font-bold text-slate-900" id="bank-page-total">0</span> câu hỏi
+          </div>
+          <div id="bank-pagination-buttons" class="flex items-center space-x-1.5 flex-wrap justify-center"></div>
+          <div class="flex items-center space-x-2">
+            <span class="text-slate-500 whitespace-nowrap">Số câu/trang:</span>
+            <select id="bank-page-size-select" onchange="app.changeBankPageSize(this.value)" class="apple-select text-xs py-1 px-2 font-semibold">
+              <option value="12">12 câu/trang</option>
+              <option value="24">24 câu/trang</option>
+              <option value="48">48 câu/trang</option>
+            </select>
+          </div>
+        </div>
+
       </section>
 
-      <!-- ================= TAB 4: EXAM MATRIX BUILDER ================= -->
-      <section id="tab-matrix" class="tab-pane hidden space-y-5">
+      <!-- ================= TAB 4: EXAM MATRIX BUILDER (HIERARCHICAL MULTI-TIER GRID) ================= -->
+      <section id="tab-matrix" class="tab-pane hidden space-y-5 relative pb-24">
         
         <!-- Matrix Top Configuration Card -->
         <div class="apple-card p-5 space-y-4">
@@ -1146,29 +1162,22 @@
             <div>
               <h2 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
                 <i data-lucide="grid" class="w-4 h-4 text-brand-600"></i>
-                <span>Thiết Lập Bản Đặc Tả Ma Trận Đề Thi Theo YCCĐ (SCR-MATRIX-BUILDER)</span>
+                <span>Thiết Lập Bản Đặc Tả Ma Trận Đa Tầng (Chương · Bài · Dạng &times; 3 Phần &times; 4 Cấp độ)</span>
               </h2>
-              <p class="text-xs text-slate-500">Căn cứ Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (QĐ 764)</p>
+              <p class="text-xs text-slate-500">Căn cứ Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)</p>
             </div>
-            
-            <div class="flex items-center space-x-2 flex-wrap gap-1">
-              <button onclick="app.loadMatrixPreset('thpt_2025')" class="btn-apple-secondary text-xs">
-                Preset: Chuẩn TN THPT 2025 (34 câu)
-              </button>
-              <button onclick="app.loadMatrixPreset('midterm')" class="btn-apple-secondary text-xs">
-                Preset: Kiểm tra Định kỳ (20 câu)
-              </button>
-              <button onclick="app.loadMatrixPreset('final')" class="btn-apple-secondary text-xs font-bold text-brand-700 bg-brand-50 border-brand-200">
-                Preset: Kiểm tra Cuối kỳ (28 câu)
+            <div class="flex items-center space-x-2">
+              <button onclick="app.saveMatrixConfig()" class="btn-apple-secondary py-1.5 px-3 text-xs font-semibold flex items-center space-x-1">
+                <i data-lucide="save" class="w-3.5 h-3.5"></i><span>Lưu Bản Thảo</span>
               </button>
             </div>
           </div>
 
           <!-- General Parameters -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Tên Kỳ thi / Bài thi</label>
-              <input type="text" id="matrix-param-name" value="Đề Khảo sát Toán 12 - Học kỳ I 2025" class="w-full text-xs">
+              <input type="text" id="matrix-param-name" value="Đề Khảo sát Toán 12 - THPT 2025" class="w-full text-xs">
             </div>
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Khối lớp & Môn</label>
@@ -1176,7 +1185,7 @@
             </div>
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Thời gian làm bài</label>
-              <select id="matrix-param-time" class="w-full text-xs">
+              <select id="matrix-param-time" class="apple-select w-full text-xs">
                 <option value="90">90 phút</option>
                 <option value="50">50 phút</option>
                 <option value="45">45 phút</option>
@@ -1185,12 +1194,6 @@
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Thang điểm tổng</label>
               <input type="number" readonly value="10.0" class="w-full bg-black/[0.04] text-slate-600 text-xs font-bold cursor-not-allowed">
-            </div>
-            <div class="flex items-end">
-              <button onclick="app.saveMatrixConfig()" class="btn-apple-primary w-full justify-center py-2 text-xs font-semibold">
-                <i data-lucide="check" class="w-4 h-4"></i>
-                <span>Lưu & Ban Hành Ma Trận</span>
-              </button>
             </div>
           </div>
 
@@ -1203,91 +1206,129 @@
             <button onclick="app.exportMatrixSpec('csv')" class="btn-apple-secondary py-1.5 px-3 text-xs flex items-center space-x-1">
               <i data-lucide="table" class="w-3.5 h-3.5 text-emerald-600"></i><span>Tải CSV (UTF-8 BOM)</span>
             </button>
+            <button onclick="app.exportMatrixSpec('json')" class="btn-apple-secondary py-1.5 px-3 text-xs flex items-center space-x-1">
+              <i data-lucide="code" class="w-3.5 h-3.5 text-blue-600"></i><span>Tải JSON</span>
+            </button>
           </div>
         </div>
 
-        <!-- 2D Interactive Matrix Grid with Inventory Counter -->
+        <!-- Hierarchical Matrix Grid Card -->
         <div class="apple-card overflow-hidden">
-          <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center space-x-2 text-xs">
-              <span class="font-bold text-slate-800">Lưới Cấu Hình Ma Trận 2D (YCCĐ & Dạng bài &times; 3 Cấp độ nhận thức)</span>
-              <span class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-100 text-emerald-800 font-semibold">Tự động đối soát tồn kho câu hỏi</span>
-            </div>
-            <div class="text-[11px] text-slate-500 flex items-center space-x-3">
-              <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>Đủ câu trong kho</span></span>
-              <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span>Cảnh báo thiếu câu</span></span>
-            </div>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr class="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
-                  <th class="p-3 w-72 sticky left-0 bg-slate-100 z-10">Mạch Nội dung & YCCĐ / Dạng bài</th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-blue-50/50">
-                    <div class="text-blue-900">1. Biết (Nhận biết)</div>
-                    <div class="text-[10px] font-normal text-blue-700">TN Đơn (0.25đ)</div>
-                  </th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-indigo-50/50">
-                    <div class="text-indigo-900">2. Hiểu (Thông hiểu)</div>
-                    <div class="text-[10px] font-normal text-indigo-700">Đúng/Sai (1.0đ) / TN Đơn</div>
-                  </th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-emerald-50/50">
-                    <div class="text-emerald-900">3. Vận dụng</div>
-                    <div class="text-[10px] font-normal text-emerald-700">Trả lời ngắn (0.5đ) / Vận dụng</div>
-                  </th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng câu</th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng điểm</th>
-                </tr>
-              </thead>
-              <tbody id="matrix-grid-tbody" class="divide-y divide-slate-200">
-                <!-- Matrix Rows dynamically rendered by app.js -->
-              </tbody>
-              <tfoot>
-                <tr class="bg-slate-50 font-bold text-slate-800 border-t-2 border-slate-300">
-                  <td class="p-3 sticky left-0 bg-slate-50">TỔNG CỘNG TOÀN MA TRẬN</td>
-                  <td id="matrix-total-biet" class="p-3 text-center border-l border-slate-200 text-blue-800">12 câu (3.0đ)</td>
-                  <td id="matrix-total-hieu" class="p-3 text-center border-l border-slate-200 text-indigo-800">10 câu (3.5đ)</td>
-                  <td id="matrix-total-vandung" class="p-3 text-center border-l border-slate-200 text-emerald-800">12 câu (3.5đ)</td>
-                  <td id="matrix-total-items" class="p-3 text-center border-l border-slate-200 text-brand-800 text-sm">34 câu</td>
-                  <td id="matrix-total-points" class="p-3 text-center border-l border-slate-200 text-brand-800 text-sm">10.0 đ</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        <!-- Live Blueprint Summary & Assembly Trigger -->
-        <div class="apple-card p-5 space-y-4">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <!-- Bloom Cognitive Level Checker -->
-            <div class="space-y-1.5 flex-1">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-slate-800">Tỷ lệ Cân Đối Mức Độ Nhận Thức (Hiện tại)</span>
-                <span id="matrix-bloom-status" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                  Chuẩn 40% Biết - 30% Hiểu - 30% Vận dụng
-                </span>
+          
+          <!-- Tree Toolbar -->
+          <div id="matrix-tree-toolbar" class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-2 flex-wrap gap-2">
+              <div class="relative">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none"></i>
+                <input type="text" id="matrix-search-archetype" oninput="app.onMatrixSearchInput(this.value)" placeholder="Tìm kiếm dạng bài, bài học..." class="apple-input pl-8 pr-3 py-1.5 text-xs rounded-lg w-64 search-input-with-icon">
               </div>
-              <div class="flex h-3 rounded-full overflow-hidden bg-slate-100">
-                <div id="matrix-bar-biet" class="bg-blue-500 transition-all duration-300" style="width: 40%"></div>
-                <div id="matrix-bar-hieu" class="bg-indigo-500 transition-all duration-300" style="width: 30%"></div>
-                <div id="matrix-bar-vandung" class="bg-emerald-500 transition-all duration-300" style="width: 30%"></div>
-              </div>
-              <div class="flex justify-between text-[11px] text-slate-500 font-mono">
-                <span id="matrix-lbl-biet">Biết: 40%</span>
-                <span id="matrix-lbl-hieu">Hiểu: 30%</span>
-                <span id="matrix-lbl-vandung">Vận dụng: 30%</span>
-              </div>
+              <label class="flex items-center space-x-1.5 cursor-pointer bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 select-none">
+                <input type="checkbox" id="matrix-filter-has-stock" onchange="app.onMatrixFilterStockChange(this.checked)" class="rounded text-brand-600 focus:ring-brand-500 w-3.5 h-3.5">
+                <span class="font-medium">Chỉ hiện dạng có câu</span>
+              </label>
             </div>
 
-            <!-- Assembly Button Action -->
-            <div class="flex items-center space-x-3 self-end md:self-center">
-              <button onclick="app.generateMasterExamFromMatrix()" class="btn-apple-primary py-2.5 px-5 text-xs font-semibold">
-                <i data-lucide="zap" class="w-4 h-4 text-amber-300"></i>
-                <span>Khởi Tạo Đề Thi Gốc & Sang Trộn Đề</span>
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            <div class="flex items-center space-x-2 flex-wrap gap-2">
+              <button id="btn-matrix-expand-all" onclick="app.expandAllMatrixTree()" class="btn-apple-secondary py-1 px-2.5 text-xs flex items-center space-x-1">
+                <i data-lucide="chevrons-down" class="w-3.5 h-3.5"></i><span>Mở hết</span>
+              </button>
+              <button id="btn-matrix-collapse-all" onclick="app.collapseAllMatrixTree()" class="btn-apple-secondary py-1 px-2.5 text-xs flex items-center space-x-1">
+                <i data-lucide="chevrons-up" class="w-3.5 h-3.5"></i><span>Đóng hết</span>
+              </button>
+              
+              <select id="matrix-select-preset" onchange="app.applyMatrixPreset(this.value)" class="apple-select py-1 px-2 text-xs font-semibold">
+                <option value="">-- Chọn Mẫu Preset Khảo Thí --</option>
+                <option value="thpt2025">Preset THPT 2025 (22 câu - 10.0đ)</option>
+                <option value="periodic">Preset Định kỳ (20 câu - 10.0đ)</option>
+                <option value="final">Preset Cuối kỳ (28 câu - 10.0đ)</option>
+              </select>
+
+              <button id="btn-matrix-reset" onclick="app.resetMatrixSelections()" class="btn-apple-secondary py-1 px-2.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center space-x-1">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span>Đặt lại</span>
               </button>
             </div>
+          </div>
+
+          <!-- Hierarchical Matrix Table Wrapper -->
+          <div id="matrix-hierarchical-table-wrapper" class="overflow-x-auto max-h-[600px] overflow-y-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="sticky top-0 z-30 bg-slate-100 shadow-sm">
+                <tr class="text-slate-800 font-bold border-b border-slate-300 text-center">
+                  <th rowspan="2" class="p-3 matrix-tree-col text-left border-r border-slate-300 bg-slate-100">
+                    CHƯƠNG · BÀI · DẠNG BÀI TẬP
+                  </th>
+                  <th colspan="4" class="p-2 border-l border-r border-slate-300 bg-blue-100/80 text-blue-900">
+                    PHẦN I · TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN (0.25đ / câu)
+                  </th>
+                  <th colspan="4" class="p-2 border-l border-r border-slate-300 bg-indigo-100/80 text-indigo-900">
+                    PHẦN II · ĐÚNG / SAI 4 Ý (Tối đa 1.0đ / câu)
+                  </th>
+                  <th colspan="4" class="p-2 border-l border-r border-slate-300 bg-emerald-100/80 text-emerald-900">
+                    PHẦN III · TRẢ LỜI NGẮN (0.5đ / câu)
+                  </th>
+                  <th rowspan="2" class="p-2 border-l border-slate-300 bg-slate-200 text-slate-800 w-16">TỔNG CÂU</th>
+                  <th rowspan="2" class="p-2 border-l border-slate-300 bg-slate-200 text-slate-800 w-16">TỔNG ĐIỂM</th>
+                </tr>
+                <tr class="text-slate-700 font-semibold border-b border-slate-300 text-center text-[11px]">
+                  <!-- Phần I: 4 levels -->
+                  <th class="p-1.5 border-l border-slate-200 bg-blue-50/70 text-blue-800 w-12">NB</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-blue-50/70 text-blue-800 w-12">TH</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-blue-50/70 text-blue-800 w-12">VD</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-blue-50/70 text-blue-800 w-12">VDC</th>
+                  <!-- Phần II: 4 levels -->
+                  <th class="p-1.5 border-l border-slate-200 bg-indigo-50/70 text-indigo-800 w-12">NB</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-indigo-50/70 text-indigo-800 w-12">TH</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-indigo-50/70 text-indigo-800 w-12">VD</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-indigo-50/70 text-indigo-800 w-12">VDC</th>
+                  <!-- Phần III: 4 levels -->
+                  <th class="p-1.5 border-l border-slate-200 bg-emerald-50/70 text-emerald-800 w-12">NB</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-emerald-50/70 text-emerald-800 w-12">TH</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-emerald-50/70 text-emerald-800 w-12">VD</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-emerald-50/70 text-emerald-800 w-12">VDC</th>
+                </tr>
+              </thead>
+              <tbody id="matrix-hierarchical-tbody" class="divide-y divide-slate-200">
+                <!-- Dynamically rendered by app.js -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- Sticky Bottom Action Bar -->
+        <div id="matrix-sticky-footer" class="matrix-sticky-footer px-6 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4 rounded-xl mt-6">
+          <div class="flex flex-col md:flex-row items-start md:items-center gap-4 text-xs">
+            <div class="flex items-center space-x-3 flex-wrap gap-1">
+              <span class="font-bold text-slate-800">Thống kê Phần:</span>
+              <span id="matrix-foot-p1" class="px-2 py-1 rounded bg-blue-50 text-blue-800 font-semibold">Phần I: 0 câu (0.0đ)</span>
+              <span id="matrix-foot-p2" class="px-2 py-1 rounded bg-indigo-50 text-indigo-800 font-semibold">Phần II: 0 câu (0.0đ)</span>
+              <span id="matrix-foot-p3" class="px-2 py-1 rounded bg-emerald-50 text-emerald-800 font-semibold">Phần III: 0 câu (0.0đ)</span>
+            </div>
+            <div class="h-4 w-px bg-slate-300 hidden md:block"></div>
+            <div>
+              <span class="font-extrabold text-slate-900 text-sm" id="matrix-foot-grand">TỔNG: 0 CÂU | 0.0 / 10.0 ĐIỂM</span>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-end">
+            <!-- Bloom Ratio Mini Bar -->
+            <div class="hidden xl:flex flex-col space-y-1 w-48">
+              <div class="flex justify-between text-[10px] font-bold text-slate-600">
+                <span id="matrix-foot-bloom-lbl">NB: 0% | TH: 0% | VD: 0% | VDC: 0%</span>
+              </div>
+              <div class="flex h-2 rounded-full overflow-hidden bg-slate-200">
+                <div id="matrix-foot-bar-nb" class="bg-blue-500 transition-all" style="width: 0%"></div>
+                <div id="matrix-foot-bar-th" class="bg-indigo-500 transition-all" style="width: 0%"></div>
+                <div id="matrix-foot-bar-vd" class="bg-emerald-500 transition-all" style="width: 0%"></div>
+                <div id="matrix-foot-bar-vdc" class="bg-purple-500 transition-all" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Generate Action Button -->
+            <button id="btn-matrix-generate-master" onclick="app.generateMasterExamFromHierarchicalMatrix()" class="btn-apple-primary py-2.5 px-6 text-xs font-bold flex items-center space-x-2 shadow-lg active:scale-[0.97] transition-transform">
+              <i data-lucide="rocket" class="w-4 h-4 text-amber-300"></i>
+              <span>Khởi Tạo Đề Thi Gốc & Sang Trộn Đề</span>
+            </button>
           </div>
         </div>
 
@@ -1333,7 +1374,7 @@
                 <i data-lucide="database" class="w-4 h-4 text-brand-600"></i>
                 <span>Đề thi gốc sẵn có:</span>
               </span>
-              <select id="shuffler-select-master-exam" onchange="app.onShufflerMasterExamChange(this.value)" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium text-xs focus:ring-2 focus:ring-brand-500">
+              <select id="shuffler-select-master-exam" onchange="app.onShufflerMasterExamChange(this.value)" class="apple-select text-xs font-medium">
                 <option value="">-- Chọn đề gốc đã lưu --</option>
               </select>
             </div>
@@ -1342,7 +1383,7 @@
                 <i data-lucide="grid" class="w-4 h-4 text-brand-600"></i>
                 <span>Ma trận khảo thí:</span>
               </span>
-              <select id="shuffler-select-matrix" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 font-medium text-xs focus:ring-2 focus:ring-brand-500">
+              <select id="shuffler-select-matrix" class="apple-select text-xs font-medium">
                 <option value="">-- Chọn ma trận --</option>
               </select>
               <button id="btn-shuffler-gen-matrix" onclick="app.generateMasterExamFromSelectedMatrix()" class="px-3 py-1.5 bg-brand-600 text-white font-semibold rounded-lg hover:bg-brand-700 transition-all flex items-center space-x-1 cursor-pointer">
@@ -1729,7 +1770,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-xl border border-black/[0.06]">
           <div>
             <label class="block font-bold text-slate-700 mb-1">1. Định dạng câu hỏi (QĐ 764)</label>
-            <select id="q-edit-format" onchange="app.handleQuestionFormatChangeInModal()" class="w-full rounded-lg border border-black/[0.12] py-1.5 px-2 bg-white text-xs font-semibold">
+            <select id="q-edit-format" onchange="app.handleQuestionFormatChangeInModal()" class="apple-select text-xs font-semibold w-full">
               <option value="SINGLE_CHOICE">PHẦN I: Trắc nghiệm 4 lựa chọn (Chọn 1)</option>
               <option value="TRUE_FALSE_GROUP">PHẦN II: Trắc nghiệm Đúng/Sai (4 ý a,b,c,d)</option>
               <option value="SHORT_ANSWER">PHẦN III: Trắc nghiệm Trả lời ngắn</option>
@@ -1737,7 +1778,7 @@
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">2. Mức độ nhận thức</label>
-            <select id="q-edit-cognitive" class="w-full rounded-lg border border-black/[0.12] py-1.5 px-2 bg-white text-xs font-semibold">
+            <select id="q-edit-cognitive" class="apple-select text-xs font-semibold w-full">
               <option value="RECOGNITION">1. Nhận biết</option>
               <option value="COMPREHENSION">2. Thông hiểu</option>
               <option value="APPLICATION">3. Vận dụng</option>
@@ -1746,7 +1787,7 @@
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">3. Yêu cầu cần đạt</label>
-            <select id="q-edit-yccd" class="w-full rounded-lg border border-black/[0.12] py-1.5 px-2 bg-white text-xs font-mono">
+            <select id="q-edit-yccd" class="apple-select text-xs w-full">
               <option value="TOAN12.GT.01">TOAN12.GT.01: Cực trị hàm số</option>
               <option value="TOAN12.GT.02">TOAN12.GT.02: Đường tiệm cận</option>
               <option value="TOAN12.GT.03">TOAN12.GT.03: Khái niệm nguyên hàm</option>
@@ -1914,7 +1955,7 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Thể thức câu hỏi</label>
-            <select id="q-create-format" onchange="app.onQuestionFormatChange()" class="w-full rounded-xl border border-slate-300 p-2 bg-white">
+            <select id="q-create-format" onchange="app.onQuestionFormatChange()" class="apple-select text-xs w-full">
               <option value="SINGLE_CHOICE">Trắc nghiệm 4 lựa chọn (Phần I)</option>
               <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý (Phần II)</option>
               <option value="SHORT_ANSWER">Trả lời ngắn (Phần III)</option>
@@ -1922,7 +1963,7 @@
           </div>
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Mức độ nhận thức</label>
-            <select id="q-create-cognitive" class="w-full rounded-xl border border-slate-300 p-2 bg-white">
+            <select id="q-create-cognitive" class="apple-select text-xs w-full">
               <option value="RECOGNITION">Nhận biết</option>
               <option value="COMPREHENSION">Thông hiểu</option>
               <option value="APPLICATION">Vận dụng</option>
@@ -2006,6 +2047,70 @@
         <button type="button" onclick="document.getElementById('question-detail-modal').classList.add('hidden')" class="btn-apple-primary py-1.5 px-4 text-xs">
           Đóng
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ADD MATRIX ROW MODAL (APPLE HIG) ================= -->
+  <div id="add-matrix-row-modal" class="apple-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <div class="apple-modal-sheet max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150 bg-white rounded-2xl shadow-2xl">
+      <div class="px-6 py-4 bg-slate-50 border-b border-black/[0.06] flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center">
+            <i data-lucide="grid" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm">Thêm Dòng YCCĐ vào Ma Trận</h3>
+            <p class="text-xs text-slate-500">Chọn Mạch nội dung & Yêu cầu cần đạt chuẩn TT 32/2018</p>
+          </div>
+        </div>
+        <button type="button" onclick="app.closeAddMatrixRowModal()" class="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+      </div>
+      <div class="p-6 space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Mạch Nội Dung</label>
+          <select id="modal-matrix-strand" class="apple-select text-xs font-semibold w-full">
+            <option value="Số, Đại số & Giải tích">Số, Đại số & Giải tích</option>
+            <option value="Hình học & Đo lường">Hình học & Đo lường</option>
+            <option value="Thống kê & Xác suất">Thống kê & Xác suất</option>
+            <option value="Thực hành & Trải nghiệm">Thực hành & Trải nghiệm</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Mã YCCĐ (Thông tư 32)</label>
+          <input type="text" id="modal-matrix-yccd" value="TOAN12.GT.05" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-mono" placeholder="Ví dụ: TOAN12.GT.05">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Tên Dạng Bài / Chủ Đề</label>
+          <input type="text" id="modal-matrix-archetype" value="Khảo sát sự biến thiên và vẽ đồ thị hàm số" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-medium">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Dạng Thức Câu Hỏi</label>
+          <select id="modal-matrix-format" class="apple-select text-xs font-semibold w-full">
+            <option value="SINGLE_CHOICE">Trắc nghiệm 4 lựa chọn (0.25đ)</option>
+            <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý (1.0đ)</option>
+            <option value="SHORT_ANSWER">Trả lời ngắn (0.5đ)</option>
+            <option value="ESSAY">Tự luận (1.0đ)</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Số câu Biết</label>
+            <input type="number" id="modal-matrix-biet" value="2" min="0" max="10" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-bold text-center">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Số câu Hiểu</label>
+            <input type="number" id="modal-matrix-hieu" value="2" min="0" max="10" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-bold text-center">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Số câu Vận dụng</label>
+            <input type="number" id="modal-matrix-vandung" value="1" min="0" max="10" class="w-full rounded-lg border border-black/[0.12] py-2 px-3 bg-white text-xs font-bold text-center">
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-black/[0.06] flex items-center justify-end space-x-2 shrink-0">
+        <button type="button" onclick="app.closeAddMatrixRowModal()" class="btn-apple-secondary py-1.5 px-4 text-xs">Hủy bỏ</button>
+        <button type="button" onclick="app.confirmAddMatrixRow()" class="btn-apple-primary py-1.5 px-4 text-xs font-semibold">Thêm vào ma trận</button>
       </div>
     </div>
   </div>
