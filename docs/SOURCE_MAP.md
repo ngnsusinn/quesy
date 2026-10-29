@@ -390,11 +390,13 @@ ight., Environment undefined)
       * Modal Xem chi tiết (`#question-detail-modal`): Xem công thức KaTeX/TikZ sắc nét, barem điểm bậc thang QĐ 764, chỉ số khảo thí trắc nghiệm ($p, D$), cây phân loại chuẩn.
       * Modal Sửa câu hỏi (`#question-edit-modal`): Cho phép cập nhật toàn diện stem, phương án A-D, cờ khóa neo D, khẳng định a-d, đáp án ngắn, dung sai, YCCĐ và lời giải chi tiết.
       * Chức năng Xóa câu hỏi: Hộp thoại xác nhận, xóa triệt để cascade CSDL, tự động cập nhật ngay số lượng và làm mới danh sách.
-    + *Hệ thống Phân trang Ngân hàng Chuẩn Apple HIG (Item Bank Pagination):*
+    + *Hệ thống Phân trang Ngân hàng Chuẩn Apple HIG & Bảo toàn Fixed Top Header (Item Bank Pagination & Header Persistence):*
       * Quản trị trạng thái qua `state.bankPagination = { currentPage: 1, pageSize: 12 }` (hỗ trợ chọn 12, 24, 48 câu/trang).
       * Cắt lát mảng câu hỏi sau khi lọc (`filtered.slice(start, end)`), chỉ render DOM và gọi `renderKaTeX(container)` cho các câu hỏi trên trang hiện tại, giảm thời gian render từ ~200ms xuống <10ms.
       * Thanh phân trang `#bank-pagination-controls`: hiển thị dải số câu hỏi, cụm nút Trước/Sau, dải số trang thông minh với active Apple Blue `#0071e3`, dropdown chọn kích thước `.apple-select`.
-      * Tự động reset về trang 1 khi thay đổi bất kỳ bộ lọc nào và cuộn mượt (`smooth scroll`) về đầu danh sách câu hỏi.
+      * Tự động reset về trang 1 khi thay đổi bất kỳ bộ lọc nào.
+      * Khi đổi trang (`changeBankPage`) hoặc đổi kích thước (`changeBankPageSize`): Triệt tiêu hoàn toàn `scrollIntoView` (nguyên nhân gây cuộn `window.scrollY = 65px` làm mất thanh Top Header). Thay thế bằng cuộn nội bộ container `#main-scroll-view.scrollTo({ top: 0, behavior: 'smooth' })` kết hợp neo `window.scrollTo(0, 0)`, bảo đảm Apple Header luôn cố định 100% tại đỉnh màn hình.
+      * Gia cố cấu trúc Header: Bổ sung `shrink-0` trên thẻ HTML `<header>` và `flex-shrink: 0;` trong CSS `.apple-header` chống co kéo trong flexbox.
     + *Xuất & Nhập Ngân hàng Câu hỏi:*
       * Xuất danh sách: Hỗ trợ xuất sang PDF vector in ấn (khổ A4, Times/CMU Serif), CSV UTF-8 BOM chuẩn Excel tiếng Việt, LaTeX `.tex` thuần gói `ex_test.sty`.
       * Nhập câu hỏi: Nhập từ file văn bản/mã LaTeX/JSON, tự động phân tích cú pháp, kiểm tra trùng lặp và đẩy vào CSDL.

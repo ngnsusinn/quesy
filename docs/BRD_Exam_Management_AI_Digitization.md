@@ -3,7 +3,7 @@
 **Dự án:** Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học  
 **Tên mã dự án (Project Code):** QUESY  
 **Mục tiêu cốt lõi:** Giải quyết triệt để các rào cản và nút thắt cổ chai trong quy trình số hóa đề thi, tự động tái tạo đồ thị vector, chuẩn hóa công thức toán học, trộn đề an toàn chống vỡ logic và xuất bản ấn phẩm khảo thí in ấn chuyên nghiệp.  
-- **Phiên bản (Version):** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+- **Phiên bản (Version):** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0)  
 - **Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
 - **Ngày phát hành:** 2026-10-29
 
@@ -22,7 +22,8 @@
 | 3.3 | 2026-10-25 | BA Team & Tech Lead | Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Lưu Đề từ Soạn thảo vào Ngân hàng. | Ban Giám đốc & PM |
 | 3.4 | 2026-10-27 | BA Team & Lead Architect | Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D (TT 22 & QĐ 764), 3 Ma trận mẫu Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản đặc tả (PDF/CSV/JSON), Động cơ Sinh Đề Gốc kèm Đổi câu hỏi tương đương, Động cơ Trộn Đề An Toàn 4 Nguyên Tắc (Option Anchor 100%), và Đóng gói Ấn phẩm Khảo thí (.ZIP/.PDF). | Ban Giám đốc & PM |
 | 3.5 | 2026-10-28 | BA Team & Tech Lead | Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals (loại bỏ hoàn toàn chuỗi văn bản thô $ ... $), Chuẩn Hóa Dropdown Box Apple HIG Unified Select (.apple-select) với icon chevron SVG, bo góc 12px, triệt tiêu class font-mono lệch chuẩn, khắc phục dropdown Thời gian làm bài và đồng bộ toàn diện trải nghiệm người dùng. | Ban Giám đốc & PM |
-| **3.6** | 2026-10-29 | BA Team & Lead UX | **Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Bold Black Text Cursor & Caret tại các ô Ma trận đề và trường text inputs (SVG I-beam 2.8px tương phản cao, caret-color #000000, hover nổi bật ô ma trận), Hệ thống Phân trang Ngân hàng Câu hỏi Chuẩn Apple HIG (state bankPagination, phân trang dải câu hỏi, chuyển trang, dropdown 12/24/48 câu/trang, auto-reset page 1 khi lọc, render KaTeX on-demand <10ms, cuộn mượt về đầu trang).** | Ban Giám đốc & PM |
+| 3.6 | 2026-10-29 | BA Team & Lead UX | Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Bold Black Text Cursor & Caret tại các ô Ma trận đề và trường text inputs (SVG I-beam 2.8px tương phản cao, caret-color #000000, hover nổi bật ô ma trận), Hệ thống Phân trang Ngân hàng Câu hỏi Chuẩn Apple HIG (state bankPagination, phân trang dải câu hỏi, chuyển trang, dropdown 12/24/48 câu/trang, auto-reset page 1 khi lọc, render KaTeX on-demand <10ms, cuộn mượt về đầu trang). | Ban Giám đốc & PM |
+| **3.7** | 2026-10-29 | BA Team & Lead Architect | **Sửa lỗi biến mất Top Header khi đổi trang phân trang ngân hàng câu hỏi: Loại bỏ triệt để lệnh `scrollIntoView` gây cuộn `window.scrollY = 65px` đẩy header ra ngoài viewport; thay thế bằng cuộn nội bộ container `#main-scroll-view.scrollTo({ top: 0, behavior: 'smooth' })` và neo `window.scrollTo(0, 0)`; bổ sung `shrink-0` trên HTML và `flex-shrink: 0;` trong CSS bảo toàn vị trí cố định của Apple Header trên mọi kích thước màn hình.** | Ban Giám đốc & PM |
 
 ---
 
@@ -213,7 +214,8 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 | **RULE-12** | Đối soát Tồn kho Ma trận & Ràng buộc Khả dụng | Trước khi rút đề, hệ thống đối soát số lượng câu hỏi khả dụng theo từng ô ma trận; nếu thiếu câu phải đưa ra cảnh báo chính xác (số lượng thiếu, YCCĐ, mức độ) và chặn rút đề nếu không bật cờ allow_partial. |
 | **RULE-13** | Hoán đổi Câu hỏi Đề Gốc Độc lập (In-Place Item Swap) | Khi đổi câu hỏi trong Master Exam, câu mới bắt buộc cùng YCCĐ, cùng mức độ nhận thức Bloom và cùng thể thức thi; hệ thống tự động làm mới đề gốc và hủy bỏ các mã đề hoán vị cũ để đảm bảo tính nhất quán. |
 | **RULE-14** | Con Trỏ Chuột Soạn Thảo Đen Tương Phản Cao (High-Contrast Text Cursor) | Con trỏ chuột khi rê vào các ô ma trận (.matrix-input-cell) và các trường text inputs bắt buộc hiển thị con trỏ SVG I-beam đen đậm có viền trắng tương phản cao (24x24, hotspot 12 12); caret đen đậm (#000000) trên nền sáng; hover ô ma trận có phản hồi viền xanh và nền nhạt. |
-| **RULE-15** | Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG (Item Bank Pagination) | Danh sách ngân hàng câu hỏi bắt buộc phân trang (mặc định 12, tùy chọn 24, 48 câu/trang), chỉ render KaTeX cho trang hiện tại; thanh phân trang hiển thị dải số, nút Trước/Sau, dải số trang thông minh; tự động reset về trang 1 khi lọc và cuộn mượt về đầu danh sách khi chuyển trang. |
+| **RULE-15** | Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG & Bảo Toàn Top Header (Item Bank Pagination & Header Viewport Invariant) | Danh sách ngân hàng câu hỏi bắt buộc phân trang (mặc định 12, tùy chọn 24, 48 câu/trang), chỉ render KaTeX cho trang hiện tại; thanh phân trang hiển thị dải số, nút Trước/Sau, dải số trang thông minh; tự động reset về trang 1 khi lọc; khi chuyển trang hoặc đổi kích thước trang bắt buộc cuộn mượt nội bộ container `#main-scroll-view` lên đỉnh (`top: 0`) và neo `window.scrollY === 0`. Nghiêm cấm sử dụng `scrollIntoView` gây cuộn `window` làm biến mất Top Header; cố định Header với thuộc tính `shrink-0` và `flex-shrink: 0;`. |
+| **RULE-16** | Bất Biến Khung Nhìn Thanh Tiêu Đề Cố Định (Fixed Apple Header Invariant) | Thanh tiêu đề ứng dụng `<header class="apple-header">` là thành phần định vị toàn cục, bắt buộc giữ vững hiển thị cố định ở đầu màn hình (`top: 0`, `shrink-0`, `flex-shrink: 0;`), không bị co giãn, không bị biến dạng và không bao giờ bị đẩy ra khỏi viewport dưới mọi thao tác điều hướng, phân trang, lọc hay cuộn nội dung của các phân hệ. |
 
 ---
 
@@ -223,7 +225,7 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 |:---|:---|:---|:---:|:---|
 | **BR-01** | AI Số hoá Đề thi & Studio HITL | AI Parsing Engine & HITL | P0 | Giảm 90% thời gian gõ lại đề thủ công |
 | **BR-02** | Dựng Đồ thị TikZ SVG & Chuẩn hóa Toán | TikZ Renderer & LaTeX Sanitizer | P0 | Hiển thị đồ thị vector sắc nét, chống lỗi KaTeX |
-| **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa, CRUD & Phân trang HIG | Taxonomy & Item Bank | P0 | Quản lý vòng đời đầy đủ, lọc 6 tầng TT 32, phân trang chống tràn DOM, tải KaTeX on-demand <10ms |
+| **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa, CRUD, Phân trang HIG & Header Invariant | Taxonomy & Item Bank | P0 | Quản lý vòng đời đầy đủ, lọc 6 tầng TT 32, phân trang chống tràn DOM, tải KaTeX on-demand <10ms, bảo toàn cố định Top Header 100% |
 | **BR-04** | Ma trận Đề thi Phân cấp Đa tầng & Con trỏ Tương phản cao | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối TT 22 & QĐ 764, tồn kho thời gian thực, con trỏ text đen đậm công thái học cao |
 | **BR-05** | Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc | Safe Shuffling Engine & Master Exam | P0 | Chống lỗi logic đáp án neo, bảo toàn bài đọc, đổi câu hỏi linh hoạt, sinh ma trận đáp án |
 | **BR-06** | Xuất bản Vector PDF, Word OMML & Gói ZIP | Export Service & Publishing Pipeline | P0 | Xuất bản in ấn 1-click, đóng gói trọn gói ZIP đề thi, lời giải, barem bậc thang và phiếu OMR |

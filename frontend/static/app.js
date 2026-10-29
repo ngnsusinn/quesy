@@ -2925,9 +2925,12 @@
     if (newPage > totalPages) newPage = totalPages;
     state.bankPagination.currentPage = newPage;
     renderItemBank();
-    const grid = document.getElementById('bank-cards-grid');
-    if (grid) {
-      grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const mainView = document.getElementById('main-scroll-view');
+    if (mainView) {
+      mainView.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (window.scrollY !== 0) {
+      window.scrollTo(0, 0);
     }
   }
 
@@ -2935,6 +2938,13 @@
     state.bankPagination.pageSize = parseInt(newSize, 10) || 12;
     state.bankPagination.currentPage = 1;
     renderItemBank();
+    const mainView = document.getElementById('main-scroll-view');
+    if (mainView) {
+      mainView.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    if (window.scrollY !== 0) {
+      window.scrollTo(0, 0);
+    }
   }
 
   function renderBankPagination(totalItems, currentPage, pageSize) {
