@@ -17,7 +17,7 @@ Quesy được xây dựng theo kiến trúc **Module-based Monolith** kết h�
    - *Soạn đề & Biên dịch Hybrid:* `composer_service.py` kết nối Remote Tectonic XeTeX Engine Docker (host `armbian:8090`), gói lệnh chuẩn quốc gia `ex_test.sty` (v3.3.6), động cơ Canonical Preamble Injection (tự động nhúng ngầm fontspec, amsmath, tikz, tkz-tab, tcolorbox, xparse, ex_test v3.3, geometry A4), hỗ trợ ô soạn thảo tinh gọn Preamble-Free Question Editor, và AI Inline Diff Replacer.
    - *Số hóa 2-Pass AI Decoupled:* Tiền xử lý ảnh OpenCV/Pillow, phân đoạn layout, Pass 1 trích xuất văn bản/đáp án, Pass 2 dựng mã TikZ/Array song song.
    - *Xuất bản MathType OLE Word & CMU Serif PDF:* Dựng luồng nhị phân CFB MTEF v5 + ảnh vector WMF (APM header chuẩn) sửa 2 chiều trong Microsoft Word; chuyển đổi bảng biến thiên sang `<w:tbl>` native.
-   - *Ma trận & Trộn đề An toàn:* Giải bài toán ma trận 2 chiều theo YCCĐ, hoán vị mã đề an toàn, tính điểm Đúng/Sai lũy tiến theo QĐ 764.
+   - *Ma trận & Trộn đề An toàn:* Bảng ma trận phân cấp đa tầng (Chương · Bài · Dạng x 3 Phần x 4 Mức độ NB-TH-VD-VDC), kiểm tra tồn kho thời gian thực, sticky footer, giải bài toán ma trận rút đề gốc, hoán vị mã đề an toàn, tính điểm Đúng/Sai lũy tiến theo QĐ 764.
 4. **Data Persistence & Storage Layer:**
    - Cơ sở dữ liệu: SQLite / PostgreSQL quản trị qua SQLAlchemy ORM (19 thực thể chuẩn hóa).
    - Hệ thống đĩa đệm (Storage): `storage/uploads/` (tệp đề thi), `storage/assets/` (hình ảnh trích xuất WebP), `storage/cache/mathjax/` (đệm WMF/SVG), `storage/cache/composer/` (đệm PDF biên dịch).
@@ -34,8 +34,9 @@ Quesy được xây dựng theo kiến trúc **Module-based Monolith** kết h�
 │              │                            │                            │               │
 │  ┌───────────┴─────────────┐  ┌───────────┴─────────────┐              │               │
 │  │   Ma trận đề (Matrix)   │  │   Trộn đề (Shuffler)    │              │               │
-│  │  - 2 Chiều YCCĐ x Mức độ│  │  - Safe Shuffling       │              │               │
-│  │  - Constraint Solver    │  │  - Chấm Đúng/Sai QĐ 764 │              │               │
+│  │  - Bảng đa tầng C-B-D   │  │  - Safe Shuffling       │              │               │
+│  │  - 3 Phần x 4 Mức độ    │  │  - Chấm Đúng/Sai QĐ 764 │              │               │
+│  │  - Tồn kho & Footer     │  │                         │              │               │
 │  └───────────┬─────────────┘  └───────────┬─────────────┘              │               │
 └──────────────┼────────────────────────────┼────────────────────────────┼───────────────┘
                │ HTTP / JSON REST API       │                            │

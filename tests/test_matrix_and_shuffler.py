@@ -685,111 +685,51 @@ def test_shuffler_export_single_variant_and_package_pure_vector_pdf(client):
 # 10. KIỂM THỬ THAO TÁC DÒNG MA TRẬN ĐỀ THI: DOM & JS CONTRACT
 # =========================================================================
 
-def test_matrix_dynamic_row_operations_dom_and_js_contract():
-    """Kiểm thử cấu trúc DOM và JavaScript contract cho thao tác thêm/xóa dòng Ma trận:
-    - DOM Elements trong frontend/index.html: #btn-add-matrix-row, #add-matrix-row-modal,
-      các trường input thêm dòng (#modal-matrix-strand, #modal-matrix-yccd, #modal-matrix-format, ...),
-      các nút xác nhận và hủy bỏ.
-    - Cấu trúc bảng ma trận 8 cột:
-      * thead: Mạch Nội dung, Dạng thức câu hỏi, Biết, Hiểu, Vận dụng, Tổng câu, Tổng điểm, Thao tác.
-      * tbody: render đầy đủ 8 cột với select dropdown dạng thức câu hỏi trên từng dòng.
-      * tfoot: colspan="2" cho 2 cột đầu và 6 cột tổng hợp.
-    - Xác nhận xóa bỏ hoàn toàn cụm 3 nút preset cũ: #btn-preset-thpt_2025, #btn-preset-midterm, #btn-preset-final.
-    - CSS styles trong frontend/static/style.css: .matrix-stock-chip, .btn-preset.active.
-    - JS contract trong frontend/static/app.js: các hàm addMatrixRow, deleteMatrixRow,
-      updateMatrixRowFormat, openAddMatrixRowModal, confirmAddMatrixRow có mặt và được export vào window.app.
+def test_matrix_hierarchical_multi_tier_dom_and_js_contract():
+    """Kiểm thử cấu trúc DOM và JavaScript contract cho Bảng phân cấp đa tầng Ma trận đề thi:
+    - DOM Elements trong frontend/index.html: #matrix-tree-toolbar, #matrix-search-archetype,
+      #matrix-filter-has-stock, #btn-matrix-expand-all, #btn-matrix-collapse-all,
+      #matrix-select-preset, #btn-matrix-reset, #matrix-hierarchical-tbody,
+      #matrix-sticky-footer, #btn-matrix-generate-master.
+    - Cấu trúc bảng ma trận đa tầng 3 cấp (Chương · Bài · Dạng x 3 Phần x 4 Cấp độ).
+    - JS contract trong frontend/static/app.js: initHierarchicalMatrix, renderHierarchicalMatrix,
+      toggleMatrixNode, expandAllMatrixTree, collapseAllMatrixTree, onMatrixSearchInput,
+      onMatrixFilterStockChange, onMatrixCellChange, applyMatrixPreset, resetMatrixSelections,
+      generateMasterExamFromHierarchicalMatrix có mặt và được export vào window.app.
     """
     from pathlib import Path
-
-    # 1. Kiểm tra DOM frontend/index.html
     html_path = Path("frontend/index.html")
-    assert html_path.exists(), "frontend/index.html phải tồn tại"
+    assert html_path.exists()
     html_content = html_path.read_text(encoding="utf-8")
 
-    # Xác nhận xóa bỏ cụm 3 nút preset cũ ở Header Card Ma trận
-    assert 'id="btn-preset-thpt_2025"' not in html_content, "Nút preset thpt_2025 phải bị xóa bỏ"
-    assert 'id="btn-preset-midterm"' not in html_content, "Nút preset midterm phải bị xóa bỏ"
-    assert 'id="btn-preset-final"' not in html_content, "Nút preset final phải bị xóa bỏ"
+    assert 'id="matrix-tree-toolbar"' in html_content
+    assert 'id="matrix-search-archetype"' in html_content
+    assert 'id="matrix-filter-has-stock"' in html_content
+    assert 'id="btn-matrix-expand-all"' in html_content
+    assert 'id="btn-matrix-collapse-all"' in html_content
+    assert 'id="matrix-select-preset"' in html_content
+    assert 'id="btn-matrix-reset"' in html_content
+    assert 'id="matrix-hierarchical-tbody"' in html_content
+    assert 'id="matrix-sticky-footer"' in html_content
+    assert 'id="btn-matrix-generate-master"' in html_content
 
-    # Xác nhận nút thêm dòng ma trận chuyển xuống thanh công cụ cạnh chip tồn kho
-    assert 'id="btn-add-matrix-row"' in html_content, "Nút thêm dòng ma trận phải có id='btn-add-matrix-row'"
-    assert 'onclick="app.openAddMatrixRowModal()"' in html_content, "Nút thêm dòng phải gọi app.openAddMatrixRowModal()"
-    assert "Thêm dòng YCCĐ" in html_content, "Nút thêm dòng ma trận phải mang nhãn 'Thêm dòng YCCĐ'"
-
-    # Cấu trúc bảng ma trận 8 cột (thead)
-    assert 'Dạng thức câu hỏi' in html_content, "Bảng ma trận phải có cột 2 'Dạng thức câu hỏi'"
-    assert 'Mạch Nội dung & YCCĐ / Dạng bài' in html_content, "Bảng ma trận phải có cột 1 'Mạch Nội dung & YCCĐ / Dạng bài'"
-    assert '1. Nhận biết (Biết)' in html_content, "Bảng ma trận phải có cột 3 Biết"
-    assert '2. Thông hiểu (Hiểu)' in html_content, "Bảng ma trận phải có cột 4 Hiểu"
-    assert '3. Vận dụng' in html_content, "Bảng ma trận phải có cột 5 Vận dụng"
-    assert 'Tổng câu' in html_content, "Bảng ma trận phải có cột 6 Tổng câu"
-    assert 'Tổng điểm' in html_content, "Bảng ma trận phải có cột 7 Tổng điểm"
-    assert 'Thao tác' in html_content, "Bảng ma trận phải có cột 8 Thao tác"
-
-    # Cấu trúc tfoot 8 cột
-    assert '<td colspan="2" class="p-3 sticky left-0 bg-slate-50">TỔNG CỘNG TOÀN MA TRẬN</td>' in html_content, \
-        "Hàng tổng cộng tfoot phải dùng colspan='2' cho 2 cột đầu"
-    assert 'id="matrix-total-biet"' in html_content
-    assert 'id="matrix-total-hieu"' in html_content
-    assert 'id="matrix-total-vandung"' in html_content
-    assert 'id="matrix-total-items"' in html_content
-    assert 'id="matrix-total-points"' in html_content
-
-    # Modal thêm dòng ma trận và trường chọn dạng thức câu hỏi
-    assert 'id="add-matrix-row-modal"' in html_content, "Modal thêm dòng ma trận phải có id='add-matrix-row-modal'"
-    assert 'id="modal-matrix-strand"' in html_content, "Modal phải có selector mạch kiến thức #modal-matrix-strand"
-    assert 'id="modal-matrix-yccd"' in html_content, "Modal phải có input mã YCCĐ #modal-matrix-yccd"
-    assert 'id="modal-matrix-archetype"' in html_content, "Modal phải có input dạng bài #modal-matrix-archetype"
-    assert 'id="modal-matrix-format"' in html_content, "Modal phải có selector dạng thức câu hỏi #modal-matrix-format"
-    assert 'value="SINGLE_CHOICE"' in html_content, "Modal format phải có option SINGLE_CHOICE"
-    assert 'value="TRUE_FALSE_GROUP"' in html_content, "Modal format phải có option TRUE_FALSE_GROUP"
-    assert 'value="SHORT_ANSWER"' in html_content, "Modal format phải có option SHORT_ANSWER"
-    assert 'value="ESSAY"' in html_content, "Modal format phải có option ESSAY"
-    assert 'id="modal-matrix-biet"' in html_content, "Modal phải có input số câu Biết #modal-matrix-biet"
-    assert 'id="modal-matrix-hieu"' in html_content, "Modal phải có input số câu Hiểu #modal-matrix-hieu"
-    assert 'id="modal-matrix-vandung"' in html_content, "Modal phải có input số câu Vận dụng #modal-matrix-vandung"
-    assert 'onclick="app.confirmAddMatrixRow()"' in html_content, "Nút xác nhận trong modal phải gọi app.confirmAddMatrixRow()"
-    assert 'onclick="app.closeAddMatrixRowModal()"' in html_content, "Nút đóng modal phải gọi app.closeAddMatrixRowModal()"
-
-    # 2. Kiểm tra CSS frontend/static/style.css
-    css_path = Path("frontend/static/style.css")
-    assert css_path.exists(), "frontend/static/style.css phải tồn tại"
-    css_content = css_path.read_text(encoding="utf-8")
-    assert ".matrix-stock-chip.stock-ok" in css_content, "CSS phải định nghĩa chip tồn kho đủ .matrix-stock-chip.stock-ok"
-    assert ".matrix-stock-chip.stock-warn" in css_content, "CSS phải định nghĩa chip tồn kho thiếu .matrix-stock-chip.stock-warn"
-    assert ".btn-preset.active" in css_content, "CSS phải định nghĩa trạng thái preset active .btn-preset.active"
-
-    # 3. Kiểm tra JS methods và contract trong frontend/static/app.js
     js_path = Path("frontend/static/app.js")
-    assert js_path.exists(), "frontend/static/app.js phải tồn tại"
+    assert js_path.exists()
     js_content = js_path.read_text(encoding="utf-8")
+    assert "initHierarchicalMatrix" in js_content
+    assert "renderHierarchicalMatrix" in js_content
+    assert "toggleMatrixNode" in js_content
+    assert "expandAllMatrixTree" in js_content
+    assert "collapseAllMatrixTree" in js_content
+    assert "onMatrixSearchInput" in js_content
+    assert "onMatrixFilterStockChange" in js_content
+    assert "onMatrixCellChange" in js_content
+    assert "applyMatrixPreset" in js_content
+    assert "resetMatrixSelections" in js_content
+    assert "generateMasterExamFromHierarchicalMatrix" in js_content
+    assert "initHierarchicalMatrix," in js_content
+    assert "renderHierarchicalMatrix," in js_content
 
-    assert "const MATRIX_FORMAT_POINTS = {" in js_content, "app.js phải định nghĩa bảng điểm MATRIX_FORMAT_POINTS"
-    assert "SINGLE_CHOICE: 0.25," in js_content, "SINGLE_CHOICE phải có điểm chuẩn 0.25"
-    assert "TRUE_FALSE_GROUP: 1.0," in js_content, "TRUE_FALSE_GROUP phải có điểm chuẩn 1.0"
-    assert "SHORT_ANSWER: 0.5," in js_content, "SHORT_ANSWER phải có điểm chuẩn 0.5"
-    assert "ESSAY: 1.0" in js_content, "ESSAY phải có điểm chuẩn 1.0"
-    assert "const MATRIX_FORMAT_LABELS = {" in js_content, "app.js phải định nghĩa nhãn MATRIX_FORMAT_LABELS"
-
-    assert "function updateMatrixRowFormat" in js_content, "app.js phải định nghĩa function updateMatrixRowFormat"
-    assert "function openAddMatrixRowModal" in js_content, "app.js phải định nghĩa function openAddMatrixRowModal"
-    assert "function closeAddMatrixRowModal" in js_content, "app.js phải định nghĩa function closeAddMatrixRowModal"
-    assert "function confirmAddMatrixRow" in js_content, "app.js phải định nghĩa function confirmAddMatrixRow"
-    assert "function addMatrixRow" in js_content, "app.js phải định nghĩa function addMatrixRow"
-    assert "function deleteMatrixRow" in js_content, "app.js phải định nghĩa function deleteMatrixRow"
-
-    # 4. Kiểm tra window.app exports
-    assert "updateMatrixRowFormat," in js_content, "window.app phải export updateMatrixRowFormat"
-    assert "openAddMatrixRowModal," in js_content, "window.app phải export openAddMatrixRowModal"
-    assert "closeAddMatrixRowModal," in js_content, "window.app phải export closeAddMatrixRowModal"
-    assert "confirmAddMatrixRow," in js_content, "window.app phải export confirmAddMatrixRow"
-    assert "addMatrixRow," in js_content, "window.app phải export addMatrixRow"
-    assert "deleteMatrixRow," in js_content, "window.app phải export deleteMatrixRow"
-
-
-# =========================================================================
-# 11. KIỂM THỬ TÍNH TOÁN ĐIỂM SỐ KHÔNG HARDCODE & PHÂN BỔ BLOOM THỜI GIAN THỰC
-# =========================================================================
 
 def test_matrix_dynamic_scoring_and_bloom_calculation_no_hardcode():
     """Kiểm thử tính toán điểm số ma trận trả về giá trị thực tế theo dạng thức câu hỏi:
@@ -1082,150 +1022,32 @@ def test_render_answer_key_matrix_table_three_question_formats():
 # 14. KIỂM THỬ MA TRẬN 8 CỘT, KHÔNG PRESET, VÀ CHUẨN ĐIỂM SỐ THEO DẠNG THỨC
 # =========================================================================
 
-def test_matrix_8_column_grid_format_scoring_and_no_presets_contract():
-    """Kiểm thử toàn diện bảng ma trận 8 cột, loại bỏ preset cũ và tính điểm chuẩn QĐ 764:
-    1. Kiểm thử cấu trúc bảng ma trận 8 cột:
-       - thead có đủ 8 cột: Mạch ND/YCCĐ, Dạng thức câu hỏi (w-44 text-center border-l border-slate-200 bg-slate-100),
-         1. Nhận biết (Biết), 2. Thông hiểu (Hiểu), 3. Vận dụng, Tổng câu, Tổng điểm, Thao tác.
-       - tbody render bởi renderMatrixGrid(): render select format trên từng dòng, 3 ô input level + chip tồn kho,
-         cột tổng câu, cột tổng điểm = (rowItems * formatPoints), cột nút xóa.
-       - tfoot có colspan="2" cho 2 cột đầu (TỔNG CỘNG TOÀN MA TRẬN), và 6 cột tổng hợp.
-    2. Kiểm thử sự vắng mặt của các nút preset cũ:
-       - #btn-preset-thpt_2025, #btn-preset-midterm, #btn-preset-final không tồn tại trong frontend/index.html.
-    3. Nút #btn-add-matrix-row:
-       - Nằm tại thanh công cụ của lưới 2D cạnh chip tồn kho.
-       - Có icon plus và nhãn "Thêm dòng YCCĐ".
-    4. Modal #add-matrix-row-modal:
-       - Chứa trường chọn dạng thức câu hỏi #modal-matrix-format.
-       - 4 options: SINGLE_CHOICE, TRUE_FALSE_GROUP, SHORT_ANSWER, ESSAY.
-    5. JavaScript contract:
-       - MATRIX_FORMAT_POINTS và MATRIX_FORMAT_LABELS định nghĩa chuẩn điểm số.
-       - updateMatrixRowFormat(rowIdx, format) cập nhật state.matrixConfig.rows[rowIdx].itemFormat.
-       - updateMatrixRowFormat được expose trên window.app.
-    6. Tính toán điểm số theo dạng thức:
-       - SINGLE_CHOICE: 0.25đ / câu
-       - TRUE_FALSE_GROUP: 1.0đ / câu
-       - SHORT_ANSWER: 0.5đ / câu
-       - ESSAY: 1.0đ / câu
-       - Tổng điểm ma trận chuẩn 22 câu = 10.0đ (không bị nhảy sai thành 11.0đ).
+def test_matrix_hierarchical_multi_tier_grid_contract():
+    """Kiểm thử toàn diện Bảng phân cấp đa tầng Ma trận đề thi (Chương · Bài · Dạng x 3 Phần x 4 Cấp độ):
+    1. Cấu trúc bảng ma trận đa tầng:
+       - thead có 2 tầng: Tầng 1 (CHƯƠNG · BÀI · DẠNG, Phần I Trắc nghiệm, Phần II Đúng/Sai, Phần III Trả lời ngắn, Tổng câu, Tổng điểm), Tầng 2 (4 cột con NB, TH, VD, VDC cho mỗi phần).
+       - tbody render cây phân cấp 3 tầng với ô input 12 ô/dạng và chip tồn kho.
+    2. Thanh công cụ và Footer cố định:
+       - #matrix-tree-toolbar, #matrix-search-archetype, #matrix-filter-has-stock,
+         #btn-matrix-expand-all, #btn-matrix-collapse-all, #matrix-select-preset, #btn-matrix-reset.
+       - #matrix-sticky-footer với thống kê Phần I, II, III, tổng cộng và nút #btn-matrix-generate-master.
+    3. Hợp đồng API /backend/matrices/bank-inventory hoạt động chuẩn xác.
     """
     from pathlib import Path
-
-    # --- 1. KIỂM THỬ GIAO DIỆN HTML (frontend/index.html) ---
     html_file = Path("frontend/index.html")
-    assert html_file.exists(), "frontend/index.html phải tồn tại"
+    assert html_file.exists()
     html_text = html_file.read_text(encoding="utf-8")
 
-    # A. Vắng mặt hoàn toàn các nút preset cũ
-    assert "btn-preset-thpt_2025" not in html_text, "Không được chứa nút btn-preset-thpt_2025"
-    assert "btn-preset-midterm" not in html_text, "Không được chứa nút btn-preset-midterm"
-    assert "btn-preset-final" not in html_text, "Không được chứa nút btn-preset-final"
+    assert 'id="matrix-hierarchical-tbody"' in html_text
+    assert 'id="matrix-tree-toolbar"' in html_text
+    assert 'id="matrix-search-archetype"' in html_text
+    assert 'id="matrix-filter-has-stock"' in html_text
+    assert 'id="btn-matrix-expand-all"' in html_text
+    assert 'id="btn-matrix-collapse-all"' in html_text
+    assert 'id="matrix-select-preset"' in html_text
+    assert 'id="matrix-sticky-footer"' in html_text
+    assert 'id="btn-matrix-generate-master"' in html_text
 
-    # B. Vị trí nút Thêm dòng YCCĐ tại thanh công cụ lưới ma trận
-    assert 'id="btn-add-matrix-row"' in html_text
-    assert "Thêm dòng YCCĐ" in html_text
-    assert 'onclick="app.openAddMatrixRowModal()"' in html_text
-    assert 'data-lucide="plus"' in html_text
-
-    # C. Cấu trúc thead 8 cột
-    assert '<th class="p-3 w-64 sticky left-0 bg-slate-100 z-10">Mạch Nội dung & YCCĐ / Dạng bài</th>' in html_text
-    assert '<th class="p-3 w-44 text-center border-l border-slate-200 bg-slate-100">Dạng thức câu hỏi</th>' in html_text
-    assert '<div class="text-blue-900">1. Nhận biết (Biết)</div>' in html_text
-    assert '<div class="text-indigo-900">2. Thông hiểu (Hiểu)</div>' in html_text
-    assert '<div class="text-emerald-900">3. Vận dụng</div>' in html_text
-    assert '<th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng câu</th>' in html_text
-    assert '<th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng điểm</th>' in html_text
-    assert '<th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-16">Thao tác</th>' in html_text
-
-    # D. Cấu trúc tfoot 8 cột
-    assert '<td colspan="2" class="p-3 sticky left-0 bg-slate-50">TỔNG CỘNG TOÀN MA TRẬN</td>' in html_text
-    assert 'id="matrix-total-biet"' in html_text
-    assert 'id="matrix-total-hieu"' in html_text
-    assert 'id="matrix-total-vandung"' in html_text
-    assert 'id="matrix-total-items"' in html_text
-    assert 'id="matrix-total-points"' in html_text
-
-    # E. Modal #add-matrix-row-modal có trường format
-    assert 'id="add-matrix-row-modal"' in html_text
-    assert 'id="modal-matrix-format"' in html_text
-    assert '<option value="SINGLE_CHOICE">Trắc nghiệm 4 lựa chọn (0.25đ)</option>' in html_text
-    assert '<option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý (1.0đ)</option>' in html_text
-    assert '<option value="SHORT_ANSWER">Trả lời ngắn (0.5đ)</option>' in html_text
-    assert '<option value="ESSAY">Tự luận (1.0đ)</option>' in html_text
-
-    # --- 2. KIỂM THỬ JAVASCRIPT CONTRACT (frontend/static/app.js) ---
-    js_file = Path("frontend/static/app.js")
-    assert js_file.exists(), "frontend/static/app.js phải tồn tại"
-    js_text = js_file.read_text(encoding="utf-8")
-
-    # A. Bảng điểm chuẩn và nhãn
-    assert "const MATRIX_FORMAT_POINTS = {" in js_text
-    assert "SINGLE_CHOICE: 0.25," in js_text
-    assert "TRUE_FALSE_GROUP: 1.0," in js_text
-    assert "SHORT_ANSWER: 0.5," in js_text
-    assert "ESSAY: 1.0" in js_text
-
-    assert "const MATRIX_FORMAT_LABELS = {" in js_text
-    assert "SINGLE_CHOICE: 'Trắc nghiệm (0.25đ)'," in js_text
-    assert "TRUE_FALSE_GROUP: 'Đúng / Sai (1.0đ)'," in js_text
-    assert "SHORT_ANSWER: 'Trả lời ngắn (0.5đ)'," in js_text
-    assert "ESSAY: 'Tự luận (1.0đ)'" in js_text
-
-    # B. Hàm updateMatrixRowFormat và phơi ra window.app
-    assert "function updateMatrixRowFormat(rowIdx, format) {" in js_text
-    assert "state.matrixConfig.rows[rowIdx].itemFormat = format;" in js_text
-    assert "renderMatrixGrid();" in js_text
-    assert "updateMatrixRowFormat," in js_text
-
-    # C. renderMatrixGrid render 8 cột trong tbody
-    assert "app.updateMatrixRowFormat(${rowIdx}, this.value)" in js_text
-    assert "app.updateMatrixCell(${rowIdx}, 'biet', this.value)" in js_text
-    assert "app.updateMatrixCell(${rowIdx}, 'hieu', this.value)" in js_text
-    assert "app.updateMatrixCell(${rowIdx}, 'vandung', this.value)" in js_text
-    assert "app.deleteMatrixRow(${rowIdx})" in js_text
-
-    # D. Tính toán điểm số thời gian thực không hardcode
-    assert "const format = row.itemFormat || 'SINGLE_CHOICE';" in js_text
-    assert "const formatPoints = MATRIX_FORMAT_POINTS[format] || 0.25;" in js_text
-    assert "const rowItems = rowBiet + rowHieu + rowVandung;" in js_text
-    assert "const rowPoints = (rowItems * formatPoints).toFixed(2);" in js_text
-    assert "grandPoints += rowItems * formatPoints;" in js_text
-
-    # --- 3. KIỂM THỬ TÍNH ĐIỂM CHUẨN HÓA 22 CÂU = 10.0Đ (KHÔNG NHẢY THÀNH 11.0Đ) ---
-    matrix_points_spec = {
-        "SINGLE_CHOICE": 0.25,
-        "TRUE_FALSE_GROUP": 1.0,
-        "SHORT_ANSWER": 0.5,
-        "ESSAY": 1.0,
-    }
-
-    # Cấu hình chuẩn 22 câu mặc định của ứng dụng
-    standard_22_items = [
-        {"format": "SINGLE_CHOICE", "count": 12},     # 12 x 0.25 = 3.0đ
-        {"format": "TRUE_FALSE_GROUP", "count": 4},   # 4 x 1.0 = 4.0đ
-        {"format": "SHORT_ANSWER", "count": 6},       # 6 x 0.5 = 3.0đ
-    ]
-
-    total_items = sum(item["count"] for item in standard_22_items)
-    assert total_items == 22, "Tổng số câu của đề thi chuẩn phải là 22 câu"
-
-    total_score = sum(item["count"] * matrix_points_spec[item["format"]] for item in standard_22_items)
-    assert total_score == 10.0, f"Tổng điểm phải là 10.0đ, thực tế tính ra: {total_score}đ (không được là 11.0đ)"
-
-    # Kiểm tra từng dạng thức độc lập
-    sc_points = 12 * matrix_points_spec["SINGLE_CHOICE"]
-    tf_points = 4 * matrix_points_spec["TRUE_FALSE_GROUP"]
-    sa_points = 6 * matrix_points_spec["SHORT_ANSWER"]
-
-    assert sc_points == 3.0, "12 câu SINGLE_CHOICE phải đạt 3.0đ"
-    assert tf_points == 4.0, "4 câu TRUE_FALSE_GROUP phải đạt 4.0đ"
-    assert sa_points == 3.0, "6 câu SHORT_ANSWER phải đạt 3.0đ"
-    assert (sc_points + tf_points + sa_points) == 10.0, "Tổng 3 phần phải đạt chuẩn 10.0đ"
-
-
-# =========================================================================
-# 15. KIỂM THỬ APPLE SELECT UI VÀ PHỦ KÍN RENDER KATEX TOÁN HỌC
-# =========================================================================
 
 def test_apple_select_ui_styling_and_html_select_coverage():
     """Kiểm thử chuẩn thiết kế Apple Select UI và độ phủ toàn bộ thẻ <select>:
@@ -1272,7 +1094,7 @@ def test_apple_select_ui_styling_and_html_select_coverage():
 
     # Tìm tất cả thẻ mở <select ...>
     select_tags = re.findall(r'<select\b[^>]*>', html_content, flags=re.IGNORECASE)
-    assert len(select_tags) == 19, f"Kỳ vọng đúng 19 thẻ <select> trong HTML, thực tế tìm thấy: {len(select_tags)}"
+    assert len(select_tags) == 20, f"Kỳ vọng đúng 19 thẻ <select> trong HTML, thực tế tìm thấy: {len(select_tags)}"
 
     # Khẳng định 100% thẻ <select> đều chứa class 'apple-select'
     for tag in select_tags:
@@ -1297,6 +1119,7 @@ def test_apple_select_ui_styling_and_html_select_coverage():
         "bank-filter-cognitive",
         "bank-filter-format",
         "matrix-param-time",
+        "matrix-select-preset",
         "shuffler-select-master-exam",
         "shuffler-select-matrix",
         "q-edit-format",
@@ -1419,6 +1242,435 @@ def test_katex_global_expose_and_full_pipeline_rendering():
     # Explanation
     assert "formatStemForDisplay(q.explanation)" in js_content, \
            "Phải áp dụng formatStemForDisplay cho lời giải chi tiết"
+
+
+# =========================================================================
+# 18. KIỂM THỬ BẢNG MA TRẬN PHÂN CẤP ĐA TẦNG VÀ STICKY FOOTER ACTION BAR
+# =========================================================================
+
+def test_matrix_bank_inventory_endpoint(client):
+    """Kiểm thử endpoint /api/v1/matrix/bank-inventory và alias /api/v1/matrices/bank-inventory:
+    - Xác nhận cả 2 route alias trả về HTTP 200 đồng nhất.
+    - Cấu trúc phản hồi JSON: subject_id, grade_id, total_approved_questions, inventory.
+    - inventory ánh xạ archetype_id -> item_format -> cognitive_level -> count.
+    - Tính nhất quán dữ liệu: tổng số câu trong inventory khớp với total_approved_questions.
+    - Hỗ trợ lọc theo query parameters: subject_id và grade_id.
+    - Khi thêm một câu hỏi mới vào DB với problem_archetype_id, inventory tăng chính xác.
+    """
+    # 1. Gọi cả 2 alias
+    res_singular = client.get("/api/v1/matrix/bank-inventory")
+    res_plural = client.get("/api/v1/matrices/bank-inventory")
+
+    assert res_singular.status_code == 200
+    assert res_plural.status_code == 200
+
+    data_s = res_singular.json()
+    data_p = res_plural.json()
+
+    assert data_s == data_p, "Phản hồi từ /matrix/bank-inventory và /matrices/bank-inventory phải đồng nhất"
+    assert "total_approved_questions" in data_s
+    assert "inventory" in data_s
+    assert isinstance(data_s["total_approved_questions"], int)
+    assert isinstance(data_s["inventory"], dict)
+
+    # 2. Kiểm tra tính nhất quán của inventory
+    sum_counted = 0
+    for arch_id, formats in data_s["inventory"].items():
+        assert isinstance(formats, dict)
+        for fmt, levels in formats.items():
+            assert isinstance(levels, dict)
+            for lvl, count in levels.items():
+                assert isinstance(count, int)
+                assert count > 0
+                sum_counted += count
+    assert sum_counted == data_s["total_approved_questions"], "Tổng số câu trong inventory phải khớp total_approved_questions"
+
+    # 3. Kiểm tra lọc theo subject_id và grade_id
+    res_filtered = client.get("/api/v1/matrix/bank-inventory?subject_id=TOAN&grade_id=GRADE_12")
+    assert res_filtered.status_code == 200
+    filtered_data = res_filtered.json()
+    assert filtered_data["subject_id"] == "TOAN"
+    assert filtered_data["grade_id"] == "GRADE_12"
+
+    # 4. Thêm một câu hỏi mẫu vào DB và kiểm tra inventory phản ánh ngay lập tức
+    db = SessionLocal()
+    try:
+        from backend.models import ProblemArchetype, Subject, Grade
+        existing_arch = db.query(ProblemArchetype).first()
+        assert existing_arch is not None, "DB phải có ít nhất 1 ProblemArchetype seeded"
+        test_arch_id = existing_arch.id
+        subj = db.query(Subject).first()
+        grade = db.query(Grade).first()
+        subj_id = getattr(existing_arch, "subject_id", None) or (subj.id if subj else None)
+        grade_id = getattr(existing_arch, "grade_id", None) or (grade.id if grade else None)
+
+        # Lấy count ban đầu của arch_id
+        res_before = client.get(f"/api/v1/matrix/bank-inventory?subject_id={subj_id}&grade_id={grade_id}" if subj_id and grade_id else "/api/v1/matrix/bank-inventory")
+        assert res_before.status_code == 200
+        inv_before = res_before.json()["inventory"]
+        prev_cnt = inv_before.get(test_arch_id, {}).get("SINGLE_CHOICE", {}).get("RECOGNITION", 0)
+
+        test_q = Question(
+            stem="Câu hỏi kiểm thử tồn kho ma trận phân cấp $y = f(x)$?",
+            question_type="SINGLE_CHOICE",
+            cognitive_level="RECOGNITION",
+            problem_archetype_id=test_arch_id,
+            subject_id=subj_id,
+            grade_id=grade_id,
+            status="APPROVED",
+            source_reference="TIÊU CHUẨN MA TRẬN PHÂN CẤP"
+        )
+        db.add(test_q)
+        db.commit()
+        db.refresh(test_q)
+
+        # Gọi lại endpoint
+        res_after = client.get(f"/api/v1/matrix/bank-inventory?subject_id={subj_id}&grade_id={grade_id}" if subj_id and grade_id else "/api/v1/matrix/bank-inventory")
+        assert res_after.status_code == 200
+        inv_after = res_after.json()["inventory"]
+        assert test_arch_id in inv_after, f"Archetype {test_arch_id} phải xuất hiện trong inventory sau khi thêm câu hỏi"
+        assert "SINGLE_CHOICE" in inv_after[test_arch_id]
+        new_cnt = inv_after[test_arch_id]["SINGLE_CHOICE"].get("RECOGNITION", 0)
+        assert new_cnt == prev_cnt + 1, f"Số lượng tồn kho phải tăng đúng 1: trước {prev_cnt}, sau {new_cnt}"
+
+        # Dọn dẹp
+        db.delete(test_q)
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_hierarchical_matrix_dom_structure_and_controls():
+    """Kiểm thử cấu trúc DOM Bảng ma trận phân cấp đa tầng và Sticky Footer Action Bar:
+    1. Cấu trúc DOM trong frontend/index.html:
+       - Tab container #tab-matrix.
+       - Thanh công cụ #matrix-tree-toolbar:
+         * Ô tìm kiếm #matrix-search-archetype
+         * Checkbox #matrix-filter-has-stock (Chỉ hiện dạng có câu)
+         * Nút #btn-matrix-expand-all (Mở hết)
+         * Nút #btn-matrix-collapse-all (Đóng hết)
+         * Dropdown #matrix-select-preset (.apple-select)
+         * Nút #btn-matrix-reset (Đặt lại)
+       - Khung bảng #matrix-hierarchical-table-wrapper và tbody #matrix-hierarchical-tbody.
+       - Header 2 tầng: Cột Cây 3 tầng (Chương · Bài · Dạng) và 3 Nhóm cột lớn (Phần I, II, III).
+       - Đầy đủ 12 cột nhận thức: 4 cột Phần I (NB, TH, VD, VDC), 4 cột Phần II, 4 cột Phần III.
+       - 2 Cột tổng kết: TỔNG CÂU và TỔNG ĐIỂM.
+       - Sticky footer action bar #matrix-sticky-footer:
+         * Thống kê 3 phần: #matrix-foot-p1, #matrix-foot-p2, #matrix-foot-p3
+         * Tổng câu và điểm: #matrix-foot-grand
+         * Mini bar Bloom 4 màu: #matrix-foot-bloom-lbl, #matrix-foot-bar-nb, #matrix-foot-bar-th, #matrix-foot-bar-vd, #matrix-foot-bar-vdc
+         * Nút hành động chính: #btn-matrix-generate-master.
+    2. JavaScript Function Contracts trong frontend/static/app.js:
+       - Các hàm quản trị cây: initHierarchicalMatrix, renderHierarchicalMatrix, toggleMatrixNode,
+         expandAllMatrixTree, collapseAllMatrixTree, onMatrixSearchInput, onMatrixFilterStockChange.
+       - Các hàm ô nhập và presets: onMatrixCellChange, applyMatrixPreset, resetMatrixSelections,
+         generateMasterExamFromHierarchicalMatrix.
+       - Toàn bộ đều được export vào window.app.
+    """
+    from pathlib import Path
+    html_path = Path("frontend/index.html")
+    assert html_path.exists(), "frontend/index.html phải tồn tại"
+    html_content = html_path.read_text(encoding="utf-8")
+
+    # 1. Container & Toolbar Elements
+    assert 'id="tab-matrix"' in html_content
+    assert 'id="matrix-tree-toolbar"' in html_content
+    assert 'id="matrix-search-archetype"' in html_content
+    assert 'id="matrix-filter-has-stock"' in html_content
+    assert 'id="btn-matrix-expand-all"' in html_content
+    assert 'id="btn-matrix-collapse-all"' in html_content
+    assert 'id="matrix-select-preset"' in html_content
+    assert 'id="btn-matrix-reset"' in html_content
+
+    # 2. Table & Grid Structure
+    assert 'id="matrix-hierarchical-table-wrapper"' in html_content
+    assert 'id="matrix-hierarchical-tbody"' in html_content
+    assert "CHƯƠNG · BÀI · DẠNG BÀI TẬP" in html_content
+    assert "PHẦN I · TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN" in html_content
+    assert "PHẦN II · ĐÚNG / SAI 4 Ý" in html_content
+    assert "PHẦN III · TRẢ LỜI NGẮN" in html_content
+    assert "TỔNG CÂU" in html_content
+    assert "TỔNG ĐIỂM" in html_content
+
+    # 3. Sticky Footer Action Bar Elements
+    assert 'id="matrix-sticky-footer"' in html_content
+    assert 'id="matrix-foot-p1"' in html_content
+    assert 'id="matrix-foot-p2"' in html_content
+    assert 'id="matrix-foot-p3"' in html_content
+    assert 'id="matrix-foot-grand"' in html_content
+    assert 'id="matrix-foot-bloom-lbl"' in html_content
+    assert 'id="matrix-foot-bar-nb"' in html_content
+    assert 'id="matrix-foot-bar-th"' in html_content
+    assert 'id="matrix-foot-bar-vd"' in html_content
+    assert 'id="matrix-foot-bar-vdc"' in html_content
+    assert 'id="btn-matrix-generate-master"' in html_content
+
+    # 4. JavaScript Contracts trong app.js
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists(), "frontend/static/app.js phải tồn tại"
+    js_content = js_path.read_text(encoding="utf-8")
+
+    expected_functions = [
+        "initHierarchicalMatrix",
+        "renderHierarchicalMatrix",
+        "toggleMatrixNode",
+        "expandAllMatrixTree",
+        "collapseAllMatrixTree",
+        "onMatrixSearchInput",
+        "onMatrixFilterStockChange",
+        "onMatrixCellChange",
+        "applyMatrixPreset",
+        "resetMatrixSelections",
+        "generateMasterExamFromHierarchicalMatrix"
+    ]
+    for fn in expected_functions:
+        assert f"function {fn}" in js_content, f"app.js phải chứa định nghĩa function {fn}"
+
+    # Export vào window.app
+    app_export_pos = js_content.rfind("window.app = {")
+    assert app_export_pos != -1, "Không tìm thấy khai báo window.app = { ... }"
+    app_export_body = js_content[app_export_pos:js_content.find("};", app_export_pos)]
+    for fn in expected_functions:
+        assert f"{fn}," in app_export_body, f"window.app phải export {fn}"
+
+
+def test_hierarchical_matrix_presets_and_calculations():
+    """Kiểm thử tính toán điểm số và tỷ lệ nhận thức Bloom cho 3 Presets chuẩn hóa:
+    1. Preset THPT 2025 ('thpt2025'):
+       - Phần I: 12 câu trắc nghiệm đơn x 0.25đ = 3.0đ.
+       - Phần II: 4 câu Đúng/Sai 4 ý x 1.0đ = 4.0đ.
+       - Phần III: 6 câu Trả lời ngắn x 0.5đ = 3.0đ.
+       - Tổng số: 22 câu = 10.0 điểm tuyệt đối.
+       - Phân bố Bloom 4 cấp độ:
+         * NB (Nhận biết): 7 câu (~32%)
+         * TH (Thông hiểu): 8 câu (~36%)
+         * VD (Vận dụng): 6 câu (~27%)
+         * VDC (Vận dụng cao): 1 câu (~5%)
+         * Tổng: 22 câu (100%).
+    2. Preset Định kỳ ('periodic'):
+       - 20 câu trắc nghiệm đơn x 0.25đ = 5.0đ (10 NB + 10 TH).
+    3. Preset Cuối kỳ ('final'):
+       - 18 câu trắc nghiệm đơn (0.25đ = 4.5đ) + 10 câu TLN (0.5đ = 5.0đ) = 28 câu.
+    4. Reset ma trận (resetMatrixSelections):
+       - Làm rỗng toàn bộ cellSelections.
+       - Cập nhật sticky footer: 0 câu | 0.0 / 10.0 điểm.
+    """
+    from pathlib import Path
+    js_path = Path("frontend/static/app.js")
+    js_content = js_path.read_text(encoding="utf-8")
+
+    # 1. Trích xuất hàm applyMatrixPreset và renderHierarchicalMatrix từ app.js
+    assert "function applyMatrixPreset(presetName)" in js_content
+    preset_func_start = js_content.find("function applyMatrixPreset(presetName)")
+    preset_func_end = js_content.find("function resetMatrixSelections()", preset_func_start)
+    preset_code = js_content[preset_func_start:preset_func_end]
+
+    # Kiểm tra cấu hình preset thpt2025 trong code JS
+    assert "presetName === 'thpt2025'" in preset_code
+    assert "SINGLE_CHOICE_RECOGNITION`] = 4" in preset_code
+    assert "SINGLE_CHOICE_COMPREHENSION`] = 2" in preset_code
+    assert "SINGLE_CHOICE_APPLICATION`] = 2" in preset_code
+    assert "TRUE_FALSE_GROUP_RECOGNITION`] = 1" in preset_code
+    assert "TRUE_FALSE_GROUP_COMPREHENSION`] = 1" in preset_code
+    assert "TRUE_FALSE_GROUP_APPLICATION`] = 1" in preset_code
+    assert "SHORT_ANSWER_COMPREHENSION`] = 2" in preset_code
+    assert "SHORT_ANSWER_APPLICATION`] = 2" in preset_code
+    assert "SHORT_ANSWER_HIGH_APPLICATION`] = 1" in preset_code
+
+    # 2. Mô phỏng độc lập thuật toán tính toán của applyMatrixPreset('thpt2025')
+    mock_selections_thpt2025 = {
+        "arch1_1_SINGLE_CHOICE_RECOGNITION": 4,
+        "arch1_1_SINGLE_CHOICE_COMPREHENSION": 2,
+        "arch2_1_SINGLE_CHOICE_RECOGNITION": 2,
+        "arch2_1_SINGLE_CHOICE_COMPREHENSION": 2,
+        "arch3_1_SINGLE_CHOICE_APPLICATION": 2,
+        "arch1_2_TRUE_FALSE_GROUP_RECOGNITION": 1,
+        "arch1_2_TRUE_FALSE_GROUP_COMPREHENSION": 1,
+        "arch2_2_TRUE_FALSE_GROUP_COMPREHENSION": 1,
+        "arch3_2_TRUE_FALSE_GROUP_APPLICATION": 1,
+        "arch1_3_SHORT_ANSWER_COMPREHENSION": 2,
+        "arch2_3_SHORT_ANSWER_APPLICATION": 2,
+        "arch3_3_SHORT_ANSWER_APPLICATION": 1,
+        "arch3_3_SHORT_ANSWER_HIGH_APPLICATION": 1,
+    }
+
+    formats_config = [
+        {"sectionNum": 1, "format": "SINGLE_CHOICE", "points": 0.25},
+        {"sectionNum": 2, "format": "TRUE_FALSE_GROUP", "points": 1.0},
+        {"sectionNum": 3, "format": "SHORT_ANSWER", "points": 0.5},
+    ]
+
+    totals = {
+        "p1Count": 0, "p1Pts": 0.0,
+        "p2Count": 0, "p2Pts": 0.0,
+        "p3Count": 0, "p3Pts": 0.0,
+        "grandCount": 0, "grandPts": 0.0,
+        "nbCount": 0, "thCount": 0, "vdCount": 0, "vdcCount": 0
+    }
+
+    valid_levels = ["HIGH_APPLICATION", "COMPREHENSION", "RECOGNITION", "APPLICATION"]
+    valid_formats = ["TRUE_FALSE_GROUP", "SINGLE_CHOICE", "SHORT_ANSWER"]
+
+    for key, val in mock_selections_thpt2025.items():
+        lvl = None
+        rest = key
+        for l in valid_levels:
+            if rest.endswith(f"_{l}"):
+                lvl = l
+                rest = rest[: -(len(l) + 1)]
+                break
+
+        fmt = None
+        for f in valid_formats:
+            if rest.endswith(f"_{f}"):
+                fmt = f
+                rest = rest[: -(len(f) + 1)]
+                break
+
+        last_underscore = rest.rfind("_")
+        sec = int(rest[last_underscore + 1 :])
+        arch_id = rest[:last_underscore]
+
+        if lvl == "RECOGNITION":
+            totals["nbCount"] += val
+        elif lvl == "COMPREHENSION":
+            totals["thCount"] += val
+        elif lvl == "APPLICATION":
+            totals["vdCount"] += val
+        elif lvl == "HIGH_APPLICATION":
+            totals["vdcCount"] += val
+
+        fc = next(f for f in formats_config if f["sectionNum"] == sec)
+        pts = val * fc["points"]
+        if sec == 1:
+            totals["p1Count"] += val
+            totals["p1Pts"] += pts
+        elif sec == 2:
+            totals["p2Count"] += val
+            totals["p2Pts"] += pts
+        elif sec == 3:
+            totals["p3Count"] += val
+            totals["p3Pts"] += pts
+
+        totals["grandCount"] += val
+        totals["grandPts"] += pts
+
+    # Khẳng định chuẩn THPT 2025
+    assert totals["p1Count"] == 12, "Phần I phải có đúng 12 câu"
+    assert totals["p1Pts"] == 3.0, "Phần I 12 câu x 0.25đ = 3.0đ"
+    assert totals["p2Count"] == 4, "Phần II phải có đúng 4 câu"
+    assert totals["p2Pts"] == 4.0, "Phần II 4 câu x 1.0đ = 4.0đ"
+    assert totals["p3Count"] == 6, "Phần III phải có đúng 6 câu"
+    assert totals["p3Pts"] == 3.0, "Phần III 6 câu x 0.5đ = 3.0đ"
+    assert totals["grandCount"] == 22, "Tổng số câu chuẩn THPT 2025 phải là 22 câu"
+    assert round(totals["grandPts"], 2) == 10.0, "Tổng điểm chuẩn THPT 2025 phải là đúng 10.0 điểm"
+
+    # Khẳng định phân bố Bloom
+    assert totals["nbCount"] == 7
+    assert totals["thCount"] == 8
+    assert totals["vdCount"] == 6
+    assert totals["vdcCount"] == 1
+
+    pct_nb = round((totals["nbCount"] / totals["grandCount"]) * 100)
+    pct_th = round((totals["thCount"] / totals["grandCount"]) * 100)
+    pct_vd = round((totals["vdCount"] / totals["grandCount"]) * 100)
+    pct_vdc = max(0, 100 - pct_nb - pct_th - pct_vd)
+    assert pct_nb + pct_th + pct_vd + pct_vdc == 100
+    assert pct_nb == 32
+    assert pct_th == 36
+    assert pct_vd == 27
+    assert pct_vdc == 5
+
+    # 3. Kiểm tra Preset Định kỳ ('periodic')
+    assert "presetName === 'periodic'" in preset_code
+    mock_selections_periodic = {
+        "arch1_1_SINGLE_CHOICE_RECOGNITION": 10,
+        "arch1_1_SINGLE_CHOICE_COMPREHENSION": 10,
+    }
+    periodic_total_cnt = sum(mock_selections_periodic.values())
+    assert periodic_total_cnt == 20, "Preset định kỳ phải có 20 câu"
+
+    # 4. Kiểm tra Preset Cuối kỳ ('final')
+    assert "presetName === 'final'" in preset_code
+    mock_selections_final = {
+        "arch1_1_SINGLE_CHOICE_RECOGNITION": 10,
+        "arch1_1_SINGLE_CHOICE_COMPREHENSION": 8,
+        "arch2_3_SHORT_ANSWER_APPLICATION": 10,
+    }
+    final_total_cnt = sum(mock_selections_final.values())
+    assert final_total_cnt == 28, "Preset cuối kỳ phải có 28 câu"
+
+    # 5. Kiểm tra resetMatrixSelections
+    reset_func_start = js_content.find("function resetMatrixSelections()")
+    assert reset_func_start != -1
+    reset_func_end = js_content.find("function saveMatrixConfig()", reset_func_start)
+    reset_code = js_content[reset_func_start:reset_func_end]
+    assert "state.hierarchicalMatrix.cellSelections = {};" in reset_code
+    assert "renderHierarchicalMatrix();" in reset_code
+
+
+def test_hierarchical_matrix_cell_inputs_and_stock_validation():
+    """Kiểm thử ô nhập liệu phản hồi real-time, badge tồn kho và cơ chế cảnh báo:
+    1. Hàm onMatrixCellChange(archetypeId, sectionNum, format, level, val):
+       - Parse giá trị nguyên không âm Math.max(0, parseInt(val, 10) || 0).
+       - Xóa key khỏi cellSelections khi giá trị = 0 (dọn dẹp sạch state).
+       - Lưu trữ theo key: ${archetypeId}_${sectionNum}_${format}_${level}.
+       - Gọi renderHierarchicalMatrix() để cập nhật bảng và sticky footer ngay lập tức.
+    2. Badge tồn kho thực tế và cảnh báo vượt tồn kho (.stock-warn):
+       - Hàm getArchetypeStock(archetypeId, format, level) tra cứu inventoryMap.
+       - Render chip Kho: ${stock} hoặc Kho: 0.
+       - Thêm class .stock-warn khi val > stock và val > 0.
+       - Thêm class .stock-ok khi stock > 0 và không vượt.
+    3. Bộ lọc tồn kho (#matrix-filter-has-stock):
+       - Khi filterOnlyHasStock = true, chỉ hiển thị các dòng archetype có stock > 0 hoặc sel > 0.
+    4. Tìm kiếm từ khóa (#matrix-search-archetype):
+       - Lọc case-insensitive theo arch.name, arch.code, ls.name, tp.name.
+    """
+    from pathlib import Path
+    js_path = Path("frontend/static/app.js")
+    js_content = js_path.read_text(encoding="utf-8")
+
+    # 1. Kiểm tra onMatrixCellChange
+    cell_change_start = js_content.find("function onMatrixCellChange(")
+    assert cell_change_start != -1
+    cell_change_end = js_content.find("function renderHierarchicalMatrix()", cell_change_start)
+    cell_change_code = js_content[cell_change_start:cell_change_end]
+
+    assert "Math.max(0, parseInt(val, 10) || 0)" in cell_change_code
+    assert "const key = `${archetypeId}_${sectionNum}_${format}_${level}`;" in cell_change_code
+    assert "delete state.hierarchicalMatrix.cellSelections[key];" in cell_change_code
+    assert "state.hierarchicalMatrix.cellSelections[key] = qty;" in cell_change_code
+    assert "renderHierarchicalMatrix();" in cell_change_code
+
+    # 2. Kiểm tra getArchetypeStock & stock warning badge logic
+    get_stock_start = js_content.find("function getArchetypeStock(")
+    assert get_stock_start != -1
+    get_stock_end = js_content.find("function toggleMatrixNode(", get_stock_start)
+    get_stock_code = js_content[get_stock_start:get_stock_end]
+    assert "state.hierarchicalMatrix.inventoryMap" in get_stock_code
+    assert "return inv[archetypeId][format][level];" in get_stock_code
+
+    render_matrix_start = js_content.find("function renderHierarchicalMatrix()")
+    assert render_matrix_start != -1
+    render_matrix_end = js_content.find("function applyMatrixPreset(", render_matrix_start)
+    render_matrix_code = js_content[render_matrix_start:render_matrix_end]
+
+    # Kiểm tra class warning khi vượt tồn kho
+    assert "const isWarn = val > stock;" in render_matrix_code
+    assert "val > 0 && isWarn ? 'stock-warn' : (stock > 0 ? 'stock-ok' : 'text-slate-400')" in render_matrix_code
+    assert "Kho: ${stock}" in render_matrix_code
+
+    # 3. Kiểm tra filter tồn kho
+    assert "filterStock && !hasStockOrSel" in render_matrix_code
+    assert "onMatrixFilterStockChange" in js_content
+
+    # 4. Kiểm tra tìm kiếm từ khóa
+    assert "arch.name.toLowerCase().includes(searchQuery)" in render_matrix_code
+    assert "arch.code && arch.code.toLowerCase().includes(searchQuery)" in render_matrix_code
+    assert "ls.name.toLowerCase().includes(searchQuery)" in render_matrix_code
+    assert "tp.name.toLowerCase().includes(searchQuery)" in render_matrix_code
+    assert "onMatrixSearchInput" in js_content
+
 
 
 

@@ -1137,8 +1137,8 @@
 
       </section>
 
-      <!-- ================= TAB 4: EXAM MATRIX BUILDER ================= -->
-      <section id="tab-matrix" class="tab-pane hidden space-y-5">
+      <!-- ================= TAB 4: EXAM MATRIX BUILDER (HIERARCHICAL MULTI-TIER GRID) ================= -->
+      <section id="tab-matrix" class="tab-pane hidden space-y-5 relative pb-24">
         
         <!-- Matrix Top Configuration Card -->
         <div class="apple-card p-5 space-y-4">
@@ -1146,20 +1146,22 @@
             <div>
               <h2 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
                 <i data-lucide="grid" class="w-4 h-4 text-brand-600"></i>
-                <span>Thiết Lập Bản Đặc Tả Ma Trận Đề Thi Theo YCCĐ (SCR-MATRIX-BUILDER)</span>
+                <span>Thiết Lập Bản Đặc Tả Ma Trận Đa Tầng (Chương · Bài · Dạng &times; 3 Phần &times; 4 Cấp độ)</span>
               </h2>
-              <p class="text-xs text-slate-500">Căn cứ Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (QĐ 764)</p>
+              <p class="text-xs text-slate-500">Căn cứ Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)</p>
             </div>
-            
-            <div class="flex items-center space-x-2 flex-wrap gap-1">
+            <div class="flex items-center space-x-2">
+              <button onclick="app.saveMatrixConfig()" class="btn-apple-secondary py-1.5 px-3 text-xs font-semibold flex items-center space-x-1">
+                <i data-lucide="save" class="w-3.5 h-3.5"></i><span>Lưu Bản Thảo</span>
+              </button>
             </div>
           </div>
 
           <!-- General Parameters -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Tên Kỳ thi / Bài thi</label>
-              <input type="text" id="matrix-param-name" value="Đề Khảo sát Toán 12 - Học kỳ I 2025" class="w-full text-xs">
+              <input type="text" id="matrix-param-name" value="Đề Khảo sát Toán 12 - THPT 2025" class="w-full text-xs">
             </div>
             <div>
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Khối lớp & Môn</label>
@@ -1177,12 +1179,6 @@
               <label class="block text-[11px] font-bold text-slate-600 mb-1">Thang điểm tổng</label>
               <input type="number" readonly value="10.0" class="w-full bg-black/[0.04] text-slate-600 text-xs font-bold cursor-not-allowed">
             </div>
-            <div class="flex items-end">
-              <button onclick="app.saveMatrixConfig()" class="btn-apple-primary w-full justify-center py-2 text-xs font-semibold">
-                <i data-lucide="check" class="w-4 h-4"></i>
-                <span>Lưu & Ban Hành Ma Trận</span>
-              </button>
-            </div>
           </div>
 
           <!-- Export Spec Actions -->
@@ -1194,97 +1190,129 @@
             <button onclick="app.exportMatrixSpec('csv')" class="btn-apple-secondary py-1.5 px-3 text-xs flex items-center space-x-1">
               <i data-lucide="table" class="w-3.5 h-3.5 text-emerald-600"></i><span>Tải CSV (UTF-8 BOM)</span>
             </button>
+            <button onclick="app.exportMatrixSpec('json')" class="btn-apple-secondary py-1.5 px-3 text-xs flex items-center space-x-1">
+              <i data-lucide="code" class="w-3.5 h-3.5 text-blue-600"></i><span>Tải JSON</span>
+            </button>
           </div>
         </div>
 
-        <!-- 2D Interactive Matrix Grid with Inventory Counter -->
+        <!-- Hierarchical Matrix Grid Card -->
         <div class="apple-card overflow-hidden">
-          <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center space-x-2 text-xs">
-              <span class="font-bold text-slate-800">Lưới Cấu Hình Ma Trận 2D (YCCĐ & Dạng bài &times; 3 Cấp độ nhận thức)</span>
-              <span class="px-2 py-0.5 rounded-full text-[11px] bg-emerald-100 text-emerald-800 font-semibold">Tự động đối soát tồn kho câu hỏi</span>
-            </div>
-            <div class="flex items-center space-x-3">
-              <button id="btn-add-matrix-row" onclick="app.openAddMatrixRowModal()" class="btn-apple-primary text-xs py-1.5 px-3 flex items-center space-x-1.5 font-semibold">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span>Thêm dòng YCCĐ</span>
-              </button>
-              <div class="text-[11px] text-slate-500 flex items-center space-x-3">
-                <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>Đủ câu trong kho</span></span>
-                <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span><span>Cảnh báo thiếu câu</span></span>
+          
+          <!-- Tree Toolbar -->
+          <div id="matrix-tree-toolbar" class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-2 flex-wrap gap-2">
+              <div class="relative">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+                <input type="text" id="matrix-search-archetype" oninput="app.onMatrixSearchInput(this.value)" placeholder="Tìm kiếm dạng bài, bài học..." class="apple-input pl-8 pr-3 py-1.5 text-xs rounded-lg w-64">
               </div>
+              <label class="flex items-center space-x-1.5 cursor-pointer bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 select-none">
+                <input type="checkbox" id="matrix-filter-has-stock" onchange="app.onMatrixFilterStockChange(this.checked)" class="rounded text-brand-600 focus:ring-brand-500 w-3.5 h-3.5">
+                <span class="font-medium">Chỉ hiện dạng có câu</span>
+              </label>
+            </div>
+
+            <div class="flex items-center space-x-2 flex-wrap gap-2">
+              <button id="btn-matrix-expand-all" onclick="app.expandAllMatrixTree()" class="btn-apple-secondary py-1 px-2.5 text-xs flex items-center space-x-1">
+                <i data-lucide="chevrons-down" class="w-3.5 h-3.5"></i><span>Mở hết</span>
+              </button>
+              <button id="btn-matrix-collapse-all" onclick="app.collapseAllMatrixTree()" class="btn-apple-secondary py-1 px-2.5 text-xs flex items-center space-x-1">
+                <i data-lucide="chevrons-up" class="w-3.5 h-3.5"></i><span>Đóng hết</span>
+              </button>
+              
+              <select id="matrix-select-preset" onchange="app.applyMatrixPreset(this.value)" class="apple-select py-1 px-2 text-xs font-semibold">
+                <option value="">-- Chọn Mẫu Preset Khảo Thí --</option>
+                <option value="thpt2025">Preset THPT 2025 (22 câu - 10.0đ)</option>
+                <option value="periodic">Preset Định kỳ (20 câu - 10.0đ)</option>
+                <option value="final">Preset Cuối kỳ (28 câu - 10.0đ)</option>
+              </select>
+
+              <button id="btn-matrix-reset" onclick="app.resetMatrixSelections()" class="btn-apple-secondary py-1 px-2.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center space-x-1">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span>Đặt lại</span>
+              </button>
             </div>
           </div>
 
-          <div class="overflow-x-auto">
+          <!-- Hierarchical Matrix Table Wrapper -->
+          <div id="matrix-hierarchical-table-wrapper" class="overflow-x-auto max-h-[600px] overflow-y-auto">
             <table class="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr class="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
-                  <th class="p-3 w-64 sticky left-0 bg-slate-100 z-10">Mạch Nội dung & YCCĐ / Dạng bài</th>
-                  <th class="p-3 w-44 text-center border-l border-slate-200 bg-slate-100">Dạng thức câu hỏi</th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-blue-50/50">
-                    <div class="text-blue-900">1. Nhận biết (Biết)</div>
+              <thead class="sticky top-0 z-30 bg-slate-100 shadow-sm">
+                <tr class="text-slate-800 font-bold border-b border-slate-300 text-center">
+                  <th rowspan="2" class="p-3 matrix-tree-col text-left border-r border-slate-300 bg-slate-100">
+                    CHƯƠNG · BÀI · DẠNG BÀI TẬP
                   </th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-indigo-50/50">
-                    <div class="text-indigo-900">2. Thông hiểu (Hiểu)</div>
+                  <th colspan="4" class="p-2 border-l border-r border-slate-300 bg-blue-100/80 text-blue-900">
+                    PHẦN I · TRẮC NGHIỆM NHIỀU PHƯƠNG ÁN (0.25đ / câu)
                   </th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-emerald-50/50">
-                    <div class="text-emerald-900">3. Vận dụng</div>
+                  <th colspan="4" class="p-2 border-l border-r border-slate-300 bg-indigo-100/80 text-indigo-900">
+                    PHẦN II · ĐÚNG / SAI 4 Ý (Tối đa 1.0đ / câu)
                   </th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng câu</th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-24">Tổng điểm</th>
-                  <th class="p-3 text-center border-l border-slate-200 bg-slate-100 w-16">Thao tác</th>
+                  <th colspan="4" class="p-2 border-l border-r border-slate-300 bg-emerald-100/80 text-emerald-900">
+                    PHẦN III · TRẢ LỜI NGẮN (0.5đ / câu)
+                  </th>
+                  <th rowspan="2" class="p-2 border-l border-slate-300 bg-slate-200 text-slate-800 w-16">TỔNG CÂU</th>
+                  <th rowspan="2" class="p-2 border-l border-slate-300 bg-slate-200 text-slate-800 w-16">TỔNG ĐIỂM</th>
+                </tr>
+                <tr class="text-slate-700 font-semibold border-b border-slate-300 text-center text-[11px]">
+                  <!-- Phần I: 4 levels -->
+                  <th class="p-1.5 border-l border-slate-200 bg-blue-50/70 text-blue-800 w-12">NB</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-blue-50/70 text-blue-800 w-12">TH</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-blue-50/70 text-blue-800 w-12">VD</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-blue-50/70 text-blue-800 w-12">VDC</th>
+                  <!-- Phần II: 4 levels -->
+                  <th class="p-1.5 border-l border-slate-200 bg-indigo-50/70 text-indigo-800 w-12">NB</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-indigo-50/70 text-indigo-800 w-12">TH</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-indigo-50/70 text-indigo-800 w-12">VD</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-indigo-50/70 text-indigo-800 w-12">VDC</th>
+                  <!-- Phần III: 4 levels -->
+                  <th class="p-1.5 border-l border-slate-200 bg-emerald-50/70 text-emerald-800 w-12">NB</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-emerald-50/70 text-emerald-800 w-12">TH</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-emerald-50/70 text-emerald-800 w-12">VD</th>
+                  <th class="p-1.5 border-l border-slate-200 bg-emerald-50/70 text-emerald-800 w-12">VDC</th>
                 </tr>
               </thead>
-              <tbody id="matrix-grid-tbody" class="divide-y divide-slate-200">
-                <!-- Matrix Rows dynamically rendered by app.js -->
+              <tbody id="matrix-hierarchical-tbody" class="divide-y divide-slate-200">
+                <!-- Dynamically rendered by app.js -->
               </tbody>
-              <tfoot>
-                <tr class="bg-slate-50 font-bold text-slate-800 border-t-2 border-slate-300">
-                  <td colspan="2" class="p-3 sticky left-0 bg-slate-50">TỔNG CỘNG TOÀN MA TRẬN</td>
-                  <td id="matrix-total-biet" class="p-3 text-center border-l border-slate-200 text-blue-800">12 câu (3.0đ)</td>
-                  <td id="matrix-total-hieu" class="p-3 text-center border-l border-slate-200 text-indigo-800">10 câu (3.5đ)</td>
-                  <td id="matrix-total-vandung" class="p-3 text-center border-l border-slate-200 text-emerald-800">12 câu (3.5đ)</td>
-                  <td id="matrix-total-items" class="p-3 text-center border-l border-slate-200 text-brand-800 text-sm">34 câu</td>
-                  <td id="matrix-total-points" class="p-3 text-center border-l border-slate-200 text-brand-800 text-sm">10.0 đ</td>
-                  <td class="p-3 border-l border-slate-200"></td>
-                </tr>
-              </tfoot>
             </table>
           </div>
+
         </div>
 
-        <!-- Live Blueprint Summary & Assembly Trigger -->
-        <div class="apple-card p-5 space-y-4">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <!-- Bloom Cognitive Level Checker -->
-            <div class="space-y-1.5 flex-1">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-slate-800">Tỷ lệ Cân Đối Mức Độ Nhận Thức (Hiện tại)</span>
-                <span id="matrix-bloom-status" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                  Chuẩn 40% Biết - 30% Hiểu - 30% Vận dụng
-                </span>
+        <!-- Sticky Bottom Action Bar -->
+        <div id="matrix-sticky-footer" class="matrix-sticky-footer px-6 py-3.5 flex flex-col md:flex-row items-center justify-between gap-4 rounded-xl mt-6">
+          <div class="flex flex-col md:flex-row items-start md:items-center gap-4 text-xs">
+            <div class="flex items-center space-x-3 flex-wrap gap-1">
+              <span class="font-bold text-slate-800">Thống kê Phần:</span>
+              <span id="matrix-foot-p1" class="px-2 py-1 rounded bg-blue-50 text-blue-800 font-semibold">Phần I: 0 câu (0.0đ)</span>
+              <span id="matrix-foot-p2" class="px-2 py-1 rounded bg-indigo-50 text-indigo-800 font-semibold">Phần II: 0 câu (0.0đ)</span>
+              <span id="matrix-foot-p3" class="px-2 py-1 rounded bg-emerald-50 text-emerald-800 font-semibold">Phần III: 0 câu (0.0đ)</span>
+            </div>
+            <div class="h-4 w-px bg-slate-300 hidden md:block"></div>
+            <div>
+              <span class="font-extrabold text-slate-900 text-sm" id="matrix-foot-grand">TỔNG: 0 CÂU | 0.0 / 10.0 ĐIỂM</span>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-end">
+            <!-- Bloom Ratio Mini Bar -->
+            <div class="hidden xl:flex flex-col space-y-1 w-48">
+              <div class="flex justify-between text-[10px] font-bold text-slate-600">
+                <span id="matrix-foot-bloom-lbl">NB: 0% | TH: 0% | VD: 0% | VDC: 0%</span>
               </div>
-              <div class="flex h-3 rounded-full overflow-hidden bg-slate-100">
-                <div id="matrix-bar-biet" class="bg-blue-500 transition-all duration-300" style="width: 40%"></div>
-                <div id="matrix-bar-hieu" class="bg-indigo-500 transition-all duration-300" style="width: 30%"></div>
-                <div id="matrix-bar-vandung" class="bg-emerald-500 transition-all duration-300" style="width: 30%"></div>
-              </div>
-              <div class="flex justify-between text-[11px] text-slate-500 font-mono">
-                <span id="matrix-lbl-biet">Biết: 40%</span>
-                <span id="matrix-lbl-hieu">Hiểu: 30%</span>
-                <span id="matrix-lbl-vandung">Vận dụng: 30%</span>
+              <div class="flex h-2 rounded-full overflow-hidden bg-slate-200">
+                <div id="matrix-foot-bar-nb" class="bg-blue-500 transition-all" style="width: 0%"></div>
+                <div id="matrix-foot-bar-th" class="bg-indigo-500 transition-all" style="width: 0%"></div>
+                <div id="matrix-foot-bar-vd" class="bg-emerald-500 transition-all" style="width: 0%"></div>
+                <div id="matrix-foot-bar-vdc" class="bg-purple-500 transition-all" style="width: 0%"></div>
               </div>
             </div>
 
-            <!-- Assembly Button Action -->
-            <div class="flex items-center space-x-3 self-end md:self-center">
-              <button onclick="app.generateMasterExamFromMatrix()" class="btn-apple-primary py-2.5 px-5 text-xs font-semibold">
-                <i data-lucide="zap" class="w-4 h-4 text-amber-300"></i>
-                <span>Khởi Tạo Đề Thi Gốc & Sang Trộn Đề</span>
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-              </button>
-            </div>
+            <!-- Generate Action Button -->
+            <button id="btn-matrix-generate-master" onclick="app.generateMasterExamFromHierarchicalMatrix()" class="btn-apple-primary py-2.5 px-6 text-xs font-bold flex items-center space-x-2 shadow-lg active:scale-[0.97] transition-transform">
+              <i data-lucide="rocket" class="w-4 h-4 text-amber-300"></i>
+              <span>Khởi Tạo Đề Thi Gốc & Sang Trộn Đề</span>
+            </button>
           </div>
         </div>
 

@@ -654,56 +654,42 @@ ight)$$
 
 ### 4.3. Phân hệ Ma trận & Động cơ Sinh & Trộn Đề (Matrix & Safe Exam Engine)
 
-#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi 2D theo YCCĐ & 4 Dạng thức Câu hỏi (Interactive 2D Matrix Blueprint)
-- **Mô tả:** Định nghĩa cấu trúc đề thi theo ma trận 2 chiều chuẩn hóa theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
+#### SRS-FEAT-06: Bản Đặc tả Ma trận Đề thi Phân cấp Đa tầng (Chương · Bài · Dạng x 3 Phần x 4 Mức độ NB-TH-VD-VDC)
+- **Mô tả:** Định nghĩa cấu trúc đề thi theo Bảng Ma trận Phân cấp Đa tầng chuẩn hóa theo Thông tư 32/2018/TT-BGDĐT, Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
 - **Yêu cầu kỹ thuật:**
-  1. *Thiết kế Header Card & Công thái học Chuẩn Apple HIG:*
-     - Loại bỏ hoàn toàn cụm nút Preset cứng khỏi thanh tiêu đề nhằm ngăn chặn hiện tượng tràn lề, co cụm và vỡ layout responsive.
-     - Tái cấu trúc thanh tham số: Tên bài thi, Khối lớp & Môn học, Thời lượng thi, Thang điểm tổng (10.0đ), Nút Lưu & Ban hành Ma trận, Xuất bản PDF/CSV.
-     - Chuyển nút **`Thêm dòng YCCĐ`** (`#btn-add-matrix-row`) về thanh công cụ của bảng ma trận, chuẩn hóa hiển thị duy nhất 1 icon plus tinh tế (khắc phục triệt để lỗi lặp `+ +`).
-  2. *Lưới Ma trận 2D Tương tác & Quản lý Dòng động (Interactive 2D Grid & Dynamic Row Management):*
-     - Dòng: Phân nhóm theo Mạch nội dung -> Yêu cầu cần đạt (YCCĐ) -> Dạng câu hỏi (Problem Archetype) -> Dạng thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`, `ESSAY`).
-     - Cột:
-       * Cột 1: Mạch Nội dung & YCCĐ / Dạng bài (sticky left).
-       * Cột 2: Dạng thức câu hỏi (Dropdown select: Trắc nghiệm 4 LC 0.25đ, Đúng/Sai 4 ý 1.0đ, Trả lời ngắn 0.5đ, Tự luận 1.0đ).
-       * Cột 3: 1. Nhận biết (Biết).
-       * Cột 4: 2. Thông hiểu (Hiểu).
-       * Cột 5: 3. Vận dụng (VD).
-       * Cột 6: Tổng câu (`biet + hieu + vandung`).
-       * Cột 7: Tổng điểm (`Tổng câu * formatPoints`).
-       * Cột 8: Thao tác (Xóa dòng).
-     - Ô nhập liệu nhận thức: Cho phép nhập số lượng câu hỏi cần lấy cho từng ô (Biết, Hiểu, Vận dụng).
-     - **Quản lý Dòng Động (Dynamic Rows) & Modal Thêm dòng:** Cho phép giáo viên bấm nút `Thêm dòng YCCĐ` mở Modal `#add-matrix-row-modal` để chọn Mạch nội dung, YCCĐ, Dạng bài, Dạng thức câu hỏi (`#modal-matrix-format`) và cơ số điểm nhận thức.
-     - **Tính toán Điểm số Thời gian thực Theo Dạng thức Câu hỏi (Real-Time Scoring by Item Format):**
-       * Điểm số từng dòng: `rowPoints = (Number(row.biet) + Number(row.hieu) + Number(row.vandung)) * MATRIX_FORMAT_POINTS[row.itemFormat]`.
-       * Điểm từng mức độ nhận thức:
-         + `totalPointsBiet = sum(row.biet * MATRIX_FORMAT_POINTS[row.itemFormat])`.
-         + `totalPointsHieu = sum(row.hieu * MATRIX_FORMAT_POINTS[row.itemFormat])`.
-         + `totalPointsVandung = sum(row.vandung * MATRIX_FORMAT_POINTS[row.itemFormat])`.
-       * Điểm toàn ma trận được tính bằng tổng thực tế các dòng: `totalPoints = sum(rowPoints) = totalPointsBiet + totalPointsHieu + totalPointsVandung`.
-       * Cân bằng chuẩn 10.0đ (loại bỏ hoàn toàn lỗi hiển thị lệch 11.0đ).
-     - **Thanh đo lường Bloom Thực tế:** Tự động tính tỷ lệ phần trăm nhận thức chính xác:
-       * `% Biết = round(totalBiet / grandItems * 100)`
-       * `% Hiểu = round(totalHieu / grandItems * 100)`
-       * `% Vận dụng = max(0, 100 - %Biết - %Hiểu)`
-       * Tuyệt đối không hardcode tỷ lệ Bloom theo số câu cố định. Cảnh báo màu hổ phách nếu độ lệch vượt quá $\pm 5\%$ so với tỷ lệ chuẩn 40% Biết - 30% Hiểu - 30% Vận dụng.
-  3. *Đối soát Tồn kho Thời gian thực & Cảnh báo Thiếu câu (Live Inventory Checker & Deficit Alert):*
-     - Hệ thống kết nối cơ sở dữ liệu câu hỏi thực tế qua API `POST /api/v1/matrix/{id}/check-availability` hoặc đối soát trực tiếp với ngân hàng câu hỏi `state.itemBank`.
-     - Với mỗi ô ma trận, đếm số câu hỏi có `status = 'APPROVED'` và `is_defective == False` khớp YCCĐ, mức độ và thể thức.
-     - Hiển thị badge trực quan công thái học:
-       * Đủ câu: Chip xanh lá `bg-emerald-50 text-emerald-700 border-emerald-200` (`Kho: X / Cần: Y`).
-       * Thiếu câu: Chip cảnh báo đỏ `bg-rose-50 text-rose-700 border-rose-200 font-bold` (`Kho: X / Cần: Y (Thiếu Z câu)`) kèm icon cảnh báo.
-     - Tổng hợp cảnh báo toàn ma trận: Hiển thị danh sách ô thiếu câu và tổng số câu cần bổ sung vào Ngân hàng.
-  4. *API Quản lý & Xuất bản Bản đặc tả Ma trận:*
+  1. *Thiết kế Header Card & Công thái học Chuẩn Apple HIG:*\n     - Bố trí thanh tham số tinh gọn: Tên bài thi, Khối lớp & Môn học, Thời lượng thi với dropdown `.apple-select` đồng nhất kích thước, Thang điểm tổng (10.0đ), Nút Lưu & Ban hành Ma trận, Xuất bản PDF/CSV UTF-8 BOM/JSON.
+  2. *Cột 1: Cấu trúc Cây Phân Cấp Chương · Bài · Dạng (Tree Column - Sticky Left):*
+     - Trục dọc phân cấp 3 tầng: `Chương (Topic) -> Bài học (Lesson) -> Dạng bài tập (Problem Archetype / YCCĐ)`.
+     - Sticky left (`sticky left-0 z-10 bg-white min-w-[320px] max-w-[400px]`) bảo đảm luôn cố định tên chương/bài/dạng khi cuộn ngang 12 cột nhận thức.
+     - Thanh công cụ điều khiển Cột 1:
+       * Nút **"Mở hết" (Expand All)** và **"Đóng hết" (Collapse All)** giúp đóng/mở toàn bộ các nhánh cây tức thì.
+       * **Ô tìm kiếm dạng bài (Live Search Input):** Lọc theo thời gian thực các dạng bài hoặc bài học khớp từ khóa, tự động mở các nhánh khớp và làm nổi bật kết quả.
+       * **Checkbox "Dạng có câu":** Khi được tích chọn, lọc ẩn các dạng bài có số tồn kho bằng 0, chỉ giữ lại các dạng bài có câu hỏi khả dụng hoặc đã được cấu hình $> 0$.
+  3. *Lưới Ma trận 3 Nhóm Cột Lớn (Chuẩn Định Dạng Đề Thi 2025) x 4 Cột Con Nhận Thức:*
+     - Nhóm Phần I: Trắc nghiệm 4 lựa chọn (0.25đ/câu) $\times$ [NB, TH, VD, VDC].
+     - Nhóm Phần II: Đúng / Sai 4 ý (1.0đ/câu bậc thang QĐ 764) $\times$ [NB, TH, VD, VDC].
+     - Nhóm Phần III: Trả lời ngắn (0.5đ/câu) $\times$ [NB, TH, VD, VDC].
+     - *(Mở rộng: Phần IV - Tự luận 1.0đ/câu).*
+     - Cột Ngoài Cùng: `Tổng câu` và `Tổng điểm` cho từng dạng bài (và subtotal của từng bài học/chương).
+  4. *Ô Nhập Liệu (Matrix Input Cell) & Đối Soát Tồn Kho Thời Gian Thực:*
+     - Mỗi ô lá giao nhau gồm một input số lượng câu ($\ge 0$) và chip badge hiển thị tồn kho thực tế (`Kho: {stock}`).
+     - Đổi màu thời gian thực: Chip xanh lá `stock-ok` khi đủ câu; Chip đỏ cảnh báo `stock-warn` khi nhu cầu lớn hơn tồn kho khả dụng (`Kho: {avail} / Cần: {needed}`).
+     - Tại các hàng Chương và Bài học: Hiển thị subtotal tự động tính toán từ các dạng bài con.
+  5. *Thanh Footer Cố Định (Sticky Bottom Action Bar):*
+     - Bám dính cố định ở đáy màn hình với hiệu ứng kính mờ `backdrop-blur` và đổ bóng nổi bật.
+     - Thống kê trực tiếp: Tổng số câu & điểm từng Phần (I, II, III); Tổng cộng toàn đề (chuẩn 10.0đ).
+     - Thanh đo lường tỷ lệ nhận thức 4 mức độ: NB % - TH % - VD % - VDC % (với cảnh báo khi chênh lệch so với chuẩn khảo thí).
+     - Cụm nút hành động: Đặt lại (Reset), Nạp Presets mẫu (THPT 2025 22 câu 10đ, Đánh giá định kỳ 20 câu, Cuối kỳ 28 câu), và nút chính **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** (`#btn-matrix-generate-exam`) tự động lưu ma trận, gọi API sinh đề gốc và chuyển sang tab Trộn đề (`#tab-shuffler`).
+  6. *API Quản lý & Xuất bản Bản đặc tả Ma trận:*
      - Hỗ trợ cả 2 tiền tố route song song: `/api/v1/matrix` và `/api/v1/matrices`.
+     - `GET /api/v1/matrices/bank-inventory`: Cung cấp số lượng tồn kho câu hỏi gom nhóm theo `(archetype_id, format, level)`.
      - `POST /api/v1/matrix`: Lưu và ban hành ma trận vào CSDL.
      - `GET /api/v1/matrix`: Danh sách các ma trận đã ban hành.
      - `GET /api/v1/matrix/{id}`: Chi tiết bản đặc tả ma trận.
      - `GET /api/v1/matrix/{id}/spec`: Xuất bản bản đặc tả ma trận đề thi ra 3 định dạng (`format=json`, `format=csv`, `format=pdf`):
        * `json`: Payload chi tiết cấu trúc ma trận và thống kê tồn kho.
        * `csv`: File bảng tính CSV có gắn mã ký tự UTF-8 BOM (`\ufeff`) hiển thị chuẩn tiếng Việt trên Excel.
-       * `pdf`: Bản đặc tả in ấn A4 Portrait chuẩn quy cách Bộ GD&ĐT gồm Khung Ma trận phân bổ 2D và Bảng Đặc tả chi tiết từng câu hỏi.
-     - Nút "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề": Lưu ma trận hiện tại, gọi API sinh đề gốc từ ma trận và chuyển mượt sang Tab Trộn đề.
+       * `pdf`: Bản đặc tả in ấn A4 Portrait chuẩn quy cách Bộ GD&ĐT gồm Khung Ma trận Phân cấp Đa tầng và Bảng Đặc tả chi tiết từng câu hỏi.
 
 #### SRS-FEAT-07: Động cơ Sinh Đề Gốc theo Ràng buộc Ma trận (CSP Solver) & Đổi Câu Tương Đương (In-Place Item Swap)
 - **Mô tả:** Tự động giải bài toán thỏa mãn ràng buộc (Constraint Satisfaction Problem - CSP) để rút câu hỏi từ ngân hàng thành Đề Thi Gốc (Master Exam) và hỗ trợ giáo viên thẩm định, đổi câu hỏi linh hoạt.

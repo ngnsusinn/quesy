@@ -157,46 +157,53 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 
 ---
 
-### TEST SUITE 05: MA TRẬN ĐỀ THI 2D THEO YCCĐ & ĐỐI SOÁT TỒN KHO
+### TEST SUITE 05: BẢNG MA TRẬN PHÂN CẤP ĐA TẦNG (CHƯƠNG · BÀI · DẠNG x 3 PHẦN x 4 MỨC ĐỘ) & ĐỐI SOÁT TỒN KHO
 
-#### TC-MATRIX-01: Thiết lập Lưới Ma trận 2D & Tải 3 Presets Chuẩn Hóa
-- **Mô tả:** Kiểm tra khả năng tải và áp dụng chính xác 3 preset ma trận đề thi mẫu theo TT 22 & QĐ 764.
+#### TC-MATRIX-01: Thiết lập Bảng Ma trận Phân cấp Đa tầng & Tải Presets Chuẩn Hóa
+- **Mô tả:** Kiểm tra khả năng hiển thị cây phân cấp Chương · Bài · Dạng, 12 cột nhận thức (3 Phần x 4 Cấp độ NB-TH-VD-VDC) và áp dụng các preset ma trận mẫu chuẩn Bộ GD&ĐT 2025.
 - **Các bước thực hiện:**
   1. Truy cập tab `#tab-matrix`.
   2. Bấm nút áp dụng lần lượt: `Preset 1 (Chuẩn TN THPT 2025)`, `Preset 2 (Kiểm tra Định kỳ)`, `Preset 3 (Kiểm tra Cuối kỳ)`.
 - **Kết quả kỳ vọng:**
-  - Preset 1: Điền đúng 34 câu, 10.0đ (12 TN đơn, 4 Đúng/Sai, 6 Trả lời ngắn), tỷ lệ Bloom đạt 40% Biết - 30% Hiểu - 30% Vận dụng.
-  - Preset 2: Điền đúng 20 câu, 10.0đ (12 TN đơn, 4 Đúng/Sai, 4 Trả lời ngắn).
-  - Preset 3: Điền đúng 28 câu, 10.0đ (16 TN đơn, 4 Đúng/Sai, 8 Trả lời ngắn).
-  - Lưới ma trận render mượt mà, không gián đoạn giao diện.
+  - Cột 1 hiển thị cây phân tầng rõ nét: Chương (Topic) -> Bài học (Lesson) -> Dạng bài (Problem Archetype) kèm các nút "Mở hết", "Đóng hết", tìm kiếm dạng bài và checkbox "Dạng có câu".
+  - Preset 1: Điền đúng 22 câu (12 TN đơn x 0.25đ = 3.0đ, 4 Đúng/Sai x 1.0đ = 4.0đ, 6 Trả lời ngắn x 0.5đ = 3.0đ), tổng điểm đạt 10.0đ chuẩn xác, tỷ lệ nhận thức phân bổ trên cả 4 mức độ NB-TH-VD-VDC.
+  - Lưới ma trận render mượt mà $\le 100$ ms, không gián đoạn giao diện.
 
-#### TC-MATRIX-02: Tính toán Thời gian thực & Cảnh báo Tỷ lệ Bloom
-- **Mô tả:** Kiểm tra cơ chế tự động tính tổng câu, tổng điểm từng dòng/cột và nhãn cảnh báo Bloom khi người dùng thay đổi giá trị ô ma trận.
+#### TC-MATRIX-02: Tính toán Thời gian thực, Subtotal & Thanh Footer Cố Định
+- **Mô tả:** Kiểm tra cơ chế tự động tính tổng câu, tổng điểm từng ô, subtotal từng bài/chương và cập nhật thời gian thực trên thanh Footer cố định ở đáy màn hình.
 - **Các bước thực hiện:**
-  1. Thay đổi số lượng câu hỏi ở ô Biết thành 20 câu, Hiểu 2 câu, Vận dụng 2 câu.
+  1. Nhập số lượng câu hỏi tại các ô giao giữa dạng bài và thể thức/mức độ nhận thức.
+  2. Quan sát subtotal tại các hàng Bài học và hàng Chương.
+  3. Kiểm tra các chỉ số tổng hợp tại thanh Footer cố định (`#matrix-sticky-footer`).
 - **Kết quả kỳ vọng:**
-  - Tổng câu và tổng điểm các dòng/cột cập nhật tức thì.
-  - Thanh tiến trình Bloom chuyển màu hổ phách kèm nhãn cảnh báo: "CẢNH BÁO: Tỷ lệ phân bố Bloom lệch so với chuẩn TT 22".
+  - Subtotal từng bài và chương cập nhật tức thì khi thay đổi giá trị ô input con.
+  - Thanh Footer hiển thị đầy đủ tổng số câu & điểm từng Phần (I, II, III), tổng câu toàn đề, tổng điểm toàn đề (10.0đ).
+  - Thanh tỷ lệ nhận thức 4 màu (NB, TH, VD, VDC) cập nhật phần trăm chính xác.
 
-#### TC-MATRIX-03: Đối soát Tồn kho Thời gian thực (Live Inventory Checker)
-- **Mô tả:** Kiểm tra tính năng đối soát số lượng câu hỏi thực tế trong CSDL Question Bank cho từng ô ma trận.
+#### TC-MATRIX-03: Đối soát Tồn kho Thời gian thực trên Từng Ô (Live Cell Inventory) & Lọc "Dạng Có Câu"
+- **Mô tả:** Kiểm tra tính năng hiển thị tồn kho câu hỏi thực tế (`Kho: {stock}`) tại từng ô và tính năng lọc checkbox "Dạng có câu".
 - **Các bước thực hiện:**
-  1. Gọi API `POST /api/v1/matrix/{id}/check-availability` hoặc kích hoạt kiểm tra trên giao diện.
+  1. Quan sát chip badge tồn kho bên dưới từng ô input trong bảng ma trận.
+  2. Tích chọn checkbox "Dạng có câu" (`#matrix-filter-has-stock`).
+  3. Gõ từ khóa vào ô tìm kiếm dạng bài (`#matrix-search-archetype`).
 - **Kết quả kỳ vọng:**
-  - Các ô có đủ câu hỏi APPROVED hiển thị badge xanh (`Kho: X/Y câu (Đủ)`).
-  - Các ô thiếu câu hiển thị badge đỏ (`Kho: X/Y câu (Thiếu Z câu)`).
-  - Trả về danh sách cảnh báo chi tiết các ô bị thiếu.
+  - Các ô có đủ câu hỏi APPROVED hiển thị badge xanh (`Kho: X`).
+  - Các ô có số lượng yêu cầu lớn hơn tồn kho hiển thị badge đỏ cảnh báo (`Kho: X / Cần: Y`).
+  - Khi bật checkbox "Dạng có câu", các dạng bài có số tồn kho bằng 0 tự động ẩn đi, chỉ giữ lại các dạng có câu hoặc đã được cấu hình $> 0$.
+  - Ô tìm kiếm lọc chính xác các node khớp từ khóa.
 
-#### TC-MATRIX-04: Xuất bản Bản Đặc tả Ma trận Đề thi (PDF / CSV UTF-8 BOM / JSON)
-- **Mô tả:** Kiểm tra endpoint xuất bản bản đặc tả ma trận đề thi.
+#### TC-MATRIX-04: Xuất bản Bản Đặc tả Ma trận Đề thi (PDF / CSV UTF-8 BOM / JSON) & Tạo Đề Thi Gốc
+- **Mô tả:** Kiểm tra endpoint xuất bản bản đặc tả ma trận đề thi và hành động bấm nút "Tạo đề thi gốc & Sang trộn đề".
 - **Các bước thực hiện:**
   1. Gửi request `GET /api/v1/matrix/{id}/spec?format=json`.
   2. Gửi request `GET /api/v1/matrix/{id}/spec?format=csv`.
   3. Gửi request `GET /api/v1/matrix/{id}/spec?format=pdf`.
+  4. Nhấn nút **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** (`#btn-matrix-generate-exam`) trên thanh Footer cố định.
 - **Kết quả kỳ vọng:**
-  - Format JSON trả về cấu trúc ma trận, phân bổ YCCĐ và tồn kho.
+  - Format JSON trả về cấu trúc ma trận phân cấp đa tầng, phân bổ YCCĐ và tồn kho.
   - Format CSV có chứa tiền tố UTF-8 BOM (`\ufeff`), mở bằng Excel tiếng Việt không bị lỗi font.
-  - Format PDF trả về file Vector PDF chuẩn in ấn A4 Portrait gồm Khung ma trận 2D và Bảng đặc tả chi tiết.
+  - Format PDF trả về file Vector PDF chuẩn in ấn A4 Portrait gồm Khung ma trận phân cấp đa tầng và Bảng đặc tả chi tiết.
+  - Nút Tạo đề tự động lưu ma trận, gọi API sinh đề gốc từ ma trận và chuyển mượt mà sang tab Trộn đề (`#tab-shuffler`).
 
 ---
 

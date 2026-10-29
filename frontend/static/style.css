@@ -760,6 +760,45 @@ body.in-composer #tab-composer {
   font-weight: 700;
 }
 
+/* Hierarchical Matrix Tree & Sticky Footer */
+.matrix-tree-col {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background-color: #ffffff;
+  min-width: 320px;
+  max-width: 420px;
+  border-right: 1px solid rgba(0,0,0,0.08);
+}
+.matrix-sticky-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05);
+}
+.topic-row {
+  background-color: #f8fafc;
+  font-weight: 700;
+  color: #0f172a;
+}
+.lesson-row {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: #1e293b;
+}
+.archetype-row {
+  background-color: #ffffff;
+  font-weight: 400;
+  color: #334155;
+}
+.archetype-row:hover {
+  background-color: rgba(0, 113, 227, 0.03);
+}
+
 /* --- Apple Dialog / Modal Sheet --- */
 .apple-modal-backdrop {
   background: rgba(0, 0, 0, 0.35);

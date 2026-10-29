@@ -165,22 +165,23 @@ Located in `backend/routers/composer.py` (`POST /api/v1/composer/save-to-bank`):
 - **AI Taxonomy Auto-Tagging:** Automatically detects subject, grade, and assigns official Circular 32 YCCĐ codes via `suggest_auto_tagging`.
 - **Granular Format Breakdown:** Returns total saved counts categorized by question format and immediately updates `#bank-count-badge`.
 
-### 11. Interactive 2D Matrix Grid, Standard Presets & Live Inventory Checker
+### 11. Multi-Tier Hierarchical Matrix Grid, Live Inventory Checker & Sticky Footer Action Bar
 
 Located in `backend/routers/matrix.py`, `backend/services/matrix_solver.py` & `frontend/` (`/matrix`):
-- **Statutory Compliance (Circular 22 & Decision 764):** Configures test blueprints based on official assessment guidelines.
-- **Clean Apple HIG Header Card & Ergonomic Toolbar:**
-  - Removed clunky hardcoded preset buttons from header row to prevent responsive layout shifts and text wrapping breaks.
-  - Placed the single-icon `Thêm dòng YCCĐ` button in an ergonomic toolbar beside the inventory indicators.
-- **Interactive 2D Matrix Grid with 4 Statutory Item Formats:**
-  - **Dynamic Item Format Selector:** Each row features an interactive format dropdown supporting 4 national standards:
-    1. *Single Choice 4 Options (`SINGLE_CHOICE`):* 0.25 pt / item (Part I standard).
-    2. *True/False 4 Statements (`TRUE_FALSE_GROUP`):* 1.0 pt / item with progressive grading barem (Part II standard).
-    3. *Short Answer Numeric (`SHORT_ANSWER`):* 0.5 pt / item (Part III standard).
-    4. *Essay (`ESSAY`):* 1.0 pt / item.
-  - **Dynamic Real-Time Scoring (Zero Hardcoding):** Row points and total matrix score are computed dynamically: `rowPoints = (biet + hieu + vandung) * formatPoint`, strictly enforcing a balanced 10.0-point total.
-  - **Dynamic Row Management & Add Row Modal:** Add/remove YCCĐ rows dynamically via Apple HIG modal with full Item Format selection, taxonomy mapping, and instant score updates.
-- **Real-Time Question Bank Inventory Checker:** Validates available approved questions in database per matrix cell, displaying visual indicators (green badge if sufficient, red alert badge with exact deficit if replenishment is required e.g. `Kho: X / Cần: Y`).
+- **Statutory Compliance (Circular 32, Circular 22 & Decision 764):** Configures test blueprints based on national competency standards and official 2025 examination formats.
+- **Hierarchical Column 1 (Chapter · Lesson · Problem Archetype):**
+  - Displays a clean 3-tier expandable tree structure (`Chương (Topic) -> Bài học (Lesson) -> Dạng bài tập (Problem Archetype / YCCĐ)`).
+  - **Ergonomic Tree Toolbar:** Includes **Expand All** (`Mở hết`) and **Collapse All** (`Đóng hết`) controls, **Live Archetype Search** (`Tìm kiếm dạng bài`), and **Checkbox "Dạng có câu"** (filters only archetypes with available question inventory in the bank).
+- **3 Major Column Groups &times; 4 Cognitive Tiers (NB - TH - VD - VDC):**
+  - **Part I: Single Choice 4 Options (`SINGLE_CHOICE`):** 0.25 pt / item across 4 cognitive sub-columns (`NB`, `TH`, `VD`, `VDC`).
+  - **Part II: True/False 4 Statements (`TRUE_FALSE_GROUP`):** 1.0 pt / item with progressive tiered scoring under Decision 764 across 4 cognitive sub-columns (`NB`, `TH`, `VD`, `VDC`).
+  - **Part III: Short Answer Numeric (`SHORT_ANSWER`):** 0.5 pt / item across 4 cognitive sub-columns (`NB`, `TH`, `VD`, `VDC`).
+  - **Outer Columns:** Real-time computed `Total Questions` and `Total Points` per archetype row, lesson subtotal, and chapter subtotal.
+- **Per-Cell Question Bank Inventory Checker:** Each interactive cell features an input counter paired with a live question bank stock badge (`Kho: {stock}`). Automatically toggles between green (`stock-ok`) and warning red (`stock-warn` when demand exceeds available inventory).
+- **Sticky Bottom Action Footer Bar:**
+  - Floats persistently at the bottom with backdrop-blur styling.
+  - Displays real-time breakdown of Part I, Part II, Part III item counts, grand total questions/points (balanced to 10.0 points), and a 4-color Bloom cognitive distribution bar (`NB %` - `TH %` - `VD %` - `VDC %`).
+  - Prominent **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** action button that immediately persists the blueprint, invokes the matrix solver, and transitions smoothly to the Shuffler tab (`/shuffler`).
 - **Multi-Format Blueprint Specification Exporter (`GET /api/v1/matrix/{id}/spec`):** Exports official test specification document in Vector PDF, Excel-compatible UTF-8 BOM CSV, and structured JSON.
 
 ### 12. Safe Exam Shuffling, In-Place Item Swap & Bundled ZIP Publishing

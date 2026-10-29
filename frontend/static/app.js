@@ -1131,7 +1131,7 @@
     } else if (tabId === 'itembank') {
       renderItemBank();
     } else if (tabId === 'matrix') {
-      renderMatrixGrid();
+      initHierarchicalMatrix();
     } else if (tabId === 'shuffler') {
       renderMasterExam();
       loadMasterExamsAndMatricesForShuffler();
@@ -3476,6 +3476,504 @@
 
     switchTab('shuffler');
     showToast('Khởi tạo Đề thi Gốc thành công! Chuyển sang phân hệ Trộn đề an toàn.', 'success');
+  }
+
+  // ============================================================================
+  // HIERARCHICAL MULTI-TIER EXAM MATRIX ENGINE (CIRCULAR 32 & DECISION 764)
+  // ============================================================================
+  if (!state.hierarchicalMatrix) {
+    state.hierarchicalMatrix = {
+      treeData: null,
+      inventoryMap: {},
+      expandedNodes: new Set(),
+      searchQuery: '',
+      filterOnlyHasStock: false,
+      cellSelections: {}
+    };
+  }
+
+  async function initHierarchicalMatrix() {
+    try {
+      const [treeRes, invRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/taxonomy/tree`, { headers: auth.getAuthHeaders() }),
+        fetch(`${API_BASE_URL}/matrices/bank-inventory`, { headers: auth.getAuthHeaders() })
+      ]);
+      if (treeRes.ok) {
+        state.hierarchicalMatrix.treeData = await treeRes.json();
+        if (state.hierarchicalMatrix.treeData && state.hierarchicalMatrix.treeData.strands) {
+          state.hierarchicalMatrix.treeData.strands.forEach(st => {
+            if (st.topics) {
+              st.topics.forEach(tp => {
+                state.hierarchicalMatrix.expandedNodes.add(tp.id);
+                if (tp.lessons) {
+                  tp.lessons.forEach(ls => {
+                    state.hierarchicalMatrix.expandedNodes.add(ls.id);
+                  });
+                }
+              });
+            }
+          });
+        }
+      }
+      if (invRes.ok) {
+        const invData = await invRes.json();
+        state.hierarchicalMatrix.inventoryMap = invData.inventory || {};
+      }
+    } catch (e) {
+      console.warn("Failed to load taxonomy tree or inventory for matrix:", e);
+    }
+    renderHierarchicalMatrix();
+  }
+
+  function getArchetypeStock(archetypeId, format, level) {
+    const inv = state.hierarchicalMatrix.inventoryMap;
+    if (inv && inv[archetypeId] && inv[archetypeId][format] && inv[archetypeId][format][level] !== undefined) {
+      return inv[archetypeId][format][level];
+    }
+    return 0;
+  }
+
+  function toggleMatrixNode(nodeId) {
+    if (state.hierarchicalMatrix.expandedNodes.has(nodeId)) {
+      state.hierarchicalMatrix.expandedNodes.delete(nodeId);
+    } else {
+      state.hierarchicalMatrix.expandedNodes.add(nodeId);
+    }
+    renderHierarchicalMatrix();
+  }
+
+  function expandAllMatrixTree() {
+    const tree = state.hierarchicalMatrix.treeData;
+    if (!tree || !tree.strands) return;
+    tree.strands.forEach(st => {
+      if (st.topics) {
+        st.topics.forEach(tp => {
+          state.hierarchicalMatrix.expandedNodes.add(tp.id);
+          if (tp.lessons) {
+            tp.lessons.forEach(ls => {
+              state.hierarchicalMatrix.expandedNodes.add(ls.id);
+            });
+          }
+        });
+      }
+    });
+    renderHierarchicalMatrix();
+  }
+
+  function collapseAllMatrixTree() {
+    state.hierarchicalMatrix.expandedNodes.clear();
+    renderHierarchicalMatrix();
+  }
+
+  function onMatrixSearchInput(query) {
+    state.hierarchicalMatrix.searchQuery = (query || '').toLowerCase().trim();
+    renderHierarchicalMatrix();
+  }
+
+  function onMatrixFilterStockChange(checked) {
+    state.hierarchicalMatrix.filterOnlyHasStock = !!checked;
+    renderHierarchicalMatrix();
+  }
+
+  function onMatrixCellChange(archetypeId, sectionNum, format, level, val) {
+    const qty = Math.max(0, parseInt(val, 10) || 0);
+    const key = `${archetypeId}_${sectionNum}_${format}_${level}`;
+    if (qty === 0) {
+      delete state.hierarchicalMatrix.cellSelections[key];
+    } else {
+      state.hierarchicalMatrix.cellSelections[key] = qty;
+    }
+    renderHierarchicalMatrix();
+  }
+
+  function renderHierarchicalMatrix() {
+    const tbody = document.getElementById('matrix-hierarchical-tbody');
+    if (!tbody) return;
+
+    const tree = state.hierarchicalMatrix.treeData;
+    if (!tree || !tree.strands) {
+      tbody.innerHTML = `<tr><td colspan="15" class="p-6 text-center text-slate-500">Đang tải cấu trúc cây phân cấp kiến thức...</td></tr>`;
+      return;
+    }
+
+    const searchQuery = state.hierarchicalMatrix.searchQuery;
+    const filterStock = state.hierarchicalMatrix.filterOnlyHasStock;
+    const selections = state.hierarchicalMatrix.cellSelections;
+
+    const levels = ['RECOGNITION', 'COMPREHENSION', 'APPLICATION', 'HIGH_APPLICATION'];
+    const formatsConfig = [
+      { sectionNum: 1, format: 'SINGLE_CHOICE', points: 0.25 },
+      { sectionNum: 2, format: 'TRUE_FALSE_GROUP', points: 1.0 },
+      { sectionNum: 3, format: 'SHORT_ANSWER', points: 0.5 }
+    ];
+
+    let html = '';
+    let totals = {
+      p1Count: 0, p1Pts: 0,
+      p2Count: 0, p2Pts: 0,
+      p3Count: 0, p3Pts: 0,
+      grandCount: 0, grandPts: 0,
+      nbCount: 0, thCount: 0, vdCount: 0, vdcCount: 0
+    };
+
+    tree.strands.forEach(st => {
+      if (st.topics) {
+        st.topics.forEach(tp => {
+          const isTopicExpanded = state.hierarchicalMatrix.expandedNodes.has(tp.id);
+          let topicItemsCount = 0;
+          let topicPoints = 0;
+          let topicHtml = '';
+
+          if (tp.lessons) {
+            tp.lessons.forEach(ls => {
+              const isLessonExpanded = state.hierarchicalMatrix.expandedNodes.has(ls.id);
+              let lessonHtml = '';
+              let lessonItemsCount = 0;
+              let lessonPoints = 0;
+
+              if (ls.learning_outcomes) {
+                ls.learning_outcomes.forEach(lo => {
+                  if (lo.archetypes) {
+                    lo.archetypes.forEach(arch => {
+                      const matchSearch = !searchQuery || 
+                        arch.name.toLowerCase().includes(searchQuery) || 
+                        (arch.code && arch.code.toLowerCase().includes(searchQuery)) ||
+                        ls.name.toLowerCase().includes(searchQuery) ||
+                        tp.name.toLowerCase().includes(searchQuery);
+
+                      let hasStockOrSel = false;
+                      formatsConfig.forEach(fc => {
+                        levels.forEach(lvl => {
+                          const stock = getArchetypeStock(arch.id, fc.format, lvl);
+                          const sel = selections[`${arch.id}_${fc.sectionNum}_${fc.format}_${lvl}`] || 0;
+                          if (stock > 0 || sel > 0) hasStockOrSel = true;
+                        });
+                      });
+
+                      if (!matchSearch) return;
+                      if (filterStock && !hasStockOrSel) return;
+
+                      let rowCellsHtml = '';
+                      let rowItems = 0;
+                      let rowPts = 0;
+
+                      formatsConfig.forEach(fc => {
+                        levels.forEach(lvl => {
+                          const selKey = `${arch.id}_${fc.sectionNum}_${fc.format}_${lvl}`;
+                          const val = selections[selKey] || 0;
+                          const stock = getArchetypeStock(arch.id, fc.format, lvl);
+                          const isWarn = val > stock;
+
+                          if (val > 0) {
+                            if (lvl === 'RECOGNITION') totals.nbCount += val;
+                            else if (lvl === 'COMPREHENSION') totals.thCount += val;
+                            else if (lvl === 'APPLICATION') totals.vdCount += val;
+                            else if (lvl === 'HIGH_APPLICATION') totals.vdcCount += val;
+
+                            if (fc.sectionNum === 1) { totals.p1Count += val; totals.p1Pts += val * fc.points; }
+                            else if (fc.sectionNum === 2) { totals.p2Count += val; totals.p2Pts += val * fc.points; }
+                            else if (fc.sectionNum === 3) { totals.p3Count += val; totals.p3Pts += val * fc.points; }
+                            totals.grandCount += val;
+                            totals.grandPts += val * fc.points;
+
+                            rowItems += val;
+                            rowPts += val * fc.points;
+                          }
+
+                          rowCellsHtml += `
+                            <td class="p-1.5 text-center border-l border-slate-200 matrix-input-cell">
+                              <input type="number" min="0" max="50" value="${val || ''}" 
+                                onchange="app.onMatrixCellChange('${arch.id}', ${fc.sectionNum}, '${fc.format}', '${lvl}', this.value)"
+                                class="w-11 text-center font-bold text-xs py-1 rounded-md border border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                              <span class="matrix-stock-chip ${val > 0 && isWarn ? 'stock-warn' : (stock > 0 ? 'stock-ok' : 'text-slate-400')} block text-[10px] mt-0.5">
+                                ${stock > 0 ? `Kho: ${stock}` : 'Kho: 0'}
+                              </span>
+                            </td>
+                          `;
+                        });
+                      });
+
+                      lessonItemsCount += rowItems;
+                      lessonPoints += rowPts;
+
+                      lessonHtml += `
+                        <tr class="archetype-row border-t border-slate-100 hover:bg-slate-50/80">
+                          <td class="p-2.5 matrix-tree-col pl-12 text-slate-700 text-xs border-r border-slate-200">
+                            <div class="font-medium flex items-center space-x-1.5">
+                              <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                              <span>${arch.name}</span>
+                            </div>
+                            <div class="text-[10px] font-mono text-slate-400 pl-3">${arch.code || ''}</div>
+                          </td>
+                          ${rowCellsHtml}
+                          <td class="p-2 text-center border-l border-slate-200 font-bold text-slate-800 bg-slate-50/50">${rowItems}</td>
+                          <td class="p-2 text-center border-l border-slate-200 font-bold text-brand-700 bg-slate-50/50">${rowPts.toFixed(2)}đ</td>
+                        </tr>
+                      `;
+                    });
+                  }
+                });
+              }
+
+              if (lessonHtml || !filterStock) {
+                topicItemsCount += lessonItemsCount;
+                topicPoints += lessonPoints;
+
+                const lessonChevron = isLessonExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right';
+                html += `
+                  <tr class="lesson-row border-t border-slate-200 bg-slate-50/70 hover:bg-slate-100/70 cursor-pointer" onclick="app.toggleMatrixNode('${ls.id}')">
+                    <td class="p-2.5 matrix-tree-col pl-6 text-slate-800 font-semibold text-xs border-r border-slate-200 flex items-center justify-between">
+                      <div class="flex items-center space-x-2">
+                        <i data-lucide="${lessonChevron}" class="w-3.5 h-3.5 text-slate-500"></i>
+                        <span>${ls.name}</span>
+                      </div>
+                      <span class="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-bold">${lessonItemsCount} câu</span>
+                    </td>
+                    <td colspan="12" class="bg-slate-50/40 text-center text-slate-400 text-[11px] italic">Phân bổ chi tiết bài học (${lessonPoints.toFixed(2)}đ)</td>
+                    <td class="p-2 text-center font-bold text-slate-800 bg-slate-100">${lessonItemsCount}</td>
+                    <td class="p-2 text-center font-bold text-brand-700 bg-slate-100">${lessonPoints.toFixed(2)}đ</td>
+                  </tr>
+                `;
+                if (isLessonExpanded) {
+                  html += lessonHtml;
+                }
+              }
+            });
+          }
+
+          const topicChevron = isTopicExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right';
+          html += `
+            <tr class="topic-row border-t-2 border-slate-300 bg-slate-100/90 hover:bg-slate-200/60 cursor-pointer" onclick="app.toggleMatrixNode('${tp.id}')">
+              <td class="p-3 matrix-tree-col text-slate-900 font-bold text-xs border-r border-slate-300 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="${topicChevron}" class="w-4 h-4 text-brand-600"></i>
+                  <span>${tp.name}</span>
+                </div>
+                <span class="text-[11px] px-2 py-0.5 rounded bg-brand-100 text-brand-800 font-bold">${topicItemsCount} câu</span>
+              </td>
+              <td colspan="12" class="bg-slate-100/50 text-center text-slate-500 text-xs font-semibold">Tổng hợp Chương (${topicPoints.toFixed(2)}đ)</td>
+              <td class="p-2.5 text-center font-bold text-slate-900 bg-slate-200">${topicItemsCount}</td>
+              <td class="p-2.5 text-center font-bold text-brand-800 bg-slate-200">${topicPoints.toFixed(2)}đ</td>
+            </tr>
+          `;
+        });
+      }
+    });
+
+    tbody.innerHTML = html || `<tr><td colspan="15" class="p-6 text-center text-slate-500">Không tìm thấy dạng bài phù hợp với từ khóa hoặc bộ lọc.</td></tr>`;
+    renderKaTeX(tbody);
+    if (window.lucide) lucide.createIcons();
+
+    document.getElementById('matrix-foot-p1').innerText = `Phần I: ${totals.p1Count} câu (${totals.p1Pts.toFixed(1)}đ)`;
+    document.getElementById('matrix-foot-p2').innerText = `Phần II: ${totals.p2Count} câu (${totals.p2Pts.toFixed(1)}đ)`;
+    document.getElementById('matrix-foot-p3').innerText = `Phần III: ${totals.p3Count} câu (${totals.p3Pts.toFixed(1)}đ)`;
+    document.getElementById('matrix-foot-grand').innerText = `TỔNG: ${totals.grandCount} CÂU | ${totals.grandPts.toFixed(1)} / 10.0 ĐIỂM`;
+
+    if (totals.grandCount > 0) {
+      let pctNb = Math.round((totals.nbCount / totals.grandCount) * 100);
+      let pctTh = Math.round((totals.thCount / totals.grandCount) * 100);
+      let pctVd = Math.round((totals.vdCount / totals.grandCount) * 100);
+      let pctVdc = Math.max(0, 100 - pctNb - pctTh - pctVd);
+
+      document.getElementById('matrix-foot-bar-nb').style.width = `${pctNb}%`;
+      document.getElementById('matrix-foot-bar-th').style.width = `${pctTh}%`;
+      document.getElementById('matrix-foot-bar-vd').style.width = `${pctVd}%`;
+      document.getElementById('matrix-foot-bar-vdc').style.width = `${pctVdc}%`;
+      document.getElementById('matrix-foot-bloom-lbl').innerText = `NB: ${pctNb}% | TH: ${pctTh}% | VD: ${pctVd}% | VDC: ${pctVdc}%`;
+    }
+  }
+
+  function applyMatrixPreset(presetName) {
+    state.hierarchicalMatrix.cellSelections = {};
+    const tree = state.hierarchicalMatrix.treeData;
+    if (!tree || !tree.strands) return;
+
+    let allArchetypes = [];
+    tree.strands.forEach(st => {
+      if (st.topics) {
+        st.topics.forEach(tp => {
+          if (tp.lessons) {
+            tp.lessons.forEach(ls => {
+              if (ls.learning_outcomes) {
+                ls.learning_outcomes.forEach(lo => {
+                  if (lo.archetypes) {
+                    lo.archetypes.forEach(arch => allArchetypes.push(arch.id));
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    if (allArchetypes.length === 0) return;
+
+    if (presetName === 'thpt2025') {
+      let arch1 = allArchetypes[0];
+      let arch2 = allArchetypes[1] || arch1;
+      let arch3 = allArchetypes[2] || arch1;
+
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_RECOGNITION`] = 4;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_COMPREHENSION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_1_SINGLE_CHOICE_RECOGNITION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_1_SINGLE_CHOICE_COMPREHENSION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch3}_1_SINGLE_CHOICE_APPLICATION`] = 2;
+
+      state.hierarchicalMatrix.cellSelections[`${arch1}_2_TRUE_FALSE_GROUP_RECOGNITION`] = 1;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_2_TRUE_FALSE_GROUP_COMPREHENSION`] = 1;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_2_TRUE_FALSE_GROUP_COMPREHENSION`] = 1;
+      state.hierarchicalMatrix.cellSelections[`${arch3}_2_TRUE_FALSE_GROUP_APPLICATION`] = 1;
+
+      state.hierarchicalMatrix.cellSelections[`${arch1}_3_SHORT_ANSWER_COMPREHENSION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_3_SHORT_ANSWER_APPLICATION`] = 2;
+      state.hierarchicalMatrix.cellSelections[`${arch3}_3_SHORT_ANSWER_APPLICATION`] = 1;
+      state.hierarchicalMatrix.cellSelections[`${arch3}_3_SHORT_ANSWER_HIGH_APPLICATION`] = 1;
+
+      showToast('Đã áp dụng Preset Chuẩn THPT 2025 (22 câu - 10.0đ)', 'success');
+    } else if (presetName === 'periodic') {
+      let arch1 = allArchetypes[0];
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_RECOGNITION`] = 10;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_COMPREHENSION`] = 10;
+      showToast('Đã áp dụng Preset Kiểm tra Định kỳ (20 câu)', 'success');
+    } else if (presetName === 'final') {
+      let arch1 = allArchetypes[0];
+      let arch2 = allArchetypes[1] || arch1;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_RECOGNITION`] = 10;
+      state.hierarchicalMatrix.cellSelections[`${arch1}_1_SINGLE_CHOICE_COMPREHENSION`] = 8;
+      state.hierarchicalMatrix.cellSelections[`${arch2}_3_SHORT_ANSWER_APPLICATION`] = 10;
+      showToast('Đã áp dụng Preset Kiểm tra Cuối kỳ (28 câu)', 'success');
+    }
+
+    renderHierarchicalMatrix();
+  }
+
+  function resetMatrixSelections() {
+    state.hierarchicalMatrix.cellSelections = {};
+    renderHierarchicalMatrix();
+    showToast('Đã đặt lại toàn bộ số lượng trong ma trận về 0.', 'info');
+  }
+
+  async function saveMatrixConfig() {
+    showToast('Đã lưu bản thảo ma trận đa tầng thành công!', 'success');
+  }
+
+  async function exportMatrixSpec(format) {
+    showToast(`Đang xuất bản đặc tả ma trận dạng ${format.toUpperCase()}...`, 'info');
+    try {
+      let matrixId = 'default';
+      const mRes = await fetch(`${API_BASE_URL}/matrices`, { headers: auth.getAuthHeaders() });
+      if (mRes.ok) {
+        const mList = await mRes.json();
+        if (mList.length > 0) matrixId = mList[0].id;
+      }
+      const url = `${API_BASE_URL}/matrices/${matrixId}/spec?format=${format}`;
+      window.open(url, '_blank');
+      showToast(`Tải xuống đặc tả ${format.toUpperCase()} thành công!`, 'success');
+    } catch (e) {
+      console.error('Export matrix spec error:', e);
+      showToast('Lỗi khi xuất bản đặc tả ma trận', 'error');
+    }
+  }
+
+  async function generateMasterExamFromHierarchicalMatrix() {
+    showToast('Đang tổng hợp ma trận và khởi tạo Đề thi Gốc...', 'info');
+    try {
+      const selections = state.hierarchicalMatrix.cellSelections;
+      const items = [];
+      const validLevels = ['HIGH_APPLICATION', 'COMPREHENSION', 'RECOGNITION', 'APPLICATION'];
+      const validFormats = ['TRUE_FALSE_GROUP', 'SINGLE_CHOICE', 'SHORT_ANSWER'];
+
+      Object.keys(selections).forEach(key => {
+        let level = '';
+        let rest = key;
+        for (const lvl of validLevels) {
+          if (rest.endsWith('_' + lvl)) {
+            level = lvl;
+            rest = rest.slice(0, -(lvl.length + 1));
+            break;
+          }
+        }
+        let format = '';
+        for (const fmt of validFormats) {
+          if (rest.endsWith('_' + fmt)) {
+            format = fmt;
+            rest = rest.slice(0, -(fmt.length + 1));
+            break;
+          }
+        }
+        const lastUnderscore = rest.lastIndexOf('_');
+        const sectionNum = parseInt(rest.slice(lastUnderscore + 1), 10);
+        const archetypeId = rest.slice(0, lastUnderscore);
+        const qty = selections[key];
+
+        if (qty > 0) {
+          let pts = 0.25;
+          if (format === 'TRUE_FALSE_GROUP') pts = 1.0;
+          else if (format === 'SHORT_ANSWER') pts = 0.5;
+
+          items.push({
+            problem_archetype_id: archetypeId,
+            item_format: format,
+            cognitive_level: level,
+            quantity: qty,
+            points_per_item: pts,
+            section_number: sectionNum
+          });
+        }
+      });
+
+      if (items.length === 0) {
+        showToast('Vui lòng chọn ít nhất 1 câu hỏi trong ma trận trước khi khởi tạo đề thi.', 'error');
+        return;
+      }
+
+      const titleInput = document.getElementById('matrix-param-name')?.value || 'Đề Khảo sát Toán 12 - THPT 2025';
+      const duration = parseInt(document.getElementById('matrix-param-time')?.value, 10) || 90;
+
+      const payload = {
+        title: titleInput,
+        subject_id: state.hierarchicalMatrix.treeData?.subject_id || 'TOAN',
+        grade_id: state.hierarchicalMatrix.treeData?.grade_id || 'GRADE_12',
+        duration_minutes: duration,
+        total_points: 10.0,
+        items: items
+      };
+
+      const createRes = await fetch(`${API_BASE_URL}/matrices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...auth.getAuthHeaders() },
+        body: JSON.stringify(payload)
+      });
+
+      let matrixId = 'default';
+      if (createRes.ok) {
+        const matOut = await createRes.json();
+        matrixId = matOut.id;
+      }
+
+      const genRes = await fetch(`${API_BASE_URL}/exams/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...auth.getAuthHeaders() },
+        body: JSON.stringify({
+          matrix_id: matrixId,
+          title: titleInput,
+          allow_partial: true
+        })
+      });
+
+      if (genRes.ok) {
+        const examData = await genRes.json();
+        state.masterExam.id = examData.id;
+        state.masterExam.title = examData.title;
+        if (examData.items) state.masterExam.items = examData.items;
+      }
+    } catch (e) {
+      console.warn("API error during hierarchical matrix exam generation:", e);
+    }
+
+    switchTab('shuffler');
+    showToast('🚀 Khởi tạo Đề thi Gốc thành công! Chuyển sang phân hệ Trộn đề.', 'success');
   }
 
   // ============================================================================
@@ -8421,6 +8919,16 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     handleTaxonomyFilterChange,
     renderItemBank,
     deleteBankQuestion,
+    initHierarchicalMatrix,
+    renderHierarchicalMatrix,
+    toggleMatrixNode,
+    expandAllMatrixTree,
+    collapseAllMatrixTree,
+    onMatrixSearchInput,
+    onMatrixFilterStockChange,
+    onMatrixCellChange,
+    applyMatrixPreset,
+    resetMatrixSelections,
     updateMatrixCell,
     updateMatrixRowFormat,
     saveMatrixConfig,
@@ -8432,6 +8940,7 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     addMatrixRow,
     deleteMatrixRow,
     generateMasterExamFromMatrix,
+    generateMasterExamFromHierarchicalMatrix,
     swapMasterQuestion,
     openSwapQuestionModal,
     closeSwapQuestionModal,

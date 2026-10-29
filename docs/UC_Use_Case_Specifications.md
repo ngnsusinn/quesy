@@ -169,36 +169,39 @@
 
 ---
 
-### UC-06: THIẾT LẬP MA TRẬN 2D THEO YCCĐ & 4 DẠNG THỨC CÂU HỎI, ĐỐI SOÁT TỒN KHO & XUẤT BẢN BẢN ĐẶC TẢ
+### UC-06: THIẾT LẬP BẢNG MA TRẬN PHÂN CẤP ĐA TẦNG (CHƯƠNG · BÀI · DẠNG x 3 PHẦN x 4 MỨC ĐỘ), ĐỐI SOÁT TỒN KHO & SINH ĐỀ THI GỐC
 - **Mã Use Case:** `UC-06`
-- **Tên Use Case:** Thiết lập Ma trận Đề thi 2D theo YCCĐ & 4 Dạng thức Câu hỏi, Đối soát Tồn kho & Xuất bản Bản đặc tả
+- **Tên Use Case:** Thiết lập Bảng Ma trận Phân cấp Đa tầng theo YCCĐ & 3 Phần x 4 Cấp độ Nhận thức NB-TH-VD-VDC, Đối soát Tồn kho Thời gian thực & Khởi tạo Đề thi Gốc
 - **Tác nhân chính:** Tổ trưởng Chuyên môn, Giáo viên
-- **Căn cứ pháp lý:** Thông tư 22/2021/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
+- **Căn cứ pháp lý:** Thông tư 32/2018/TT-BGDĐT, Thông tư 22/2021/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT
 
 #### Luồng sự kiện chính:
 1. Người dùng truy cập phân hệ Ma trận đề thi (`/matrix`, tab `#tab-matrix`).
 2. Giao diện Header Card hiển thị tinh gọn theo Apple HIG: Tên kỳ thi, Khối lớp & Môn học, Thời gian thi (sử dụng dropdown `#matrix-param-time` tích hợp class `.apple-select` đồng bộ hoàn hảo kích thước với các input text) và Thang điểm 10.0đ.
-3. Hệ thống dựng lưới ma trận 2D tương tác phân theo 4 Dạng thức câu hỏi và 3 Cấp độ nhận thức:
-   - Trục dòng: Phân cấp theo Mạch nội dung $
-ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng bài tập (biên dịch KaTeX trực quan cho mọi ký hiệu toán học qua `renderKaTeX(tbody)`) $
-ightarrow$ Dạng thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`, `ESSAY`).
-   - Trục cột: Cột Dạng thức câu hỏi (Dropdown chuẩn `.apple-select`), Cột 1. Biết, Cột 2. Hiểu, Cột 3. Vận dụng, Tổng câu, Tổng điểm, Thao tác xóa dòng.
-4. Người dùng tinh chỉnh trực tiếp trên từng dòng:
-   - Thay đổi **Dạng thức câu hỏi**: Trắc nghiệm 4 lựa chọn (0.25đ), Đúng/Sai 4 ý (1.0đ theo barem lũy tiến QĐ 764), Trả lời ngắn (0.5đ), Tự luận (1.0đ).
-   - Nhập số lượng câu hỏi Biết, Hiểu, Vận dụng cho từng dòng.
-   - Thêm dòng YCCĐ mới qua nút **`Thêm dòng YCCĐ`** công thái học mở Modal `#add-matrix-row-modal` có chọn Dạng thức câu hỏi.
-5. Hệ thống tính toán thời gian thực theo Dạng thức câu hỏi (Real-Time Scoring):
-   - `Điểm dòng = (Biết + Hiểu + Vận dụng) * Điểm_Dạng_Thức`.
-   - Tổng điểm từng cấp độ nhận thức (Biết, Hiểu, Vận dụng).
-   - Thang điểm tổng tự động cân bằng chuẩn 10.0đ (loại bỏ hoàn toàn lỗi hiển thị lệch 11.0đ).
-   - Thanh phân bổ Bloom (%) hiển thị trực quan tỷ lệ Biết - Hiểu - Vận dụng và đưa ra cảnh báo nếu độ lệch $> \pm 5\%$ so với tỷ lệ chuẩn 40% - 30% - 30%.
-6. Hệ thống tự động thực hiện **Live Inventory Checker (Đối soát tồn kho câu hỏi)** với CSDL Question Bank:
-   - Hiển thị màu xanh lá kèm số câu khả dụng nếu đủ câu (`Kho: 15 / Cần: 5`).
-   - Hiển thị màu đỏ cảnh báo nếu thiếu câu (`Kho: 2 / Cần: 5 (Thiếu 3 câu)`).
-7. Người dùng có thể nhấn nút "Xuất Bản Đặc Tả Ma Trận" để tải về bản đặc tả dưới dạng PDF Vector, CSV UTF-8 BOM hoặc JSON qua endpoint `GET /api/v1/matrix/{id}/spec`.
-8. Người dùng nhấn nút "Lưu và Ban hành Ma trận" hoặc "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề".
-9. Hệ thống lưu ma trận vào CSDL qua `POST /api/v1/matrix` và chuyển tiếp sang phân hệ Trộn đề an toàn.
+3. Hệ thống dựng Bảng Ma trận Phân cấp Đa tầng tương tác:
+   - **Cột 1 (Chương · Bài · Dạng - Sticky Left):**
+     * Cây phân tầng 3 cấp: Chương (Topic) -> Bài học (Lesson) -> Dạng bài tập (Problem Archetype / YCCĐ).
+     * Tên dạng bài tập được biên dịch công thức toán học KaTeX trực quan.
+     * Người dùng sử dụng các nút trên thanh công cụ Cột 1:
+       + Nút **"Mở hết" (Expand All)** và **"Đóng hết" (Collapse All)** để gập/mở cây.
+       + **Ô tìm kiếm dạng bài (`#matrix-search-archetype`):** Gõ từ khóa để lọc các dạng bài hoặc bài học cần cấu hình.
+       + **Checkbox "Dạng có câu":** Lọc ẩn các dạng bài không có câu hỏi trong ngân hàng.
+       + **Presets Khảo thí:** Chọn áp dụng nhanh ma trận mẫu Chuẩn THPT 2025 (22 câu 10.0đ), Định kỳ (20 câu), hoặc Cuối kỳ (28 câu).
+   - **3 Nhóm Cột Lớn (Chuẩn Định Dạng 2025) x 4 Cột Con Nhận Thức:**
+     * Nhóm Phần I (Trắc nghiệm 4 lựa chọn, 0.25đ/câu): Gồm 4 cột con NB, TH, VD, VDC.
+     * Nhóm Phần II (Đúng / Sai 4 ý, 1.0đ/câu theo barem QĐ 764): Gồm 4 cột con NB, TH, VD, VDC.
+     * Nhóm Phần III (Trả lời ngắn, 0.5đ/câu): Gồm 4 cột con NB, TH, VD, VDC.
+     * Cột ngoài cùng: Tổng câu và Tổng điểm từng dòng.
+4. Người dùng nhập số lượng câu hỏi cần rút vào các ô giao nhau giữa Dạng bài và (Phần thi, Cấp độ nhận thức):
+   - Mỗi ô input đi kèm chip badge hiển thị tồn kho câu hỏi thực tế trong CSDL Question Bank (`Kho: {stock}`).
+   - Chip badge tự động chuyển màu xanh lá (`stock-ok`) nếu đủ câu khả dụng hoặc màu đỏ cảnh báo (`stock-warn`) nếu số lượng chọn lớn hơn số câu trong kho.
+5. Hệ thống tính toán thời gian thực:
+   - Cập nhật số câu và điểm subtotal cho từng Bài học và từng Chương.
+   - Cập nhật tổng số câu & điểm từng Phần (I, II, III) trên Thanh Footer Cố Định (`#matrix-sticky-footer`).
+   - Cập nhật thang phân bổ nhận thức Bloom 4 màu: NB % - TH % - VD % - VDC %.
+6. Người dùng có thể nhấn nút "Xuất Bản Đặc Tả Ma Trận" để tải về bản đặc tả dưới dạng PDF Vector, CSV UTF-8 BOM hoặc JSON qua endpoint `GET /api/v1/matrix/{id}/spec`.
+7. Người dùng nhấn nút **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** (`#btn-matrix-generate-exam`) trên thanh Footer cố định.
+8. Hệ thống lưu ma trận vào CSDL qua `POST /api/v1/matrix`, kích hoạt API `POST /api/v1/exams/generate` và chuyển tiếp mượt mà sang phân hệ Trộn đề an toàn (`#tab-shuffler`), sẵn sàng cho khâu hoán vị mã đề và xuất bản ấn phẩm khảo thí.
 
 ---
 

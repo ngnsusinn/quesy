@@ -763,57 +763,52 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.9. FR-05.1: Thiết lập Bản Đặc tả Ma trận Đề thi 2D theo YCCĐ & 4 Dạng thức Câu hỏi Chuẩn TT 22 & QĐ 764
+### 2.9. FR-05.1: Thiết lập Bảng Ma trận Phân cấp Đa tầng (Chương · Bài · Dạng x 3 Phần x 4 Mức độ NB-TH-VD-VDC) & Đối soát Tồn kho Thời gian thực
 - **Màn hình:** `SCR-MATRIX-BUILDER` (Route: `/matrix`, tab: `#tab-matrix`)
-- **Căn cứ pháp lý:** Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
+- **Căn cứ pháp lý:** Thông tư 32/2018/TT-BGDĐT, Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT).
 - **Thiết kế Header Card Tinh gọn Chuẩn Apple HIG:**
-  * Loại bỏ hoàn toàn cụm nút Preset cứng (`btn-preset-thpt_2025`, `btn-preset-midterm`, `btn-preset-final`) khỏi thanh tiêu đề để loại bỏ hoàn toàn hiện tượng tràn viền, lệch lề và vỡ bố cục Responsive.
-  * Tái cơ cấu thanh tham số tổng thể: Tên kỳ thi / bài thi, Khối lớp & Môn học, Thời gian làm bài (45, 50, 90 phút), Thang điểm tổng (10.0đ), Nút Lưu & Ban hành Ma trận và Cụm Xuất bản Đặc tả (PDF/CSV).
-  * Chuyển nút **`Thêm dòng YCCĐ`** (`#btn-add-matrix-row`) về vị trí công thái học chuẩn trên thanh công cụ của bảng lưới ma trận, chuẩn hóa hiển thị duy nhất 1 icon plus tinh tế (khắc phục triệt để lỗi lặp `+ +`).
-- **Phân loại 4 Dạng thức Câu hỏi (Item Formats) & Barem Điểm Quốc gia:**
-  * Tích hợp cột độc lập **"Dạng thức câu hỏi"** trên từng dòng của bảng lưới 2D và trong Modal thêm dòng YCCĐ (`#add-matrix-row-modal`), cho phép chọn 1 trong 4 dạng thức chuẩn:
-    1. *Trắc nghiệm nhiều lựa chọn (`SINGLE_CHOICE`):* Barem 0.25 điểm / câu (Phần I chuẩn Đề thi 2025).
-    2. *Đúng / Sai 4 ý (`TRUE_FALSE_GROUP`):* Barem 1.0 điểm / câu (Phần II chuẩn Đề thi 2025, chấm bậc thang theo QĐ 764: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ).
-    3. *Trả lời ngắn (`SHORT_ANSWER`):* Barem 0.5 điểm / câu (Phần III chuẩn Đề thi 2025).
-    4. *Tự luận (`ESSAY`):* Barem 1.0 điểm / câu (hoặc linh hoạt theo cấu hình kiểm tra định kỳ).
-- **Lưới Ma trận 2D Tương tác & Quản lý Dòng động (Interactive 2D Matrix Grid & Dynamic Rows):**
-  - Trục dọc: Phân cấp theo Mạch nội dung -> Yêu cầu cần đạt (YCCĐ) -> Dạng câu hỏi (Problem Archetype) -> Dạng thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`, `ESSAY`).
-  - Trục ngang:
-    * Cột 1: Mạch Nội dung & YCCĐ / Dạng bài (sticky left).
-    * Cột 2: Dạng thức câu hỏi (Dropdown select: Trắc nghiệm 0.25đ / Đúng Sai 1.0đ / Trả lời ngắn 0.5đ / Tự luận 1.0đ).
-    * Cột 3: 1. Nhận biết (Biết).
-    * Cột 4: 2. Thông hiểu (Hiểu).
-    * Cột 5: 3. Vận dụng (VD).
-    * Cột 6: Tổng câu (`biet + hieu + vandung`).
-    * Cột 7: Tổng điểm (`Tổng câu * formatPoints`).
-    * Cột 8: Thao tác (Nút xóa dòng `trash-2`).
-  - **Quản lý Dòng động (Dynamic Rows) & Modal Thêm dòng Chuẩn hóa:**
-    * Modal `#add-matrix-row-modal` tích hợp trường chọn Dạng thức câu hỏi (`#modal-matrix-format`), Mạch nội dung, Mã YCCĐ, Tên dạng bài, Số câu Biết - Hiểu - Vận dụng.
-    * Nút xóa dòng (`trash-2`) trên mỗi hàng hỗ trợ xóa nhanh, cảnh báo nếu chỉ còn duy nhất 1 dòng.
-  - **Tính toán Điểm số Thời gian thực Theo Dạng thức Câu hỏi (Real-Time Scoring by Item Format):**
-    * Điểm số từng dòng: `rowPoints = (Number(row.biet) + Number(row.hieu) + Number(row.vandung)) * MATRIX_FORMAT_POINTS[row.itemFormat]`.
-    * Điểm từng mức độ nhận thức:
-      + `totalPointsBiet = sum(row.biet * MATRIX_FORMAT_POINTS[row.itemFormat])`.
-      + `totalPointsHieu = sum(row.hieu * MATRIX_FORMAT_POINTS[row.itemFormat])`.
-      + `totalPointsVandung = sum(row.vandung * MATRIX_FORMAT_POINTS[row.itemFormat])`.
-    * Tổng điểm toàn ma trận: `grandPoints = sum(rowPoints) = totalPointsBiet + totalPointsHieu + totalPointsVandung`.
-    * Cân bằng thang điểm 10.0đ: Ma trận chuẩn hóa khởi tạo 22 câu (12 TN $\times$ 0.25đ = 3.0đ, 4 Đ/S $\times$ 1.0đ = 4.0đ, 6 TLN $\times$ 0.5đ = 3.0đ) đạt đúng chuẩn 10.0đ (loại bỏ hoàn toàn lỗi hiển thị lệch 11.0đ).
-  - **Thanh tiến trình phân bổ Bloom Thời gian thực:** Tự động tính toán `% Biết`, `% Hiểu`, `% Vận dụng` từ số lượng câu thực tế (không hardcode tỷ lệ cố định), hiển thị nhãn cảnh báo trực quan: Đạt chuẩn khảo thí khi tỷ lệ tiệm cận chuẩn TT 22 (40% Biết - 30% Hiểu - 30% Vận dụng, dung sai $\pm 5\%$).
-- **Đối soát Tồn kho Câu hỏi Thời gian thực (Live Inventory Checker):**
-  - Kết nối trực tiếp cơ sở dữ liệu Question Bank thông qua API kiểm tra tồn kho hoặc đối soát trực tiếp `state.itemBank`.
-  - Từng ô ma trận hiển thị trạng thái tồn kho thực tế qua chip trực quan:
-    * *Đủ câu:* Chip xanh lá `bg-emerald-50 text-emerald-700 border-emerald-200`, ví dụ: `Kho: 15 / Cần: 5`.
-    * *Cảnh báo thiếu câu:* Chip đỏ `bg-rose-50 text-rose-700 border-rose-200 font-bold`, ví dụ: `Kho: 2 / Cần: 5 (Thiếu 3 câu)` kèm icon cảnh báo.
-  - Cảnh báo toàn ma trận: Hiển thị tổng số câu thiếu và danh sách các ô thiếu câu trước khi sinh đề.
+  * Tái cơ cấu thanh tham số tổng thể: Tên kỳ thi / bài thi (`#matrix-param-name`), Khối lớp & Môn học (Toán học - Lớp 12), Thời gian làm bài (`#matrix-param-time` với `.apple-select`), Thang điểm tổng (10.0đ), Nút Lưu & Ban hành Ma trận và Cụm Xuất bản Đặc tả (PDF/CSV UTF-8 BOM/JSON).
+- **Cột 1: Cấu trúc Cây Phân cấp Đa tầng (Tree Hierarchy Column - Sticky Left):**
+  * Phân cấp 3 tầng trực quan: `Chương (Topic) -> Bài học (Lesson) -> Dạng bài tập (Problem Archetype / YCCĐ)`.
+  * Cố định bên trái (`sticky left-0 z-10 bg-white min-w-[320px] max-w-[400px]`), viền đổ bóng nhẹ phân cách với các cột số liệu.
+  * Bộ điều khiển công thái học trên thanh công cụ Cột 1 (`#matrix-tree-toolbar`):
+    1. *Ô tìm kiếm dạng bài (`#matrix-search-archetype`):* Input tìm kiếm thời gian thực, tự động lọc và mở các nhánh cây chứa từ khóa khớp (tên dạng bài, mã YCCĐ, bài học hoặc chương).
+    2. *Checkbox "Dạng có câu" (`#matrix-filter-has-stock`):* Khi được chọn, chỉ hiển thị những dạng bài có số tồn kho câu hỏi khả dụng $> 0$ hoặc đã được cấu hình $> 0$.
+    3. *Nút "Mở hết" (`#btn-matrix-expand-all`):* Mở bung tất cả các cấp Chương và Bài học.
+    4. *Nút "Đóng hết" (`#btn-matrix-collapse-all`):* Gập gọn toàn bộ bảng, chỉ hiển thị danh mục các Chương.
+    5. *Cụm Presets Khảo thí Chuẩn Quốc Gia:* Nạp các ma trận mẫu chuẩn Bộ GD&ĐT 2025 (22 câu 10.0đ: 12 TN + 4 ĐS + 6 TLN), hoặc kiểm tra định kỳ 20 câu, hoặc cuối kỳ 28 câu.
+    6. *Nút "Đặt lại" (`#btn-matrix-reset`):* Đặt toàn bộ các ô ma trận về 0.
+- **Cấu trúc Lưới Ma trận 3 Nhóm Cột Lớn (Chuẩn Định Dạng Đề Thi 2025) x 4 Cột Con Nhận Thức:**
+  * **Nhóm Phần I: Trắc nghiệm 4 lựa chọn (`SINGLE_CHOICE`):** Barem 0.25 điểm / câu. Gồm 4 cột con: `NB` (Nhận biết), `TH` (Thông hiểu), `VD` (Vận dụng), `VDC` (Vận dụng cao).
+  * **Nhóm Phần II: Đúng / Sai 4 ý (`TRUE_FALSE_GROUP`):** Barem 1.0 điểm / câu (chấm bậc thang theo QĐ 764: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ). Gồm 4 cột con: `NB`, `TH`, `VD`, `VDC`.
+  * **Nhóm Phần III: Trả lời ngắn (`SHORT_ANSWER`):** Barem 0.5 điểm / câu. Gồm 4 cột con: `NB`, `TH`, `VD`, `VDC`.
+  * *(Kiến trúc mở rộng: Phần IV - Tự luận `ESSAY` barem 1.0đ).*
+  * **Cột Ngoài Cùng:** Cột `Tổng câu` và Cột `Tổng điểm` cho từng dạng bài (và subtotal của từng bài học/chương).
+- **Ô Nhập Liệu (Matrix Input Cell) & Đối soát Tồn kho Thời gian thực (Live Inventory Checker):**
+  * Từng ô giao giữa Dạng bài và (Phần thi, Cấp độ) gồm một ô input số lượng (`<input type="number" min="0" max="50">`) và chip badge hiển thị tồn kho thực tế (`Kho: {stock}`).
+  * Chip badge đổi màu thời gian thực:
+    - *Đủ câu (`stock-ok`):* Màu xanh lá `bg-emerald-50 text-emerald-700 border-emerald-200` khi `stock >= value`.
+    - *Cảnh báo thiếu câu (`stock-warn`):* Màu đỏ `bg-rose-50 text-rose-700 border-rose-200 font-bold` khi `value > 0` và `value > stock` (hiển thị `Kho: {stock} / Cần: {value}`).
+  * Tại các hàng Chương và Bài học: Hiển thị subtotal tự động tính toán từ các dạng bài con.
+- **Thanh Footer Cố Định (Sticky Bottom Action Bar):**
+  * Vị trí: `sticky bottom-0 z-30`, nền kính mờ `backdrop-blur`, viền trên tinh tế và đổ bóng mượt mà.
+  * Thống kê trực tiếp thời gian thực:
+    - `Phần I (Trắc nghiệm): {count_p1} câu ({points_p1}đ)`
+    - `Phần II (Đúng / Sai): {count_p2} câu ({points_p2}đ)`
+    - `Phần III (Trả lời ngắn): {count_p3} câu ({points_p3}đ)`
+    - `TỔNG CỘNG: {total_questions} câu | {total_points} / 10.0 điểm`
+  * Thanh đo lường tỷ lệ nhận thức 4 mức độ: NB % - TH % - VD % - VDC % (với nhãn trực quan cảnh báo khi chênh lệch so với chuẩn khảo thí).
+  * Cụm nút hành động chuẩn Apple HIG: Nút Đặt lại (Reset) và nút chính **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** (`#btn-matrix-generate-exam`) tự động lưu ma trận, gọi API sinh đề gốc và chuyển tiếp sang tab Trộn đề (`#tab-shuffler`).
 - **API Hợp đồng Ma trận Đề thi:**
   - `POST /api/v1/matrix` (alias `/api/v1/matrices`): Lưu và ban hành ma trận đề thi.
   - `GET /api/v1/matrix` (alias `/api/v1/matrices`): Danh sách ma trận.
   - `GET /api/v1/matrix/{id}` (alias `/api/v1/matrices/{id}`): Chi tiết ma trận.
+  - `GET /api/v1/matrices/bank-inventory`: Cung cấp số lượng tồn kho câu hỏi gom nhóm theo `(archetype_id, format, level)`.
   - `POST /api/v1/matrix/{id}/check-availability` & `POST /api/v1/matrix/check-availability`: Kiểm tra tồn kho câu hỏi.
   - `GET /api/v1/matrix/{id}/spec` (alias `/api/v1/matrices/{id}/spec`): Xuất bản bản đặc tả ma trận đề thi:
     * `format=json`: Trả về JSON bản đặc tả chi tiết.
     * `format=csv`: File CSV mã hóa UTF-8 BOM (`\ufeff`) tương thích 100% Microsoft Excel tiếng Việt.
-    * `format=pdf`: File Vector PDF A4 Portrait gồm Khung ma trận 2D và Bảng đặc tả chi tiết.
+    * `format=pdf`: File Vector PDF A4 Portrait gồm Khung ma trận phân cấp đa tầng và Bảng đặc tả chi tiết.
 - **Nút Hành động "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề":**
   - Tự động lưu cấu hình ma trận hiện tại, gọi API `POST /api/v1/exams/generate` và chuyển người dùng sang tab Trộn đề (`#tab-shuffler`).
 

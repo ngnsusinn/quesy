@@ -111,28 +111,30 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 
 ---
 
-### BR-04: MA TRẬN ĐỀ THI 2D THEO YCCĐ, 4 DẠNG THỨC CÂU HỎI & ĐỐI SOÁT TỒN KHO THỜI GIAN THỰC
-- **BR-04.1 Ma trận đề thi 2 chiều tương tác (Interactive 2D Matrix Grid):**
-  - Căn cứ pháp lý: Thông tư 22/2021/TT-BGDĐT (đánh giá học sinh THCS và THPT) và Định dạng đề thi tốt nghiệp THPT từ năm 2025 (Quyết định 764/QĐ-BGDĐT).
-  - Tái cơ cấu Header Card theo Apple HIG: Loại bỏ hoàn toàn các nút Preset cứng gây tràn viền và vỡ layout; bố trí lại tiêu đề và thông số chung (Tên kỳ thi, Khối lớp & Môn học, Thời gian làm bài, Thang điểm tổng 10.0đ) tinh gọn, responsive.
-  - Vị trí công thái học chuẩn cho nút **"Thêm dòng YCCĐ"**: Đặt tại thanh công cụ của bảng ma trận với duy nhất 1 icon plus tinh tế (loại bỏ triệt để lỗi lặp `+ +`).
-  - Trục dọc: Phân cấp theo Mạch nội dung (Strand) $
-ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng câu hỏi (Problem Archetype) $
-ightarrow$ Dạng thức câu hỏi (ItemFormat: `SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`, `ESSAY`).
-  - Trục ngang:
-    * Cột 1: Mạch Nội dung & YCCĐ / Dạng bài (sticky left).
-    * Cột 2: Dạng thức câu hỏi (Dropdown select tương tác độc lập trên từng dòng: Trắc nghiệm 0.25đ, Đúng/Sai 1.0đ, Trả lời ngắn 0.5đ, Tự luận 1.0đ).
-    * Cột 3: 1. Nhận biết (Biết).
-    * Cột 4: 2. Thông hiểu (Hiểu).
-    * Cột 5: 3. Vận dụng (VD).
-    * Cột 6: Tổng câu.
-    * Cột 7: Tổng điểm.
-    * Cột 8: Thao tác (Xóa dòng).
-  - Tính toán điểm số thời gian thực theo Dạng thức câu hỏi (Real-Time Dynamic Scoring):
-    * Điểm mỗi dòng = (Biết + Hiểu + Vận dụng) $\times$ Hệ số điểm của dạng thức câu hỏi dòng đó (0.25đ đối với Trắc nghiệm, 1.0đ đối với Đúng/Sai bậc thang QĐ 764, 0.5đ đối với Trả lời ngắn, 1.0đ đối với Tự luận).
-    * Tổng điểm toàn ma trận = Tổng điểm tất cả các dòng; tự động cân bằng chuẩn 10.0đ (loại bỏ hoàn toàn lỗi hiển thị nhảy sai 11.0đ).
-  - Thanh tiến trình phân bổ Bloom (Biết %, Hiểu %, Vận dụng %) với nhãn cảnh báo trực quan: Đạt chuẩn khảo thí khi tỷ lệ tiệm cận 40% Biết - 30% Hiểu - 30% Vận dụng (dung sai $\pm 5\%$).
+### BR-04: MA TRẬN ĐỀ THI PHÂN CẤP ĐA TẦNG (CHƯƠNG · BÀI · DẠNG &times; 3 PHẦN &times; 4 CẤP ĐỘ NB-TH-VD-VDC), ĐỐI SOÁT TỒN KHO & THANH FOOTER CỐ ĐỊNH
+- **BR-04.1 Bảng ma trận phân cấp đa tầng (Hierarchical Multi-Tier Matrix Table):**
+  - Căn cứ pháp lý: Thông tư 32/2018/TT-BGDĐT, Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi tốt nghiệp THPT từ năm 2025 (Quyết định 764/QĐ-BGDĐT).
+  - Tái cơ cấu Header Card theo Apple HIG: Tinh gọn tham số chung (Tên kỳ thi, Khối lớp & Môn học, Thời gian làm bài với `.apple-select`, Thang điểm tổng 10.0đ), tích hợp cụm xuất bản đặc tả (PDF/CSV UTF-8 BOM/JSON).
+  - **Cột 1: Cấu trúc Cây Phân Cấp Chương · Bài · Dạng (Tree Column - Sticky Left):**
+    * Phân tầng trực quan: `Chương (Topic) -> Bài học (Lesson) -> Dạng bài tập (Problem Archetype / YCCĐ)`.
+    * Bộ công cụ điều khiển trên thanh công cụ Cột 1:
+      + Nút **"Mở hết" (Expand All)** và **"Đóng hết" (Collapse All)** hỗ trợ điều khiển cây nhanh chóng.
+      + **Ô tìm kiếm dạng bài (Live Search Input):** Lọc theo thời gian thực tên dạng bài, mã YCCĐ hoặc bài học/chương.
+      + **Checkbox "Dạng có câu":** Khi kích hoạt, chỉ hiển thị những dạng bài có số tồn kho câu hỏi khả dụng $> 0$ hoặc đã được cấu hình $> 0$.
+  - **3 Nhóm Cột Lớn (Chuẩn Định Dạng Đề Thi 2025) &times; 4 Cột Con Nhận Thức:**
+    * **Nhóm Phần I: Trắc nghiệm 4 lựa chọn (SINGLE_CHOICE):** Barem chuẩn 0.25 điểm / câu. Gồm 4 cột con: `NB` (Nhận biết), `TH` (Thông hiểu), `VD` (Vận dụng), `VDC` (Vận dụng cao).
+    * **Nhóm Phần II: Đúng / Sai 4 ý (TRUE_FALSE_GROUP):** Barem 1.0 điểm / câu (chấm bậc thang theo QĐ 764: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ). Gồm 4 cột con: `NB`, `TH`, `VD`, `VDC`.
+    * **Nhóm Phần III: Trả lời ngắn (SHORT_ANSWER):** Barem 0.5 điểm / câu. Gồm 4 cột con: `NB`, `TH`, `VD`, `VDC`.
+    * *(Kiến trúc mở rộng: Phần IV - Tự luận ESSAY).*
+    * **Cột Ngoài Cùng:** Cột `Tổng câu` và Cột `Tổng điểm` cho từng dạng bài (và subtotal của từng bài học/chương).
+  - **Ô nhập liệu và Đối soát tồn kho thời gian thực (Live Inventory on Input Cell):**
+    * Từng ô giao giữa Dạng bài và (Phần thi, Cấp độ) gồm một ô input số lượng ($\ge 0$) và chip badge hiển thị tồn kho thực tế (`Kho: {stock}`).
+    * Phản hồi màu sắc: Xanh lá (`stock-ok`) khi tồn kho đủ đáp ứng; Đỏ cảnh báo (`stock-warn`) khi nhu cầu vượt quá tồn kho khả dụng.
+  - **Thanh Footer Cố Định (Sticky Bottom Action Bar):**
+    * Cố định ở đáy màn hình với hiệu ứng kính mờ (backdrop-blur) và đổ bóng nổi bật.
+    * Thống kê trực tiếp thời gian thực: Tổng số câu & điểm Phần I, Phần II, Phần III; Tổng cộng toàn đề (chuẩn 10.0đ).
+    * Thanh đo lường tỷ lệ nhận thức 4 mức độ: NB % - TH % - VD % - VDC % (với cảnh báo khi chênh lệch so với chuẩn khảo thí).
+    * Cụm nút hành động chuẩn Apple HIG: Nút Đặt lại (Reset), Nút Nạp Presets mẫu (THPT 2025 22 câu 10đ, Đánh giá định kỳ 20 câu, Cuối kỳ 28 câu), và nút chính **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** kích hoạt trực tiếp chu trình lưu ma trận và sinh đề gốc.
 - **BR-04.2 Chuẩn hóa 4 Dạng thức Câu hỏi Khảo thí Quốc gia (4 Statutory Item Formats):**
   1. *Trắc nghiệm nhiều lựa chọn (`SINGLE_CHOICE`):* Barem 0.25 điểm / câu.
   2. *Đúng / Sai 4 ý (`TRUE_FALSE_GROUP`):* Barem 1.0 điểm / câu (chấm lũy tiến theo QĐ 764: 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ).
@@ -219,7 +221,7 @@ ightarrow$ Dạng thức câu hỏi (ItemFormat: `SINGLE_CHOICE`, `TRUE_FALSE_GR
 | **BR-01** | AI Số hoá Đề thi & Studio HITL | AI Parsing Engine & HITL | P0 | Giảm 90% thời gian gõ lại đề thủ công |
 | **BR-02** | Dựng Đồ thị TikZ SVG & Chuẩn hóa Toán | TikZ Renderer & LaTeX Sanitizer | P0 | Hiển thị đồ thị vector sắc nét, chống lỗi KaTeX |
 | **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa & CRUD | Taxonomy & Item Bank | P0 | Quản lý vòng đời đầy đủ, lọc 6 tầng TT 32, xuất/nhập đa định dạng, chống trùng lặp |
-| **BR-04** | Ma trận Đề thi 2D theo YCCĐ & Đối soát Tồn kho | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối cấu trúc TT 22 & QĐ 764, 3 Presets, xuất bản bản đặc tả |
+| **BR-04** | Ma trận Đề thi Phân cấp Đa tầng (Chương-Bài-Dạng x 3 Phần x 4 Mức độ) & Đối soát Tồn kho | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối cấu trúc TT 22 & QĐ 764, cây phân cấp Cột 1, 12 cột nhận thức, sticky footer, xuất bản bản đặc tả |
 | **BR-05** | Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc | Safe Shuffling Engine & Master Exam | P0 | Chống lỗi logic đáp án neo, bảo toàn bài đọc, đổi câu hỏi linh hoạt, sinh ma trận đáp án |
 | **BR-06** | Xuất bản Vector PDF, Word OMML & Gói ZIP | Export Service & Publishing Pipeline | P0 | Xuất bản in ấn 1-click, đóng gói trọn gói ZIP đề thi, lời giải, barem bậc thang và phiếu OMR |
 | **BR-07** | Trợ lý Soạn thảo AI & Thay thế Câu hỏi Thông minh | Composer Copilot & Question Replacement Engine | P0 | Hỗ trợ giáo viên chỉnh sửa/thay thế câu hỏi 1-click, bảo toàn code và trải nghiệm mượt mà |
