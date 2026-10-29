@@ -372,6 +372,7 @@ body.in-composer #tab-composer {
 
 /* --- Apple Frosted Glass Header --- */
 .apple-header {
+  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);

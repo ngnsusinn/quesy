@@ -1901,7 +1901,7 @@ def test_bank_pagination_javascript_contract_and_slice_rendering():
        - Đánh số globalIdx = startIndex + pIdx + 1.
     4. Hàm changeBankPage(newPage) và changeBankPageSize(newSize):
        - Kiểm tra biên trang (1 <= newPage <= totalPages).
-       - scrollIntoView({ behavior: 'smooth', block: 'start' }).
+       - scrollTo({ top: 0, behavior: 'smooth' }) trên main-scroll-view và window.scrollTo(0, 0), tuyệt đối không dùng grid.scrollIntoView gây lệch header.
        - changeBankPageSize cập nhật pageSize và reset currentPage = 1.
     5. Tự động reset currentPage = 1 khi thay đổi bộ lọc (handleBankFilterChange, handleTaxonomyFilterChange).
     6. Expose đầy đủ lên window.app.
@@ -1948,7 +1948,9 @@ def test_bank_pagination_javascript_contract_and_slice_rendering():
     change_page_code = js_content[change_page_idx : change_page_idx + 2200]
 
     assert "state.bankPagination.currentPage = newPage;" in change_page_code
-    assert "grid.scrollIntoView({ behavior: 'smooth', block: 'start' })" in change_page_code
+    assert "grid.scrollIntoView" not in change_page_code
+    assert "mainView.scrollTo({ top: 0, behavior: 'smooth' });" in change_page_code
+    assert "window.scrollTo(0, 0);" in change_page_code
 
     change_size_idx = js_content.find("function changeBankPageSize(newSize)")
     assert change_size_idx != -1
@@ -1956,6 +1958,9 @@ def test_bank_pagination_javascript_contract_and_slice_rendering():
 
     assert "state.bankPagination.pageSize = parseInt(newSize, 10) || 12;" in change_size_code
     assert "state.bankPagination.currentPage = 1;" in change_size_code
+    assert "grid.scrollIntoView" not in change_size_code
+    assert "mainView.scrollTo({ top: 0, behavior: 'smooth' });" in change_size_code
+    assert "window.scrollTo(0, 0);" in change_size_code
 
     # 5. Kiểm tra logic reset currentPage = 1 khi đổi bộ lọc
     filter_change_idx = js_content.find("function handleBankFilterChange()")
@@ -1976,5 +1981,76 @@ def test_bank_pagination_javascript_contract_and_slice_rendering():
     assert "changeBankPage," in app_export_code
     assert "changeBankPageSize," in app_export_code
     assert "handleBankFilterChange," in app_export_code
+
+
+# =========================================================================
+# 26. KIỂM THỬ BẤT BIẾN HEADER CỐ ĐỊNH KHI ĐỔI TRANG NGÂN HÀNG CÂU HỎI
+# =========================================================================
+
+def test_bank_pagination_header_persistence_contract():
+    """Kiểm thử bất biến Header cố định khi đổi trang hoặc thay đổi kích thước trang Ngân hàng câu hỏi:
+    1. Kiểm tra frontend/static/app.js:
+       - changeBankPage và changeBankPageSize tuyệt đối KHÔNG chứa grid.scrollIntoView (tránh việc cuộn phần tử làm đẩy/mất sticky header).
+       - Cả hai hàm đều dùng mainView.scrollTo({ top: 0, behavior: 'smooth' }) để cuộn nội dung khung xem chính.
+       - Cả hai hàm đều dùng window.scrollTo(0, 0) để bảo đảm header không bị trôi khỏi viewport.
+    2. Kiểm tra frontend/index.html:
+       - Thẻ <header class="apple-header... có class `shrink-0` bảo đảm header không bị co lại khi nội dung bên dưới co giãn.
+    3. Kiểm tra frontend/static/style.css:
+       - Class .apple-header có thuộc tính `flex-shrink: 0;` để duy trì kích thước cố định trong layout flexbox.
+    """
+    from pathlib import Path
+    import re
+
+    # 1. Kiểm tra frontend/static/app.js
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists(), "frontend/static/app.js phải tồn tại"
+    js_content = js_path.read_text(encoding="utf-8")
+
+    # Kiểm tra hàm changeBankPage
+    change_page_match = re.search(r"function\s+changeBankPage\s*\([^)]*\)\s*\{([\s\S]*?)\n  \}", js_content)
+    assert change_page_match is not None, "Phải tìm thấy định nghĩa hàm changeBankPage trong app.js"
+    change_page_body = change_page_match.group(1)
+
+    assert "grid.scrollIntoView" not in change_page_body, (
+        "changeBankPage tuyệt đối KHÔNG được chứa grid.scrollIntoView vì gây mất Header cố định"
+    )
+    assert "mainView.scrollTo" in change_page_body, "changeBankPage phải sử dụng mainView.scrollTo"
+    assert "window.scrollTo(0, 0)" in change_page_body, "changeBankPage phải sử dụng window.scrollTo(0, 0)"
+
+    # Kiểm tra hàm changeBankPageSize
+    change_size_match = re.search(r"function\s+changeBankPageSize\s*\([^)]*\)\s*\{([\s\S]*?)\n  \}", js_content)
+    assert change_size_match is not None, "Phải tìm thấy định nghĩa hàm changeBankPageSize trong app.js"
+    change_size_body = change_size_match.group(1)
+
+    assert "grid.scrollIntoView" not in change_size_body, (
+        "changeBankPageSize tuyệt đối KHÔNG được chứa grid.scrollIntoView vì gây mất Header cố định"
+    )
+    assert "mainView.scrollTo" in change_size_body, "changeBankPageSize phải sử dụng mainView.scrollTo"
+    assert "window.scrollTo(0, 0)" in change_size_body, "changeBankPageSize phải sử dụng window.scrollTo(0, 0)"
+
+    # 2. Kiểm tra frontend/index.html: Thẻ <header class="apple-header... có class `shrink-0`
+    html_path = Path("frontend/index.html")
+    assert html_path.exists(), "frontend/index.html phải tồn tại"
+    html_content = html_path.read_text(encoding="utf-8")
+
+    header_tag_match = re.search(r'<header[^>]*class=["\']([^"\']+)["\']', html_content)
+    assert header_tag_match is not None, "Phải tìm thấy thẻ <header> có class trong frontend/index.html"
+    header_classes = header_tag_match.group(1).split()
+    assert "apple-header" in header_classes, "<header> phải có class 'apple-header'"
+    assert "shrink-0" in header_classes, "<header> phải có class 'shrink-0' để chống co sụp layout"
+    assert "sticky" in header_classes, "<header> phải có class 'sticky' để cố định trên đỉnh"
+
+    # 3. Kiểm tra frontend/static/style.css: .apple-header có flex-shrink: 0;
+    css_path = Path("frontend/static/style.css")
+    assert css_path.exists(), "frontend/static/style.css phải tồn tại"
+    css_content = css_path.read_text(encoding="utf-8")
+
+    apple_header_css_match = re.search(r"\.apple-header\s*\{([^}]+)\}", css_content)
+    assert apple_header_css_match is not None, "Phải tìm thấy quy tắc CSS cho .apple-header trong style.css"
+    apple_header_rules = apple_header_css_match.group(1)
+    assert re.search(r"flex-shrink\s*:\s*0\s*;", apple_header_rules), (
+        ".apple-header trong style.css phải có thuộc tính 'flex-shrink: 0;'"
+    )
+
 
 

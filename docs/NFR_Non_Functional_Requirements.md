@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+- **Phiên bản:** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0 & flex-shrink: 0)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
-- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, hệ thống xác thực an toàn (PBKDF2/SHA256, JWT HS256, OAuth 2.0), tốc độ trích xuất lưu đề từ Composer vào Ngân hàng (<= 1.5s), độ trễ truy vấn lọc ngân hàng câu hỏi 6 tầng (P95 <= 150ms), hiệu năng phân trang Ngân hàng câu hỏi on-demand KaTeX (<= 50ms, tiết kiệm 85% DOM), hiệu năng phân hệ Ma trận đề thi 2D (tốc độ đối soát tồn kho <= 200ms, xuất bản bản đặc tả PDF <= 1.0s, CSV UTF-8 BOM <= 200ms), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input text, hiệu năng động cơ sinh & trộn đề an toàn (thời gian rút đề gốc <= 2.0s, đổi câu hỏi tương đương <= 300ms, sinh 4 mã đề hoán vị an toàn <= 1.5s), độ chính xác tuyệt đối 100% của Option Anchor Rule tại vị trí D, tốc độ đóng gói trọn bộ ấn phẩm khảo thí ZIP <= 10s, tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow, độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
-- **Ngày phát hành:** 2026-10-27
+- **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, hệ thống xác thực an toàn (PBKDF2/SHA256, JWT HS256, OAuth 2.0), tốc độ trích xuất lưu đề từ Composer vào Ngân hàng (<= 1.5s), độ trễ truy vấn lọc ngân hàng câu hỏi 6 tầng (P95 <= 150ms), hiệu năng phân trang Ngân hàng câu hỏi on-demand KaTeX (<= 50ms, tiết kiệm 85% DOM), bảo toàn vị trí cố định của Apple Header trên viewport (window.scrollY === 0, tỷ lệ che khuất/mất header bằng 0%), hiệu năng phân hệ Ma trận đề thi 2D (tốc độ đối soát tồn kho <= 200ms, xuất bản bản đặc tả PDF <= 1.0s, CSV UTF-8 BOM <= 200ms), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input text, hiệu năng động cơ sinh & trộn đề an toàn (thời gian rút đề gốc <= 2.0s, đổi câu hỏi tương đương <= 300ms, sinh 4 mã đề hoán vị an toàn <= 1.5s), độ chính xác tuyệt đối 100% của Option Anchor Rule tại vị trí D, tốc độ đóng gói trọn bộ ấn phẩm khảo thí ZIP <= 10s, tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow, độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
+- **Ngày phát hành:** 2026-10-29
 
 ---
 
@@ -166,8 +166,13 @@ floor))$.
   - Tỷ lệ nhận diện thị giác của con trỏ chuột đạt **100%** trên mọi sắc độ nền (trắng, xám, xanh hover và tối), triệt tiêu hoàn toàn hiện tượng con trỏ I-beam mặc định của hệ điều hành quá mảnh hoặc bị chìm màu khiến người dùng không nhìn thấy.
   - Thiết lập `caret-color: #000000 !important;` cho toàn bộ các input sáng màu và ô ma trận, đảm bảo vạch nhấp nháy đen đậm rõ nét.
   - Hiệu ứng vi tương tác hover trên `.matrix-input-cell` phản hồi tức thì ($\le 16\text{ ms}$): nền xanh nhạt `rgba(0, 113, 227, 0.08)`, viền input xanh Apple `#0071e3`, bóng đổ `box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25)`. Click toàn ô tự động focus và bôi đen input đạt **100%**.
-- **NFR-USA-10 (Trải Nghiệm Phân Trang Chuẩn Apple HIG - Item Bank Pagination UX):**
+- **NFR-USA-10 (Trải Nghiệm Phân Trang Chuẩn Apple HIG & Bất Biến Khung Nhìn Header - Header Viewport Invariant):**
   - Thanh phân trang `#bank-pagination-controls` cung cấp 3 kích thước trang (12, 24, 48 câu/trang), dải số trang thông minh với active Apple Blue `#0071e3`, điều hướng Trước/Sau tự động vô hiệu hóa ở biên, tự động reset về trang 1 khi lọc, và cuộn mượt về đầu danh sách câu hỏi đạt tốc độ khung hình 60 FPS.
+  - **Bất biến vị trí cố định của Apple Header (Zero Window Scroll Invariant):**
+    * Khi thực hiện chuyển trang (`changeBankPage`) hoặc thay đổi kích thước trang (`changeBankPageSize`), giá trị `window.scrollY` bắt buộc duy trì bằng $0\text{px}$ (đạt $100\%$).
+    * Tỷ lệ biến mất, che khuất hoặc dịch chuyển vị trí của thanh Top Header (`.apple-header`) khỏi khung nhìn bằng **0%**.
+    * Thanh header bắt buộc cấu hình chống co giãn (`shrink-0` và `flex-shrink: 0;`), đảm bảo tỷ lệ biến dạng layout flex bằng **0%**.
+    * Lệnh cuộn nội bộ container `#main-scroll-view.scrollTo({ top: 0, behavior: 'smooth' })` phản hồi tức thì ($\le 16\text{ms}$), đưa tầm nhìn người dùng lên đầu trang mượt mà không làm ảnh hưởng đến các thành phần layout ngoài luồng.
 
 ---
 

@@ -2,9 +2,9 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input, phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm giao diện, và chuẩn hóa hệ thống dropdown select chuẩn Apple HIG (.apple-select) loại bỏ hoàn toàn font monospace lệch chuẩn.
-- **Ngày phát hành:** 2026-10-27  
+- **Phiên bản:** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0 & flex-shrink: 0)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX, cơ chế cuộn mượt container nội bộ bảo toàn cố định Top Header 100%), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input, phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm giao diện, và chuẩn hóa hệ thống dropdown select chuẩn Apple HIG (.apple-select) loại bỏ hoàn toàn font monospace lệch chuẩn.
+- **Ngày phát hành:** 2026-10-29  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
 ---
@@ -788,7 +788,19 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
     3. *Cụm phải (Chọn số lượng câu / trang):* Thẻ `<select id="bank-page-size-select">` với class `.apple-select`, 3 tùy chọn: `12 câu/trang`, `24 câu/trang`, `48 câu/trang`. Khi thay đổi, tự động reset `currentPage = 1` và gọi `renderItemBank()`.
 - **Hành Vi Tự Động Hóa:**
   * *Tự động reset về trang 1:* Mỗi khi thay đổi bất kỳ bộ lọc nào (`bank-search-input`, `bank-filter-grade`, `bank-filter-subject`, `bank-filter-strand`, `bank-filter-topic`, `bank-filter-lesson`, `bank-filter-yccd`, `bank-filter-archetype`, `bank-filter-cognitive`, `bank-filter-format`), hệ thống tự động gán `state.bankPagination.currentPage = 1`.
-  * *Cuộn mượt về đầu danh sách (Smooth Scroll):* Khi bấm nút đổi trang (`app.changeBankPage(page)`), hệ thống kích hoạt `document.getElementById('bank-cards-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })`.
+  * *Cuộn mượt nội bộ container & Bảo toàn Top Header (Smooth Scroll & Header Persistence):*
+    - Khi bấm đổi trang (`app.changeBankPage(page)`) hoặc thay đổi số lượng câu/trang (`app.changeBankPageSize(newSize)`), hệ thống kích hoạt cuộn mượt nội bộ thẻ `<main id="main-scroll-view">`:
+      ```javascript
+      const mainView = document.getElementById('main-scroll-view');
+      if (mainView) {
+        mainView.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+      ```
+    - **Loại bỏ triệt để `grid.scrollIntoView(...)`:** Nghiêm cấm sử dụng `grid.scrollIntoView({ behavior: 'smooth', block: 'start' })`. Thực nghiệm kỹ thuật chỉ ra rằng lệnh này làm trình duyệt cuộn cả cấp `window` xuống 65px, khiến header `<header class="apple-header">` bị trồi lên tọa độ âm `top: -65px` và biến mất hoàn toàn khỏi màn hình do thuộc tính `overflow: hidden` của thẻ `<body>` ngăn cản cuộn ngược lại.
+    - **Thiết lập chống co rúm (Header Flex Shrink Invariant):** Khai báo `shrink-0` trên thẻ HTML header và `flex-shrink: 0;` trong CSS `.apple-header` đảm bảo thanh điều hướng trên cùng luôn ghim cố định ở `top: 0` trên viewport.
 
 ---
 

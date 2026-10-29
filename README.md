@@ -406,7 +406,8 @@ Every pull request and commit to remote branches executes a multi-runtime GitHub
 - **Con Trỏ Soạn Thảo Đen Nổi Bật (High-Contrast Bold Black Text Cursor & Caret):**
   - Xây dựng con trỏ chuột dạng SVG I-beam nét đen 2.8px viền trắng 1.0px tương phản cao (`cursor: url(...) 12 12, text !important;`) áp dụng trên toàn bộ các ô ma trận `.matrix-input-cell`, input text, number, search, email, password và textarea.
   - Thiết lập `caret-color: #000000 !important;` cho các input sáng màu và ô ma trận; vi tương tác hover trên `.matrix-input-cell` nổi bật tức thì với nền xanh nhạt `rgba(0, 113, 227, 0.08)`, viền input xanh Apple `#0071e3` và bóng đổ vi mô.
-- **Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG (Item Bank Pagination):**
+- **Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG & Bảo Toàn Top Header:**
   - Chia nhỏ danh sách câu hỏi theo trang (12, 24, 48 câu/trang), chỉ render KaTeX theo trang on-demand (<10ms), giải quyết triệt để tình trạng đơ lag DOM khi hiển thị 240+ câu hỏi cùng lúc.
-  - Thanh phân trang `#bank-pagination-controls` hiển thị dải số câu hỏi, dải nút số trang thông minh với trang active xanh Apple `#0071e3`, dropdown chọn số câu `.apple-select`, tự động reset trang 1 khi lọc và cuộn mượt về đầu danh sách.
+  - Thanh phân trang `#bank-pagination-controls` hiển thị dải số câu hỏi, dải nút số trang thông minh với trang active xanh Apple `#0071e3`, dropdown chọn số câu `.apple-select`, tự động reset trang 1 khi lọc.
+  - Cơ chế cuộn mượt nội bộ container `#main-scroll-view` lên đỉnh (`top: 0`) và neo `window.scrollY === 0`, triệt tiêu hoàn toàn hiện tượng mất Top Header khi đổi trang; gia cố `shrink-0` và `flex-shrink: 0;` bảo toàn vị trí cố định của Apple Header trên mọi độ phân giải màn hình.
 - **Giao diện Apple HIG:** Trải nghiệm đối chiếu song song mượt mà, phản hồi xúc giác tinh tế, chạy mượt trên cả Web và thiết bị di động (PWA Offline).

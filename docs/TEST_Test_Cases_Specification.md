@@ -2,7 +2,7 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+- **Phiên bản:** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0 & flex-shrink: 0)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
 - **Tổng số kịch bản tự động hóa:** 220+ Tests (100% Passed)  
 - **Ngày lập:** 2026-10-29  
@@ -704,7 +704,8 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Thao tác:** Đang ở trang 3, thực hiện gõ từ khóa tìm kiếm vào `#bank-search-input` hoặc chọn mức độ nhận thức / YCCĐ / thể thức câu hỏi. Bấm nút chuyển trang.
 - **Kết quả kỳ vọng:**
   * `state.bankPagination.currentPage` tự động reset về 1, hiển thị kết quả từ câu 1 của danh sách lọc mới.
-  * Khi chuyển trang, giao diện kích hoạt `scrollIntoView({ behavior: 'smooth', block: 'start' })` đưa cuộn trang về đầu danh sách `#bank-cards-grid`.
+  * Khi chuyển trang, giao diện kích hoạt cuộn mượt nội bộ container `#main-scroll-view.scrollTo({ top: 0, behavior: 'smooth' })`, đưa màn hình về đầu danh sách câu hỏi mượt mà.
+  * Tuyệt đối không gọi `grid.scrollIntoView(...)`.
 
 #### TC-BANK-PAGINATION-03: Kiểm Thử Hiệu Năng Render KaTeX Theo Trang On-Demand (<50ms)
 - **Mô tả:** Đo lường thời gian thực thi của hàm `renderItemBank()` và `renderKaTeX()`.
@@ -712,6 +713,23 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Kết quả kỳ vọng:**
   * Thời gian thực thi $\le 50$ms (thường đạt $< 10$ms).
   * Không phát sinh lỗi console error (`console.error`), giao diện phản hồi tức thì 60 FPS.
+
+#### TC-BANK-PAGINATION-04: Kiểm Thử Bất Biến Vị Trí Cố Định Của Apple Header Khi Đổi Trang & Đổi Kích Thước Trang (Zero Window Scroll & Header Persistence Anti-Regression Assertion)
+- **Mô tả:** Kiểm chứng lỗi biến mất thanh Top Header (`.apple-header`) khi chuyển trang hoặc đổi pageSize trong phân hệ Ngân hàng câu hỏi không còn tái diễn.
+- **Thao tác:**
+  1. Người dùng truy cập phân hệ Ngân hàng câu hỏi (`/bank`).
+  2. Đo đạc tọa độ ban đầu của thanh header: `const header = document.querySelector('.apple-header'); const rectBefore = header.getBoundingClientRect();`.
+  3. Kiểm tra `window.scrollY === 0` và `rectBefore.top === 0`.
+  4. Nhấp nút chuyển sang trang 2 (bấm `app.changeBankPage(2)` hoặc nút `2` / `Sau >`).
+  5. Đợi hiệu ứng cuộn mượt hoàn tất (khoảng 300ms - 500ms).
+  6. Đo đạc lại: `const rectAfter = header.getBoundingClientRect();`.
+  7. Thay đổi dropdown `#bank-page-size-select` sang 24 hoặc 48 câu/trang.
+  8. Kiểm tra lại `window.scrollY` và `rectAfterPageSize = header.getBoundingClientRect();`.
+- **Kết quả kỳ vọng:**
+  * `window.scrollY === 0` tuyệt đối ở cả 2 bước (không bị cuộn xuống 65px).
+  * `rectAfter.top === 0` và `rectAfterPageSize.top === 0`, thanh Header hoàn toàn hiển thị sắc nét trên viewport, không bị trồi lên tọa độ âm `top: -65px`.
+  * Thẻ `<header>` có class `shrink-0` và CSS tính toán `getComputedStyle(header).flexShrink === '0'`.
+  * Khối điều khiển phân trang và thẻ câu hỏi trang 2 hiển thị chính xác mà không làm mất Header.
 
 ---
 
