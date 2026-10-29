@@ -3,8 +3,8 @@
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Phiên bản:** v3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
-> **Cập nhật lần cuối:** 27/10/2026
+> **Phiên bản:** v3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
+> **Cập nhật lần cuối:** 28/10/2026
 
 ---
 
@@ -407,6 +407,9 @@ ight., Environment undefined)
     + Đối soát tồn kho câu hỏi thời gian thực (`matrix-stock-chip`), thanh tiến trình Bloom và xuất bản bản đặc tả (PDF A4 / CSV UTF-8 BOM / JSON).
   - `app.shuffler`: Quản lý nguồn đề gốc (chọn đề có sẵn hoặc sinh từ ma trận), thuật toán xáo trộn đề an toàn 4 nguyên tắc, tạo mã đề hoán vị và xuất bản ấn phẩm Vector PDF LaTeX.
   - `app.digitize`: Quản lý tải lên, theo dõi tiến trình WebSocket/Polling (0-100%) và màn hình đối chiếu song song HITL.
+  - **Hệ thống Thành phần Giao diện Chuẩn Apple HIG (Design System & Micro-interactions):**
+    + *Unified Dropdown Select (.apple-select):* Class CSS độc quyền chuẩn Apple HIG thay thế mũi tên mặc định của hệ điều hành bằng icon chevron SVG slate-500 `#64748b`, bo góc 12px, padding `0.45rem 2.2rem 0.45rem 0.75rem`, hiệu ứng focus hào quang Apple Blue (`#0071e3`), áp dụng đồng bộ 100% cho toàn bộ 19 select tĩnh và các select sinh động. Xóa bỏ hoàn toàn lỗi font monospace trên ô chọn YCCĐ (`#bank-filter-yccd`) và đồng bộ hoàn hảo ô thời gian làm bài (`#matrix-param-time`).
+    + *Toàn Diện Động Cơ KaTeX (Global renderKaTeX Engine):* Expose `window.renderKaTeX` và `window.app.renderKaTeX`, chuẩn hóa chuỗi qua `formatStemForDisplay(cleanOptionAnswer(...), true)`, phủ kín toàn bộ các điểm kết xuất (Ngân hàng, Ma trận 2D, Modal chi tiết, Đề gốc, Đề hoán vị), triệt tiêu 100% tình trạng sót chuỗi văn bản thô `$ ... $` của công thức toán.
 
 ---
 

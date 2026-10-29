@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
+- **Phiên bản:** 3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap) và đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF).
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm hiển thị toán học (Ngân hàng, Ma trận, Modals, Đề gốc, Đề hoán vị), và chuẩn hóa giao diện dropdown box Apple HIG (.apple-select) đồng bộ 100% typography sans-serif.
 - **Ngày phát hành:** 2026-10-27  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
@@ -845,6 +845,34 @@ ightarrow$ Yêu cầu cần đạt (`yccd`).
      - Trả về payload JSON chi tiết số lượng câu hỏi lưu thành công theo từng thể thức (`counts: { single_choice, true_false, short_answer }`, `total_saved`).
      - Tự động cập nhật số đếm trên badge `#bank-count-badge` và làm mới dữ liệu tab Ngân hàng câu hỏi ngay lập tức.
 
+#### SRS-FEAT-14: Cơ Chế Biên Dịch KaTeX Toàn Diện & Chuẩn Hóa Công Thức Toán Toàn Hệ Thống
+- **Mô tả:** Triệt tiêu hoàn toàn lỗi hiển thị văn bản thô `$ ... $` của công thức toán học (`$y = \dfrac{x_1 - 1}{x + 1}$`, `$D = \mathbb{R} \setminus \{-1\}$`, `$x = -1$`, `$y = 1$`, `$x \neq -1$`) trên tất cả các thẻ câu hỏi và bảng ma trận.
+- **Yêu cầu kỹ thuật:**
+  1. *Expose Toàn Cục Hàm `renderKaTeX`:* Hàm `renderKaTeX(domElement)` phải được phơi ra phạm vi toàn cục (`window.renderKaTeX = renderKaTeX;` và `window.app.renderKaTeX = renderKaTeX;`), đảm bảo các lệnh gọi từ modal hoặc component bên ngoài luôn thực thi thành công.
+  2. *Bao Phủ Điểm Kết Xuất KaTeX (Render Coverage):*
+     - **Bảng Ngân hàng Câu hỏi (`renderItemBank`):** Gọi `renderKaTeX(container)` sau khi kết xuất danh sách card câu hỏi; đồng thời chuẩn hóa toàn bộ các lựa chọn `opt.content` và khẳng định `sub.content` qua `formatStemForDisplay(..., true)`.
+     - **Lưới Ma trận Đề thi 2D (`renderMatrixGrid`):** Bắt buộc gọi `renderKaTeX(tbody)` sau khi nạp HTML bảng, đảm bảo các ký hiệu toán học trong tên Dạng bài (Problem Archetype, ví dụ: `$m$`, `$Oxyz$`, `$f(x)$`) được biên dịch sắc nét.
+     - **Modal Xem Chi Tiết Câu Hỏi (`openQuestionDetailModal`):** Chuẩn hóa toàn diện thân câu hỏi (`formatStemForDisplay(q.stem)`), phương án trắc nghiệm (`formatStemForDisplay(cleanOptionAnswer(opt.content), true)`), khẳng định Đúng/Sai (`formatStemForDisplay(sub.content, true)`), kết quả trả lời ngắn, và lời giải chi tiết (`formatStemForDisplay(q.explanation)`). Gọi `renderKaTeX(modal)` ngay khi modal mở.
+     - **Phân hệ Sinh & Trộn Đề (`renderMasterExam`, `renderVariantView`, `openSwapQuestionModal`):** Chuẩn hóa và biên dịch KaTeX cho toàn bộ các đề mục câu hỏi, phương án lựa chọn và các ý khẳng định con.
+  3. *Chuẩn Hóa Ký Hiệu Toán Học Trước Khi Render:* Mọi nội dung câu hỏi và đáp án phải được tiền xử lý qua `formatStemForDisplay` và `formatLatexRules` (xử lý phân số `\dfrac`, tập hợp `\setminus`, số thập phân `{,}`, ngoặc kích thước động `\left`/`
+ight`, và đồ thị TikZ vector SVG).
+
+#### SRS-FEAT-15: Chuẩn Hóa Giao Diện Dropdown Box Chuẩn Apple HIG (.apple-select) & Triệt Tiêu Lỗi Font Monospace
+- **Mô tả:** Đồng bộ hóa 100% diện mạo các ô chọn dropdown (Select boxes) trên toàn bộ ứng dụng theo tiêu chuẩn Apple Human Interface Guidelines (HIG), loại bỏ nút mũi tên xám thô mặc định của hệ điều hành và triệt tiêu lỗi font chữ monospace không đồng nhất.
+- **Yêu cầu kỹ thuật:**
+  1. *Xây Dựng Class CSS Chuẩn `.apple-select`:*
+     - Triệt tiêu mũi tên mặc định của hệ điều hành: `appearance: none; -webkit-appearance: none; -moz-appearance: none;`.
+     - Tích hợp biểu tượng mũi tên chevron vector SVG tinh tế màu slate-500 (`stroke='%2364748b'`) căn giữa lề phải (`right 0.75rem center`, kích thước `14px 14px`).
+     - Bo góc mềm mại `border-radius: 12px`, padding công thái học `0.45rem 2.2rem 0.45rem 0.75rem`.
+     - Đường viền mờ tinh tế `border: 1px solid rgba(0, 0, 0, 0.12)`, nền trắng `#ffffff`, đổ bóng vi mô `box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04)`.
+     - Hiệu ứng Focus Apple Blue: Viền `#0071e3`, quầng hào quang nhẹ `box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15)`, chuyển động mượt mà `120ms cubic-bezier(0.2, 0, 0, 1)`.
+  2. *Triệt Tiêu Hoàn Toàn Lỗi Font Monospace Trên Dropdown Bộ Lọc:*
+     - Loại bỏ hoàn toàn class `font-mono` tại ô chọn **"6. Yêu cầu cần đạt"** (`#bank-filter-yccd`), đưa typography về font sans-serif chuẩn Apple (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif`), đồng nhất 100% với 5 box chọn còn lại.
+  3. *Khắc Phục Lỗi Dropdown Thời Gian Làm Bài Ma Trận Đề (`#matrix-param-time`):*
+     - Áp dụng class `apple-select w-full text-xs` cho ô chọn Thời gian làm bài (`#matrix-param-time`), đảm bảo chiều cao, góc bo 12px, padding và đường viền khớp hoàn hảo với các ô input text bên cạnh (`#matrix-param-name`).
+  4. *Áp Dụng Đồng Bộ Toàn Hệ Thống:*
+     - Toàn bộ 19 thẻ `<select>` tĩnh trong `frontend/index.html` và 3 thẻ `<select>` sinh động trong `frontend/static/app.js` (gồm dropdown dạng thức câu hỏi trong bảng ma trận 2D `updateMatrixRowFormat` và HITL taxonomy selectors) bắt buộc phải tích hợp class `.apple-select`.
+
 ---
 
 ## 5. THIẾT KẾ CƠ SỞ DỮ LIỆU LOGIC (LOGICAL DATA MODEL)
@@ -909,4 +937,6 @@ ightarrow$ Yêu cầu cần đạt (`yccd`).
 | **SRS-FEAT-11** | Test tự động + UI Test | Đăng ký, đăng nhập tài khoản mật khẩu (PBKDF2/SHA256 băm an toàn); cấp JWT HS256 chuẩn; hỗ trợ OAuth Google/GitHub; phân quyền RBAC (`TEACHER`, `ADMIN`, `STUDENT`); lưu token `quesy_auth_token` và đồng bộ header Authorization. |
 | **SRS-FEAT-12** | Test chức năng + UI Test | Thực thi đầy đủ CRUD câu hỏi; mở Modal Thêm mới, Modal Chi tiết, Modal Sửa, Xóa câu hỏi; lọc 6 tầng TT 32 cascading chuẩn; xuất danh sách ra PDF vector / CSV UTF-8 BOM / LaTeX; nhập câu hỏi; cập nhật ngay số lượng badge `#bank-count-badge`. |
 | **SRS-FEAT-13** | Test tích hợp + E2E | Nút chuyên biệt `📥 LƯU VÀO NGÂN HÀNG` trên toolbar Composer trích xuất trọn vẹn câu hỏi trắc nghiệm đơn, đúng/sai QĐ 764, trả lời ngắn, TikZ, BBT, lời giải chi tiết; tự động gắn tag YCCĐ AI; trả về chi tiết số lượng câu theo từng thể thức và cập nhật tức thì `#bank-count-badge`. |
+| **SRS-FEAT-14** | E2E Browser Test + UI Test | 100% công thức toán học (`$y = \dfrac{x_1 - 1}{x + 1}$`, `$D = \mathbb{R} \setminus \{-1\}$`, `$x = -1$`, `$y = 1$`, `$x \neq -1$`) trên thẻ câu hỏi Ngân hàng, Ma trận đề, Modal Chi tiết, Đề gốc và Đề hoán vị được biên dịch KaTeX sắc nét; không còn sót bất kỳ chuỗi văn bản thô `$ ... $` nào. |
+| **SRS-FEAT-15** | UI Audit + Cross-browser Test | 100% dropdown select áp dụng class `.apple-select` với icon chevron SVG slate-500, bo góc 12px, không còn mũi tên xám thô OS; ô chọn `#matrix-param-time` đồng bộ kích thước và viền với các input bên cạnh; ô `#bank-filter-yccd` xóa sạch class `font-mono` và hiển thị font sans-serif đồng nhất. |
 | **SRS-VERIF-CI** | Test CI Runner + Pre-Commit Gate | 100% test cases vượt qua trên môi trường CI runner (`pytest`, syntax check) trước khi commit; tuân thủ nghiêm ngặt nguyên tắc Strict CI Isolation (chỉ duy nhất Sub-Agent CI đọc/ghi CI, cấm các sub-agent khác truy cập đọc); vòng lặp sửa lỗi CI loop lặp lại cho đến khi pass mới commit. |

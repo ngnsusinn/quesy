@@ -143,7 +143,7 @@
           id: 'row-1',
           strandName: 'Số, Đại số & Giải tích',
           yccdCode: 'TOAN12.GT.01',
-          archetypeName: 'Cực trị hàm bậc 3 chứa m',
+          archetypeName: 'Cực trị hàm bậc 3 chứa $m$',
           itemFormat: 'SINGLE_CHOICE',
           biet: 6,
           hieu: 4,
@@ -154,7 +154,7 @@
           id: 'row-2',
           strandName: 'Số, Đại số & Giải tích',
           yccdCode: 'TOAN12.GT.02',
-          archetypeName: 'Đúng/Sai: Khảo sát hàm số',
+          archetypeName: 'Đúng/Sai: Khảo sát hàm số $y = f(x)$',
           itemFormat: 'TRUE_FALSE_GROUP',
           biet: 1,
           hieu: 2,
@@ -165,7 +165,7 @@
           id: 'row-3',
           strandName: 'Hình học & Đo lường',
           yccdCode: 'TOAN12.HH.01',
-          archetypeName: 'Trả lời ngắn: Oxyz',
+          archetypeName: 'Trả lời ngắn: Không gian toạ độ $Oxyz$',
           itemFormat: 'SHORT_ANSWER',
           biet: 2,
           hieu: 2,
@@ -620,6 +620,7 @@
     // Render any TikZ diagrams
     renderTikzDiagrams(domElement);
   }
+  window.renderKaTeX = renderKaTeX;
 
   function cleanShortAnswer(val) {
     if (!val || typeof val !== 'string') return String(val || '');
@@ -1743,7 +1744,7 @@
         <div class="pt-2.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
           <div>
             <label class="block text-slate-500 font-bold mb-0.5">Yêu cầu cần đạt:</label>
-            <select onchange="app.updateQuestionYCCD(${qId}, this.value)" class="w-full text-xs font-mono rounded-lg border border-slate-200 py-1 px-2 bg-slate-50">
+            <select onchange="app.updateQuestionYCCD(${qId}, this.value)" class="apple-select text-xs w-full">
               <option value="TOAN12.GT.01" ${q.learning_outcome_id === 'TOAN12.GT.01' ? 'selected' : ''}>TOAN12.GT.01: Cực trị hàm số</option>
               <option value="TOAN12.GT.02" ${q.learning_outcome_id === 'TOAN12.GT.02' ? 'selected' : ''}>TOAN12.GT.02: Đường tiệm cận</option>
               <option value="TOAN12.GT.03" ${q.learning_outcome_id === 'TOAN12.GT.03' ? 'selected' : ''}>TOAN12.GT.03: Khái niệm nguyên hàm</option>
@@ -1754,7 +1755,7 @@
 
           <div>
             <label class="block text-slate-500 font-bold mb-0.5">Mức độ nhận thức:</label>
-            <select onchange="app.updateQuestionCognitive(${qId}, this.value)" class="w-full text-xs rounded-lg border border-slate-200 py-1 px-2 bg-slate-50 font-semibold">
+            <select onchange="app.updateQuestionCognitive(${qId}, this.value)" class="apple-select text-xs w-full">
               <option value="RECOGNITION" ${q.cognitive_level === 'RECOGNITION' ? 'selected' : ''}>1. Nhận biết</option>
               <option value="COMPREHENSION" ${q.cognitive_level === 'COMPREHENSION' ? 'selected' : ''}>2. Thông hiểu</option>
               <option value="APPLICATION" ${q.cognitive_level === 'APPLICATION' ? 'selected' : ''}>3. Vận dụng</option>
@@ -3039,7 +3040,7 @@
                 <span class="w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
                   ${opt.label}
                 </span>
-                <span>${opt.content}</span>
+                <span>${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}</span>
               </div>
               ${opt.is_fixed ? '<span class="option-anchor-indicator"><i data-lucide="anchor" class="w-3 h-3"></i> Khóa D</span>' : ''}
             </div>
@@ -3051,7 +3052,7 @@
         q.sub_statements.forEach((sub) => {
           html += `
             <div class="p-2 rounded-lg bg-slate-50 border border-black/[0.06] flex items-center justify-between">
-              <div><strong>${sub.label})</strong> ${sub.content}</div>
+              <div><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</div>
               <span class="px-2 py-0.5 rounded text-[10px] font-bold ${sub.is_true ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
                 ${sub.is_true ? 'ĐÚNG' : 'SAI'
               }</span>
@@ -3062,7 +3063,15 @@
       } else if (q.item_format === 'SHORT_ANSWER') {
         html += `
           <div class="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200 text-xs text-purple-900 font-mono">
-            <strong>Đáp án:</strong> ${q.short_answer_value} (Dung sai $\\pm ${q.tolerance}$)
+            <strong>Đáp án:</strong> ${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'), true)} (Dung sai $\\pm ${q.tolerance || 0}$)
+          </div>
+        `;
+      }
+
+      if (q.explanation) {
+        html += `
+          <div class="p-2.5 rounded-xl bg-blue-50/50 border border-blue-100 text-xs text-slate-700">
+            <strong>Lời giải chi tiết:</strong> ${formatStemForDisplay(q.explanation)}
           </div>
         `;
       }
@@ -3163,12 +3172,12 @@
           <td class="p-3 sticky left-0 bg-white shadow-xs">
             <div class="font-bold text-slate-900">${row.strandName}</div>
             <div class="text-[11px] text-brand-700 font-mono font-semibold">${row.yccdCode}</div>
-            <div class="text-[11px] text-slate-500">${row.archetypeName}</div>
+            <div class="text-[11px] text-slate-500">${formatStemForDisplay(row.archetypeName, true)}</div>
           </td>
 
           <!-- Col 2: Dạng thức câu hỏi -->
           <td class="p-2 text-center border-l border-slate-200 bg-white">
-            <select onchange="app.updateMatrixRowFormat(${rowIdx}, this.value)" class="text-xs font-semibold py-1 px-2 rounded border border-slate-200 bg-white w-full">
+            <select onchange="app.updateMatrixRowFormat(${rowIdx}, this.value)" class="apple-select text-xs font-semibold w-full">
               <option value="SINGLE_CHOICE" ${format === 'SINGLE_CHOICE' ? 'selected' : ''}>Trắc nghiệm (0.25đ)</option>
               <option value="TRUE_FALSE_GROUP" ${format === 'TRUE_FALSE_GROUP' ? 'selected' : ''}>Đúng / Sai (1.0đ)</option>
               <option value="SHORT_ANSWER" ${format === 'SHORT_ANSWER' ? 'selected' : ''}>Trả lời ngắn (0.5đ)</option>
@@ -3215,6 +3224,7 @@
     });
 
     tbody.innerHTML = html;
+    renderKaTeX(tbody);
     if (window.lucide) lucide.createIcons();
 
     // Totals
@@ -3650,7 +3660,7 @@
                     .map(
                       (o) => `
                     <div class="p-2.5 rounded-xl ${o.is_correct ? 'bg-emerald-50 text-emerald-900 font-bold border-emerald-300' : 'bg-black/[0.02] text-slate-700 border-black/[0.06]'} border flex items-center justify-between">
-                      <div><strong>${o.label}.</strong> ${o.content}</div>
+                      <div><strong>${o.label}.</strong> ${formatStemForDisplay(cleanOptionAnswer(o.content), true)}</div>
                       ${o.is_fixed || isAnchorPhrase(o.content) ? '<span class="text-[9px] text-emerald-700 font-bold ml-1">[Neo D]</span>' : ''}
                     </div>
                   `
@@ -3666,7 +3676,7 @@
                     .map(
                       (sub) => `
                     <div class="p-2 rounded-xl border ${sub.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-rose-50/70 border-rose-200'} flex items-center justify-between">
-                      <span class="text-slate-800"><strong>${sub.label})</strong> ${sub.content}</span>
+                      <span class="text-slate-800"><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</span>
                       <span class="font-bold px-2 py-0.5 rounded text-[10px] ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${sub.is_true ? '[ĐÚNG]' : '[SAI]'}</span>
                     </div>
                   `
@@ -3676,7 +3686,7 @@
               : format === 'SHORT_ANSWER'
               ? `<div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200 flex items-center justify-between">
                   <span class="text-indigo-900 font-bold">Đáp án đúng (Trả lời ngắn):</span>
-                  <span class="font-mono font-bold text-indigo-950 text-sm bg-white px-3 py-1 rounded-lg border border-indigo-300 shadow-xs">${q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'}</span>
+                  <span class="font-mono font-bold text-indigo-950 text-sm bg-white px-3 py-1 rounded-lg border border-indigo-300 shadow-xs">${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'), true)}</span>
                  </div>`
               : ''
           }
@@ -3745,7 +3755,7 @@
             <div class="grid grid-cols-2 gap-1.5 text-[11px] pt-1">
               ${c.options.map(o => `
                 <div class="p-1 rounded ${o.is_correct ? 'bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold' : 'bg-slate-50 text-slate-700'}">
-                  <strong>${o.label}.</strong> ${o.content}
+                  <strong>${o.label}.</strong> ${formatStemForDisplay(cleanOptionAnswer(o.content), true)}
                 </div>
               `).join('')}
             </div>
@@ -3756,7 +3766,7 @@
               </div>
               ${c.sub_statements.map(s => `
                 <div class="p-1 rounded ${s.is_true ? 'bg-emerald-50 text-emerald-900' : 'bg-rose-50 text-rose-900'} flex justify-between">
-                  <span><strong>${s.label})</strong> ${s.content}</span>
+                  <span><strong>${s.label})</strong> ${formatStemForDisplay(s.content, true)}</span>
                   <span class="font-bold ${s.is_true ? 'text-emerald-700' : 'text-rose-700'}">${s.is_true ? '[ĐÚNG]' : '[SAI]'}</span>
                 </div>
               `).join('')}
@@ -3764,7 +3774,7 @@
           ` : c.item_format === 'SHORT_ANSWER' ? `
             <div class="p-1.5 bg-indigo-50 rounded border border-indigo-200 text-[11px] flex justify-between items-center text-indigo-900 font-semibold">
               <span>Đáp án đúng:</span>
-              <span class="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-300">${c.short_answer_value || c.short_answer_key || '1.0'}</span>
+              <span class="font-mono font-bold bg-white px-2 py-0.5 rounded border border-indigo-300">${formatStemForDisplay(cleanShortAnswer(c.short_answer_value || c.short_answer_key || '1.0'), true)}</span>
             </div>
           ` : ''}
         </div>
@@ -3953,7 +3963,7 @@
                     .map(
                       (o) => `
                     <div class="p-2 rounded-xl ${o.is_correct ? 'bg-emerald-50 text-emerald-900 border-emerald-300 font-bold' : 'bg-slate-50 text-slate-700'} border flex items-center justify-between">
-                      <div><strong>${o.label}.</strong> ${o.content}</div>
+                      <div><strong>${o.label}.</strong> ${formatStemForDisplay(cleanOptionAnswer(o.content), true)}</div>
                       ${o.is_fixed || isAnchorPhrase(o.content) ? '<span class="text-[9px] text-emerald-700 font-bold ml-1">[Neo D]</span>' : ''}
                     </div>
                   `
@@ -3966,7 +3976,7 @@
                     .map(
                       (sub) => `
                     <div class="p-2 rounded-xl border ${sub.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-rose-50/70 border-rose-200'} flex items-center justify-between">
-                      <span class="text-slate-800"><strong>${sub.label})</strong> ${sub.content}</span>
+                      <span class="text-slate-800"><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</span>
                       <span class="font-bold px-2 py-0.5 rounded text-[10px] ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${sub.is_true ? '[ĐÚNG]' : '[SAI]'}</span>
                     </div>
                   `
@@ -3976,7 +3986,7 @@
               : format === 'SHORT_ANSWER'
               ? `<div class="p-2.5 bg-indigo-50 rounded-xl border border-indigo-200 flex items-center justify-between">
                   <span class="text-indigo-900 font-bold">Đáp án đúng:</span>
-                  <span class="font-mono font-bold text-indigo-950 bg-white px-2.5 py-0.5 rounded border border-indigo-300">${q.short_answer_value || q.short_answer_key || ''}</span>
+                  <span class="font-mono font-bold text-indigo-950 bg-white px-2.5 py-0.5 rounded border border-indigo-300">${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || ''), true)}</span>
                  </div>`
               : ''
           }
@@ -4518,12 +4528,12 @@
             </button>
           </div>
         </div>
-        <div class="text-xs font-sans text-slate-800 leading-relaxed font-medium">${q.stem}</div>
+        <div class="text-xs font-sans text-slate-800 leading-relaxed font-medium">${formatStemForDisplay(q.stem)}</div>
         ${q.options && q.options.length ? `
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-xs">
             ${q.options.map(o => `
               <div class="p-2 rounded-lg border ${o.is_correct ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}">
-                <span>${o.label}.</span> <span>${o.content}</span> ${o.is_correct ? ' ✓' : ''}
+                <span>${o.label}.</span> <span>${formatStemForDisplay(cleanOptionAnswer(o.content), true)}</span> ${o.is_correct ? ' ✓' : ''}
               </div>
             `).join('')}
           </div>
@@ -4532,7 +4542,7 @@
           <div class="space-y-1 pt-1 text-xs">
             ${q.sub_statements.map(s => `
               <div class="p-1.5 rounded-lg border ${s.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-slate-50 border-slate-200'} flex items-center justify-between">
-                <span><strong>${s.label})</strong> ${s.content}</span>
+                <span><strong>${s.label})</strong> ${formatStemForDisplay(s.content, true)}</span>
                 <span class="font-bold ${s.is_true ? 'text-emerald-700' : 'text-slate-600'}">${s.is_true ? 'ĐÚNG' : 'SAI'}</span>
               </div>
             `).join('')}
@@ -4540,12 +4550,13 @@
         ` : ''}
         ${q.explanation ? `
           <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 text-[11px] text-slate-700">
-            <strong>Lời giải:</strong> ${q.explanation}
+            <strong>Lời giải:</strong> ${formatStemForDisplay(q.explanation)}
           </div>
         ` : ''}
       </div>
     `).join('');
 
+    renderKaTeX(grid);
     if (window.lucide) lucide.createIcons();
   }
 
@@ -4604,7 +4615,7 @@
       <div class="space-y-1">
         <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nội dung đề bài</div>
         <div class="p-3.5 bg-white rounded-xl border border-slate-200 text-slate-900 leading-relaxed font-medium">
-          ${q.stem}
+          ${formatStemForDisplay(q.stem)}
         </div>
       </div>
     `;
@@ -4616,7 +4627,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             ${q.options.map(opt => `
               <div class="p-2.5 rounded-xl border ${opt.is_correct ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'} flex items-center justify-between">
-                <span><strong>${opt.label}.</strong> ${opt.content}</span>
+                <span><strong>${opt.label}.</strong> ${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}</span>
                 ${opt.is_correct ? '<span class="text-xs text-emerald-700">✓ Đáp án đúng</span>' : ''}
               </div>
             `).join('')}
@@ -4633,7 +4644,7 @@
           <div class="space-y-1.5">
             ${q.sub_statements.map(sub => `
               <div class="p-2.5 rounded-xl border ${sub.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-rose-50/70 border-rose-200'} flex items-center justify-between">
-                <span><strong>${sub.label})</strong> ${sub.content}</span>
+                <span><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</span>
                 <span class="font-bold px-2 py-0.5 rounded text-[10px] ${sub.is_true ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}">${sub.is_true ? 'ĐÚNG' : 'SAI'}</span>
               </div>
             `).join('')}
@@ -4645,7 +4656,7 @@
         <div class="p-3 bg-purple-50 rounded-xl border border-purple-200 space-y-1">
           <span class="text-[11px] font-bold text-purple-900 uppercase tracking-wider block">Đáp số trả lời ngắn</span>
           <div class="font-mono text-xs font-bold text-purple-950">
-            Kết quả: <strong>${q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'}</strong> (Dung sai: ±${q.tolerance || 0.0})
+            Kết quả: <strong>${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'), true)}</strong> (Dung sai: ±${q.tolerance || 0.0})
           </div>
         </div>
       `;
@@ -4656,7 +4667,7 @@
         <div class="space-y-1">
           <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hướng dẫn giải chi tiết</div>
           <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 leading-relaxed">
-            ${q.explanation}
+            ${formatStemForDisplay(q.explanation)}
           </div>
         </div>
       `;
@@ -4681,7 +4692,7 @@
     }
 
     modal.classList.remove('hidden');
-    if (window.renderKaTeX) renderKaTeX(modal);
+    renderKaTeX(modal);
     if (window.lucide) lucide.createIcons();
   }
 
@@ -8360,6 +8371,7 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
 
   // Expose global methods to window.app for HTML onclick bindings
   window.app = {
+    renderKaTeX,
     auth,
     composer,
     navigateTo,

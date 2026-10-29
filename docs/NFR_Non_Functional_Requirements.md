@@ -2,7 +2,7 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-NFR-01  
-- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
+- **Phiên bản:** 3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
 - **Tiêu chuẩn áp dụng:** ISO/IEC 25010 (Software Product Quality Model)  
 - **Mục tiêu kỹ thuật:** Thiết lập các tiêu chuẩn hiệu năng bóc tách AI, hệ thống xác thực an toàn (PBKDF2/SHA256, JWT HS256, OAuth 2.0), tốc độ trích xuất lưu đề từ Composer vào Ngân hàng (<= 1.5s), độ trễ truy vấn lọc ngân hàng câu hỏi 6 tầng (P95 <= 150ms), hiệu năng phân hệ Ma trận đề thi 2D (tốc độ đối soát tồn kho <= 200ms, xuất bản bản đặc tả PDF <= 1.0s, CSV UTF-8 BOM <= 200ms), hiệu năng động cơ sinh & trộn đề an toàn (thời gian rút đề gốc <= 2.0s, đổi câu hỏi tương đương <= 300ms, sinh 4 mã đề hoán vị an toàn <= 1.5s), độ chính xác tuyệt đối 100% của Option Anchor Rule tại vị trí D, tốc độ đóng gói trọn bộ ấn phẩm khảo thí ZIP <= 10s, tính năng soạn đề tinh gọn không preamble với động cơ tiêm ngầm Canonical Preamble Injection (ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), tốc độ biên dịch đồ thị vector SVG, độ sắc nét vector WMF của công thức toán, khả năng mở sửa MathType 2 chiều không lỗi OLE activation, độ tương phản chuẩn WCAG 2.1 AA cho Dark Mode, độ trễ tương tác optimistic prompt dispatch, kéo thả resizer/splitter 60 FPS mượt mà, độ tin cậy của thuật toán thay thế dòng mờ, tính toàn vẹn của khối mã trong chat bubble (không nuốt code), quy tắc kiểm soát quản trị Git Workflow (không tự động tạo PR), độ bảo mật dữ liệu đề thi và tính sẵn sàng cao.
 - **Ngày phát hành:** 2026-10-27
@@ -150,6 +150,13 @@ floor))$.
   - Header Card của phân hệ Ma trận đề thi (`SCR-MATRIX-BUILDER`) đảm bảo tính thích ứng (Responsive) 100% trên các dải phân giải màn hình từ 1024px đến 2560px; loại bỏ hoàn toàn việc xếp chồng các nút preset dài chung hàng với tiêu đề gây đẩy lệch lề hoặc vỡ layout.
   - Vị trí nút thao tác công thái học chuẩn: Nút **`Thêm dòng YCCĐ`** được đặt trên thanh công cụ của bảng ma trận với duy nhất 1 icon plus tinh tế (loại bỏ triệt để lỗi lặp `+ +`).
   - Bảng ma trận 2D hỗ trợ cuộn ngang mượt mà (`overflow-x-auto`) với cột Mạch nội dung cố định sticky bên trái, các dropdown Dạng thức câu hỏi và ô nhập liệu nhận thức phản hồi xúc giác tức thì ($\le 16$ ms/thao tác), tự động tính toán lại điểm dòng và tổng điểm ma trận mà không gây giật lag giao diện.
+- **NFR-USA-06 (Tính Nhất Quán Giao Diện Apple Select & Triệt Tiêu Font Monospace):**
+  - Toàn bộ các dropdown (`<select>`) trên toàn hệ thống áp dụng class `.apple-select`, ẩn triệt để nút mũi tên mặc định của hệ điều hành, thay bằng icon SVG chevron slate-500 `#64748b` chuẩn mực.
+  - Ô chọn Thời gian làm bài (`#matrix-param-time`) phải đạt độ đồng nhất 100% về chiều cao, padding và viền bo 12px với các ô input bên cạnh.
+  - Loại bỏ hoàn toàn font monospace khỏi các ô chọn bộ lọc taxonomy (`#bank-filter-yccd`), bảo đảm typography sans-serif Apple HIG đồng bộ 100%.
+- **NFR-USA-07 (Độ Bao Phủ KaTeX Toàn Diện & Không Sót Text Thô):**
+  - Tỷ lệ công thức toán học được biên dịch KaTeX đạt **100%** trên toàn bộ các thành phần hiển thị: Ngân hàng câu hỏi, Bảng ma trận đề 2D, Modal xem chi tiết câu hỏi, Đề gốc, Đề hoán vị và Modal đổi câu hỏi.
+  - Tỷ lệ sót ký hiệu thô `$ ... $` do thiếu hàm biên dịch hoặc thiếu formatStemForDisplay bằng **0%**.
 
 ---
 

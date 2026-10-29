@@ -3,9 +3,9 @@
 **Dự án:** Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học  
 **Tên mã dự án (Project Code):** QUESY  
 **Mục tiêu cốt lõi:** Giải quyết triệt để các rào cản và nút thắt cổ chai trong quy trình số hóa đề thi, tự động tái tạo đồ thị vector, chuẩn hóa công thức toán học, trộn đề an toàn chống vỡ logic và xuất bản ấn phẩm khảo thí in ấn chuyên nghiệp.  
-**Phiên bản (Version):** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
-**Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
-**Ngày phát hành:** 2026-10-27
+- **Phiên bản (Version):** 3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
+- **Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
+- **Ngày phát hành:** 2026-10-28
 
 ---
 
@@ -21,7 +21,7 @@
 | 3.0 | 2026-10-24 | BA Team & Tech Lead | Tích hợp Động cơ Thay thế Câu hỏi Thông minh (Question Replacement Engine), Cơ chế bảo toàn khối mã Chat Bubble (Safe Chat Sync). | Ban Giám đốc & PM |
 | 3.3 | 2026-10-25 | BA Team & Tech Lead | Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Lưu Đề từ Soạn thảo vào Ngân hàng. | Ban Giám đốc & PM |
 | 3.4 | 2026-10-27 | BA Team & Lead Architect | Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D (TT 22 & QĐ 764), 3 Ma trận mẫu Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản đặc tả (PDF/CSV/JSON), Động cơ Sinh Đề Gốc kèm Đổi câu hỏi tương đương, Động cơ Trộn Đề An Toàn 4 Nguyên Tắc (Option Anchor 100%), và Đóng gói Ấn phẩm Khảo thí (.ZIP/.PDF). | Ban Giám đốc & PM |
-| **3.5** | 2026-10-28 | BA Team & Tech Lead | **Cải tiến Toàn diện Giao diện Ma trận Đề (Lưới 2D Động, Tính điểm Thời gian thực Chuẩn QĐ 764, Đối soát Tồn kho & Cảnh báo Thiếu, Presets Chuẩn), Phân hệ Sinh & Trộn Đề (Nguồn Đề Gốc, Hiển thị Đầy đủ 3 Thể thức Câu hỏi, Ma trận Đáp án Chuẩn Khảo thí), và Ban hành Quy tắc Quản trị Git PR First & Continuous PR Description Sync.** | Ban Giám đốc & PM |
+| **3.5** | 2026-10-28 | BA Team & Tech Lead | **Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals (loại bỏ hoàn toàn chuỗi văn bản thô $ ... $), Chuẩn Hóa Dropdown Box Apple HIG Unified Select (.apple-select) với icon chevron SVG, bo góc 12px, triệt tiêu class font-mono lệch chuẩn, khắc phục dropdown Thời gian làm bài và đồng bộ toàn diện trải nghiệm người dùng.** | Ban Giám đốc & PM |
 
 ---
 

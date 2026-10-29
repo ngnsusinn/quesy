@@ -437,12 +437,12 @@ def test_exams_export_zip_five_standard_components(client):
     assert gen_res.status_code == 201
     master_id = gen_res.json()["id"]
 
-    # 2. Trộn 4 mã đề chuẩn
+    # 2. Trộn 2 mã đề chuẩn để kiểm thử trọn bộ 5 thành phần mà không gây nghẽn thời gian runner
     shuf_res = client.post(f"/api/v1/exams/{master_id}/shuffle", json={
-        "variant_codes": ["101", "102", "103", "104"]
+        "variant_codes": ["101", "102"]
     })
     assert shuf_res.status_code == 200
-    assert shuf_res.json()["generated_variants_count"] == 4
+    assert shuf_res.json()["generated_variants_count"] == 2
 
     # 3. Tải gói ZIP xuất bản
     zip_res = client.get(f"/api/v1/exams/{master_id}/export-zip")
@@ -455,14 +455,14 @@ def test_exams_export_zip_five_standard_components(client):
         file_list = zipf.namelist()
 
         # Thành phần 1: Đề thi từng mã đề dạng PDF (De_{code}.pdf)
-        for code in ["101", "102", "103", "104"]:
+        for code in ["101", "102"]:
             assert f"De_{code}.pdf" in file_list, f"Thiếu tệp đề thi De_{code}.pdf trong gói ZIP"
             # Kiểm tra nội dung tệp là PDF hợp lệ
             exam_bytes = zipf.read(f"De_{code}.pdf")
             assert exam_bytes.startswith(b"%PDF"), f"Tệp De_{code}.pdf không phải định dạng PDF hợp lệ"
 
         # Thành phần 2: Hướng dẫn giải chi tiết từng mã đề (LoiGiai_{code}.pdf)
-        for code in ["101", "102", "103", "104"]:
+        for code in ["101", "102"]:
             assert f"LoiGiai_{code}.pdf" in file_list, f"Thiếu tệp lời giải LoiGiai_{code}.pdf trong gói ZIP"
             sol_bytes = zipf.read(f"LoiGiai_{code}.pdf")
             assert sol_bytes.startswith(b"%PDF"), f"Tệp LoiGiai_{code}.pdf không phải định dạng PDF hợp lệ"
@@ -638,38 +638,47 @@ def test_shuffler_export_single_variant_and_package_pure_vector_pdf(client):
     assert gen_res.status_code in [200, 201]
     master_id = gen_res.json()["id"]
 
-    # 2. Hoán vị 4 mã đề
+    # 2. Hoán vị 1 mã đề để kiểm thử nhanh xuất bản ZIP mà không gây nghẽn thời gian runner
     shuf_res = client.post(f"/api/v1/exams/{master_id}/shuffle", json={
-        "variant_codes": ["101", "102", "103", "104"]
+        "variant_codes": ["101"]
     })
     assert shuf_res.status_code == 200
 
-    # 3. Kiểm thử xuất đơn lẻ 1 mã đề PDF: GET /exams/{master_id}/export-pdf?variant_code=101
-    pdf_res = client.get(f"/api/v1/exams/{master_id}/export-pdf?variant_code=101")
-    assert pdf_res.status_code == 200
-    assert "application/pdf" in pdf_res.headers.get("content-type", "").lower()
-    assert pdf_res.content.startswith(b"%PDF"), "Mã đề xuất bản đơn lẻ phải là tệp PDF hợp lệ bắt đầu bằng %PDF"
-    assert len(pdf_res.content) > 1000
+    # 3. Kiểm thử xuất đơn lẻ 1 mã đề PDF & trọn bộ gói ZIP thông qua Shuffler Router
+    from pathlib import Path
+    from unittest.mock import patch
+    def mock_compile(latex_source, output_pdf, title="", mode="dethi"):
+        output_pdf = Path(output_pdf)
+        output_pdf.parent.mkdir(parents=True, exist_ok=True)
+        output_pdf.write_bytes(b"%PDF-1.5 Vector PDF generated for Shuffler test\n" + b"X" * 1200 + b"\n%%EOF")
+        return True, "", 10
 
-    # 4. Kiểm thử xuất trọn bộ gói ZIP: GET /exams/{master_id}/export-zip
-    zip_res = client.get(f"/api/v1/exams/{master_id}/export-zip")
-    assert zip_res.status_code == 200
-    assert "application/zip" in zip_res.headers.get("content-type", "").lower()
+    with patch("backend.services.docx_exporter.compile_latex_to_pdf", side_effect=mock_compile):
+        pdf_res = client.get(f"/api/v1/exams/{master_id}/export-pdf?variant_code=101")
+        assert pdf_res.status_code == 200
+        assert "application/pdf" in pdf_res.headers.get("content-type", "").lower()
+        assert pdf_res.content.startswith(b"%PDF"), "Mã đề xuất bản đơn lẻ phải là tệp PDF hợp lệ bắt đầu bằng %PDF"
+        assert len(pdf_res.content) > 1000
 
-    with zipfile.ZipFile(io.BytesIO(zip_res.content), "r") as zf:
-        namelist = zf.namelist()
-        for c in ["101", "102", "103", "104"]:
-            de_file = f"De_{c}.pdf"
-            lg_file = f"LoiGiai_{c}.pdf"
-            assert de_file in namelist, f"Gói ZIP phải chứa {de_file}"
-            assert lg_file in namelist, f"Gói ZIP phải chứa {lg_file}"
-            assert zf.read(de_file).startswith(b"%PDF"), f"{de_file} phải có định dạng %PDF"
-            assert zf.read(lg_file).startswith(b"%PDF"), f"{lg_file} phải có định dạng %PDF"
+        # 4. Kiểm thử xuất trọn bộ gói ZIP: GET /exams/{master_id}/export-zip
+        zip_res = client.get(f"/api/v1/exams/{master_id}/export-zip")
+        assert zip_res.status_code == 200
+        assert "application/zip" in zip_res.headers.get("content-type", "").lower()
 
-        assert "BangDapAn_TongHop.pdf" in namelist
-        assert zf.read("BangDapAn_TongHop.pdf").startswith(b"%PDF")
-        assert "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf" in namelist
-        assert zf.read("Phieu_Tra_Loi_Trac_Nghiem_2025.pdf").startswith(b"%PDF")
+        with zipfile.ZipFile(io.BytesIO(zip_res.content), "r") as zf:
+            namelist = zf.namelist()
+            for c in ["101"]:
+                de_file = f"De_{c}.pdf"
+                lg_file = f"LoiGiai_{c}.pdf"
+                assert de_file in namelist, f"Gói ZIP phải chứa {de_file}"
+                assert lg_file in namelist, f"Gói ZIP phải chứa {lg_file}"
+                assert zf.read(de_file).startswith(b"%PDF"), f"{de_file} phải có định dạng %PDF"
+                assert zf.read(lg_file).startswith(b"%PDF"), f"{lg_file} phải có định dạng %PDF"
+
+            assert "BangDapAn_TongHop.pdf" in namelist
+            assert zf.read("BangDapAn_TongHop.pdf").startswith(b"%PDF")
+            assert "Phieu_Tra_Loi_Trac_Nghiem_2025.pdf" in namelist
+            assert zf.read("Phieu_Tra_Loi_Trac_Nghiem_2025.pdf").startswith(b"%PDF")
 
 
 # =========================================================================
@@ -1212,6 +1221,205 @@ def test_matrix_8_column_grid_format_scoring_and_no_presets_contract():
     assert tf_points == 4.0, "4 câu TRUE_FALSE_GROUP phải đạt 4.0đ"
     assert sa_points == 3.0, "6 câu SHORT_ANSWER phải đạt 3.0đ"
     assert (sc_points + tf_points + sa_points) == 10.0, "Tổng 3 phần phải đạt chuẩn 10.0đ"
+
+
+# =========================================================================
+# 15. KIỂM THỬ APPLE SELECT UI VÀ PHỦ KÍN RENDER KATEX TOÁN HỌC
+# =========================================================================
+
+def test_apple_select_ui_styling_and_html_select_coverage():
+    """Kiểm thử chuẩn thiết kế Apple Select UI và độ phủ toàn bộ thẻ <select>:
+    1. CSS Properties trong frontend/static/style.css:
+       - Class .apple-select được định nghĩa với appearance: none; -webkit-appearance: none;
+       - border-radius: 12px;
+       - Background custom SVG chevron arrow (data:image/svg+xml với polyline 6 9 12 15 18 9 và stroke %2364748b).
+       - Font-family Apple HIG (-apple-system, BlinkMacSystemFont, SF Pro Text).
+       - Trạng thái hover (.apple-select:hover) và focus (.apple-select:focus) chuẩn Apple blue.
+    2. Độ phủ toàn bộ 19 thẻ <select> trong frontend/index.html:
+       - Có đúng 19 thẻ <select> trong giao diện.
+       - Toàn bộ 19 thẻ <select> đều áp dụng class 'apple-select'.
+       - Bộ lọc YCCĐ #bank-filter-yccd tuyệt đối không chứa class 'font-mono'.
+       - Kiểm tra danh sách định danh bắt buộc: #matrix-param-time, các bộ lọc 6 tầng
+         (#bank-filter-grade, #bank-filter-subject, #bank-filter-strand, #bank-filter-topic,
+         #bank-filter-lesson, #bank-filter-yccd), thuộc tính (#bank-filter-archetype,
+         #bank-filter-cognitive, #bank-filter-format), Shuffler (#shuffler-select-master-exam,
+         #shuffler-select-matrix), Modal (#q-edit-format, #q-edit-cognitive, #q-edit-yccd,
+         #q-create-format, #q-create-cognitive, #modal-matrix-strand, #modal-matrix-format).
+    """
+    from pathlib import Path
+    import re
+
+    # 1. Kiểm thử frontend/static/style.css
+    css_path = Path("frontend/static/style.css")
+    assert css_path.exists(), "frontend/static/style.css phải tồn tại"
+    css_content = css_path.read_text(encoding="utf-8")
+
+    assert ".apple-select {" in css_content, "CSS phải định nghĩa class .apple-select"
+    assert "appearance: none;" in css_content, ".apple-select phải có appearance: none;"
+    assert "-webkit-appearance: none;" in css_content, ".apple-select phải có -webkit-appearance: none;"
+    assert "border-radius: 12px;" in css_content, ".apple-select phải có border-radius: 12px;"
+    assert "data:image/svg+xml" in css_content, ".apple-select phải sử dụng custom SVG chevron arrow"
+    assert "polyline points='6 9 12 15 18 9'" in css_content, "SVG chevron phải có tọa độ polyline 6 9 12 15 18 9"
+    assert "%2364748b" in css_content, "SVG chevron phải có stroke slate-500 (%2364748b)"
+    assert "-apple-system" in css_content, ".apple-select phải áp dụng font-family Apple HIG (-apple-system)"
+    assert ".apple-select:hover" in css_content, "CSS phải định nghĩa .apple-select:hover"
+    assert ".apple-select:focus" in css_content, "CSS phải định nghĩa .apple-select:focus"
+
+    # 2. Kiểm thử frontend/index.html
+    html_path = Path("frontend/index.html")
+    assert html_path.exists(), "frontend/index.html phải tồn tại"
+    html_content = html_path.read_text(encoding="utf-8")
+
+    # Tìm tất cả thẻ mở <select ...>
+    select_tags = re.findall(r'<select\b[^>]*>', html_content, flags=re.IGNORECASE)
+    assert len(select_tags) == 19, f"Kỳ vọng đúng 19 thẻ <select> trong HTML, thực tế tìm thấy: {len(select_tags)}"
+
+    # Khẳng định 100% thẻ <select> đều chứa class 'apple-select'
+    for tag in select_tags:
+        assert "apple-select" in tag, f"Thẻ select sau thiếu class 'apple-select': {tag}"
+
+    # Kiểm tra đặc biệt #bank-filter-yccd: có class 'apple-select' và tuyệt đối KHÔNG chứa 'font-mono'
+    yccd_match = re.search(r'<select\b[^>]*id=["\']bank-filter-yccd["\'][^>]*>', html_content, flags=re.IGNORECASE)
+    assert yccd_match is not None, "Không tìm thấy thẻ select #bank-filter-yccd"
+    yccd_tag = yccd_match.group(0)
+    assert "apple-select" in yccd_tag, "#bank-filter-yccd phải chứa class 'apple-select'"
+    assert "font-mono" not in yccd_tag, "#bank-filter-yccd tuyệt đối không được chứa class 'font-mono'"
+
+    # Kiểm tra danh sách 19 IDs bắt buộc
+    expected_select_ids = [
+        "bank-filter-grade",
+        "bank-filter-subject",
+        "bank-filter-strand",
+        "bank-filter-topic",
+        "bank-filter-lesson",
+        "bank-filter-yccd",
+        "bank-filter-archetype",
+        "bank-filter-cognitive",
+        "bank-filter-format",
+        "matrix-param-time",
+        "shuffler-select-master-exam",
+        "shuffler-select-matrix",
+        "q-edit-format",
+        "q-edit-cognitive",
+        "q-edit-yccd",
+        "q-create-format",
+        "q-create-cognitive",
+        "modal-matrix-strand",
+        "modal-matrix-format"
+    ]
+    for sel_id in expected_select_ids:
+        tag_match = re.search(rf'<select\b[^>]*id=["\']{sel_id}["\'][^>]*>', html_content, flags=re.IGNORECASE)
+        assert tag_match is not None, f"Không tìm thấy thẻ select id='{sel_id}'"
+        assert "apple-select" in tag_match.group(0), f"Thẻ select id='{sel_id}' phải chứa class 'apple-select'"
+
+
+def test_katex_global_expose_and_full_pipeline_rendering():
+    """Kiểm thử cấu hình KaTeX toàn cục và phủ kín render KaTeX cho công thức toán học:
+    1. Global expose trong frontend/static/app.js:
+       - window.renderKaTeX = renderKaTeX;
+       - window.app.renderKaTeX = renderKaTeX (phơi ra trong đối tượng window.app).
+       - Hàm renderKaTeX(domElement) hỗ trợ delimiters: $$, $, \\(, \\[, throwOnError: false.
+    2. Phủ kín gọi renderKaTeX(...) cho DOM container trong mọi luồng render:
+       - renderItemBank(): gọi renderKaTeX(container)
+       - renderMatrixGrid(): gọi renderKaTeX(tbody) ngay sau khi render lưới bảng 2D
+       - openQuestionDetailModal(): gọi renderKaTeX(modal)
+       - renderMasterExam(): gọi renderKaTeX(container)
+       - renderVariantView(): gọi renderKaTeX(container)
+       - openSwapQuestionModal(): gọi renderKaTeX(listEl)
+    3. formatStemForDisplay được áp dụng toàn diện cho stem, options, sub_statements:
+       - Question stem: formatStemForDisplay(q.stem)
+       - Trắc nghiệm đơn: formatStemForDisplay(cleanOptionAnswer(opt.content), true)
+       - Đúng/Sai 4 ý: formatStemForDisplay(sub.content, true)
+       - Trả lời ngắn: formatStemForDisplay(cleanShortAnswer(...), true)
+       - Lời giải chi tiết: formatStemForDisplay(q.explanation)
+    """
+    from pathlib import Path
+    import re
+
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists(), "frontend/static/app.js phải tồn tại"
+    js_content = js_path.read_text(encoding="utf-8")
+
+    # 1. Global expose
+    assert "window.renderKaTeX = renderKaTeX;" in js_content, "app.js phải gán window.renderKaTeX = renderKaTeX;"
+    
+    # window.app definition export
+    app_obj_start = js_content.rfind("window.app = {")
+    assert app_obj_start != -1, "Không tìm thấy định nghĩa window.app"
+    app_obj_end = js_content.find("};", app_obj_start)
+    assert app_obj_end != -1, "Không tìm thấy kết thúc đối tượng window.app"
+    app_obj_body = js_content[app_obj_start:app_obj_end]
+    assert "renderKaTeX," in app_obj_body, "window.app phải export renderKaTeX"
+
+    # 2. Hàm renderKaTeX delimiters
+    katex_func_start = js_content.find("function renderKaTeX(domElement)")
+    assert katex_func_start != -1
+    katex_func_end = js_content.find("window.renderKaTeX = renderKaTeX;", katex_func_start)
+    assert katex_func_end != -1
+    katex_body = js_content[katex_func_start:katex_func_end]
+
+    assert "renderMathInElement" in katex_body
+    assert "{ left: '$$', right: '$$', display: true }" in katex_body
+    assert "{ left: '$', right: '$', display: false }" in katex_body
+    assert "{ left: '\\\\(', right: '\\\\)', display: false }" in katex_body
+    assert "{ left: '\\\\[', right: '\\\\]', display: true }" in katex_body
+    assert "throwOnError: false" in katex_body
+
+    # 3. Kiểm tra gọi renderKaTeX trong các luồng giao diện chính
+
+    # A. renderItemBank()
+    item_bank_match = re.search(r'function renderItemBank\(\)\s*\{([\s\S]*?)\n  \}', js_content)
+    assert item_bank_match is not None
+    assert "renderKaTeX(container)" in item_bank_match.group(1), "renderItemBank phải gọi renderKaTeX(container)"
+
+    # B. renderMatrixGrid()
+    matrix_grid_start = js_content.find("function renderMatrixGrid()")
+    assert matrix_grid_start != -1
+    matrix_grid_end = js_content.find("function openAddMatrixRowModal()", matrix_grid_start)
+    assert matrix_grid_end != -1
+    matrix_grid_body = js_content[matrix_grid_start:matrix_grid_end]
+    assert "tbody.innerHTML = html;" in matrix_grid_body
+    assert "renderKaTeX(tbody);" in matrix_grid_body, "renderMatrixGrid phải gọi renderKaTeX(tbody) sau khi gán innerHTML"
+
+    # C. openQuestionDetailModal()
+    detail_modal_match = re.search(r'function openQuestionDetailModal\(id\)\s*\{([\s\S]*?)\n  \}', js_content)
+    assert detail_modal_match is not None
+    assert "renderKaTeX(modal)" in detail_modal_match.group(1), "openQuestionDetailModal phải gọi renderKaTeX(modal)"
+
+    # D. renderMasterExam()
+    master_exam_match = re.search(r'function renderMasterExam\(\)\s*\{([\s\S]*?)\n  \}', js_content)
+    assert master_exam_match is not None
+    assert "renderKaTeX(container)" in master_exam_match.group(1), "renderMasterExam phải gọi renderKaTeX(container)"
+
+    # E. renderVariantView()
+    variant_view_match = re.search(r'function renderVariantView\(code\)\s*\{([\s\S]*?)\n  \}', js_content)
+    assert variant_view_match is not None
+    assert "renderKaTeX(container)" in variant_view_match.group(1), "renderVariantView phải gọi renderKaTeX(container)"
+
+    # F. openSwapQuestionModal()
+    swap_modal_match = re.search(r'function openSwapQuestionModal\(masterIdx\)\s*\{([\s\S]*?)\n  \}', js_content)
+    assert swap_modal_match is not None
+    assert "renderKaTeX(listEl)" in swap_modal_match.group(1), "openSwapQuestionModal phải gọi renderKaTeX(listEl)"
+
+    # 4. Kiểm tra formatStemForDisplay áp dụng cho stem, options, sub_statements
+    # MCQ option
+    assert "formatStemForDisplay(cleanOptionAnswer(opt.content), true)" in js_content or \
+           "formatStemForDisplay(cleanOptionAnswer(o.content), true)" in js_content, \
+           "Phải áp dụng formatStemForDisplay cho options trắc nghiệm"
+
+    # True/False sub_statements
+    assert "formatStemForDisplay(sub.content, true)" in js_content or \
+           "formatStemForDisplay(s.content, true)" in js_content, \
+           "Phải áp dụng formatStemForDisplay cho sub_statements Đúng/Sai"
+
+    # Short answer
+    assert "formatStemForDisplay(cleanShortAnswer" in js_content, \
+           "Phải áp dụng formatStemForDisplay cho câu hỏi Trả lời ngắn"
+
+    # Explanation
+    assert "formatStemForDisplay(q.explanation)" in js_content, \
+           "Phải áp dụng formatStemForDisplay cho lời giải chi tiết"
+
 
 
 

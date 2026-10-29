@@ -2,8 +2,8 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap) và đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF).
+- **Phiên bản:** 3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm giao diện, và chuẩn hóa hệ thống dropdown select chuẩn Apple HIG (.apple-select) loại bỏ hoàn toàn font monospace lệch chuẩn.
 - **Ngày phát hành:** 2026-10-27  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
@@ -742,6 +742,19 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
   * Badge hiển thị số lượng câu hỏi trên thanh điều hướng (`#bank-count-badge`) và bộ đếm trong Dashboard phản ánh chính xác số lượng câu hỏi thực tế trong CSDL SQLite.
   * Tự động kích hoạt truy vấn `GET /api/v1/questions` và cập nhật số hiển thị sau mỗi thao tác: Thêm mới câu hỏi, Chỉnh sửa, Xóa, Nhập tệp, hoặc Lưu đề từ Composer.
 
+### 2.8.6. FR-04.8: Cơ Chế Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals
+- **Expose Toàn Cục `renderKaTeX`:**
+  * Khởi tạo hàm `renderKaTeX` gắn trực tiếp vào `window.renderKaTeX` và `window.app.renderKaTeX` ngay khi load script.
+  * Bảo đảm mọi lệnh gọi từ modal hoặc event listener bên ngoài không gặp lỗi `undefined`.
+- **Chuẩn Hóa Xử Lý Chuỗi Toán Học:**
+  * Toàn bộ phương án lựa chọn `opt.content` và các ý khẳng định `sub.content` bắt buộc chạy qua hàm `formatStemForDisplay(cleanOptionAnswer(content), true)` trước khi gắn vào template HTML.
+  * Loại bỏ hoàn toàn lỗi hiển thị chuỗi văn bản thô `$y = \dfrac{x_1 - 1}{x + 1}$`, `$D = \mathbb{R} \setminus \{-1\}$`, `$x = -1$`, `$y = 1$`, `$x \neq -1$` (Ảnh 1).
+- **Phủ Kín Điểm Render KaTeX:**
+  * `renderItemBank`: Gọi `renderKaTeX(container)` sau khi render danh sách câu hỏi.
+  * `openQuestionDetailModal`: Bắt buộc gọi `renderKaTeX(modal)` ngay khi mở modal.
+  * `renderMatrixGrid`: Gọi `renderKaTeX(tbody)` sau khi nạp danh sách dòng ma trận.
+  * `renderMasterExam`, `renderVariantView`, `openSwapQuestionModal`: Gọi `renderKaTeX(...)` cho toàn bộ danh sách câu hỏi và ứng viên đổi câu.
+
 ---
 
 ```
@@ -803,6 +816,19 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
     * `format=pdf`: File Vector PDF A4 Portrait gồm Khung ma trận 2D và Bảng đặc tả chi tiết.
 - **Nút Hành động "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề":**
   - Tự động lưu cấu hình ma trận hiện tại, gọi API `POST /api/v1/exams/generate` và chuyển người dùng sang tab Trộn đề (`#tab-shuffler`).
+
+### 2.9.3. FR-05.3: Chuẩn Hóa Dropdown Box Apple HIG Unified Select (.apple-select) & Triệt Tiêu Lỗi Font Monospace
+- **Xây Dựng Class CSS Chuẩn Apple HIG `.apple-select`:**
+  * Ẩn triệt để mũi tên mặc định của hệ điều hành (`appearance: none; -webkit-appearance: none; -moz-appearance: none;`).
+  * Tích hợp mũi tên chevron vector SVG tinh tế màu slate-500 (`stroke='%2364748b'`) căn giữa lề phải (`right 0.75rem center`).
+  * Thiết kế bo góc mềm mại 12px (`border-radius: 12px`), padding `0.45rem 2.2rem 0.45rem 0.75rem`, viền mờ `1px solid rgba(0, 0, 0, 0.12)`, nền trắng `#ffffff`.
+  * Hiệu ứng focus hào quang Apple Blue (`border-color: #0071e3; box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15)`).
+- **Khắc Phục Lỗi Lệch Chuẩn Dropdown Thời Gian Làm Bài (`#matrix-param-time`):**
+  * Áp dụng class `apple-select w-full text-xs` cho ô chọn Thời gian làm bài (`#matrix-param-time`), đảm bảo chiều cao, góc bo 12px, padding và đường viền khớp hoàn hảo với các ô input text bên cạnh (`#matrix-param-name`) (Ảnh 2).
+- **Triệt Tiêu Lỗi Font Monospace Trên Dropdown Bộ Lọc (`#bank-filter-yccd`):**
+  * Xóa bỏ hoàn toàn class `font-mono` tại ô chọn "6. Yêu cầu cần đạt" (`#bank-filter-yccd`), chuyển về font sans-serif Apple HIG đồng nhất 100% với 5 dropdown taxonomy còn lại (Ảnh 3).
+- **Chuẩn Hóa Dropdown Bảng Ma Trận 2D & Toàn Hệ Thống:**
+  * Toàn bộ các dropdown dạng thức câu hỏi trong bảng ma trận 2D (`updateMatrixRowFormat`) và các thẻ `<select>` trong modals/toolbar đều áp dụng class `.apple-select`.
 
 ---
 

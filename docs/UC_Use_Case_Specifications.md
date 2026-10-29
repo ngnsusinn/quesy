@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 3.3 (Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Động cơ Lưu Đề từ Soạn thảo vào Ngân hàng)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, và quy chuẩn quản trị phát triển Git.
-- **Ngày phát hành:** 2026-10-24
+- **Phiên bản:** 3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, cơ chế render KaTeX toàn diện triệt tiêu lỗi văn bản thô, và chuẩn hóa hệ thống dropdown select Apple HIG (.apple-select).
+- **Ngày phát hành:** 2026-10-28
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
 ---
@@ -159,9 +159,10 @@
 #### Luồng sự kiện chính:
 1. Khi khởi động ứng dụng hoặc F5 tải lại trang, client thực thi `fetchQuestionsFromDB()` gọi API `GET /api/v1/questions?limit=1000`.
 2. Hệ thống nạp toàn bộ danh sách câu hỏi thực tế từ SQLite vào `state.itemBank`.
-3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`) và cập nhật bộ đếm badge thời gian thực.
-4. Hệ thống kiểm tra: Nếu CSDL đã có dữ liệu (`state.itemBank.length > 0`), tuyệt đối KHÔNG kích hoạt `seedInitialQuestions()`, bảo toàn 100% dữ liệu thực.
-5. Khi người dùng thực hiện tạo câu hỏi mới, import LaTeX hàng loạt, chỉnh sửa câu hỏi, xóa câu hỏi hoặc bấm "LƯU VÀO NGÂN HÀNG" từ phân hệ Soạn đề, các thay đổi được ghi trực tiếp vào SQLite và client tự động kích hoạt `fetchQuestionsFromDB()` để đồng bộ lại dữ liệu.
+3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`), áp dụng chuẩn hóa `formatStemForDisplay` cho mọi stem/options/sub-statements, kích hoạt `renderKaTeX(container)` đảm bảo $100\%$ công thức toán học được biên dịch sắc nét (không sót text thô), và cập nhật bộ đếm badge thời gian thực.
+4. Toàn bộ các box chọn bộ lọc taxonomy áp dụng class `.apple-select` với icon chevron SVG slate-500, loại bỏ hoàn toàn class `font-mono` tại `#bank-filter-yccd` để giữ vững typography sans-serif Apple HIG.
+5. Hệ thống kiểm tra: Nếu CSDL đã có dữ liệu (`state.itemBank.length > 0`), tuyệt đối KHÔNG kích hoạt `seedInitialQuestions()`, bảo toàn 100% dữ liệu thực.
+6. Khi người dùng thực hiện tạo câu hỏi mới, import LaTeX hàng loạt, chỉnh sửa câu hỏi, xóa câu hỏi hoặc bấm "LƯU VÀO NGÂN HÀNG" từ phân hệ Soạn đề, các thay đổi được ghi trực tiếp vào SQLite và client tự động kích hoạt `fetchQuestionsFromDB()` để đồng bộ lại dữ liệu.
 
 #### Luồng ngoại lệ (Offline Fallback):
 - Khi CSDL SQLite hoàn toàn rỗng hoặc máy chủ Backend chưa được kích hoạt, hệ thống mới kích hoạt `seedInitialQuestions()` làm dữ liệu mẫu dự phòng ngoại tuyến.
@@ -176,13 +177,13 @@
 
 #### Luồng sự kiện chính:
 1. Người dùng truy cập phân hệ Ma trận đề thi (`/matrix`, tab `#tab-matrix`).
-2. Giao diện Header Card hiển thị tinh gọn theo Apple HIG: Tên kỳ thi, Khối lớp & Môn học, Thời gian thi và Thang điểm 10.0đ.
+2. Giao diện Header Card hiển thị tinh gọn theo Apple HIG: Tên kỳ thi, Khối lớp & Môn học, Thời gian thi (sử dụng dropdown `#matrix-param-time` tích hợp class `.apple-select` đồng bộ hoàn hảo kích thước với các input text) và Thang điểm 10.0đ.
 3. Hệ thống dựng lưới ma trận 2D tương tác phân theo 4 Dạng thức câu hỏi và 3 Cấp độ nhận thức:
    - Trục dòng: Phân cấp theo Mạch nội dung $
 ightarrow$ Yêu cầu cần đạt (YCCĐ) $
-ightarrow$ Dạng bài tập $
+ightarrow$ Dạng bài tập (biên dịch KaTeX trực quan cho mọi ký hiệu toán học qua `renderKaTeX(tbody)`) $
 ightarrow$ Dạng thức câu hỏi (`SINGLE_CHOICE`, `TRUE_FALSE_GROUP`, `SHORT_ANSWER`, `ESSAY`).
-   - Trục cột: Cột Dạng thức câu hỏi (Dropdown), Cột 1. Biết, Cột 2. Hiểu, Cột 3. Vận dụng, Tổng câu, Tổng điểm, Thao tác xóa dòng.
+   - Trục cột: Cột Dạng thức câu hỏi (Dropdown chuẩn `.apple-select`), Cột 1. Biết, Cột 2. Hiểu, Cột 3. Vận dụng, Tổng câu, Tổng điểm, Thao tác xóa dòng.
 4. Người dùng tinh chỉnh trực tiếp trên từng dòng:
    - Thay đổi **Dạng thức câu hỏi**: Trắc nghiệm 4 lựa chọn (0.25đ), Đúng/Sai 4 ý (1.0đ theo barem lũy tiến QĐ 764), Trả lời ngắn (0.5đ), Tự luận (1.0đ).
    - Nhập số lượng câu hỏi Biết, Hiểu, Vận dụng cho từng dòng.

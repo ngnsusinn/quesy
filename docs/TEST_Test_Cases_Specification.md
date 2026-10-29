@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.4 (Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D theo TT 22 & QĐ 764, Thư viện Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản Đặc tả & Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc)  
+- **Phiên bản:** 3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 209+ Tests (100% Passed)  
-- **Ngày lập:** 2026-10-27  
+- **Tổng số kịch bản tự động hóa:** 215+ Tests (100% Passed)  
+- **Ngày lập:** 2026-10-28  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
 ---
@@ -621,6 +621,45 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 #### TC-AUTH-08: Phân quyền Vai trò RBAC (require_role)
 - **Mô tả:** Kiểm tra dependency phân quyền `require_role("ADMIN")` và `require_role("TEACHER")`.
 - **Kết quả kỳ vọng:** Admin truy cập được mọi vai trò; user thường truy cập tài nguyên Admin bị từ chối 403 "Required role: ADMIN".
+
+---
+
+### TS-09: KIỂM THỬ RENDER KATEX TOÀN DIỆN & GIAO DIỆN APPLE SELECT (.apple-select)
+
+#### TC-KATEX-01: Biên Dịch KaTeX Toàn Diện Trên Thẻ Câu Hỏi Ngân Hàng (Ảnh 1 Verification)
+- **Mô tả:** Mở màn hình Ngân hàng câu hỏi (`/bank`), tải các câu hỏi Đúng/Sai (TRUE_FALSE_GROUP) và Trắc nghiệm đơn chứa công thức phức tạp (`$y = \dfrac{x_1 - 1}{x + 1}$`, `$D = \mathbb{R} \setminus \{-1\}$`, `$x = -1$`, `$y = 1$`, `$x \neq -1$`).
+- **Thao tác:** Khởi tạo `renderItemBank()`, kiểm tra DOM các thẻ câu hỏi và các khẳng định con (a, b, c, d).
+- **Kết quả kỳ vọng:** Các phần tử chứa lớp `.katex` hoặc `.katex-html` được render hoàn hảo, $0\%$ chuỗi thô `$ ... $` còn sót lại trên giao diện.
+
+#### TC-KATEX-02: Biên Dịch KaTeX Trong Bảng Ma Trận Đề 2D (`renderMatrixGrid`)
+- **Mô tả:** Mở màn hình Ma trận đề (`/matrix`), thêm hoặc tải dòng ma trận có Dạng bài chứa ký hiệu toán học (`row.archetypeName`: `$m$`, `$Oxyz$`, `$f(x)$`).
+- **Thao tác:** Kiểm tra phần tử `#matrix-grid-tbody` sau khi chạy `renderMatrixGrid()`.
+- **Kết quả kỳ vọng:** Hàm `renderKaTeX(tbody)` được thực thi tự động, các ký hiệu toán học hiển thị trực quan dưới dạng ký tự toán sắc nét, không hiển thị text thô.
+
+#### TC-KATEX-03: Biên Dịch KaTeX Toàn Diện Trong Modal Xem Chi Tiết Câu Hỏi (`openQuestionDetailModal`)
+- **Mô tả:** Click nút "Xem chi tiết" của một câu hỏi bất kỳ để mở `#question-detail-modal`.
+- **Thao tác:** Kiểm tra `window.renderKaTeX` tồn tại (không `undefined`), và toàn bộ thân câu hỏi, phương án A-D, khẳng định con a-d, kết quả trả lời ngắn, và hướng dẫn giải được biên dịch KaTeX chuẩn xác.
+- **Kết quả kỳ vọng:** Modal mở ra mượt mà, KaTeX render tức thì $\le 50$ms, không có lỗi console error.
+
+#### TC-UI-SELECT-01: Kiểm Thử Giao Diện Dropdown Box Apple HIG Unified Select (.apple-select)
+- **Mô tả:** Kiểm tra toàn bộ 19 thẻ `<select>` tĩnh trong `frontend/index.html` và dynamic select trong `frontend/static/app.js`.
+- **Thao tác:** Thanh tra CSS Computed Styles trên DevTools cho thẻ `select.apple-select`.
+- **Kết quả kỳ vọng:**
+  * Mũi tên mặc định của hệ điều hành bị ẩn triệt để (`appearance: none`).
+  * Có icon SVG chevron slate-500 `#64748b` căn lề phải.
+  * Bo góc mềm mại đúng `12px` (`border-radius: 12px`).
+  * Padding chuẩn `0.45rem 2.2rem 0.45rem 0.75rem`.
+  * Khi focus hiển thị viền xanh Apple `#0071e3` kèm quầng sáng `box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15)`.
+
+#### TC-UI-SELECT-02: Kiểm Thử Đồng Bộ Kích Thước Dropdown Thời Gian Làm Bài (`#matrix-param-time` - Ảnh 2)
+- **Mô tả:** Kiểm tra ô chọn "Thời gian làm bài" (`#matrix-param-time`) trên thanh cấu hình Ma trận đề thi (`#tab-matrix`).
+- **Thao tác:** So sánh chiều cao (`height` / `computed bounding rect`), góc bo, viền và padding của `#matrix-param-time` với ô input text bên cạnh (`#matrix-param-name`).
+- **Kết quả kỳ vọng:** Kích thước chiều cao khớp 100%, bo góc 12px đồng nhất, không còn mũi tên xám thô mặc định của hệ điều hành.
+
+#### TC-UI-SELECT-03: Triệt Tiêu Lỗi Font Monospace Trên Dropdown Bộ Lọc (`#bank-filter-yccd` - Ảnh 3)
+- **Mô tả:** Kiểm tra ô chọn "6. Yêu cầu cần đạt" (`#bank-filter-yccd`) trong thanh bộ lọc Ngân hàng câu hỏi (`#tab-bank`).
+- **Thao tác:** Đọc thuộc tính `className` và computed `font-family` của `#bank-filter-yccd`.
+- **Kết quả kỳ vọng:** Hoàn toàn không còn class `font-mono`; font chữ hiển thị chuẩn sans-serif Apple HIG (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif`), đồng nhất 100% với 5 dropdown taxonomy còn lại.
 
 ---
 

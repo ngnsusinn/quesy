@@ -397,4 +397,7 @@ Every pull request and commit to remote branches executes a multi-runtime GitHub
   - **Biên dịch Nhanh Câu Đang Sửa (Focus / Partial Quick Compile - 1.5s):** Cho phép biên dịch riêng câu hỏi tại con trỏ hoặc đoạn mã bôi đen sang PDF vector chỉ trong 1-2 giây qua nút `⚡ BIÊN DỊCH CÂU NÀY` hoặc phím tắt `Ctrl+Shift+S`.
   - **Chế độ Nháp (Draft Mode - 15s):** Tự động hạ `samples=35` cho toàn bộ đồ thị TikZ, cắt giảm 70% thời gian biên dịch đề thi lớn từ 65s xuống 15s.
 - **Trộn đề thông minh & an toàn:** Khóa cố định các đáp án phụ thuộc (*"Cả A và B đều đúng"*) tại vị trí D, giữ nguyên bài đọc chung và sinh ma trận hoán vị đáp án tự động.
+- **Biên Dịch KaTeX Toàn Diện & Chuẩn Hóa Giao Diện Apple Select (.apple-select):**
+  - Khắc phục triệt để lỗi hiển thị công thức toán thô `$ ... $` trên các thẻ câu hỏi Ngân hàng, bảng Ma trận đề 2D và các Modal xem chi tiết/soạn thảo/đổi câu, đảm bảo $100\%$ công thức toán học được biên dịch KaTeX sắc nét tức thì.
+  - Xây dựng thành phần UI dropdown box độc quyền chuẩn Apple HIG `.apple-select` với icon chevron SVG slate-500, bo góc 12px, hiệu ứng focus viền xanh Apple `#0071e3`, loại bỏ hoàn toàn font monospace tại `#bank-filter-yccd` và chuẩn hóa kích thước ô thời gian làm bài `#matrix-param-time`.
 - **Giao diện Apple HIG:** Trải nghiệm đối chiếu song song mượt mà, phản hồi xúc giác tinh tế, chạy mượt trên cả Web và thiết bị di động (PWA Offline).

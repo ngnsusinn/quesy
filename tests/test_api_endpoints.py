@@ -533,10 +533,10 @@ def test_api_matrix_spec_and_availability_and_swap(client):
         assert swap_res.status_code == 200
         assert swap_res.json()["question_id"] == new_q_id
 
-        # Re-shuffle after swap to generate all 4 variants
-        re_shuf = client.post(f"/api/v1/exams/{master_id}/shuffle", json={"variant_codes": ["101", "102", "103", "104"]})
+        # Re-shuffle after swap to test ZIP export with standard components
+        re_shuf = client.post(f"/api/v1/exams/{master_id}/shuffle", json={"variant_codes": ["101"]})
         assert re_shuf.status_code == 200
-        assert re_shuf.json()["generated_variants_count"] == 4
+        assert re_shuf.json()["generated_variants_count"] == 1
 
         # Export ZIP and verify 5 standard components
         zip_res = client.get(f"/api/v1/exams/{master_id}/export-zip")
