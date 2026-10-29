@@ -157,6 +157,12 @@ floor))$.
 - **NFR-USA-07 (Độ Bao Phủ KaTeX Toàn Diện & Không Sót Text Thô):**
   - Tỷ lệ công thức toán học được biên dịch KaTeX đạt **100%** trên toàn bộ các thành phần hiển thị: Ngân hàng câu hỏi, Bảng ma trận đề 2D, Modal xem chi tiết câu hỏi, Đề gốc, Đề hoán vị và Modal đổi câu hỏi.
   - Tỷ lệ sót ký hiệu thô `$ ... $` do thiếu hàm biên dịch hoặc thiếu formatStemForDisplay bằng **0%**.
+- **NFR-USA-08 (Độ Rộng Đệm An Toàn Ô Tìm Kiếm Kèm Icon - Anti-Icon Collision):**
+  - 100% các ô tìm kiếm tích hợp icon dẫn đầu (`#matrix-search-archetype`, `#bank-search-input`) bắt buộc duy trì padding-left tối thiểu $\ge 2.25\text{rem}$ ($36\text{px}$) bất kể quy tắc kế thừa CSS toàn cục, đảm bảo khoảng cách an toàn giữa icon ($10\text{px}-24\text{px}$) và văn bản placeholder bắt đầu từ $36\text{px}$ (khoảng thở $\ge 12\text{px}$).
+  - Tỷ lệ che khuất icon lên văn bản bằng **0%**. Thẻ icon kích hoạt `pointer-events: none` cho phép $100\%$ sự kiện nhấp chuột truyền thẳng vào trường nhập liệu.
+- **NFR-USA-09 (Tính Ổn Định Con Trỏ Chuột & Công Thái Học Ô Ma Trận - Anti-Glitch Cursor & Click-to-Focus):**
+  - 100% các ô nhập số lượng ma trận (`.matrix-input-cell`, `<input type="number">`) phải triệt tiêu hoàn toàn nút spin button mặc định của trình duyệt (`-webkit-appearance: none`, `-moz-appearance: textfield`), loại bỏ triệt để hiện tượng xung đột render phần cứng làm con trỏ chuột bị biến mất hoặc vô hình trên Chromium Windows.
+  - Con trỏ chuột và caret luôn hiển thị sắc nét với trạng thái rõ ràng (`cursor: text`, `caret-color: #0071e3`), hiệu ứng hover nhẹ nhàng (`background-color: rgba(0, 113, 227, 0.05)`). Thao tác nhấp chuột vào bất kỳ vị trí nào trong ô `td.matrix-input-cell` (diện tích $\approx 60\text{px} \times 44\text{px}$) đạt tỷ lệ chuyển focus và bôi đen vào input là **100%**.
 
 ---
 

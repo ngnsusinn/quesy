@@ -825,6 +825,54 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
 - **Chuẩn Hóa Dropdown Bảng Ma Trận 2D & Toàn Hệ Thống:**
   * Toàn bộ các dropdown dạng thức câu hỏi trong bảng ma trận 2D (`updateMatrixRowFormat`) và các thẻ `<select>` trong modals/toolbar đều áp dụng class `.apple-select`.
 
+### 2.9.4. FR-05.4: Khắc Phục Lỗi Icon Search Đè Placeholder & Lỗi Chuột Biến Mất Khi Rê Vào Ô Ma Trận
+- **Khắc Phục Lỗi Icon Kính Lúp Đè Lên Text Placeholder (Search Icon Collision):**
+  * *Vị trí phát sinh:* Ô tìm kiếm dạng bài trong Ma trận đề (`#matrix-search-archetype`) và ô tìm kiếm ngân hàng câu hỏi (`#bank-search-input`).
+  * *Phân tích nguyên nhân:* Selector `.apple-input, input[type="text"]` trong `frontend/static/style.css` định nghĩa shorthand `padding: 0.45rem 0.75rem;` (padding-left = 12px), có specificity cao hơn class tiện ích `pl-8` của Tailwind CSS. Do đó, padding-left bị cưỡng bức về 12px. Trong khi đó, icon search nằm tại `left: 2.5` (10px) và rộng 14px (chiếm vùng 10px-24px), khiến chữ placeholder bắt đầu ngay tại 12px đè trực tiếp lên icon kính lúp.
+  * *Giải pháp CSS chuyên biệt:* Bổ sung CSS selector chuyên biệt:
+    ```css
+    #matrix-search-archetype,
+    #bank-search-input,
+    .search-input-with-icon {
+      padding-left: 2.25rem !important; /* 36px đảm bảo khoảng trống an toàn */
+    }
+    ```
+  * *Tối ưu hóa tương tác chuột:* Bổ sung class `pointer-events-none` trên thẻ `<i data-lucide="search">` để các thao tác click chuột vào icon kính lúp được chuyển tiếp xuyên qua (pass-through) thẳng vào thẻ input bên dưới.
+- **Khắc Phục Lỗi Con Trỏ Chuột Biến Mất Khi Rê Chuột Vào Ô Ma Trận (Matrix Input Cell Cursor Glitch):**
+  * *Vị trí phát sinh:* Toàn bộ các ô nhập số lượng câu hỏi trong bảng ma trận (`.matrix-input-cell`, `<input type="number">`).
+  * *Phân tích nguyên nhân:*
+    1. Ô nhập liệu có chiều rộng nhỏ (44px `w-11`), khi rê chuột vào, trình duyệt Chromium tự động kích hoạt nút tăng giảm số mặc định (`::-webkit-inner-spin-button`) chiếm tới 18-20px bề ngang, chiếm trọn vùng hover của input.
+    2. Chromium trên Windows có lỗi render phần cứng khi con trỏ di chuyển qua ranh giới giữa ô input nhỏ và spin button, khiến con trỏ chuột bị ẩn/biến mất hoặc chuyển thành trong suốt.
+    3. Thẻ `input` và thẻ `td.matrix-input-cell` hoàn toàn chưa được định nghĩa `cursor: text` và `caret-color` tường minh.
+  * *Giải pháp CSS chuẩn hóa:*
+    ```css
+    /* Triệt tiêu nút spin button mặc định */
+    .matrix-input-cell input::-webkit-outer-spin-button,
+    .matrix-input-cell input::-webkit-inner-spin-button {
+      -webkit-appearance: none !important;
+      margin: 0 !important;
+    }
+    .matrix-input-cell input[type="number"] {
+      -moz-appearance: textfield !important;
+      appearance: textfield !important;
+    }
+
+    /* Thiết lập con trỏ, caret và hover xúc giác */
+    .matrix-input-cell {
+      position: relative;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    .matrix-input-cell:hover {
+      background-color: rgba(0, 113, 227, 0.05);
+    }
+    .matrix-input-cell input {
+      cursor: text !important;
+      caret-color: #0071e3 !important;
+    }
+    ```
+  * *Cơ chế Click-to-Focus Toàn Ô:* Bổ sung listener ủy quyền sự kiện (event delegation) trong `init()` hoặc inline handler trên `td.matrix-input-cell`: Khi người dùng nhấp chuột vào bất kỳ vị trí nào trên ô `td.matrix-input-cell` (kể cả vùng lề hoặc badge tồn kho), hệ thống tự động gọi `input.focus()` và `input.select()`, nâng cao trải nghiệm công thái học Apple HIG.
+
 ---
 
 ```

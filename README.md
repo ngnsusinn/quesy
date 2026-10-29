@@ -401,4 +401,5 @@ Every pull request and commit to remote branches executes a multi-runtime GitHub
 - **Biên Dịch KaTeX Toàn Diện & Chuẩn Hóa Giao Diện Apple Select (.apple-select):**
   - Khắc phục triệt để lỗi hiển thị công thức toán thô `$ ... $` trên các thẻ câu hỏi Ngân hàng, bảng Ma trận đề 2D và các Modal xem chi tiết/soạn thảo/đổi câu, đảm bảo $100\%$ công thức toán học được biên dịch KaTeX sắc nét tức thì.
   - Xây dựng thành phần UI dropdown box độc quyền chuẩn Apple HIG `.apple-select` với icon chevron SVG slate-500, bo góc 12px, hiệu ứng focus viền xanh Apple `#0071e3`, loại bỏ hoàn toàn font monospace tại `#bank-filter-yccd` và chuẩn hóa kích thước ô thời gian làm bài `#matrix-param-time`.
+  - Khắc phục triệt để lỗi icon search đè text placeholder (`padding-left: 2.25rem !important;`), loại bỏ 100% lỗi con trỏ chuột bị biến mất trên ô ma trận Chromium Windows bằng cách ẩn spin button, hiển thị con trỏ rõ ràng và hỗ trợ click-to-focus toàn ô.
 - **Giao diện Apple HIG:** Trải nghiệm đối chiếu song song mượt mà, phản hồi xúc giác tinh tế, chạy mượt trên cả Web và thiết bị di động (PWA Offline).

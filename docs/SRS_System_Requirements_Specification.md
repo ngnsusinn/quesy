@@ -859,6 +859,23 @@ ight`, và đồ thị TikZ vector SVG).
   4. *Áp Dụng Đồng Bộ Toàn Hệ Thống:*
      - Toàn bộ 19 thẻ `<select>` tĩnh trong `frontend/index.html` và 3 thẻ `<select>` sinh động trong `frontend/static/app.js` (gồm dropdown dạng thức câu hỏi trong bảng ma trận 2D `updateMatrixRowFormat` và HITL taxonomy selectors) bắt buộc phải tích hợp class `.apple-select`.
 
+### 4.16. Yêu Cầu Giao Diện & Công Thái Học: Chống Đè Icon Tìm Kiếm & Chống Biến Mất Con Trỏ Ô Ma Trận
+- **Mã Yêu Cầu:** `SRS-FEAT-16`
+- **Mô tả:** Khắc phục triệt để 2 lỗi giao diện người dùng phát sinh trên các trường nhập liệu tìm kiếm và bảng ma trận đề thi:
+  1. *Khắc Phục Lỗi Icon Kính Lúp Đè Lên Text Placeholder (Search Icon Collision):*
+     - Định danh vị trí: Ô tìm kiếm dạng bài trong Ma trận đề thi (`#matrix-search-archetype`) và ô tìm kiếm ngân hàng câu hỏi (`#bank-search-input`).
+     - Căn nguyên kỹ thuật: Rule `.apple-input, input[type="text"]` trong `frontend/static/style.css` có độ ưu tiên CSS cao hơn class `pl-8` của Tailwind, ghi đè `padding-left: 0.75rem` (12px), trong khi icon nằm tại `left: 2.5` (10px - 24px), khiến văn bản placeholder bắt đầu ngay tại 12px và đè trực tiếp lên icon kính lúp.
+     - Quy chuẩn giải pháp: Thiết lập rule CSS chuyên biệt `#matrix-search-archetype, #bank-search-input, .search-input-with-icon { padding-left: 2.25rem !important; }` đảm bảo khoảng đệm an toàn 36px (10px lề + 14px icon + 12px khoảng thở). Bổ sung class `pointer-events-none` trên thẻ `<i>` icon kính lúp để thao tác click vào icon luôn truyền thẳng tới input.
+  2. *Khắc Phục Lỗi Con Trỏ Chuột Biến Mất Khi Rê Vào Ô Ma Trận (Matrix Input Cell Cursor Glitch):*
+     - Định danh vị trí: Các ô nhập số lượng câu hỏi trong bảng ma trận đề thi (`.matrix-input-cell`, `<input type="number">`).
+     - Căn nguyên kỹ thuật: Trình duyệt Chromium trên Windows tự động render spin button mặc định (`::-webkit-inner-spin-button`) chiếm 18-20px trong ô input hẹp (44px `w-11`), gây xung đột render phần cứng khiến con trỏ chuột bị ẩn/biến mất; đồng thời thẻ input và ô td chưa định nghĩa `cursor` và `caret-color` tường minh.
+     - Quy chuẩn giải pháp:
+       + Ẩn hoàn toàn spin buttons trên mọi trình duyệt:
+         `.matrix-input-cell input::-webkit-outer-spin-button, .matrix-input-cell input::-webkit-inner-spin-button { -webkit-appearance: none !important; margin: 0 !important; }`
+         `.matrix-input-cell input[type="number"] { -moz-appearance: textfield !important; appearance: textfield !important; }`
+       + Thiết lập con trỏ và caret rõ ràng: `.matrix-input-cell { cursor: pointer; }`, `.matrix-input-cell input { cursor: text !important; caret-color: #0071e3 !important; }`, `.matrix-input-cell:hover { background-color: rgba(0, 113, 227, 0.05); }`.
+       + Hỗ trợ Click-to-Focus toàn ô: Nhấp chuột vào bất kỳ vị trí nào trong thẻ `td.matrix-input-cell` tự động focus và bôi đen số trong thẻ `<input>` bên trong.
+
 ---
 
 ## 5. THIẾT KẾ CƠ SỞ DỮ LIỆU LOGIC (LOGICAL DATA MODEL)
@@ -925,4 +942,5 @@ ight`, và đồ thị TikZ vector SVG).
 | **SRS-FEAT-13** | Test tích hợp + E2E | Nút chuyên biệt `📥 LƯU VÀO NGÂN HÀNG` trên toolbar Composer trích xuất trọn vẹn câu hỏi trắc nghiệm đơn, đúng/sai QĐ 764, trả lời ngắn, TikZ, BBT, lời giải chi tiết; tự động gắn tag YCCĐ AI; trả về chi tiết số lượng câu theo từng thể thức và cập nhật tức thì `#bank-count-badge`. |
 | **SRS-FEAT-14** | E2E Browser Test + UI Test | 100% công thức toán học (`$y = \dfrac{x_1 - 1}{x + 1}$`, `$D = \mathbb{R} \setminus \{-1\}$`, `$x = -1$`, `$y = 1$`, `$x \neq -1$`) trên thẻ câu hỏi Ngân hàng, Ma trận đề, Modal Chi tiết, Đề gốc và Đề hoán vị được biên dịch KaTeX sắc nét; không còn sót bất kỳ chuỗi văn bản thô `$ ... $` nào. |
 | **SRS-FEAT-15** | UI Audit + Cross-browser Test | 100% dropdown select áp dụng class `.apple-select` với icon chevron SVG slate-500, bo góc 12px, không còn mũi tên xám thô OS; ô chọn `#matrix-param-time` đồng bộ kích thước và viền với các input bên cạnh; ô `#bank-filter-yccd` xóa sạch class `font-mono` và hiển thị font sans-serif đồng nhất. |
+| **SRS-FEAT-16** | UI Audit + E2E Browser Test | 100% ô tìm kiếm kèm icon (`#matrix-search-archetype`, `#bank-search-input`) có padding-left >= 2.25rem (36px), triệt tiêu hoàn toàn hiện tượng icon đè lên placeholder; icon gắn `pointer-events-none`; các ô số ma trận (`.matrix-input-cell`) ẩn 100% spin buttons mặc định, con trỏ chuột và caret luôn hiển thị rõ ràng (`cursor: text`, `caret-color: #0071e3`), click toàn ô tự động focus vào input. |
 | **SRS-VERIF-CI** | Test CI Runner + Pre-Commit Gate | 100% test cases vượt qua trên môi trường CI runner (`pytest`, syntax check) trước khi commit; tuân thủ nghiêm ngặt nguyên tắc Strict CI Isolation (chỉ duy nhất Sub-Agent CI đọc/ghi CI, cấm các sub-agent khác truy cập đọc); vòng lặp sửa lỗi CI loop lặp lại cho đến khi pass mới commit. |

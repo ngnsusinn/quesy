@@ -1672,6 +1672,114 @@ def test_hierarchical_matrix_cell_inputs_and_stock_validation():
     assert "onMatrixSearchInput" in js_content
 
 
+# =========================================================================
+# 20. KIỂM THỬ GIAO DIỆN & TƯƠNG TÁC: SEARCH INPUT PADDING & MATRIX CELL FOCUS
+# =========================================================================
+
+def test_matrix_and_bank_search_inputs_styling_and_dom_structure():
+    """Kiểm thử CSS rules và DOM markup cho các ô tìm kiếm (#matrix-search-archetype, #bank-search-input):
+    1. CSS Padding an toàn:
+       - padding-left: 2.25rem !important cho #matrix-search-archetype, #bank-search-input, .search-input-with-icon.
+       - Ngăn chặn triệt để hiện tượng chữ nhập vào bị đè lên search icon ở góc trái.
+    2. DOM Markup đồng bộ:
+       - #matrix-search-archetype và #bank-search-input đều gắn class .search-input-with-icon.
+       - Icon <i data-lucide="search"> nằm cùng container có class pointer-events-none để không nuốt click.
+    """
+    from pathlib import Path
+    css_path = Path("frontend/static/style.css")
+    html_path = Path("frontend/index.html")
+
+    assert css_path.exists(), "frontend/static/style.css phải tồn tại"
+    assert html_path.exists(), "frontend/index.html phải tồn tại"
+
+    css_content = css_path.read_text(encoding="utf-8")
+    html_content = html_path.read_text(encoding="utf-8")
+
+    # 1. Kiểm tra CSS selector và thuộc tính padding-left: 2.25rem !important
+    assert "#matrix-search-archetype" in css_content
+    assert "#bank-search-input" in css_content
+    assert ".search-input-with-icon" in css_content
+    assert "padding-left: 2.25rem !important;" in css_content
+
+    # Kiểm tra block CSS search inputs with icon
+    search_css_idx = css_content.find("/* Search inputs with leading search icon */")
+    assert search_css_idx != -1
+    search_block = css_content[search_css_idx : search_css_idx + 300]
+    assert "#matrix-search-archetype" in search_block
+    assert "#bank-search-input" in search_block
+    assert ".search-input-with-icon" in search_block
+    assert "padding-left: 2.25rem !important" in search_block
+
+    # 2. Kiểm tra DOM trong frontend/index.html cho #bank-search-input
+    bank_input_idx = html_content.find('id="bank-search-input"')
+    assert bank_input_idx != -1
+    # Tìm vùng chứa relative xung quanh bank search input
+    bank_container = html_content[bank_input_idx - 200 : bank_input_idx + 600]
+    assert "search-input-with-icon" in bank_container
+    assert 'data-lucide="search"' in bank_container
+    assert "pointer-events-none" in bank_container
+
+    # 3. Kiểm tra DOM trong frontend/index.html cho #matrix-search-archetype
+    matrix_input_idx = html_content.find('id="matrix-search-archetype"')
+    assert matrix_input_idx != -1
+    matrix_container = html_content[matrix_input_idx - 300 : matrix_input_idx + 500]
+    assert "search-input-with-icon" in matrix_container
+    assert 'data-lucide="search"' in matrix_container
+    assert "pointer-events-none" in matrix_container
 
 
+def test_matrix_input_cell_styling_spin_buttons_and_click_to_focus():
+    """Kiểm thử CSS và JavaScript cho ô nhập liệu ma trận (.matrix-input-cell):
+    1. CSS Styling & Cursor:
+       - .matrix-input-cell có cursor: pointer và hiệu ứng hover background.
+       - .matrix-input-cell input có cursor: text !important và caret-color: #0071e3 !important.
+    2. Triệt tiêu Spin Buttons (Steppers):
+       - WebKit/Blink: ::-webkit-outer-spin-button, ::-webkit-inner-spin-button có -webkit-appearance: none !important và margin: 0 !important.
+       - Firefox: input[type="number"] có -moz-appearance: textfield !important và appearance: textfield !important.
+    3. Click-to-Focus UX (Cả inline và global event delegation):
+       - Inline handler trên <td> trong renderHierarchicalMatrix: tự động focus() và select() input khi click cell.
+       - Global event delegation trong init(): bắt click trên .matrix-input-cell và tự động focus/select input.
+    """
+    from pathlib import Path
+    css_path = Path("frontend/static/style.css")
+    js_path = Path("frontend/static/app.js")
+
+    assert css_path.exists(), "frontend/static/style.css phải tồn tại"
+    assert js_path.exists(), "frontend/static/app.js phải tồn tại"
+
+    css_content = css_path.read_text(encoding="utf-8")
+    js_content = js_path.read_text(encoding="utf-8")
+
+    # 1. Kiểm tra CSS cell styling
+    cell_css_idx = css_content.find("/* --- Matrix Grid Custom Cells --- */")
+    assert cell_css_idx != -1
+    cell_block = css_content[cell_css_idx : cell_css_idx + 1200]
+
+    assert ".matrix-input-cell" in cell_block
+    assert "cursor: pointer;" in cell_block
+    assert ".matrix-input-cell:hover" in cell_block
+    assert "background-color: rgba(0, 113, 227, 0.05);" in cell_block
+
+    assert ".matrix-input-cell input" in cell_block
+    assert "cursor: text !important;" in cell_block
+    assert "caret-color: #0071e3 !important;" in cell_block
+
+    # 2. Kiểm tra CSS ẩn spin buttons
+    assert "-webkit-appearance: none !important;" in cell_block
+    assert "margin: 0 !important;" in cell_block
+    assert "-moz-appearance: textfield !important;" in cell_block
+    assert "appearance: textfield !important;" in cell_block
+
+    # 3. Kiểm tra inline click-to-focus trên ma trận trong app.js
+    assert "matrix-input-cell" in js_content
+    assert "const inp=this.querySelector('input'); if(inp && event.target!==inp){inp.focus(); inp.select();}" in js_content
+
+    # 4. Kiểm tra global event delegation trong init() của app.js
+    init_idx = js_content.find("async function init()")
+    assert init_idx != -1
+    init_code = js_content[init_idx : init_idx + 1500]
+
+    assert "closest('.matrix-input-cell')" in init_code
+    assert "inp.focus()" in init_code
+    assert "inp.select()" in init_code
 

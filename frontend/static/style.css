@@ -690,10 +690,22 @@ body.in-composer #tab-composer {
   letter-spacing: 0.02em;
 }
 
+/* Search inputs with leading search icon */
+#matrix-search-archetype,
+#bank-search-input,
+.search-input-with-icon {
+  padding-left: 2.25rem !important; /* 36px: 10px margin + 14px icon + 12px clear gap */
+}
+
 /* --- Matrix Grid Custom Cells --- */
 .matrix-input-cell {
   position: relative;
   transition: all 0.15s;
+  cursor: pointer;
+}
+
+.matrix-input-cell:hover {
+  background-color: rgba(0, 113, 227, 0.05);
 }
 
 .matrix-input-cell input {
@@ -705,7 +717,22 @@ body.in-composer #tab-composer {
   border: 1px solid rgba(0, 0, 0, 0.12);
   background-color: #ffffff;
   color: #1d1d1f;
+  cursor: text !important;
+  caret-color: #0071e3 !important;
   transition: all 0.15s ease;
+}
+
+/* Triệt tiêu nút spin button mặc định trên WebKit/Blink (Chrome, Edge, Safari, Opera) */
+.matrix-input-cell input::-webkit-outer-spin-button,
+.matrix-input-cell input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+/* Triệt tiêu nút spin button trên Firefox */
+.matrix-input-cell input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
 }
 
 .matrix-input-cell input:focus {

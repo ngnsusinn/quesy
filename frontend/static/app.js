@@ -3681,7 +3681,7 @@
                           }
 
                           rowCellsHtml += `
-                            <td class="p-1.5 text-center border-l border-slate-200 matrix-input-cell">
+                            <td class="p-1.5 text-center border-l border-slate-200 matrix-input-cell" onclick="const inp=this.querySelector('input'); if(inp && event.target!==inp){inp.focus(); inp.select();}">
                               <input type="number" min="0" max="50" value="${val || ''}" 
                                 onchange="app.onMatrixCellChange('${arch.id}', ${fc.sectionNum}, '${fc.format}', '${lvl}', this.value)"
                                 class="w-11 text-center font-bold text-xs py-1 rounded-md border border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
@@ -5420,6 +5420,18 @@
       seedInitialQuestions();
     }
     setupPaperDropZone();
+
+    // Global event delegation for matrix cells click-to-focus
+    document.addEventListener('click', (e) => {
+      const cell = e.target.closest('.matrix-input-cell');
+      if (cell) {
+        const inp = cell.querySelector('input');
+        if (inp && e.target !== inp) {
+          inp.focus();
+          inp.select();
+        }
+      }
+    });
 
     // Setup Browser History popstate listener for SPA Router
     window.addEventListener('popstate', (event) => {

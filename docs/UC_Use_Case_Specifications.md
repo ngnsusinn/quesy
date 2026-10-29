@@ -159,8 +159,8 @@
 #### Luồng sự kiện chính:
 1. Khi khởi động ứng dụng hoặc F5 tải lại trang, client thực thi `fetchQuestionsFromDB()` gọi API `GET /api/v1/questions?limit=1000`.
 2. Hệ thống nạp toàn bộ danh sách câu hỏi thực tế từ SQLite vào `state.itemBank`.
-3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`), áp dụng chuẩn hóa `formatStemForDisplay` cho mọi stem/options/sub-statements, kích hoạt `renderKaTeX(container)` đảm bảo $100\%$ công thức toán học được biên dịch sắc nét (không sót text thô), và cập nhật bộ đếm badge thời gian thực.
-4. Toàn bộ các box chọn bộ lọc taxonomy áp dụng class `.apple-select` với icon chevron SVG slate-500, loại bỏ hoàn toàn class `font-mono` tại `#bank-filter-yccd` để giữ vững typography sans-serif Apple HIG.
+3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`), áp dụng chuẩn hóa `formatStemForDisplay` cho mọi stem/options/sub-statements, kích hoạt `renderKaTeX(container)` đảm bảo $100\\%$ công thức toán học được biên dịch sắc nét (không sót text thô), và cập nhật bộ đếm badge thời gian thực.
+4. Toàn bộ các box chọn bộ lọc taxonomy áp dụng class `.apple-select` với icon chevron SVG slate-500, loại bỏ hoàn toàn class `font-mono` tại `#bank-filter-yccd` để giữ vững typography sans-serif Apple HIG; ô tìm kiếm `#bank-search-input` trang bị đệm an toàn 36px (`padding-left: 2.25rem !important;`) và icon kính lúp `pointer-events-none` chống đè placeholder và tối ưu nhận focus chuột.
 5. Hệ thống kiểm tra: Nếu CSDL đã có dữ liệu (`state.itemBank.length > 0`), tuyệt đối KHÔNG kích hoạt `seedInitialQuestions()`, bảo toàn 100% dữ liệu thực.
 6. Khi người dùng thực hiện tạo câu hỏi mới, import LaTeX hàng loạt, chỉnh sửa câu hỏi, xóa câu hỏi hoặc bấm "LƯU VÀO NGÂN HÀNG" từ phân hệ Soạn đề, các thay đổi được ghi trực tiếp vào SQLite và client tự động kích hoạt `fetchQuestionsFromDB()` để đồng bộ lại dữ liệu.
 
@@ -184,7 +184,7 @@
      * Tên dạng bài tập được biên dịch công thức toán học KaTeX trực quan.
      * Người dùng sử dụng các nút trên thanh công cụ Cột 1:
        + Nút **"Mở hết" (Expand All)** và **"Đóng hết" (Collapse All)** để gập/mở cây.
-       + **Ô tìm kiếm dạng bài (`#matrix-search-archetype`):** Gõ từ khóa để lọc các dạng bài hoặc bài học cần cấu hình.
+       + **Ô tìm kiếm dạng bài (`#matrix-search-archetype`):** Gõ từ khóa để lọc các dạng bài hoặc bài học cần cấu hình; trang bị đệm an toàn 36px (`padding-left: 2.25rem !important;`) và icon `pointer-events-none` triệt tiêu lỗi che đè placeholder và cho phép click thẳng vào input.
        + **Checkbox "Dạng có câu":** Lọc ẩn các dạng bài không có câu hỏi trong ngân hàng.
        + **Presets Khảo thí:** Chọn áp dụng nhanh ma trận mẫu Chuẩn THPT 2025 (22 câu 10.0đ), Định kỳ (20 câu), hoặc Cuối kỳ (28 câu).
    - **3 Nhóm Cột Lớn (Chuẩn Định Dạng 2025) x 4 Cột Con Nhận Thức:**
@@ -193,6 +193,8 @@
      * Nhóm Phần III (Trả lời ngắn, 0.5đ/câu): Gồm 4 cột con NB, TH, VD, VDC.
      * Cột ngoài cùng: Tổng câu và Tổng điểm từng dòng.
 4. Người dùng nhập số lượng câu hỏi cần rút vào các ô giao nhau giữa Dạng bài và (Phần thi, Cấp độ nhận thức):
+   - Các ô nhập liệu (`.matrix-input-cell`, `<input type="number">`) được ẩn hoàn toàn spin buttons mặc định của trình duyệt (`-webkit-appearance: none`, `-moz-appearance: textfield`), loại bỏ triệt để hiện tượng con trỏ chuột bị biến mất hoặc vô hình khi rê chuột vào ô trên Chromium Windows.
+   - Con trỏ chuột và caret hiển thị sắc nét (`cursor: text`, `caret-color: #0071e3`), hiệu ứng hover nhẹ nhàng (`background-color: rgba(0, 113, 227, 0.05)`). Thao tác nhấp chuột vào bất kỳ vị trí nào trong ô `td.matrix-input-cell` tự động kích hoạt focus và chọn nội dung số trong input (Click-to-Focus).
    - Mỗi ô input đi kèm chip badge hiển thị tồn kho câu hỏi thực tế trong CSDL Question Bank (`Kho: {stock}`).
    - Chip badge tự động chuyển màu xanh lá (`stock-ok`) nếu đủ câu khả dụng hoặc màu đỏ cảnh báo (`stock-warn`) nếu số lượng chọn lớn hơn số câu trong kho.
 5. Hệ thống tính toán thời gian thực:

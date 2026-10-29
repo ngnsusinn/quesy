@@ -1095,8 +1095,8 @@
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-1">Tìm kiếm từ khóa / Mã câu</label>
               <div class="relative">
-                <input type="text" id="bank-search-input" oninput="app.renderItemBank()" placeholder="Nhập từ khóa hoặc công thức..." class="w-full text-xs rounded-xl border border-slate-200 py-1.5 pl-8 pr-3 bg-white focus:ring-2 focus:ring-brand-500">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+                <input type="text" id="bank-search-input" oninput="app.renderItemBank()" placeholder="Nhập từ khóa hoặc công thức..." class="w-full text-xs rounded-xl border border-slate-200 py-1.5 pl-8 pr-3 bg-white focus:ring-2 focus:ring-brand-500 search-input-with-icon">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none"></i>
               </div>
             </div>
           </div>
@@ -1203,8 +1203,8 @@
           <div id="matrix-tree-toolbar" class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div class="flex items-center space-x-2 flex-wrap gap-2">
               <div class="relative">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
-                <input type="text" id="matrix-search-archetype" oninput="app.onMatrixSearchInput(this.value)" placeholder="Tìm kiếm dạng bài, bài học..." class="apple-input pl-8 pr-3 py-1.5 text-xs rounded-lg w-64">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none"></i>
+                <input type="text" id="matrix-search-archetype" oninput="app.onMatrixSearchInput(this.value)" placeholder="Tìm kiếm dạng bài, bài học..." class="apple-input pl-8 pr-3 py-1.5 text-xs rounded-lg w-64 search-input-with-icon">
               </div>
               <label class="flex items-center space-x-1.5 cursor-pointer bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-700 select-none">
                 <input type="checkbox" id="matrix-filter-has-stock" onchange="app.onMatrixFilterStockChange(this.checked)" class="rounded text-brand-600 focus:ring-brand-500 w-3.5 h-3.5">
