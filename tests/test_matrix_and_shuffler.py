@@ -1094,7 +1094,7 @@ def test_apple_select_ui_styling_and_html_select_coverage():
 
     # Tìm tất cả thẻ mở <select ...>
     select_tags = re.findall(r'<select\b[^>]*>', html_content, flags=re.IGNORECASE)
-    assert len(select_tags) == 20, f"Kỳ vọng đúng 19 thẻ <select> trong HTML, thực tế tìm thấy: {len(select_tags)}"
+    assert len(select_tags) == 21, f"Kỳ vọng đúng 21 thẻ <select> trong HTML, thực tế tìm thấy: {len(select_tags)}"
 
     # Khẳng định 100% thẻ <select> đều chứa class 'apple-select'
     for tag in select_tags:
@@ -1107,7 +1107,7 @@ def test_apple_select_ui_styling_and_html_select_coverage():
     assert "apple-select" in yccd_tag, "#bank-filter-yccd phải chứa class 'apple-select'"
     assert "font-mono" not in yccd_tag, "#bank-filter-yccd tuyệt đối không được chứa class 'font-mono'"
 
-    # Kiểm tra danh sách 19 IDs bắt buộc
+    # Kiểm tra danh sách IDs bắt buộc (kèm bank-page-size-select)
     expected_select_ids = [
         "bank-filter-grade",
         "bank-filter-subject",
@@ -1118,6 +1118,7 @@ def test_apple_select_ui_styling_and_html_select_coverage():
         "bank-filter-archetype",
         "bank-filter-cognitive",
         "bank-filter-format",
+        "bank-page-size-select",
         "matrix-param-time",
         "matrix-select-preset",
         "shuffler-select-master-exam",
@@ -1782,4 +1783,198 @@ def test_matrix_input_cell_styling_spin_buttons_and_click_to_focus():
     assert "closest('.matrix-input-cell')" in init_code
     assert "inp.focus()" in init_code
     assert "inp.select()" in init_code
+
+
+# =========================================================================
+# 21. KIỂM THỬ HIGH-CONTRAST TEXT CURSOR & PHÂN TRANG NGÂN HÀNG CÂU HỎI (APPLE HIG)
+# =========================================================================
+
+def test_high_contrast_black_cursor_and_caret_styling():
+    """Kiểm thử CSS rules cho con trỏ I-beam tương phản cao và hiệu ứng focus/hover ô ma trận:
+    1. Custom SVG Data URI con trỏ I-beam nét đen 2.8px viền trắng 1px:
+       - Biến CSS --high-contrast-text-cursor được định nghĩa trong :root.
+       - Áp dụng cho toàn bộ text inputs, number, search, textarea, .apple-input, .matrix-input-cell, .matrix-input-cell input.
+    2. Caret Color:
+       - caret-color: #000000 !important cho các ô nhập liệu và ma trận.
+    3. Hiệu ứng Hover & Focus trên .matrix-input-cell:
+       - .matrix-input-cell:hover có background rgba(0, 113, 227, 0.08) !important.
+       - .matrix-input-cell:hover input có viền #0071e3 và box-shadow 0 0 0 2px rgba(0, 113, 227, 0.25).
+       - .matrix-input-cell input:focus có border-color #0071e3, caret-color #000000, box-shadow tương ứng.
+    """
+    from pathlib import Path
+    css_path = Path("frontend/static/style.css")
+    assert css_path.exists(), "frontend/static/style.css phải tồn tại"
+
+    css_content = css_path.read_text(encoding="utf-8")
+
+    # 1. Kiểm tra định nghĩa biến --high-contrast-text-cursor trong :root
+    assert "--high-contrast-text-cursor:" in css_content
+    svg_marker = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'"
+    assert svg_marker in css_content
+
+    # Nét đen 2.8px và nét trắng 1px
+    assert "stroke='%23000000' stroke-width='2.8'" in css_content
+    assert "stroke='%23ffffff' stroke-width='1'" in css_content
+    # Coordinates I-beam
+    assert "d='M8 3h8M8 21h8M12 3v18'" in css_content
+
+    # 2. Kiểm tra áp dụng cursor cho các loại selector
+    cursor_rule_idx = css_content.find("/* --- High-Contrast Bold Black Text Cursor & Caret (§1 UI Specs) --- */")
+    assert cursor_rule_idx != -1
+    cursor_block = css_content[cursor_rule_idx : cursor_rule_idx + 2500]
+
+    assert 'input[type="text"]' in cursor_block
+    assert 'input[type="number"]' in cursor_block
+    assert 'input[type="search"]' in cursor_block
+    assert "textarea" in cursor_block
+    assert ".apple-input" in cursor_block
+    assert ".search-input-with-icon" in cursor_block
+    assert ".matrix-input-cell" in cursor_block
+    assert ".matrix-input-cell input" in cursor_block
+
+    # 3. Kiểm tra caret-color: #000000 !important
+    assert "caret-color: #000000 !important;" in cursor_block
+
+    # 4. Kiểm tra Enhanced Matrix Input Cell Hover & Focus
+    assert ".matrix-input-cell:hover" in cursor_block
+    assert "background-color: rgba(0, 113, 227, 0.08) !important;" in cursor_block
+
+    assert ".matrix-input-cell:hover input" in cursor_block
+    assert "border-color: #0071e3 !important;" in cursor_block
+    assert "box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25) !important;" in cursor_block
+
+    assert ".matrix-input-cell input:focus" in cursor_block
+    assert "border-color: #0071e3 !important;" in cursor_block
+    assert "caret-color: #000000 !important;" in cursor_block
+
+
+def test_bank_pagination_dom_and_ui_controls():
+    """Kiểm thử cấu trúc DOM phân trang Ngân hàng câu hỏi trong frontend/index.html:
+    1. Vị trí component: #bank-pagination-controls nằm ngay dưới #bank-cards-grid.
+    2. Chi tiết các thành phần giao diện Apple HIG:
+       - #bank-pagination-info hiển thị dải câu hỏi.
+       - #bank-page-range hiển thị range (ví dụ: '1 - 12').
+       - #bank-page-total hiển thị tổng số câu hỏi.
+       - #bank-pagination-buttons chứa các nút phân trang động.
+       - #bank-page-size-select chọn số câu/trang với các tùy chọn 12, 24, 48.
+    """
+    from pathlib import Path
+    html_path = Path("frontend/index.html")
+    assert html_path.exists(), "frontend/index.html phải tồn tại"
+
+    html_content = html_path.read_text(encoding="utf-8")
+
+    # 1. Kiểm tra sự tồn tại của #bank-cards-grid và #bank-pagination-controls
+    grid_idx = html_content.find('id="bank-cards-grid"')
+    controls_idx = html_content.find('id="bank-pagination-controls"')
+    assert grid_idx != -1, "Phải tìm thấy #bank-cards-grid trong index.html"
+    assert controls_idx != -1, "Phải tìm thấy #bank-pagination-controls trong index.html"
+    assert controls_idx > grid_idx, "#bank-pagination-controls phải nằm ngay dưới #bank-cards-grid"
+
+    # Trích xuất block pagination controls
+    pagination_block = html_content[controls_idx : controls_idx + 1200]
+
+    # 2. Kiểm tra các phần tử con
+    assert 'id="bank-pagination-info"' in pagination_block
+    assert 'id="bank-page-range"' in pagination_block
+    assert 'id="bank-page-total"' in pagination_block
+    assert 'id="bank-pagination-buttons"' in pagination_block
+    assert 'id="bank-page-size-select"' in pagination_block
+
+    # 3. Kiểm tra dropdown số câu/trang (12 / 24 / 48) và onchange event
+    assert 'onchange="app.changeBankPageSize(this.value)"' in pagination_block
+    assert '<option value="12">12 câu/trang</option>' in pagination_block
+    assert '<option value="24">24 câu/trang</option>' in pagination_block
+    assert '<option value="48">48 câu/trang</option>' in pagination_block
+
+
+def test_bank_pagination_javascript_contract_and_slice_rendering():
+    """Kiểm thử logic JavaScript phân trang ngân hàng câu hỏi trong frontend/static/app.js:
+    1. Trạng thái state.bankPagination khởi tạo với { currentPage: 1, pageSize: 12 }.
+    2. Hàm renderBankPagination(totalItems, currentPage, pageSize):
+       - Ẩn container khi totalItems <= 0.
+       - Cập nhật bank-page-range, bank-page-total.
+       - Sinh nút Trước, Sau, active page (#0071e3), smart ellipsis (...).
+    3. Hàm renderItemBank() phân trang cắt lát (slice):
+       - pagedItems = filtered.slice(startIndex, endIndex).
+       - Chỉ render số câu của trang hiện tại (pageSize) thay vì toàn bộ ngân hàng.
+       - Đánh số globalIdx = startIndex + pIdx + 1.
+    4. Hàm changeBankPage(newPage) và changeBankPageSize(newSize):
+       - Kiểm tra biên trang (1 <= newPage <= totalPages).
+       - scrollIntoView({ behavior: 'smooth', block: 'start' }).
+       - changeBankPageSize cập nhật pageSize và reset currentPage = 1.
+    5. Tự động reset currentPage = 1 khi thay đổi bộ lọc (handleBankFilterChange, handleTaxonomyFilterChange).
+    6. Expose đầy đủ lên window.app.
+    """
+    from pathlib import Path
+    js_path = Path("frontend/static/app.js")
+    assert js_path.exists(), "frontend/static/app.js phải tồn tại"
+
+    js_content = js_path.read_text(encoding="utf-8")
+
+    # 1. Kiểm tra state.bankPagination khởi tạo
+    assert "bankPagination: { currentPage: 1, pageSize: 12 }" in js_content
+
+    # 2. Kiểm tra hàm renderBankPagination
+    render_pag_idx = js_content.find("function renderBankPagination(totalItems, currentPage, pageSize)")
+    assert render_pag_idx != -1
+    render_pag_code = js_content[render_pag_idx : render_pag_idx + 3500]
+
+    assert "bank-pagination-controls" in render_pag_code
+    assert "totalItems <= 0" in render_pag_code
+    assert "bank-page-range" in render_pag_code
+    assert "bank-page-total" in render_pag_code
+    assert "bank-pagination-buttons" in render_pag_code
+    assert "app.changeBankPage" in render_pag_code
+    assert "&lt; Trước" in render_pag_code
+    assert "Sau &gt;" in render_pag_code
+
+    # 3. Kiểm tra logic phân trang cắt lát (slice) trong renderItemBank
+    render_bank_idx = js_content.find("function renderItemBank()")
+    assert render_bank_idx != -1
+    render_bank_code = js_content[render_bank_idx : render_bank_idx + 3500]
+
+    assert "state.bankPagination.pageSize || 12" in render_bank_code
+    assert "state.bankPagination.currentPage || 1" in render_bank_code
+    assert "renderBankPagination(totalItems, currentPage, pageSize)" in render_bank_code
+    assert "const startIndex = (currentPage - 1) * pageSize;" in render_bank_code
+    assert "const endIndex = Math.min(startIndex + pageSize, totalItems);" in render_bank_code
+    assert "const pagedItems = filtered.slice(startIndex, endIndex);" in render_bank_code
+    assert "const globalIdx = startIndex + pIdx + 1;" in render_bank_code
+
+    # 4. Kiểm tra changeBankPage và changeBankPageSize
+    change_page_idx = js_content.find("function changeBankPage(newPage)")
+    assert change_page_idx != -1
+    change_page_code = js_content[change_page_idx : change_page_idx + 2200]
+
+    assert "state.bankPagination.currentPage = newPage;" in change_page_code
+    assert "grid.scrollIntoView({ behavior: 'smooth', block: 'start' })" in change_page_code
+
+    change_size_idx = js_content.find("function changeBankPageSize(newSize)")
+    assert change_size_idx != -1
+    change_size_code = js_content[change_size_idx : change_size_idx + 600]
+
+    assert "state.bankPagination.pageSize = parseInt(newSize, 10) || 12;" in change_size_code
+    assert "state.bankPagination.currentPage = 1;" in change_size_code
+
+    # 5. Kiểm tra logic reset currentPage = 1 khi đổi bộ lọc
+    filter_change_idx = js_content.find("function handleBankFilterChange()")
+    assert filter_change_idx != -1
+    filter_change_code = js_content[filter_change_idx : filter_change_idx + 300]
+    assert "state.bankPagination.currentPage = 1;" in filter_change_code
+
+    tax_filter_idx = js_content.find("function handleTaxonomyFilterChange(level)")
+    assert tax_filter_idx != -1
+    tax_filter_code = js_content[tax_filter_idx : tax_filter_idx + 300]
+    assert "state.bankPagination.currentPage = 1;" in tax_filter_code
+
+    # 6. Kiểm tra window.app expose các hàm phân trang
+    app_export_idx = js_content.find("window.app = {")
+    assert app_export_idx != -1
+    app_export_code = js_content[app_export_idx : app_export_idx + 1500]
+
+    assert "changeBankPage," in app_export_code
+    assert "changeBankPageSize," in app_export_code
+    assert "handleBankFilterChange," in app_export_code
+
 

@@ -1063,7 +1063,7 @@
             <!-- Problem Archetype -->
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-1">Dạng câu hỏi (Problem Archetype)</label>
-              <select id="bank-filter-archetype" onchange="app.renderItemBank()" class="apple-select w-full text-xs">
+              <select id="bank-filter-archetype" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
                 <option value="all">Tất cả Dạng bài</option>
               </select>
             </div>
@@ -1071,7 +1071,7 @@
             <!-- Cognitive Level -->
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-1">Mức độ nhận thức</label>
-              <select id="bank-filter-cognitive" onchange="app.renderItemBank()" class="apple-select w-full text-xs">
+              <select id="bank-filter-cognitive" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
                 <option value="all">Tất cả Mức độ</option>
                 <option value="RECOGNITION">Nhận biết</option>
                 <option value="COMPREHENSION">Thông hiểu</option>
@@ -1083,7 +1083,7 @@
             <!-- Item Format (QĐ 764) -->
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-1">Thể thức câu hỏi (QĐ 764)</label>
-              <select id="bank-filter-format" onchange="app.renderItemBank()" class="apple-select w-full text-xs">
+              <select id="bank-filter-format" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
                 <option value="all">Tất cả Thể thức</option>
                 <option value="SINGLE_CHOICE">Trắc nghiệm đơn (4 lựa chọn)</option>
                 <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý</option>
@@ -1095,7 +1095,7 @@
             <div>
               <label class="block text-[11px] font-medium text-slate-500 mb-1">Tìm kiếm từ khóa / Mã câu</label>
               <div class="relative">
-                <input type="text" id="bank-search-input" oninput="app.renderItemBank()" placeholder="Nhập từ khóa hoặc công thức..." class="w-full text-xs rounded-xl border border-slate-200 py-1.5 pl-8 pr-3 bg-white focus:ring-2 focus:ring-brand-500 search-input-with-icon">
+                <input type="text" id="bank-search-input" oninput="app.handleBankFilterChange()" placeholder="Nhập từ khóa hoặc công thức..." class="w-full text-xs rounded-xl border border-slate-200 py-1.5 pl-8 pr-3 bg-white focus:ring-2 focus:ring-brand-500 search-input-with-icon">
                 <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none"></i>
               </div>
             </div>
@@ -1133,6 +1133,22 @@
         <!-- Question Cards Grid -->
         <div id="bank-cards-grid" class="space-y-4">
           <!-- Dynamic Bank Items render here -->
+        </div>
+
+        <!-- Bank Pagination Controls (Apple HIG) -->
+        <div id="bank-pagination-controls" class="apple-card p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 mt-4 transition-all">
+          <div id="bank-pagination-info" class="font-medium text-slate-600">
+            Hiển thị <span class="font-bold text-slate-900" id="bank-page-range">1 - 12</span> trong tổng số <span class="font-bold text-slate-900" id="bank-page-total">0</span> câu hỏi
+          </div>
+          <div id="bank-pagination-buttons" class="flex items-center space-x-1.5 flex-wrap justify-center"></div>
+          <div class="flex items-center space-x-2">
+            <span class="text-slate-500 whitespace-nowrap">Số câu/trang:</span>
+            <select id="bank-page-size-select" onchange="app.changeBankPageSize(this.value)" class="apple-select text-xs py-1 px-2 font-semibold">
+              <option value="12">12 câu/trang</option>
+              <option value="24">24 câu/trang</option>
+              <option value="48">48 câu/trang</option>
+            </select>
+          </div>
         </div>
 
       </section>

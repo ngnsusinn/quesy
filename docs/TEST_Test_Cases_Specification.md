@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
+- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 215+ Tests (100% Passed)  
-- **Ngày lập:** 2026-10-28  
+- **Tổng số kịch bản tự động hóa:** 220+ Tests (100% Passed)  
+- **Ngày lập:** 2026-10-29  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
 ---
@@ -42,6 +42,7 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 | **TS-09** | Soạn đề LaTeX AI, Live PDF & Save-to-Bank 3 Thể Thức | FR-02.1, FR-02.2, NFR-COMP-02 | 118 | P0 (Must Have) |
 | **TS-10** | Quản trị CI/CD & Cổng Pre-Commit Gate | NFR-DEV-01..06, TC-DEV-01..02 | 2 | P0 (Critical) |
 | **TS-11** | Hệ Thống Xác Thực Auth (PBKDF2, JWT, OAuth Google/GitHub, RBAC) | BR-05.2, FR-08, AUTH-01 | 19 | P0 (Critical) |
+| **TS-12** | Con Trỏ Soạn Thảo Đen Tương Phản Cao & Phân Trang Ngân Hàng Apple HIG | BR-03, BR-04, FR-04.9, FR-05.6, NFR-USA-09,10 | 5 | P0 (Must Have) |
 
 ---
 
@@ -667,6 +668,50 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Mô tả:** Kiểm tra ô chọn "6. Yêu cầu cần đạt" (`#bank-filter-yccd`) trong thanh bộ lọc Ngân hàng câu hỏi (`#tab-bank`).
 - **Thao tác:** Đọc thuộc tính `className` và computed `font-family` của `#bank-filter-yccd`.
 - **Kết quả kỳ vọng:** Hoàn toàn không còn class `font-mono`; font chữ hiển thị chuẩn sans-serif Apple HIG (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif`), đồng nhất 100% với 5 dropdown taxonomy còn lại.
+
+---
+
+### TS-12: CON TRỎ SOẠN THẢO ĐEN TƯƠNG PHẢN CAO & PHÂN TRANG NGÂN HÀNG APPLE HIG
+
+#### TC-CURSOR-01: Kiểm Thử Con Trỏ Soạn Thảo Đen Tương Phản Cao (High-Contrast Bold Black Text Cursor & Caret)
+- **Mô tả:** Kiểm tra kiểu dáng con trỏ chuột và màu nhấp nháy caret trên các ô số ma trận và toàn bộ các trường nhập text.
+- **Thao tác:** Rê chuột và focus vào các phần tử: `.matrix-input-cell`, `.matrix-input-cell input`, `input[type="text"]`, `input[type="number"]`, `input[type="search"]`, `textarea`, `.apple-input`.
+- **Kết quả kỳ vọng:**
+  * Thuộc tính `cursor` trả về SVG Data URI I-beam màu đen nét 2.8px viền trắng 1.0px với fallback `text !important`.
+  * Thuộc tính `caret-color` trên các input sáng màu và ô ma trận trả về `#000000` (rgb(0, 0, 0)).
+  * Con trỏ chuột nổi bật rõ nét 100% trên nền sáng và không bị biến mất hay vô hình.
+
+#### TC-CURSOR-02: Kiểm Thử Hiệu Ứng Vi Tương Tác Hover Trên Ô Ma Trận (`.matrix-input-cell`)
+- **Mô tả:** Kiểm tra phản hồi trực quan khi rê chuột vào các ô nhập số lượng của bảng ma trận đề thi.
+- **Thao tác:** Di chuyển con trỏ chuột vào vùng thẻ `td.matrix-input-cell`.
+- **Kết quả kỳ vọng:**
+  * Nền của `td.matrix-input-cell` chuyển sang màu xanh nhạt `rgba(0, 113, 227, 0.08)`.
+  * Thẻ `<input>` bên trong kích hoạt viền xanh Apple `#0071e3` cùng bóng hào quang `box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25)`.
+  * Nhấp chuột vào bất kỳ vị trí nào trong ô `td` kích hoạt focus và bôi đen số trong thẻ input (Click-to-Focus).
+
+#### TC-BANK-PAGINATION-01: Kiểm Thử Cơ Chế Phân Trang Cắt Lát (Slice Paging) & Thanh Điều Khiển Apple HIG
+- **Mô tả:** Kiểm tra việc chia trang danh sách câu hỏi trong Ngân hàng (`/bank`).
+- **Thao tác:** Nạp ngân hàng câu hỏi (240+ câu), kiểm tra số lượng card câu hỏi hiển thị trong `#bank-cards-grid` và thanh `#bank-pagination-controls`.
+- **Kết quả kỳ vọng:**
+  * Số lượng thẻ câu hỏi được render trong DOM đúng bằng `state.bankPagination.pageSize` (mặc định 12 câu), không render dồn dập toàn bộ 240+ câu.
+  * Thanh `#bank-pagination-controls` hiển thị: `Hiển thị 1 - 12 trong tổng số 240 câu hỏi` (hoặc tổng số câu thực tế).
+  * Nút `< Trước` ở trạng thái disabled khi đang ở trang 1.
+  * Nhấp nút `Sau >` hoặc nút trang 2: chuyển sang trang 2, render 12 câu tiếp theo, cập nhật dải hiển thị `Hiển thị 13 - 24...`.
+  * Chuyển đổi dropdown `#bank-page-size-select` sang 24 hoặc 48: hiển thị đúng 24 hoặc 48 câu/trang và tính toán lại tổng số trang.
+
+#### TC-BANK-PAGINATION-02: Kiểm Thử Tự Động Reset Về Trang 1 Khi Lọc & Cuộn Mượt Về Đầu Danh Sách
+- **Mô tả:** Kiểm tra hành vi tự động reset trang khi người dùng tương tác với bộ lọc, và hành vi cuộn trang mượt mà.
+- **Thao tác:** Đang ở trang 3, thực hiện gõ từ khóa tìm kiếm vào `#bank-search-input` hoặc chọn mức độ nhận thức / YCCĐ / thể thức câu hỏi. Bấm nút chuyển trang.
+- **Kết quả kỳ vọng:**
+  * `state.bankPagination.currentPage` tự động reset về 1, hiển thị kết quả từ câu 1 của danh sách lọc mới.
+  * Khi chuyển trang, giao diện kích hoạt `scrollIntoView({ behavior: 'smooth', block: 'start' })` đưa cuộn trang về đầu danh sách `#bank-cards-grid`.
+
+#### TC-BANK-PAGINATION-03: Kiểm Thử Hiệu Năng Render KaTeX Theo Trang On-Demand (<50ms)
+- **Mô tả:** Đo lường thời gian thực thi của hàm `renderItemBank()` và `renderKaTeX()`.
+- **Thao tác:** Sử dụng `console.time` đo thời gian từ khi gọi `renderItemBank()` đến khi hoàn tất render KaTeX trên trang 12 câu.
+- **Kết quả kỳ vọng:**
+  * Thời gian thực thi $\le 50$ms (thường đạt $< 10$ms).
+  * Không phát sinh lỗi console error (`console.error`), giao diện phản hồi tức thì 60 FPS.
 
 ---
 

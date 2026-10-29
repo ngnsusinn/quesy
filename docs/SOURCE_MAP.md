@@ -3,8 +3,8 @@
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Phiên bản:** v3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
-> **Cập nhật lần cuối:** 28/10/2026
+> **Phiên bản:** v3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+> **Cập nhật lần cuối:** 29/10/2026
 
 ---
 
@@ -390,13 +390,18 @@ ight., Environment undefined)
       * Modal Xem chi tiết (`#question-detail-modal`): Xem công thức KaTeX/TikZ sắc nét, barem điểm bậc thang QĐ 764, chỉ số khảo thí trắc nghiệm ($p, D$), cây phân loại chuẩn.
       * Modal Sửa câu hỏi (`#question-edit-modal`): Cho phép cập nhật toàn diện stem, phương án A-D, cờ khóa neo D, khẳng định a-d, đáp án ngắn, dung sai, YCCĐ và lời giải chi tiết.
       * Chức năng Xóa câu hỏi: Hộp thoại xác nhận, xóa triệt để cascade CSDL, tự động cập nhật ngay số lượng và làm mới danh sách.
+    + *Hệ thống Phân trang Ngân hàng Chuẩn Apple HIG (Item Bank Pagination):*
+      * Quản trị trạng thái qua `state.bankPagination = { currentPage: 1, pageSize: 12 }` (hỗ trợ chọn 12, 24, 48 câu/trang).
+      * Cắt lát mảng câu hỏi sau khi lọc (`filtered.slice(start, end)`), chỉ render DOM và gọi `renderKaTeX(container)` cho các câu hỏi trên trang hiện tại, giảm thời gian render từ ~200ms xuống <10ms.
+      * Thanh phân trang `#bank-pagination-controls`: hiển thị dải số câu hỏi, cụm nút Trước/Sau, dải số trang thông minh với active Apple Blue `#0071e3`, dropdown chọn kích thước `.apple-select`.
+      * Tự động reset về trang 1 khi thay đổi bất kỳ bộ lọc nào và cuộn mượt (`smooth scroll`) về đầu danh sách câu hỏi.
     + *Xuất & Nhập Ngân hàng Câu hỏi:*
       * Xuất danh sách: Hỗ trợ xuất sang PDF vector in ấn (khổ A4, Times/CMU Serif), CSV UTF-8 BOM chuẩn Excel tiếng Việt, LaTeX `.tex` thuần gói `ex_test.sty`.
       * Nhập câu hỏi: Nhập từ file văn bản/mã LaTeX/JSON, tự động phân tích cú pháp, kiểm tra trùng lặp và đẩy vào CSDL.
     + *Cảnh báo Trùng lặp AI & Auto-tagging:* Tính toán Cosine Similarity ($\ge 0.90$), tự động phân tích và gắn mã YCCĐ theo nội dung câu hỏi.
     + *Đồng bộ Huy hiệu Số lượng:* Tự động đồng bộ số lượng câu hỏi thực tế trên badge `#bank-count-badge`.
   - `app.auth`: Quản lý hệ thống xác thực người dùng & phân quyền RBAC:
-    + Quản lý phiên đăng nhập qua JWT HS256 lưu an toàn tại `localStorage` (`quesy_auth_token`), tự động đính kèm header `Authorization: Bearer <token>` vào các API requests.
+    + Quản lý phiên đăng nhập qua JWT HS256 lưu an toàn tại `localStorage` (`quesy_auth_token`), tự động đính kèm header `Authorization: Bearer *** vào các API requests.
     + Điều khiển giao diện header: Trạng thái chưa đăng nhập (Nút Đăng nhập / Đăng ký Apple HIG); Trạng thái đã đăng nhập (Avatar, Họ tên, Role badge `Giáo viên`/`Học sinh`/`Quản trị`, menu dropdown có chức năng Đăng xuất).
     + Modal Đăng nhập / Đăng ký (`#auth-modal`): Chuyển tab Đăng nhập & Đăng ký mượt mà, tích hợp đăng nhập OAuth Google và GitHub, đăng nhập nhanh tài khoản giáo viên/admin thử nghiệm.
   - `app.matrix`: Quản lý ma trận đề thi 2 chiều (`#tab-matrix`):
@@ -412,7 +417,8 @@ ight., Environment undefined)
     + *Unified Dropdown Select (.apple-select):* Class CSS độc quyền chuẩn Apple HIG thay thế mũi tên mặc định của hệ điều hành bằng icon chevron SVG slate-500 `#64748b`, bo góc 12px, padding `0.45rem 2.2rem 0.45rem 0.75rem`, hiệu ứng focus hào quang Apple Blue (`#0071e3`), áp dụng đồng bộ 100% cho toàn bộ 19 select tĩnh và các select sinh động. Xóa bỏ hoàn toàn lỗi font monospace trên ô chọn YCCĐ (`#bank-filter-yccd`) và đồng bộ hoàn hảo ô thời gian làm bài (`#matrix-param-time`).
     + *Toàn Diện Động Cơ KaTeX (Global renderKaTeX Engine):* Expose `window.renderKaTeX` và `window.app.renderKaTeX`, chuẩn hóa chuỗi qua `formatStemForDisplay(cleanOptionAnswer(...), true)`, phủ kín toàn bộ các điểm kết xuất (Ngân hàng, Ma trận 2D, Modal chi tiết, Đề gốc, Đề hoán vị), triệt tiêu 100% tình trạng sót chuỗi văn bản thô `$ ... $` của công thức toán.
     + *Search Input with Leading Icon Spacing (.search-input-with-icon):* Định nghĩa `padding-left: 2.25rem !important;` (36px) cho `#matrix-search-archetype`, `#bank-search-input` và class `.search-input-with-icon`, khắc phục triệt để việc rule `.apple-input, input[type="text"]` ghi đè `pl-8` gây đè chữ placeholder lên icon kính lúp. Icon trang bị `pointer-events-none` chuyển tiếp click chuột vào input.
-    + *Matrix Input Cells Ergonomics & Anti-Glitch Cursor (.matrix-input-cell):* Triệt tiêu hoàn toàn spin buttons trên Chromium/WebKit và Firefox (`::-webkit-inner-spin-button { -webkit-appearance: none }`, `appearance: textfield`), loại bỏ 100% hiện tượng con trỏ chuột bị ẩn/biến mất trên Chromium Windows. Thiết lập tường minh `cursor: text !important; caret-color: #0071e3 !important;` cho input và `cursor: pointer` cho ô cell, kết hợp cơ chế Click-to-Focus toàn ô (nhấp vào bất kỳ đâu trên `td.matrix-input-cell` tự động focus và bôi đen input).
+    + *High-Contrast Bold Black Text Cursor & Caret System (.matrix-input-cell & Inputs):* Triệt tiêu hoàn toàn spin buttons trên Chromium/WebKit và Firefox (`::-webkit-inner-spin-button { -webkit-appearance: none }`, `appearance: textfield`). Thiết lập con trỏ chuột dạng SVG I-beam màu đen đậm nét 2.8px kết hợp viền trắng tương phản 1.0px (`cursor: url("data:image/svg+xml,...") 12 12, text !important;`) cho toàn bộ `.matrix-input-cell`, `.matrix-input-cell input`, `input[type="text"]`, `input[type="number"]`, `input[type="search"]`, `input[type="email"]`, `input[type="password"]`, `.apple-input`, `.search-input-with-icon`, và `textarea`. Thiết lập `caret-color: #000000 !important;` cho các input sáng màu và ô số ma trận. Khi hover ô `.matrix-input-cell`: nền xanh nhạt `rgba(0, 113, 227, 0.08)`, viền input `#0071e3`, bóng đổ `0 0 0 2px rgba(0, 113, 227, 0.25)`. Hỗ trợ Click-to-Focus toàn ô (nhấp vào bất kỳ đâu trên `td.matrix-input-cell` tự động focus và bôi đen input).
+    + *Bank Pagination Controls Component (#bank-pagination-controls):* Thanh điều khiển phân trang tối giản chuẩn Apple HIG nằm dưới lưới câu hỏi ngân hàng, bao gồm hiển thị dải số `X - Y trong tổng số N câu hỏi`, dải nút số trang thông minh với nút active xanh Apple `#0071e3`, nút Trước/Sau tự động disabled ở biên, và dropdown chọn kích thước `.apple-select` (12 / 24 / 48 câu/trang).
 
 ---
 

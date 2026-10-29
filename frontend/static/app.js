@@ -130,6 +130,7 @@
 
     // Item Bank (Default 12 Rich Standard Items)
     itemBank: [],
+    bankPagination: { currentPage: 1, pageSize: 12 },
 
     // Exam Matrix Config & Cells
     matrixConfig: {
@@ -2890,9 +2891,123 @@
   }
 
   // ============================================================================
-  // 9. TAB 3: ITEM BANK EXPLORER (6-TIER CASCADING TAXONOMY)
+  // 9. TAB 3: ITEM BANK EXPLORER (6-TIER CASCADING TAXONOMY & APPLE HIG PAGINATION)
   // ============================================================================
+  function handleBankFilterChange() {
+    state.bankPagination.currentPage = 1;
+    renderItemBank();
+  }
+
+  function changeBankPage(newPage) {
+    const strandFilter = document.getElementById('bank-filter-strand')?.value || 'all';
+    const yccdFilter = document.getElementById('bank-filter-yccd')?.value || 'all';
+    const cogFilter = document.getElementById('bank-filter-cognitive')?.value || 'all';
+    const formatFilter = document.getElementById('bank-filter-format')?.value || 'all';
+    const searchFilter = (document.getElementById('bank-search-input')?.value || '').toLowerCase().trim();
+    const archetypeFilter = document.getElementById('bank-filter-archetype')?.value || 'all';
+
+    const filtered = state.itemBank.filter((item) => {
+      if (strandFilter !== 'all' && item.strand_id !== strandFilter) return false;
+      if (yccdFilter !== 'all' && item.learning_outcome_id !== yccdFilter) return false;
+      if (cogFilter !== 'all' && item.cognitive_level !== cogFilter) return false;
+      if (formatFilter !== 'all' && item.item_format !== formatFilter) return false;
+      if (archetypeFilter !== 'all' && item.archetype_id !== archetypeFilter) return false;
+      if (searchFilter) {
+        const text = `${item.code} ${item.stem} ${item.learning_outcome_id} ${item.explanation || ''}`.toLowerCase();
+        if (!text.includes(searchFilter)) return false;
+      }
+      return true;
+    });
+
+    const pageSize = state.bankPagination.pageSize || 12;
+    const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+    if (newPage < 1) newPage = 1;
+    if (newPage > totalPages) newPage = totalPages;
+    state.bankPagination.currentPage = newPage;
+    renderItemBank();
+    const grid = document.getElementById('bank-cards-grid');
+    if (grid) {
+      grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function changeBankPageSize(newSize) {
+    state.bankPagination.pageSize = parseInt(newSize, 10) || 12;
+    state.bankPagination.currentPage = 1;
+    renderItemBank();
+  }
+
+  function renderBankPagination(totalItems, currentPage, pageSize) {
+    const controlsContainer = document.getElementById('bank-pagination-controls');
+    if (!controlsContainer) return;
+
+    if (totalItems <= 0) {
+      controlsContainer.style.display = 'none';
+      return;
+    }
+    controlsContainer.style.display = 'flex';
+
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIndex = (currentPage - 1) * pageSize + 1;
+    const endIndex = Math.min(currentPage * pageSize, totalItems);
+
+    const rangeEl = document.getElementById('bank-page-range');
+    const totalEl = document.getElementById('bank-page-total');
+    if (rangeEl) rangeEl.textContent = `${startIndex} - ${endIndex}`;
+    if (totalEl) totalEl.textContent = totalItems;
+
+    const sizeSelect = document.getElementById('bank-page-size-select');
+    if (sizeSelect) sizeSelect.value = pageSize;
+
+    const buttonsContainer = document.getElementById('bank-pagination-buttons');
+    if (!buttonsContainer) return;
+
+    let html = '';
+    html += `
+      <button onclick="app.changeBankPage(${currentPage - 1})" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-medium text-xs transition-all cursor-pointer ${currentPage <= 1 ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}">
+        &lt; Trước
+      </button>
+    `;
+
+    let pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 4) {
+        pages = [1, 2, 3, 4, 5, '...', totalPages];
+      } else if (currentPage >= totalPages - 3) {
+        pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      } else {
+        pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+      }
+    }
+
+    pages.forEach((p) => {
+      if (p === '...') {
+        html += `<span class="px-2 py-1 text-slate-400">...</span>`;
+      } else {
+        const isActive = p === currentPage;
+        html += `
+          <button onclick="app.changeBankPage(${p})" class="w-7 h-7 rounded-lg font-bold text-xs transition-all cursor-pointer ${isActive ? 'bg-[#0071e3] text-white shadow-xs' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}">
+            ${p}
+          </button>
+        `;
+      }
+    });
+
+    html += `
+      <button onclick="app.changeBankPage(${currentPage + 1})" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-medium text-xs transition-all cursor-pointer ${currentPage >= totalPages ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}">
+        Sau &gt;
+      </button>
+    `;
+
+    buttonsContainer.innerHTML = html;
+  }
+
   function handleTaxonomyFilterChange(level) {
+    state.bankPagination.currentPage = 1;
     const gradeVal = document.getElementById('bank-filter-grade').value;
     const strandVal = document.getElementById('bank-filter-strand').value;
     const topicSelect = document.getElementById('bank-filter-topic');
@@ -2953,35 +3068,53 @@
     const cogFilter = document.getElementById('bank-filter-cognitive')?.value || 'all';
     const formatFilter = document.getElementById('bank-filter-format')?.value || 'all';
     const searchFilter = (document.getElementById('bank-search-input')?.value || '').toLowerCase().trim();
+    const archetypeFilter = document.getElementById('bank-filter-archetype')?.value || 'all';
 
     const filtered = state.itemBank.filter((item) => {
       if (strandFilter !== 'all' && item.strand_id !== strandFilter) return false;
       if (yccdFilter !== 'all' && item.learning_outcome_id !== yccdFilter) return false;
       if (cogFilter !== 'all' && item.cognitive_level !== cogFilter) return false;
       if (formatFilter !== 'all' && item.item_format !== formatFilter) return false;
+      if (archetypeFilter !== 'all' && item.archetype_id !== archetypeFilter) return false;
       if (searchFilter) {
-        const text = `${item.code} ${item.stem} ${item.learning_outcome_id}`.toLowerCase();
+        const text = `${item.code} ${item.stem} ${item.learning_outcome_id} ${item.explanation || ''}`.toLowerCase();
         if (!text.includes(searchFilter)) return false;
       }
       return true;
     });
 
+    const totalItems = filtered.length;
     const countEl = document.getElementById('bank-results-count');
-    if (countEl) countEl.innerText = filtered.length;
+    if (countEl) countEl.innerText = totalItems;
 
-    if (filtered.length === 0) {
+    const pageSize = state.bankPagination.pageSize || 12;
+    let currentPage = state.bankPagination.currentPage || 1;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
+      state.bankPagination.currentPage = currentPage;
+    }
+
+    renderBankPagination(totalItems, currentPage, pageSize);
+
+    if (totalItems === 0) {
       container.innerHTML = `
         <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400 text-xs">
           <i data-lucide="search-x" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
-          Không tìm thấy câu hỏi nào thỏa mãn các tiêu chí lọc.
+          Không tìm thấy câu hỏi nào thỏa mãn các tiêu chí lọc. Bấm <strong>+ Thêm câu hỏi</strong> hoặc <strong>📥 Nhập câu hỏi</strong> để bổ sung.
         </div>
       `;
       if (window.lucide) lucide.createIcons();
       return;
     }
 
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
+    const pagedItems = filtered.slice(startIndex, endIndex);
+
     let html = '';
-    filtered.forEach((q) => {
+    pagedItems.forEach((q, pIdx) => {
+      const globalIdx = startIndex + pIdx + 1;
       const cogLabels = {
         RECOGNITION: 'Nhận biết',
         COMPREHENSION: 'Thông hiểu',
@@ -2996,17 +3129,18 @@
       };
 
       html += `
-        <div class="apple-card p-5 space-y-3">
+        <div class="apple-card p-5 space-y-3 hover:shadow-md transition-all">
           
           <!-- Header: Code, Badges, Psychometrics -->
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-black/[0.06] pb-3 text-xs">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="font-mono font-bold text-slate-800 bg-black/[0.04] px-2 py-0.5 rounded-md text-xs">${q.code}</span>
+              <span class="font-bold text-brand-700">Câu ${globalIdx}</span>
+              <span class="font-mono font-bold text-slate-800 bg-black/[0.04] px-2 py-0.5 rounded-md text-xs">${q.code || ('Q-' + q.id)}</span>
               <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${cogColors[q.cognitive_level] || 'bg-slate-100'}">
                 ${cogLabels[q.cognitive_level] || q.cognitive_level}
               </span>
               <span class="px-2 py-0.5 rounded-md bg-[#0071E3]/[0.08] text-[#0071E3] text-[11px] font-bold border border-[#0071E3]/[0.15] font-mono">
-                ${q.learning_outcome_id}
+                ${q.learning_outcome_id || 'TOAN12'}
               </span>
               <span class="text-slate-400 text-[11px]">• ${q.source_ref || 'Thông tư 32'}</span>
             </div>
@@ -3054,8 +3188,8 @@
             <div class="p-2 rounded-lg bg-slate-50 border border-black/[0.06] flex items-center justify-between">
               <div><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</div>
               <span class="px-2 py-0.5 rounded text-[10px] font-bold ${sub.is_true ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                ${sub.is_true ? 'ĐÚNG' : 'SAI'
-              }</span>
+                ${sub.is_true ? 'ĐÚNG' : 'SAI'}
+              </span>
             </div>
           `;
         });
@@ -3079,11 +3213,15 @@
       // Actions
       html += `
         <div class="flex items-center justify-end space-x-2 pt-2.5 border-t border-black/[0.06] text-xs">
-          <button onclick="app.checkQuestionDuplicate(${q.id})" class="btn-apple-secondary py-1 px-2.5 text-xs">
+          <button onclick="app.checkQuestionDuplicate(${q.id})" class="btn-apple-secondary py-1 px-2.5 text-xs cursor-pointer">
             <i data-lucide="scan" class="w-3.5 h-3.5"></i>
             <span>So khớp Trùng lặp AI</span>
           </button>
-          <button onclick="app.deleteBankQuestion(${q.id})" class="btn-apple-danger py-1 px-2.5 text-xs">
+          <button onclick="app.openQuestionEditorModal('${q.id}')" class="btn-apple-secondary py-1 px-2.5 text-xs cursor-pointer">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span>Sửa</span>
+          </button>
+          <button onclick="app.deleteBankQuestion(${q.id})" class="btn-apple-danger py-1 px-2.5 text-xs cursor-pointer">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             <span>Xóa</span>
           </button>
@@ -3095,6 +3233,7 @@
 
     container.innerHTML = html;
     renderKaTeX(container);
+    if (window.lucide) lucide.createIcons();
   }
 
   function deleteBankQuestion(id) {
@@ -4984,78 +5123,6 @@
   function updateBankCountBadge(count) {
     const badge = document.getElementById('bank-count-badge');
     if (badge) badge.textContent = count;
-  }
-
-  function renderItemBank() {
-    const grid = document.getElementById('bank-cards-grid');
-    const countEl = document.getElementById('bank-results-count');
-    if (!grid) return;
-
-    const cognitiveFilter = document.getElementById('bank-filter-cognitive')?.value || 'all';
-    const formatFilter = document.getElementById('bank-filter-format')?.value || 'all';
-    const searchKeyword = document.getElementById('bank-search-input')?.value.toLowerCase() || '';
-
-    const filtered = state.itemBank.filter(q => {
-      if (cognitiveFilter !== 'all' && q.cognitive_level !== cognitiveFilter) return false;
-      if (formatFilter !== 'all' && q.item_format !== formatFilter) return false;
-      if (searchKeyword && !q.stem.toLowerCase().includes(searchKeyword) && !(q.explanation || '').toLowerCase().includes(searchKeyword)) return false;
-      return true;
-    });
-
-    if (countEl) countEl.textContent = filtered.length;
-
-    if (filtered.length === 0) {
-      grid.innerHTML = `<div class="apple-card p-8 text-center text-slate-400 text-xs">Không tìm thấy câu hỏi phù hợp trong Ngân hàng. Bấm <strong>+ Thêm câu hỏi</strong> hoặc <strong>📥 Nhập câu hỏi</strong> để bổ sung.</div>`;
-      return;
-    }
-
-    grid.innerHTML = filtered.map((q, idx) => `
-      <div class="apple-card p-4 space-y-3 hover:shadow-md transition-all cursor-pointer" onclick="app.openQuestionDetailModal('${q.id}')">
-        <div class="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
-          <div class="flex items-center space-x-2">
-            <span class="font-bold text-brand-700">Câu ${idx + 1}</span>
-            <span class="px-2 py-0.5 bg-brand-50 text-brand-700 font-semibold rounded-md text-[10px]">${q.item_format}</span>
-            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[10px]">${q.cognitive_level}</span>
-          </div>
-          <div class="flex items-center space-x-1.5" onclick="event.stopPropagation()">
-            <button onclick="app.openQuestionEditorModal('${q.id}')" class="p-1.5 hover:bg-brand-50 text-brand-600 rounded-lg transition-all cursor-pointer" title="Chỉnh sửa câu hỏi">
-              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-            </button>
-            <button onclick="app.deleteBankQuestion('${q.id}')" class="p-1.5 hover:bg-rose-50 text-rose-600 rounded-lg transition-all cursor-pointer" title="Xóa câu hỏi">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-        </div>
-        <div class="text-xs font-sans text-slate-800 leading-relaxed font-medium">${formatStemForDisplay(q.stem)}</div>
-        ${q.options && q.options.length ? `
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-xs">
-            ${q.options.map(o => `
-              <div class="p-2 rounded-lg border ${o.is_correct ? 'bg-emerald-50/70 border-emerald-300 text-emerald-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-700'}">
-                <span>${o.label}.</span> <span>${formatStemForDisplay(cleanOptionAnswer(o.content), true)}</span> ${o.is_correct ? ' ✓' : ''}
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-        ${q.sub_statements && q.sub_statements.length ? `
-          <div class="space-y-1 pt-1 text-xs">
-            ${q.sub_statements.map(s => `
-              <div class="p-1.5 rounded-lg border ${s.is_true ? 'bg-emerald-50/70 border-emerald-300' : 'bg-slate-50 border-slate-200'} flex items-center justify-between">
-                <span><strong>${s.label})</strong> ${formatStemForDisplay(s.content, true)}</span>
-                <span class="font-bold ${s.is_true ? 'text-emerald-700' : 'text-slate-600'}">${s.is_true ? 'ĐÚNG' : 'SAI'}</span>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-        ${q.explanation ? `
-          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 text-[11px] text-slate-700">
-            <strong>Lời giải:</strong> ${formatStemForDisplay(q.explanation)}
-          </div>
-        ` : ''}
-      </div>
-    `).join('');
-
-    renderKaTeX(grid);
-    if (window.lucide) lucide.createIcons();
   }
 
   function openQuestionDetailModal(id) {
@@ -8928,6 +8995,9 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     saveQuestionEdit,
     loadSampleExam,
     changeViewerPage,
+    changeBankPage,
+    changeBankPageSize,
+    handleBankFilterChange,
     handleTaxonomyFilterChange,
     renderItemBank,
     deleteBankQuestion,

@@ -1020,3 +1020,41 @@ body.in-composer #tab-composer {
   transform: scale(1.02);
   border-color: #c084fc;
 }
+
+/* --- High-Contrast Bold Black Text Cursor & Caret (§1 UI Specs) --- */
+:root {
+  --high-contrast-text-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23000000' stroke-width='2.8' stroke-linecap='square'/%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23ffffff' stroke-width='1' stroke-linecap='square'/%3E%3C/svg%3E") 12 12, text;
+}
+
+input[type="text"]:not([readonly]):not([disabled]):not(#composer-chat-input):not(#composer-compact-input),
+input[type="number"]:not([readonly]):not([disabled]),
+input[type="search"]:not([readonly]):not([disabled]),
+input[type="email"]:not([readonly]):not([disabled]),
+input[type="password"]:not([readonly]):not([disabled]),
+textarea:not([readonly]):not([disabled]):not(#composer-chat-input):not(#composer-editor-input),
+.apple-input,
+.search-input-with-icon,
+.matrix-input-cell,
+.matrix-input-cell input {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23000000' stroke-width='2.8' stroke-linecap='square'/%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23ffffff' stroke-width='1' stroke-linecap='square'/%3E%3C/svg%3E") 12 12, text !important;
+  caret-color: #000000 !important;
+}
+
+/* Enhanced Matrix Input Cell Hover & Focus */
+.matrix-input-cell:hover {
+  background-color: rgba(0, 113, 227, 0.08) !important;
+}
+
+.matrix-input-cell:hover input {
+  border-color: #0071e3 !important;
+  box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25) !important;
+  background-color: #ffffff !important;
+}
+
+.matrix-input-cell input:focus {
+  border-color: #0071e3 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.35) !important;
+  background-color: #ffffff !important;
+  caret-color: #000000 !important;
+}

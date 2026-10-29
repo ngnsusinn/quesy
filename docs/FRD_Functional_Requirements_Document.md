@@ -2,8 +2,8 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm giao diện, và chuẩn hóa hệ thống dropdown select chuẩn Apple HIG (.apple-select) loại bỏ hoàn toàn font monospace lệch chuẩn.
+- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input, phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm giao diện, và chuẩn hóa hệ thống dropdown select chuẩn Apple HIG (.apple-select) loại bỏ hoàn toàn font monospace lệch chuẩn.
 - **Ngày phát hành:** 2026-10-27  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
@@ -750,10 +750,45 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
   * Toàn bộ phương án lựa chọn `opt.content` và các ý khẳng định `sub.content` bắt buộc chạy qua hàm `formatStemForDisplay(cleanOptionAnswer(content), true)` trước khi gắn vào template HTML.
   * Loại bỏ hoàn toàn lỗi hiển thị chuỗi văn bản thô `$y = \dfrac{x_1 - 1}{x + 1}$`, `$D = \mathbb{R} \setminus \{-1\}$`, `$x = -1$`, `$y = 1$`, `$x \neq -1$` (Ảnh 1).
 - **Phủ Kín Điểm Render KaTeX:**
-  * `renderItemBank`: Gọi `renderKaTeX(container)` sau khi render danh sách câu hỏi.
+  * `renderItemBank`: Gọi `renderKaTeX(container)` sau khi render danh sách câu hỏi của trang hiện tại.
   * `openQuestionDetailModal`: Bắt buộc gọi `renderKaTeX(modal)` ngay khi mở modal.
   * `renderMatrixGrid`: Gọi `renderKaTeX(tbody)` sau khi nạp danh sách dòng ma trận.
   * `renderMasterExam`, `renderVariantView`, `openSwapQuestionModal`: Gọi `renderKaTeX(...)` cho toàn bộ danh sách câu hỏi và ứng viên đổi câu.
+
+### 2.8.7. FR-04.9: Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG (Item Bank Pagination & On-Demand Math Rendering)
+- **Màn hình:** `SCR-BANK` (Route: `/bank`, tab: `#tab-itembank`)
+- **Vấn đề kỹ thuật:** Khi CSDL ngân hàng tích lũy hàng trăm câu hỏi (>240 câu), việc render toàn bộ dồn dập vào DOM và gọi KaTeX xử lý đồng loạt gây đơ giật trình duyệt (FCP kéo dài >800ms) và thanh cuộn trang quá dài gây ức chế người dùng.
+- **Cấu Trúc Quản Trị State:**
+  * Bổ sung vào state ứng dụng:
+    ```javascript
+    state.bankPagination = {
+      currentPage: 1,
+      pageSize: 12 // Mặc định 12 câu/trang, hỗ trợ 12, 24, 48
+    };
+    ```
+- **Quy Chuẩn Cắt Lát (Slice-Based Paging):**
+  * Danh sách câu hỏi sau khi lọc (`filtered`) được cắt lát:
+    ```javascript
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / state.bankPagination.pageSize) || 1;
+    if (state.bankPagination.currentPage > totalPages) state.bankPagination.currentPage = totalPages;
+    if (state.bankPagination.currentPage < 1) state.bankPagination.currentPage = 1;
+    const startIndex = (state.bankPagination.currentPage - 1) * state.bankPagination.pageSize;
+    const endIndex = Math.min(startIndex + state.bankPagination.pageSize, totalItems);
+    const pagedItems = filtered.slice(startIndex, endIndex);
+    ```
+  * Chỉ render `pagedItems` ra DOM `#bank-cards-grid` và chỉ gọi `renderKaTeX` cho các phần tử này. Thời gian kết xuất DOM và biên dịch KaTeX giảm xuống $< 10$ms.
+- **Thanh Phân Trang Apple HIG (`#bank-pagination-controls`):**
+  * Bố cục 3 vùng đối xứng, phong cách tối giản Apple HIG:
+    1. *Cụm trái (Thông tin dải câu hỏi):* `Hiển thị ${startIndex + 1} - ${endIndex} trong tổng số ${totalItems} câu hỏi`. Nếu `totalItems === 0` thì ẩn thanh phân trang.
+    2. *Cụm giữa (Nút điều hướng trang):*
+       - Nút `< Trước`: Vô hiệu hóa (`disabled`, mờ viền `opacity-40 cursor-not-allowed`) khi ở trang 1; ngược lại bấm chuyển về `currentPage - 1`.
+       - Dải nút số trang thông minh (Smart Ellipsis): Nếu `totalPages <= 7`, hiển thị đủ `1, 2, ..., N`. Nếu `totalPages > 7`, hiển thị trang đầu, trang cuối, các trang lân cận trang hiện tại và ký tự `...`. Trang hiện tại được làm nổi bật bằng nền xanh Apple `bg-[#0071e3] text-white font-bold shadow-xs`.
+       - Nút `Sau >`: Vô hiệu hóa khi ở trang cuối `totalPages`; ngược lại bấm chuyển tới `currentPage + 1`.
+    3. *Cụm phải (Chọn số lượng câu / trang):* Thẻ `<select id="bank-page-size-select">` với class `.apple-select`, 3 tùy chọn: `12 câu/trang`, `24 câu/trang`, `48 câu/trang`. Khi thay đổi, tự động reset `currentPage = 1` và gọi `renderItemBank()`.
+- **Hành Vi Tự Động Hóa:**
+  * *Tự động reset về trang 1:* Mỗi khi thay đổi bất kỳ bộ lọc nào (`bank-search-input`, `bank-filter-grade`, `bank-filter-subject`, `bank-filter-strand`, `bank-filter-topic`, `bank-filter-lesson`, `bank-filter-yccd`, `bank-filter-archetype`, `bank-filter-cognitive`, `bank-filter-format`), hệ thống tự động gán `state.bankPagination.currentPage = 1`.
+  * *Cuộn mượt về đầu danh sách (Smooth Scroll):* Khi bấm nút đổi trang (`app.changeBankPage(page)`), hệ thống kích hoạt `document.getElementById('bank-cards-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })`.
 
 ---
 
@@ -838,40 +873,43 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
     }
     ```
   * *Tối ưu hóa tương tác chuột:* Bổ sung class `pointer-events-none` trên thẻ `<i data-lucide="search">` để các thao tác click chuột vào icon kính lúp được chuyển tiếp xuyên qua (pass-through) thẳng vào thẻ input bên dưới.
-- **Khắc Phục Lỗi Con Trỏ Chuột Biến Mất Khi Rê Chuột Vào Ô Ma Trận (Matrix Input Cell Cursor Glitch):**
-  * *Vị trí phát sinh:* Toàn bộ các ô nhập số lượng câu hỏi trong bảng ma trận (`.matrix-input-cell`, `<input type="number">`).
-  * *Phân tích nguyên nhân:*
-    1. Ô nhập liệu có chiều rộng nhỏ (44px `w-11`), khi rê chuột vào, trình duyệt Chromium tự động kích hoạt nút tăng giảm số mặc định (`::-webkit-inner-spin-button`) chiếm tới 18-20px bề ngang, chiếm trọn vùng hover của input.
-    2. Chromium trên Windows có lỗi render phần cứng khi con trỏ di chuyển qua ranh giới giữa ô input nhỏ và spin button, khiến con trỏ chuột bị ẩn/biến mất hoặc chuyển thành trong suốt.
-    3. Thẻ `input` và thẻ `td.matrix-input-cell` hoàn toàn chưa được định nghĩa `cursor: text` và `caret-color` tường minh.
-  * *Giải pháp CSS chuẩn hóa:*
-    ```css
-    /* Triệt tiêu nút spin button mặc định */
-    .matrix-input-cell input::-webkit-outer-spin-button,
-    .matrix-input-cell input::-webkit-inner-spin-button {
-      -webkit-appearance: none !important;
-      margin: 0 !important;
-    }
-    .matrix-input-cell input[type="number"] {
-      -moz-appearance: textfield !important;
-      appearance: textfield !important;
-    }
-
-    /* Thiết lập con trỏ, caret và hover xúc giác */
-    .matrix-input-cell {
-      position: relative;
-      transition: all 0.15s;
-      cursor: pointer;
-    }
-    .matrix-input-cell:hover {
-      background-color: rgba(0, 113, 227, 0.05);
-    }
-    .matrix-input-cell input {
-      cursor: text !important;
-      caret-color: #0071e3 !important;
-    }
-    ```
-  * *Cơ chế Click-to-Focus Toàn Ô:* Bổ sung listener ủy quyền sự kiện (event delegation) trong `init()` hoặc inline handler trên `td.matrix-input-cell`: Khi người dùng nhấp chuột vào bất kỳ vị trí nào trên ô `td.matrix-input-cell` (kể cả vùng lề hoặc badge tồn kho), hệ thống tự động gọi `input.focus()` và `input.select()`, nâng cao trải nghiệm công thái học Apple HIG.
+- **Nâng Cấp Con Trỏ Soạn Thảo Đen Nổi Bật (High-Contrast Bold Black Text Cursor & Caret) & Hiệu Ứng Hover Ô Ma Trận:**
+  * *Vị trí phát sinh:* Toàn bộ các ô nhập số lượng câu hỏi trong bảng ma trận (`.matrix-input-cell`, `<input type="number">`), các trường nhập text, search, email, password, textarea và `.apple-input`.
+  * *Phân tích nguyên nhân & Thực trạng người dùng:*
+    1. Trình duyệt Chromium trên Windows tự động hiển thị con trỏ soạn thảo mặc định (I-beam cursor) dạng 1px rất mảnh, màu xám nhạt hoặc hòa lẫn vào nền trắng của input và ô ma trận, khiến người dùng cảm giác con trỏ chuột bị biến mất hoặc vô hình khi rê vào vùng soạn thảo.
+    2. Con trỏ nhấp nháy (caret) mặc định hoặc màu xanh nhạt đôi khi khó phân biệt với đường lưới ma trận.
+  * *Giải pháp CSS Kỹ Thuật Chuẩn Hóa:*
+    1. **Định nghĩa SVG Data URI Cursor đen đậm tương phản cao:**
+       ```css
+       cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23000000' stroke-width='2.8' stroke-linecap='square'/%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23ffffff' stroke-width='1' stroke-linecap='square'/%3E%3C/svg%3E") 12 12, text !important;
+       ```
+       * Cấu trúc SVG 24x24: Path 1 nét đen đậm `#000000` độ dày 2.8px, Path 2 viền lõi trắng sáng `#ffffff` độ dày 1.0px chạy dọc tâm và hai đầu chữ I. Tọa độ điểm neo `12 12` (chính tâm).
+       * Nhận diện thị giác 100% nổi bật trên nền trắng tinh khôi của input, nền xanh nhạt hover, và cả khi lướt qua nền tối.
+    2. **Áp dụng đồng bộ:** Áp dụng cho `.matrix-input-cell`, `.matrix-input-cell input`, `input[type="text"]`, `input[type="number"]`, `input[type="search"]`, `input[type="email"]`, `input[type="password"]`, `.apple-input`, `.search-input-with-icon`, và `textarea`.
+    3. **Caret đen đậm rõ nét:** Thiết lập `caret-color: #000000 !important;` cho toàn bộ input sáng màu và ô số ma trận (trừ dark code editor duy trì caret tím sáng `#c084fc`).
+    4. **Hiệu ứng Hover & Focus Xúc Giác Ô Ma Trận:**
+       ```css
+       .matrix-input-cell {
+         position: relative;
+         transition: all 0.15s ease;
+         cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23000000' stroke-width='2.8' stroke-linecap='square'/%3E%3Cpath d='M8 3h8M8 21h8M12 3v18' stroke='%23ffffff' stroke-width='1' stroke-linecap='square'/%3E%3C/svg%3E") 12 12, text !important;
+       }
+       .matrix-input-cell:hover {
+         background-color: rgba(0, 113, 227, 0.08) !important;
+       }
+       .matrix-input-cell:hover input {
+         border-color: #0071e3 !important;
+         box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.25) !important;
+         background-color: #ffffff !important;
+       }
+       .matrix-input-cell input:focus {
+         border-color: #0071e3 !important;
+         outline: none !important;
+         box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.35) !important;
+         background-color: #ffffff !important;
+       }
+       ```
+    5. **Triệt tiêu spin button & Click-to-Focus toàn ô:** Duy trì loại bỏ 100% spin buttons trên WebKit/Firefox và listener click-to-focus ủy quyền sự kiện trên ô `td.matrix-input-cell`.
 
 ---
 

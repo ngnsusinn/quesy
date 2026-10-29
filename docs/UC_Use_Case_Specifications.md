@@ -2,8 +2,8 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 3.5 (Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals, Chuẩn Hóa Dropdown Box Apple HIG Unified Select .apple-select, Triệt Tiêu Lỗi Font Monospace & Khắc Phục Lỗi Hiển Thị Toán Học)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, cơ chế render KaTeX toàn diện triệt tiêu lỗi văn bản thô, và chuẩn hóa hệ thống dropdown select Apple HIG (.apple-select).
+- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input text, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, cơ chế render KaTeX toàn diện triệt tiêu lỗi văn bản thô, và chuẩn hóa hệ thống dropdown select Apple HIG (.apple-select).
 - **Ngày phát hành:** 2026-10-28
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
@@ -159,10 +159,11 @@
 #### Luồng sự kiện chính:
 1. Khi khởi động ứng dụng hoặc F5 tải lại trang, client thực thi `fetchQuestionsFromDB()` gọi API `GET /api/v1/questions?limit=1000`.
 2. Hệ thống nạp toàn bộ danh sách câu hỏi thực tế từ SQLite vào `state.itemBank`.
-3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`), áp dụng chuẩn hóa `formatStemForDisplay` cho mọi stem/options/sub-statements, kích hoạt `renderKaTeX(container)` đảm bảo $100\\%$ công thức toán học được biên dịch sắc nét (không sót text thô), và cập nhật bộ đếm badge thời gian thực.
-4. Toàn bộ các box chọn bộ lọc taxonomy áp dụng class `.apple-select` với icon chevron SVG slate-500, loại bỏ hoàn toàn class `font-mono` tại `#bank-filter-yccd` để giữ vững typography sans-serif Apple HIG; ô tìm kiếm `#bank-search-input` trang bị đệm an toàn 36px (`padding-left: 2.25rem !important;`) và icon kính lúp `pointer-events-none` chống đè placeholder và tối ưu nhận focus chuột.
-5. Hệ thống kiểm tra: Nếu CSDL đã có dữ liệu (`state.itemBank.length > 0`), tuyệt đối KHÔNG kích hoạt `seedInitialQuestions()`, bảo toàn 100% dữ liệu thực.
-6. Khi người dùng thực hiện tạo câu hỏi mới, import LaTeX hàng loạt, chỉnh sửa câu hỏi, xóa câu hỏi hoặc bấm "LƯU VÀO NGÂN HÀNG" từ phân hệ Soạn đề, các thay đổi được ghi trực tiếp vào SQLite và client tự động kích hoạt `fetchQuestionsFromDB()` để đồng bộ lại dữ liệu.
+3. Hệ thống render giao diện ngân hàng câu hỏi (`renderItemBank()`), áp dụng chuẩn hóa `formatStemForDisplay` cho mọi stem/options/sub-statements, phân trang theo cơ chế Apple HIG (`state.bankPagination = { currentPage: 1, pageSize: 12 }`), chỉ render danh sách câu hỏi của trang hiện tại và kích hoạt `renderKaTeX(container)` đảm bảo $100\%$ công thức toán học được biên dịch sắc nét (không sót text thô, tốc độ kết xuất $< 10$ms).
+4. Thanh điều khiển phân trang `#bank-pagination-controls` hiển thị thông tin dải câu hỏi (`Hiển thị X - Y trong tổng số N câu hỏi`), các nút chuyển trang Trước/Sau, dải nút số trang thông minh với trang active xanh Apple `#0071e3`, và dropdown chọn số câu/trang (`12`, `24`, `48` câu/trang). Khi chuyển trang, giao diện tự động cuộn mượt về đầu danh sách `#bank-cards-grid`.
+5. Toàn bộ các box chọn bộ lọc taxonomy áp dụng class `.apple-select` với icon chevron SVG slate-500, loại bỏ hoàn toàn class `font-mono` tại `#bank-filter-yccd` để giữ vững typography sans-serif Apple HIG; ô tìm kiếm `#bank-search-input` trang bị đệm an toàn 36px (`padding-left: 2.25rem !important;`) và icon kính lúp `pointer-events-none` chống đè placeholder và tối ưu nhận focus chuột. Khi người dùng thay đổi bất kỳ bộ lọc nào, hệ thống tự động reset `currentPage = 1`.
+6. Hệ thống kiểm tra: Nếu CSDL đã có dữ liệu (`state.itemBank.length > 0`), tuyệt đối KHÔNG kích hoạt `seedInitialQuestions()`, bảo toàn 100% dữ liệu thực.
+7. Khi người dùng thực hiện tạo câu hỏi mới, import LaTeX hàng loạt, chỉnh sửa câu hỏi, xóa câu hỏi hoặc bấm "LƯU VÀO NGÂN HÀNG" từ phân hệ Soạn đề, các thay đổi được ghi trực tiếp vào SQLite và client tự động kích hoạt `fetchQuestionsFromDB()` để đồng bộ lại dữ liệu.
 
 #### Luồng ngoại lệ (Offline Fallback):
 - Khi CSDL SQLite hoàn toàn rỗng hoặc máy chủ Backend chưa được kích hoạt, hệ thống mới kích hoạt `seedInitialQuestions()` làm dữ liệu mẫu dự phòng ngoại tuyến.
@@ -193,8 +194,11 @@
      * Nhóm Phần III (Trả lời ngắn, 0.5đ/câu): Gồm 4 cột con NB, TH, VD, VDC.
      * Cột ngoài cùng: Tổng câu và Tổng điểm từng dòng.
 4. Người dùng nhập số lượng câu hỏi cần rút vào các ô giao nhau giữa Dạng bài và (Phần thi, Cấp độ nhận thức):
-   - Các ô nhập liệu (`.matrix-input-cell`, `<input type="number">`) được ẩn hoàn toàn spin buttons mặc định của trình duyệt (`-webkit-appearance: none`, `-moz-appearance: textfield`), loại bỏ triệt để hiện tượng con trỏ chuột bị biến mất hoặc vô hình khi rê chuột vào ô trên Chromium Windows.
-   - Con trỏ chuột và caret hiển thị sắc nét (`cursor: text`, `caret-color: #0071e3`), hiệu ứng hover nhẹ nhàng (`background-color: rgba(0, 113, 227, 0.05)`). Thao tác nhấp chuột vào bất kỳ vị trí nào trong ô `td.matrix-input-cell` tự động kích hoạt focus và chọn nội dung số trong input (Click-to-Focus).
+   - Các ô nhập liệu (`.matrix-input-cell`, `<input type="number">`) được ẩn hoàn toàn spin buttons mặc định của trình duyệt (`-webkit-appearance: none`, `-moz-appearance: textfield`).
+   - Khi rê chuột vào ô `.matrix-input-cell` hoặc thẻ `<input>`, con trỏ chuột chuyển ngay sang con trỏ soạn thảo đen đậm tương phản cao chuẩn SVG (`cursor: url("data:image/svg+xml,...") 12 12, text !important;`), đảm bảo độ nổi bật 100% trên nền sáng.
+   - Caret nhấp nháy chuyển màu đen đậm sắc nét (`caret-color: #000000 !important;`).
+   - Ô `.matrix-input-cell` phản hồi vi tương tác hover nổi bật: nền chuyển xanh nhạt `rgba(0, 113, 227, 0.08)`, viền thẻ input chuyển xanh Apple `#0071e3` cùng bóng đổ `0 0 0 2px rgba(0, 113, 227, 0.25)`.
+   - Thao tác nhấp chuột vào bất kỳ vị trí nào trong ô `td.matrix-input-cell` tự động kích hoạt focus và bôi đen số trong input (Click-to-Focus).
    - Mỗi ô input đi kèm chip badge hiển thị tồn kho câu hỏi thực tế trong CSDL Question Bank (`Kho: {stock}`).
    - Chip badge tự động chuyển màu xanh lá (`stock-ok`) nếu đủ câu khả dụng hoặc màu đỏ cảnh báo (`stock-warn`) nếu số lượng chọn lớn hơn số câu trong kho.
 5. Hệ thống tính toán thời gian thực:
@@ -447,8 +451,13 @@
     1. *Lọc cây kiến thức 6 tầng & Bộ lọc thứ cấp:*
        - Người dùng chọn Khối lớp -> Môn học -> Mạch nội dung TT 32 -> Chủ đề -> Bài học -> YCCĐ.
        - Chọn Dạng câu hỏi, Mức độ nhận thức (Biết, Hiểu, Vận dụng, Vận dụng cao), Thể thức (Trắc nghiệm, Đúng/Sai, Trả lời ngắn).
-       - Nhập từ khóa tìm kiếm: Hệ thống tự động lọc danh sách với độ trễ < 150ms.
-    2. *Thêm câu hỏi mới (+ Thêm thủ công):*
+       - Nhập từ khóa tìm kiếm: Hệ thống tự động lọc danh sách với độ trễ < 150ms và tự động reset trang hiện tại về trang 1 (`state.bankPagination.currentPage = 1`).
+    2. *Phân trang danh sách câu hỏi chuẩn Apple HIG:*
+       - Hệ thống hiển thị câu hỏi theo trang (mặc định 12 câu/trang, tùy chọn 24 hoặc 48 câu/trang qua dropdown `#bank-page-size-select`).
+       - Dải hiển thị ghi rõ `Hiển thị X - Y trong tổng số N câu hỏi`.
+       - Người dùng bấm nút `< Trước` hoặc `Sau >` hoặc nhấp vào số trang cụ thể trên thanh `#bank-pagination-controls`.
+       - Giao diện nạp ngay câu hỏi của trang đó, chỉ biên dịch KaTeX cho trang hiện tại (<10ms) và cuộn mượt về đầu danh sách.
+    3. *Thêm câu hỏi mới (+ Thêm thủ công):*
        - Người dùng bấm nút `+ Thêm câu hỏi thủ công`.
        - Hệ thống mở Modal Thêm mới (`#question-create-modal`).
        - Chọn thể thức: SINGLE_CHOICE (4 options A-D, radio chọn đáp án đúng, checkbox khóa D), TRUE_FALSE_GROUP (4 ý a-d, switch Đúng/Sai), hoặc SHORT_ANSWER (ô nhập kết quả và dung sai).
