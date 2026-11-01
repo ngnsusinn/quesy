@@ -3,8 +3,8 @@
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Phiên bản:** v3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
-> **Cập nhật lần cuối:** 29/10/2026
+> **Phiên bản:** v3.7 (Cô Lập Toàn Vẹn Vùng Header Ma Trận Đề & Sinh Trộn Đề, Triệt Tiêu Rò Rỉ Phân Trang Ngân Hàng, Khắc Phục Biểu Tượng Cây Phân Cấp Ma Trận, Chuẩn Hóa Header Banner Shuffler Apple HIG)  
+> **Cập nhật lần cuối:** 01/11/2026
 
 ---
 
@@ -168,6 +168,9 @@ quesy/
 │   ├── test_rules_shuffling.py        # Kiểm thử quy tắc hoán vị mã đề an toàn (187 dòng)
 │   ├── test_services.py               # Kiểm thử các dịch vụ xử lý ảnh & layout (465 dòng)
 │   ├── test_taxonomy.py               # Kiểm thử cây kiến thức 6 tầng TT 32 (175 dòng)
+│   ├── test_matrix_and_shuffler.py    # Kiểm thử tích hợp toàn diện Ma trận Đề & Động cơ Sinh Trộn Đề (2,150 dòng, 28 test cases)
+│   ├── test_e2e_friendly_item_bank.py # Kiểm thử trình duyệt E2E giao diện Ngân hàng câu hỏi Apple HIG (245 dòng)
+│   ├── test_e2e_matrix_and_shuffler_headers.py # Kiểm thử trình duyệt E2E toàn vẹn & cô lập Header Ma trận & Shuffler
 │   └── comprehensive_loop_test.py     # Script kiểm thử vòng lặp toàn diện (664 dòng)
 │
 └── .github/workflows/

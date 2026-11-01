@@ -941,6 +941,22 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
        ```
     5. **Triệt tiêu spin button & Click-to-Focus toàn ô:** Duy trì loại bỏ 100% spin buttons trên WebKit/Firefox và listener click-to-focus ủy quyền sự kiện trên ô `td.matrix-input-cell`.
 
+### 2.9.5. FR-05.5: Cô Lập Toàn Vẹn Vùng Header Ma Trận Đề & Sinh Trộn Đề (Header Isolation & Integrity)
+- **Bối Cảnh & Phân Tích Nguyên Nhân Sự Cố:**
+  * *Hiện tượng lỗi:* Khi người dùng truy cập hoặc chuyển đổi sang tab Ma trận đề (`/matrix`) hoặc Sinh & Trộn đề (`/shuffler`), ngay dưới thanh Toolbar ứng dụng xuất hiện thanh điều khiển phân trang của Ngân hàng câu hỏi (`#bank-pagination-controls`: *"Hiển thị 1 - 12 trong tổng số 35 câu hỏi < Trước 1 2 3 Sau > Số câu/trang: 12 câu/trang"*) lơ lửng chèn ép lên đỉnh trang, gây vỡ bố cục thị giác và khoảng trống 104px bất thường. Đồng thời, bảng ma trận xuất hiện 40 cảnh báo console do gọi sai tên biểu tượng Lucide (`lucide-chevron-down`).
+  * *Nguyên nhân gốc rễ (Root Cause):* Trong tệp `frontend/index.html` tại phân hệ Ngân hàng câu hỏi, tồn tại một đoạn mã thừa với thẻ đóng `</div>` không hợp lệ ngay trước `#bank-pagination-controls`. Thẻ đóng thừa này đã đóng sớm thẻ `<section id="tab-itembank">` và `<div id="main-content-wrapper">`, biến `#bank-pagination-controls` thành phần tử con trực tiếp của `#main-scroll-view` nằm ngoài phân vùng tab-pane. Do đó, khi tab ngân hàng bị ẩn (`display: none`), thanh phân trang này vẫn hiển thị vĩnh viễn trên đỉnh mọi tab khác.
+- **Giải Pháp Kỹ Thuật Khắc Phục:**
+  1. **Tái Cấu Trúc Toàn Vẹn Cây Thẻ HTML (HTML Nesting Restoration):**
+     - Loại bỏ thẻ đóng `</div>` thừa, đưa `#bank-pagination-controls` vào đúng bên trong phạm vi quản lý của `<section id="tab-itembank">`.
+     - Xác thực toàn vẹn 100% cấu trúc thẻ bằng thuật toán ngăn xếp (Stack Parser), cam kết 0 lỗi mismatched/unclosed tag.
+  2. **Chuẩn Hóa Biểu Tượng Cây Kiến Thức Ma Trận (Dynamic Chevron Icons):**
+     - Sửa chuỗi nội suy icon từ `'lucide-chevron-down'` / `'lucide-chevron-right'` thành chuẩn Lucide API `'chevron-down'` / `'chevron-right'`.
+     - Triệt tiêu hoàn toàn 40 cảnh báo console, phục hồi trạng thái render sắc nét của mũi tên đóng/mở Chương và Bài học.
+  3. **Tối Ưu Hóa Sticky Header Corner Ma Trận:**
+     - Thiết lập quy tắc CSS `thead th.matrix-tree-col { z-index: 40; background-color: #f1f5f9; }` bảo đảm ô giao điểm góc trên-trái ghim chặt cố định khi cuộn ma trận 2 chiều (ngang và dọc).
+  4. **Bổ Sung Banner Chuẩn Apple HIG Cho Sinh & Trộn Đề (`#shuffler-header-banner`):**
+     - Thiết lập thẻ banner đầu trang cho phân hệ Sinh & Trộn đề với icon shuffle, tiêu đề định dạng 2025, và nhãn bảo mật 4 mã đề hoán vị đồng bộ phong cách Apple HIG như Ngân hàng và Ma trận.
+
 ---
 
 ```

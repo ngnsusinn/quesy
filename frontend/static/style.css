@@ -798,6 +798,10 @@ body.in-composer #tab-composer {
   max-width: 420px;
   border-right: 1px solid rgba(0,0,0,0.08);
 }
+thead th.matrix-tree-col {
+  z-index: 40;
+  background-color: #f1f5f9;
+}
 .matrix-sticky-footer {
   position: sticky;
   bottom: 0;

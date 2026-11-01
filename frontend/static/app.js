@@ -4233,7 +4233,7 @@
                 topicItemsCount += lessonItemsCount;
                 topicPoints += lessonPoints;
 
-                const lessonChevron = isLessonExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right';
+                const lessonChevron = isLessonExpanded ? 'chevron-down' : 'chevron-right';
                 html += `
                   <tr class="lesson-row border-t border-slate-200 bg-slate-50/70 hover:bg-slate-100/70 cursor-pointer" onclick="app.toggleMatrixNode('${ls.id}')">
                     <td class="p-2.5 matrix-tree-col pl-6 text-slate-800 font-semibold text-xs border-r border-slate-200 flex items-center justify-between">
@@ -4255,7 +4255,7 @@
             });
           }
 
-          const topicChevron = isTopicExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right';
+          const topicChevron = isTopicExpanded ? 'chevron-down' : 'chevron-right';
           html += `
             <tr class="topic-row border-t-2 border-slate-300 bg-slate-100/90 hover:bg-slate-200/60 cursor-pointer" onclick="app.toggleMatrixNode('${tp.id}')">
               <td class="p-3 matrix-tree-col text-slate-900 font-bold text-xs border-r border-slate-300 flex items-center justify-between">

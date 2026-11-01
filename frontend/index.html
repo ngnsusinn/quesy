@@ -1094,13 +1094,13 @@
           </div>
 
           <!-- Hidden Sync Selects (Preserves 100% backward compatibility with existing tests & logic) -->
-          <select id="bank-filter-format" onchange="app.handleBankFilterChange()" class="hidden">
+          <select id="bank-filter-format" onchange="app.handleBankFilterChange()" class="apple-select hidden">
             <option value="all">Tất cả Thể thức</option>
             <option value="SINGLE_CHOICE">Trắc nghiệm đơn (4 lựa chọn)</option>
             <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý</option>
             <option value="SHORT_ANSWER">Trả lời ngắn</option>
           </select>
-          <select id="bank-filter-cognitive" onchange="app.handleBankFilterChange()" class="hidden">
+          <select id="bank-filter-cognitive" onchange="app.handleBankFilterChange()" class="apple-select hidden">
             <option value="all">Tất cả Mức độ</option>
             <option value="RECOGNITION">Nhận biết</option>
             <option value="COMPREHENSION">Thông hiểu</option>
@@ -1237,10 +1237,6 @@
 
         <!-- Question Cards Grid (Renders Detailed Cards or Compact Rows) -->
         <div id="bank-cards-grid" class="space-y-4">
-          <!-- Dynamic Bank Items render here -->
-        </div>
-
-        <!-- Bank Pagination Controls (Apple HIG) -->
           <!-- Dynamic Bank Items render here -->
         </div>
 
@@ -1445,7 +1441,29 @@
 
       <!-- ================= TAB 5: EXAM GENERATOR & EXPORT ================= -->
       <section id="tab-shuffler" class="tab-pane hidden space-y-6">
-        
+
+        <!-- Shuffler Studio Header Banner -->
+        <div id="shuffler-header-banner" class="apple-card p-4 bg-gradient-to-r from-slate-50 via-white to-blue-50/30 border border-black/[0.06] flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-xl bg-[#0071e3]/10 text-[#0071e3] flex items-center justify-center font-bold">
+              <i data-lucide="shuffle" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                <span>Sinh Đề Gốc & Trộn Đề Hoán Vị An Toàn</span>
+                <span class="text-[10px] bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-full border border-emerald-200">Định dạng 2025</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Thuật toán bảo toàn YCCĐ, khóa Option Anchor (RULE-02), liền mạch ngữ liệu và xuất bản Vector PDF chuẩn Bộ GD&ĐT</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium text-[11px]">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600 mr-1.5"></i>
+              Bảo mật 4 mã đề hoán vị
+            </span>
+          </div>
+        </div>
+
         <!-- Workflow Steps Bar -->
         <div class="apple-card p-4">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">

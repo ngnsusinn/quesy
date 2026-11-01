@@ -756,6 +756,27 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
   * Nút lời giải chi tiết toggle trơn tru giữa hiển thị và thu gọn, tiết kiệm không gian màn hình.
   * Nút sao chép lưu định dạng văn bản câu hỏi vào clipboard và hiển thị thông báo toast: "Đã sao chép nội dung câu hỏi vào bộ nhớ tạm!".
 
+#### TC-HEADER-01: Kiểm Thử Cô Lập Vùng Header & Chống Rò Rỉ Phân Trang Ngân Hàng Trên /matrix và /shuffler
+- **Mô tả:** Xác minh cấu trúc DOM thẻ HTML chuẩn xác 100%, không bị đóng sớm thẻ `<section id="tab-itembank">`, triệt tiêu hoàn toàn sự cố rò rỉ `#bank-pagination-controls` đè lên header của Ma trận đề (`/matrix`) và Sinh & Trộn đề (`/shuffler`).
+- **Thao tác:**
+  * Điều hướng trực tiếp đến route `/matrix` và `/shuffler`.
+  * Chuyển đổi qua lại giữa `/bank`, `/matrix`, và `/shuffler`.
+- **Kết quả kỳ vọng:**
+  * Trên `/matrix` và `/shuffler`, `#bank-pagination-controls` hoàn toàn bị ẩn (`display: none` / `is_visible() == False`).
+  * Thanh Toolbar trên đỉnh (`header.apple-header`) cố định chuẩn Apple HIG với hiệu ứng frosted glass.
+  * Thẻ cấu hình ma trận và banner `#shuffler-header-banner` xuất hiện ngay ngắn sát dưới header tại $y = 89\text{px}$ (khoảng cách biên trên $24\text{px}$ chuẩn HIG).
+  * Chuyển tab mượt mà, phân vùng đúng ngữ cảnh dữ liệu của từng tab.
+
+#### TC-HEADER-02: Kiểm Thử Toàn Vẹn Biểu Tượng Cây Phân Cấp Ma Trận & Sticky Thead Corner
+- **Mô tả:** Kiểm tra biểu tượng mũi tên đóng/mở cây kiến thức ma trận không bị lỗi icon Lucide và ô góc giao điểm sticky header cố định vững chắc.
+- **Thao tác:**
+  * Mở tab `/matrix`, kiểm tra icon toggle của các Chương (`topic-row`) và Bài học (`lesson-row`).
+  * Cuộn ngang và cuộn dọc bên trong `#matrix-hierarchical-table-wrapper`.
+- **Kết quả kỳ vọng:**
+  * Icon chevron mở/đóng render sắc nét với mã `chevron-down` và `chevron-right` (không có warning console 'lucide-chevron-down').
+  * Cột cây kiến thức và header `thead th.matrix-tree-col` đạt `z-index: 40`, giữ vững vị trí góc trên-trái khi cuộn ma trận 2 chiều.
+  * Bảng điều khiển DevTools đạt 0 lỗi console (`100% CLEAN`).
+
 ---
 
 ## 4. TIÊU CHÍ ĐÓNG GIAI ĐOẠN KIỂM THỬ (TEST EXIT CRITERIA)

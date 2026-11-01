@@ -1932,7 +1932,7 @@ def test_bank_pagination_javascript_contract_and_slice_rendering():
     # 3. Kiểm tra logic phân trang cắt lát (slice) trong renderItemBank
     render_bank_idx = js_content.find("function renderItemBank()")
     assert render_bank_idx != -1
-    render_bank_code = js_content[render_bank_idx : render_bank_idx + 3500]
+    render_bank_code = js_content[render_bank_idx : render_bank_idx + 8000]
 
     assert "state.bankPagination.pageSize || 12" in render_bank_code
     assert "state.bankPagination.currentPage || 1" in render_bank_code
@@ -2051,6 +2051,98 @@ def test_bank_pagination_header_persistence_contract():
     assert re.search(r"flex-shrink\s*:\s*0\s*;", apple_header_rules), (
         ".apple-header trong style.css phải có thuộc tính 'flex-shrink: 0;'"
     )
+
+
+# =========================================================================
+# 27. ANTI-REGRESSION: CÔ LẬP VÙNG HEADER MA TRẬN & SINH TRỘN ĐỀ
+# =========================================================================
+
+def test_matrix_and_shuffler_header_isolation_and_integrity():
+    """Kiểm thử chống tái diễn lỗi phần header của ma trận đề và sinh trộn đề:
+    1. Cấu trúc DOM frontend/index.html không có lỗi thẻ đóng mismatched/unclosed nào.
+    2. Thành phần #bank-pagination-controls bắt buộc phải nằm bên trong <section id="tab-itembank">,
+       tuyệt đối không bị rò rỉ (leak) ra ngoài làm chèn đè lên header của /matrix và /shuffler.
+    3. Phân hệ Ma trận (#tab-matrix) và Sinh & Trộn đề (#tab-shuffler) sở hữu banner / card cấu hình riêng biệt:
+       - #tab-matrix sở hữu card cấu hình ma trận với tiêu đề bản đặc tả đa tầng.
+       - #tab-shuffler sở hữu #shuffler-header-banner với icon shuffle chuẩn Apple HIG.
+    4. Không tồn tại chuỗi icon hỏng 'lucide-chevron-' trong frontend/static/app.js.
+    5. CSS style.css định nghĩa thead th.matrix-tree-col với z-index: 40 để bảo đảm giao điểm
+       sticky corner cố định tuyệt đối khi cuộn bảng ma trận.
+    """
+    from html.parser import HTMLParser
+    from pathlib import Path
+
+    html_path = Path("frontend/index.html")
+    assert html_path.exists(), "frontend/index.html phải tồn tại"
+    html_content = html_path.read_text(encoding="utf-8")
+
+    # 1. Kiểm tra toàn vẹn thẻ HTML
+    class FullValidator(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.stack = []
+            self.void_tags = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}
+            self.errors = []
+        def handle_starttag(self, tag, attrs):
+            if tag.lower() not in self.void_tags:
+                self.stack.append((tag.lower(), dict(attrs).get('id', ''), self.getpos()))
+        def handle_endtag(self, tag):
+            tag = tag.lower()
+            if tag in self.void_tags:
+                return
+            if not self.stack:
+                self.errors.append(f'Unexpected closing </{tag}> at {self.getpos()}')
+                return
+            if self.stack[-1][0] == tag:
+                self.stack.pop()
+            else:
+                found = False
+                for i in range(len(self.stack)-1, -1, -1):
+                    if self.stack[i][0] == tag:
+                        found = True
+                        for unclosed in self.stack[i+1:]:
+                            self.errors.append(f'Unclosed <{unclosed[0]} id="{unclosed[1]}"> opened at {unclosed[2]} when closing </{tag}> at {self.getpos()}')
+                        self.stack = self.stack[:i]
+                        break
+                if not found:
+                    self.errors.append(f'Mismatched closing </{tag}> at {self.getpos()}')
+
+    validator = FullValidator()
+    validator.feed(html_content)
+    assert len(validator.errors) == 0, f"HTML nesting errors detected: {validator.errors}"
+
+    # 2. Kiểm tra phân tầng #bank-pagination-controls nằm hoàn toàn trong #tab-itembank
+    itembank_start = html_content.find('id="tab-itembank"')
+    assert itembank_start != -1
+    itembank_end = html_content.find('</section>', itembank_start)
+    assert itembank_end != -1
+
+    pagination_pos = html_content.find('id="bank-pagination-controls"')
+    assert pagination_pos != -1
+    assert itembank_start < pagination_pos < itembank_end, (
+        "#bank-pagination-controls bắt buộc phải nằm bên trong <section id='tab-itembank'>"
+    )
+
+    # 3. Phân hệ Ma trận và Shuffler sở hữu cấu hình header riêng biệt
+    matrix_pos = html_content.find('id="tab-matrix"')
+    assert matrix_pos != -1
+    assert pagination_pos < matrix_pos, "Thanh phân trang ngân hàng phải nằm trước tab ma trận"
+
+    shuffler_pos = html_content.find('id="tab-shuffler"')
+    assert shuffler_pos != -1
+    assert 'id="shuffler-header-banner"' in html_content
+
+    # 4. Kiểm tra mã nguồn JS không chứa tiền tố sai cú pháp Lucide 'lucide-chevron-'
+    js_path = Path("frontend/static/app.js")
+    js_content = js_path.read_text(encoding="utf-8")
+    assert "lucide-chevron-" not in js_content, "Tuyệt đối không dùng tiền tố 'lucide-chevron-' trong JS dynamic icon"
+
+    # 5. Kiểm tra CSS sticky thead th.matrix-tree-col
+    css_path = Path("frontend/static/style.css")
+    css_content = css_path.read_text(encoding="utf-8")
+    assert "thead th.matrix-tree-col" in css_content
+    assert "z-index: 40" in css_content
+
 
 
 
