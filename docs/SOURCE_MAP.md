@@ -75,6 +75,7 @@ Tổng số dòng mã nguồn (Lines of Code - LOC): **~26,000 dòng**.
 
 ```
 quesy/
+├── .gitignore                         # Quy cách loại trừ tệp tin git tiêu chuẩn (FastAPI, TeX, Storage, Test Evidence)
 ├── AGENTS.md                          # Quy chuẩn & standing rules dành cho Agent (37 dòng)
 ├── README.md                          # Tài liệu giới thiệu & năng lực cốt lõi hệ thống (274 dòng)
 ├── requirements.txt                   # Danh mục thư viện Python dependencies (23 dòng)
