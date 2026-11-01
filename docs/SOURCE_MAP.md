@@ -3,8 +3,8 @@
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Phiên bản:** v3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
-> **Cập nhật lần cuối:** 29/10/2026
+> **Phiên bản:** v3.8 (Tinh Giản Thanh Công Cụ Soạn Đề LaTeX Apple HIG, Loại Bỏ Nút Câu Hiện Tại, Tối Ưu Diện Tích Nút Biên Dịch Toàn Đề)  
+> **Cập nhật lần cuối:** 01/11/2026
 
 ---
 
@@ -127,12 +127,12 @@ quesy/
 │       └── ex_test.sty                # Gói lệnh khảo thí chuẩn Việt Nam v3.3.6 (4,258 dòng)
 │
 ├── frontend/                          # Giao diện Người dùng Web Client (SPA)
-│   ├── index.html                     # Trang khung HTML5 duy nhất chứa 6 màn hình chức năng (1,499 dòng)
+│   ├── index.html                     # Trang khung HTML5 duy nhất chứa 6 màn hình chức năng: Dashboard, Digitization, Friendly Item Bank (Stats banner, Quick Filter Pills, Collapsible 6-Tier Taxonomy Drawer, Dual View Mode), Hierarchical Exam Matrix, Composer, Shuffler & Publishing
 │   ├── manifest.json                  # Cấu hình PWA Web App Manifest (16 dòng)
 │   ├── sw.js                          # Service Worker cache tĩnh (65 dòng)
 │   └── static/
-│       ├── app.js                     # Toàn bộ logic Client SPA, State Store, Event Handlers (4,991 dòng)
-│       ├── style.css                  # Toàn bộ CSS giao diện, Apple HIG, Dark Code Editor (631 dòng)
+│       ├── app.js                     # Toàn bộ logic Client SPA, State Store, Event Handlers (Dual View Mode, Quick Filter Pills, Collapsible Drawer, 1-Click Copy Question, Slice Pagination)
+│       ├── style.css                  # Toàn bộ CSS giao diện, Apple HIG, Quick Filter Pills, High-density Compact Table, Dark Code Editor
 │       └── fonts/                     # Thư mục font chữ dự án
 │
 ├── docs/                              # Toàn bộ tài liệu chuẩn hóa kỹ thuật dự án
@@ -168,6 +168,9 @@ quesy/
 │   ├── test_rules_shuffling.py        # Kiểm thử quy tắc hoán vị mã đề an toàn (187 dòng)
 │   ├── test_services.py               # Kiểm thử các dịch vụ xử lý ảnh & layout (465 dòng)
 │   ├── test_taxonomy.py               # Kiểm thử cây kiến thức 6 tầng TT 32 (175 dòng)
+│   ├── test_matrix_and_shuffler.py    # Kiểm thử tích hợp toàn diện Ma trận Đề & Động cơ Sinh Trộn Đề (2,150 dòng, 28 test cases)
+│   ├── test_e2e_friendly_item_bank.py # Kiểm thử trình duyệt E2E giao diện Ngân hàng câu hỏi Apple HIG (245 dòng)
+│   ├── test_e2e_matrix_and_shuffler_headers.py # Kiểm thử trình duyệt E2E toàn vẹn & cô lập Header Ma trận & Shuffler
 │   └── comprehensive_loop_test.py     # Script kiểm thử vòng lặp toàn diện (664 dòng)
 │
 └── .github/workflows/
@@ -390,11 +393,13 @@ ight., Environment undefined)
       * Modal Xem chi tiết (`#question-detail-modal`): Xem công thức KaTeX/TikZ sắc nét, barem điểm bậc thang QĐ 764, chỉ số khảo thí trắc nghiệm ($p, D$), cây phân loại chuẩn.
       * Modal Sửa câu hỏi (`#question-edit-modal`): Cho phép cập nhật toàn diện stem, phương án A-D, cờ khóa neo D, khẳng định a-d, đáp án ngắn, dung sai, YCCĐ và lời giải chi tiết.
       * Chức năng Xóa câu hỏi: Hộp thoại xác nhận, xóa triệt để cascade CSDL, tự động cập nhật ngay số lượng và làm mới danh sách.
-    + *Hệ thống Phân trang Ngân hàng Chuẩn Apple HIG (Item Bank Pagination):*
+    + *Hệ thống Phân trang Ngân hàng Chuẩn Apple HIG & Bảo toàn Fixed Top Header (Item Bank Pagination & Header Persistence):*
       * Quản trị trạng thái qua `state.bankPagination = { currentPage: 1, pageSize: 12 }` (hỗ trợ chọn 12, 24, 48 câu/trang).
       * Cắt lát mảng câu hỏi sau khi lọc (`filtered.slice(start, end)`), chỉ render DOM và gọi `renderKaTeX(container)` cho các câu hỏi trên trang hiện tại, giảm thời gian render từ ~200ms xuống <10ms.
       * Thanh phân trang `#bank-pagination-controls`: hiển thị dải số câu hỏi, cụm nút Trước/Sau, dải số trang thông minh với active Apple Blue `#0071e3`, dropdown chọn kích thước `.apple-select`.
-      * Tự động reset về trang 1 khi thay đổi bất kỳ bộ lọc nào và cuộn mượt (`smooth scroll`) về đầu danh sách câu hỏi.
+      * Tự động reset về trang 1 khi thay đổi bất kỳ bộ lọc nào.
+      * Khi đổi trang (`changeBankPage`) hoặc đổi kích thước (`changeBankPageSize`): Triệt tiêu hoàn toàn `scrollIntoView` (nguyên nhân gây cuộn `window.scrollY = 65px` làm mất thanh Top Header). Thay thế bằng cuộn nội bộ container `#main-scroll-view.scrollTo({ top: 0, behavior: 'smooth' })` kết hợp neo `window.scrollTo(0, 0)`, bảo đảm Apple Header luôn cố định 100% tại đỉnh màn hình.
+      * Gia cố cấu trúc Header: Bổ sung `shrink-0` trên thẻ HTML `<header>` và `flex-shrink: 0;` trong CSS `.apple-header` chống co kéo trong flexbox.
     + *Xuất & Nhập Ngân hàng Câu hỏi:*
       * Xuất danh sách: Hỗ trợ xuất sang PDF vector in ấn (khổ A4, Times/CMU Serif), CSV UTF-8 BOM chuẩn Excel tiếng Việt, LaTeX `.tex` thuần gói `ex_test.sty`.
       * Nhập câu hỏi: Nhập từ file văn bản/mã LaTeX/JSON, tự động phân tích cú pháp, kiểm tra trùng lặp và đẩy vào CSDL.

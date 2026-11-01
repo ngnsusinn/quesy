@@ -2,9 +2,9 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input, phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm giao diện, và chuẩn hóa hệ thống dropdown select chuẩn Apple HIG (.apple-select) loại bỏ hoàn toàn font monospace lệch chuẩn.
-- **Ngày phát hành:** 2026-10-27  
+- **Phiên bản:** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0 & flex-shrink: 0)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX, cơ chế cuộn mượt container nội bộ bảo toàn cố định Top Header 100%), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input, phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm giao diện, và chuẩn hóa hệ thống dropdown select chuẩn Apple HIG (.apple-select) loại bỏ hoàn toàn font monospace lệch chuẩn.
+- **Ngày phát hành:** 2026-10-29  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
 ---
@@ -104,7 +104,7 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   - **Cột bên phải (Preview Pane):**
     - *Thanh công cụ trên (Light mode):* Hai tab điều hướng `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động chuyển đổi giữa chế độ in đề thi `[dethi]` và in lời giải `[loigiai]`), menu `XUẤT FILE ▾` (tải PDF, tải TeX, lưu Ngân hàng, sao chép mã).
     - *Khung giữa:* Bản xem trước PDF Trực tiếp (Live Preview) hiển thị PDF biên dịch sắc nét từ Tectonic XeTeX engine hoặc danh sách lịch sử các phiên bản.
-    - *Chân trang (Footer):* Nút bấm toàn chiều rộng nổi bật màu xanh dương **`BIÊN DỊCH`** (`#0071e3`) kích hoạt biên dịch tài liệu tức thì.
+    - *Chân trang (Footer):* Thanh công cụ chân trang gồm 2 nút tác vụ: Nút bấm toàn chiều rộng nổi bật màu xanh dương **`BIÊN DỊCH`** (`#0071e3`, `flex-1`) kích hoạt biên dịch tài liệu tức thì, và nút xanh lá **`LƯU NGÂN HÀNG`** (`#btn-composer-save-to-bank`). Nút "CÂU HIỆN TẠI" đã được lược bỏ khỏi thanh công cụ đáy để tinh giản giao diện theo chuẩn Apple HIG, mở rộng tối đa diện tích nút BIÊN DỊCH. Phím tắt `Ctrl+Shift+S` vẫn được giữ nguyên cho người dùng nâng cao.
 
 ### 2.4. FR-02.2: Tự Động Biên Dịch, Lưu Trữ Cục Bộ & Xuất Bản Đề Thi
 - **Hành vi thao tác:**
@@ -788,7 +788,37 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
     3. *Cụm phải (Chọn số lượng câu / trang):* Thẻ `<select id="bank-page-size-select">` với class `.apple-select`, 3 tùy chọn: `12 câu/trang`, `24 câu/trang`, `48 câu/trang`. Khi thay đổi, tự động reset `currentPage = 1` và gọi `renderItemBank()`.
 - **Hành Vi Tự Động Hóa:**
   * *Tự động reset về trang 1:* Mỗi khi thay đổi bất kỳ bộ lọc nào (`bank-search-input`, `bank-filter-grade`, `bank-filter-subject`, `bank-filter-strand`, `bank-filter-topic`, `bank-filter-lesson`, `bank-filter-yccd`, `bank-filter-archetype`, `bank-filter-cognitive`, `bank-filter-format`), hệ thống tự động gán `state.bankPagination.currentPage = 1`.
-  * *Cuộn mượt về đầu danh sách (Smooth Scroll):* Khi bấm nút đổi trang (`app.changeBankPage(page)`), hệ thống kích hoạt `document.getElementById('bank-cards-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })`.
+  * *Cuộn mượt nội bộ container & Bảo toàn Top Header (Smooth Scroll & Header Persistence):*
+    - Khi bấm đổi trang (`app.changeBankPage(page)`) hoặc thay đổi số lượng câu/trang (`app.changeBankPageSize(newSize)`), hệ thống kích hoạt cuộn mượt nội bộ thẻ `<main id="main-scroll-view">`:
+      ```javascript
+      const mainView = document.getElementById('main-scroll-view');
+      if (mainView) {
+        mainView.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+      ```
+    - **Loại bỏ triệt để `grid.scrollIntoView(...)`:** Nghiêm cấm sử dụng `grid.scrollIntoView({ behavior: 'smooth', block: 'start' })`. Thực nghiệm kỹ thuật chỉ ra rằng lệnh này làm trình duyệt cuộn cả cấp `window` xuống 65px, khiến header `<header class="apple-header">` bị trồi lên tọa độ âm `top: -65px` và biến mất hoàn toàn khỏi màn hình do thuộc tính `overflow: hidden` của thẻ `<body>` ngăn cản cuộn ngược lại.
+    - **Thiết lập chống co rúm (Header Flex Shrink Invariant):** Khai báo `shrink-0` trên thẻ HTML header và `flex-shrink: 0;` trong CSS `.apple-header` đảm bảo thanh điều hướng trên cùng luôn ghim cố định ở `top: 0` trên viewport.
+
+### 2.8.8. FR-04.10: Tái Cơ Cấu Giao Diện Ngân Hàng Câu Hỏi Thân Thiện & Trực Quan (Friendly Item Bank Studio UI & Dual-View Mode)
+- **Màn hình:** `SCR-BANK` (Route: `/bank`, tab: `#tab-itembank`)
+- **Vấn đề giải quyết:** Trước đây, khu vực bộ lọc 6 tầng chứa 10 menu chọn và ô nhập liệu dạng lưới 3x2 + 4 cột chiếm tới 350-400px chiều cao màn hình, đẩy các thẻ câu hỏi xuống rất sâu. Đồng thời, toàn bộ câu hỏi đều hiển thị dàn trải lời giải dài gây choáng ngợp và khó rà soát nhanh.
+- **Giải Pháp Nâng Cấp Công Thái Học (Ergonomic UX):**
+  1. *Banner Thống Kê Tổng Quan (`#bank-stats-banner`):*
+     - Hiển thị trực quan tổng số câu hỏi trong ngân hàng và phân bố tức thời theo 3 thể thức (Trắc nghiệm đơn, Đúng/Sai 4 ý, Trả lời ngắn) và 4 mức độ nhận thức (NB, TH, VD, VDC).
+  2. *Thanh Tìm Kiếm & Lọc Nhanh Thông Minh (Unified Search & Quick Filter Pills):*
+     - Ô tìm kiếm nổi bật với biểu tượng kính lúp, hỗ trợ tìm kiếm theo nội dung, mã câu (`Q-`), mã YCCĐ hoặc từ khóa công thức. Nút xóa nhanh (✕) xuất hiện tự động khi có văn bản.
+     - Dải nút lọc nhanh dạng viên nang (Filter Pills): Chuyển đổi 1-click giữa các Thể thức câu hỏi (`Tất cả`, `Trắc nghiệm đơn (I)`, `Đúng/Sai (II)`, `Trả lời ngắn (III)`) và Mức độ nhận thức (`Tất cả`, `Nhận biết`, `Thông hiểu`, `Vận dụng`, `VDC`).
+     - Ngăn kéo Cây kiến thức 6 tầng (`#bank-taxonomy-drawer`): Gập gọn linh hoạt với nút bấm công thái học kèm huy hiệu đếm số lượng bộ lọc đang kích hoạt (`#bank-taxonomy-active-count`). Cho phép mở bung khi cần lọc sâu theo Khối/Môn/Mạch/Chủ đề/Bài/YCCĐ/Dạng bài và thu gọn khi duyệt bài.
+     - Nút "Đặt lại bộ lọc" (`#btn-reset-bank-filters`): Tự động hiển thị khi có bất kỳ bộ lọc hoặc từ khóa nào đang hoạt động, cho phép đưa toàn bộ ngân hàng về trạng thái mặc định chỉ với 1 click.
+  3. *Bộ Chuyển Đổi Chế Độ Xem Kép (Dual View Mode Switcher):*
+     - Quản trị state: `state.bankUI.viewMode` (`'detailed'` hoặc `'compact'`).
+     - *Chế độ Thẻ chi tiết (`detailed`):* Thẻ Apple card hoàn chỉnh, hiển thị trực quan các phương án, chỉ số tâm đo học $p$ và $D$. Lời giải chi tiết được thiết kế dạng accordion đóng/mở (`toggleCardExplanation`), mặc định thu gọn giúp tiết kiệm không gian cuộn và chỉ mở ra khi giáo viên bấm "Xem lời giải chi tiết".
+     - *Chế độ Danh sách gọn (`compact`):* Bảng dữ liệu mật độ cao (`.bank-compact-table`), hiển thị danh mục câu hỏi với các cột: Số thứ tự, Mã câu, Thể thức, Mức độ, YCCĐ, Trích dẫn nội dung (render KaTeX), Đáp án chuẩn và Cụm thao tác nhanh. Giúp giáo viên quét nhanh hàng chục câu hỏi cùng lúc.
+  4. *Nút Sao Chép Câu Hỏi 1-Click (`copyQuestionStem`):*
+     - Sao chép toàn bộ nội dung câu hỏi, các phương án và đáp án vào clipboard của hệ điều hành, kèm thông báo toast xác nhận tức thì.
 
 ---
 
@@ -910,6 +940,22 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
        }
        ```
     5. **Triệt tiêu spin button & Click-to-Focus toàn ô:** Duy trì loại bỏ 100% spin buttons trên WebKit/Firefox và listener click-to-focus ủy quyền sự kiện trên ô `td.matrix-input-cell`.
+
+### 2.9.5. FR-05.5: Cô Lập Toàn Vẹn Vùng Header Ma Trận Đề & Sinh Trộn Đề (Header Isolation & Integrity)
+- **Bối Cảnh & Phân Tích Nguyên Nhân Sự Cố:**
+  * *Hiện tượng lỗi:* Khi người dùng truy cập hoặc chuyển đổi sang tab Ma trận đề (`/matrix`) hoặc Sinh & Trộn đề (`/shuffler`), ngay dưới thanh Toolbar ứng dụng xuất hiện thanh điều khiển phân trang của Ngân hàng câu hỏi (`#bank-pagination-controls`: *"Hiển thị 1 - 12 trong tổng số 35 câu hỏi < Trước 1 2 3 Sau > Số câu/trang: 12 câu/trang"*) lơ lửng chèn ép lên đỉnh trang, gây vỡ bố cục thị giác và khoảng trống 104px bất thường. Đồng thời, bảng ma trận xuất hiện 40 cảnh báo console do gọi sai tên biểu tượng Lucide (`lucide-chevron-down`).
+  * *Nguyên nhân gốc rễ (Root Cause):* Trong tệp `frontend/index.html` tại phân hệ Ngân hàng câu hỏi, tồn tại một đoạn mã thừa với thẻ đóng `</div>` không hợp lệ ngay trước `#bank-pagination-controls`. Thẻ đóng thừa này đã đóng sớm thẻ `<section id="tab-itembank">` và `<div id="main-content-wrapper">`, biến `#bank-pagination-controls` thành phần tử con trực tiếp của `#main-scroll-view` nằm ngoài phân vùng tab-pane. Do đó, khi tab ngân hàng bị ẩn (`display: none`), thanh phân trang này vẫn hiển thị vĩnh viễn trên đỉnh mọi tab khác.
+- **Giải Pháp Kỹ Thuật Khắc Phục:**
+  1. **Tái Cấu Trúc Toàn Vẹn Cây Thẻ HTML (HTML Nesting Restoration):**
+     - Loại bỏ thẻ đóng `</div>` thừa, đưa `#bank-pagination-controls` vào đúng bên trong phạm vi quản lý của `<section id="tab-itembank">`.
+     - Xác thực toàn vẹn 100% cấu trúc thẻ bằng thuật toán ngăn xếp (Stack Parser), cam kết 0 lỗi mismatched/unclosed tag.
+  2. **Chuẩn Hóa Biểu Tượng Cây Kiến Thức Ma Trận (Dynamic Chevron Icons):**
+     - Sửa chuỗi nội suy icon từ `'lucide-chevron-down'` / `'lucide-chevron-right'` thành chuẩn Lucide API `'chevron-down'` / `'chevron-right'`.
+     - Triệt tiêu hoàn toàn 40 cảnh báo console, phục hồi trạng thái render sắc nét của mũi tên đóng/mở Chương và Bài học.
+  3. **Tối Ưu Hóa Sticky Header Corner Ma Trận:**
+     - Thiết lập quy tắc CSS `thead th.matrix-tree-col { z-index: 40; background-color: #f1f5f9; }` bảo đảm ô giao điểm góc trên-trái ghim chặt cố định khi cuộn ma trận 2 chiều (ngang và dọc).
+  4. **Bổ Sung Banner Chuẩn Apple HIG Cho Sinh & Trộn Đề (`#shuffler-header-banner`):**
+     - Thiết lập thẻ banner đầu trang cho phân hệ Sinh & Trộn đề với icon shuffle, tiêu đề định dạng 2025, và nhãn bảo mật 4 mã đề hoán vị đồng bộ phong cách Apple HIG như Ngân hàng và Ma trận.
 
 ---
 

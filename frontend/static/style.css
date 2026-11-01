@@ -372,6 +372,7 @@ body.in-composer #tab-composer {
 
 /* --- Apple Frosted Glass Header --- */
 .apple-header {
+  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
@@ -797,6 +798,10 @@ body.in-composer #tab-composer {
   max-width: 420px;
   border-right: 1px solid rgba(0,0,0,0.08);
 }
+thead th.matrix-tree-col {
+  z-index: 40;
+  background-color: #f1f5f9;
+}
 .matrix-sticky-footer {
   position: sticky;
   bottom: 0;
@@ -1058,3 +1063,122 @@ textarea:not([readonly]):not([disabled]):not(#composer-chat-input):not(#composer
   background-color: #ffffff !important;
   caret-color: #000000 !important;
 }
+
+/* ==========================================================================
+   ENHANCED ITEM BANK UI & UX (APPLE HIG & INTUITIVE NAVIGATION)
+   ========================================================================== */
+
+/* Quick Filter Pills */
+.bank-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: all 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.bank-filter-pill:hover:not(.active) {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+  transform: translateY(-1px);
+}
+
+.bank-filter-pill.active {
+  background-color: #0071e3 !important;
+  border-color: #0071e3 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(0, 113, 227, 0.25);
+}
+
+.bank-filter-pill.active .pill-count {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.65rem;
+  border-radius: 9999px;
+  background-color: rgba(0, 0, 0, 0.06);
+  color: #64748b;
+  font-weight: 700;
+}
+
+/* View Mode Switcher */
+.bank-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 120ms ease;
+  user-select: none;
+}
+
+.bank-view-btn:hover:not(.active) {
+  color: #0f172a;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.bank-view-btn.active {
+  background-color: #ffffff;
+  color: #0071e3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Compact Table View */
+.bank-compact-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.75rem;
+}
+
+.bank-compact-table th {
+  background-color: #f8fafc;
+  color: #64748b;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.bank-compact-row {
+  transition: background-color 120ms ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.bank-compact-row:hover {
+  background-color: #f1f5f9;
+}
+
+.bank-compact-row td {
+  padding: 0.65rem 0.85rem;
+  vertical-align: middle;
+}
+
+/* Collapsible Drawer Smooth Height */
+#bank-taxonomy-drawer {
+  transition: max-height 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease;
+}
+

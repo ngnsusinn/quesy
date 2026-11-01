@@ -2,7 +2,7 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.6 (Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Text Cursor & Caret Tại Ma Trận Đề & Ô Nhập Liệu, Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG)  
+- **Phiên bản:** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0 & flex-shrink: 0)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
 - **Tổng số kịch bản tự động hóa:** 220+ Tests (100% Passed)  
 - **Ngày lập:** 2026-10-29  
@@ -332,9 +332,9 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Mô tả:** Kiểm tra textarea `#composer-editor-input` duy trì đúng nền tối `#141824` và chữ sáng khi nhận focus, không bị rule CSS toàn cục làm biến đổi sang nền trắng.
 - **Kết quả kỳ vọng:** Màu nền giữ nguyên `#141824`, không lóa trắng mắt giáo viên khi gõ văn bản.
 
-#### TC-COMP-06: Nút Biên dịch Xanh Dương Chuẩn Khảo thí
-- **Mô tả:** Kiểm tra thanh nút tác vụ `BIÊN DỊCH` dưới đáy giao diện hiển thị màu xanh dương (`#0071e3`) kích hoạt biên dịch tức thì khi click.
-- **Kết quả kỳ vọng:** Nút hiển thị màu xanh dương chuẩn, kích hoạt compile và phản hồi trạng thái loading.
+#### TC-COMP-06: Nút Biên dịch Xanh Dương Chuẩn Khảo thí & Thanh Công Cụ Đáy Tinh Giản 2 Nút
+- **Mô tả:** Kiểm tra thanh nút tác vụ dưới đáy `#tab-composer` hiển thị đúng 2 nút: nút `BIÊN DỊCH` (`#composer-compile-btn`) màu xanh dương (`#0071e3`, `flex-1`) và nút `LƯU NGÂN HÀNG` (`#btn-composer-save-to-bank`). Xác nhận nút "⚡ CÂU HIỆN TẠI" (`#composer-compile-partial-btn`) đã bị loại bỏ hoàn toàn khỏi DOM giao diện.
+- **Kết quả kỳ vọng:** Nút hiển thị màu xanh dương chuẩn, kích hoạt compile và phản hồi trạng thái loading, nút câu hiện tại không tồn tại trong DOM.
 
 #### TC-COMP-07: Độ Tương Phản Màu Sắc Ô Nhập Chat & Compact Bar Trên Dark Mode
 - **Mô tả:** Kiểm tra trường nhập liệu `#composer-compact-input` và `#composer-chat-input` hiển thị văn bản màu trắng sáng `#f8fafc` hoặc `#ffffff` và con trỏ caret màu xanh Apple `#38bdf8` trên nền tối, không bị rule toàn cục ghi đè thành chữ đen `#1d1d1f`.
@@ -704,7 +704,8 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Thao tác:** Đang ở trang 3, thực hiện gõ từ khóa tìm kiếm vào `#bank-search-input` hoặc chọn mức độ nhận thức / YCCĐ / thể thức câu hỏi. Bấm nút chuyển trang.
 - **Kết quả kỳ vọng:**
   * `state.bankPagination.currentPage` tự động reset về 1, hiển thị kết quả từ câu 1 của danh sách lọc mới.
-  * Khi chuyển trang, giao diện kích hoạt `scrollIntoView({ behavior: 'smooth', block: 'start' })` đưa cuộn trang về đầu danh sách `#bank-cards-grid`.
+  * Khi chuyển trang, giao diện kích hoạt cuộn mượt nội bộ container `#main-scroll-view.scrollTo({ top: 0, behavior: 'smooth' })`, đưa màn hình về đầu danh sách câu hỏi mượt mà.
+  * Tuyệt đối không gọi `grid.scrollIntoView(...)`.
 
 #### TC-BANK-PAGINATION-03: Kiểm Thử Hiệu Năng Render KaTeX Theo Trang On-Demand (<50ms)
 - **Mô tả:** Đo lường thời gian thực thi của hàm `renderItemBank()` và `renderKaTeX()`.
@@ -712,6 +713,69 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Kết quả kỳ vọng:**
   * Thời gian thực thi $\le 50$ms (thường đạt $< 10$ms).
   * Không phát sinh lỗi console error (`console.error`), giao diện phản hồi tức thì 60 FPS.
+
+#### TC-BANK-PAGINATION-04: Kiểm Thử Bất Biến Vị Trí Cố Định Của Apple Header Khi Đổi Trang & Đổi Kích Thước Trang (Zero Window Scroll & Header Persistence Anti-Regression Assertion)
+- **Mô tả:** Kiểm chứng lỗi biến mất thanh Top Header (`.apple-header`) khi chuyển trang hoặc đổi pageSize trong phân hệ Ngân hàng câu hỏi không còn tái diễn.
+- **Thao tác:**
+  1. Người dùng truy cập phân hệ Ngân hàng câu hỏi (`/bank`).
+  2. Đo đạc tọa độ ban đầu của thanh header: `const header = document.querySelector('.apple-header'); const rectBefore = header.getBoundingClientRect();`.
+  3. Kiểm tra `window.scrollY === 0` và `rectBefore.top === 0`.
+  4. Nhấp nút chuyển sang trang 2 (bấm `app.changeBankPage(2)` hoặc nút `2` / `Sau >`).
+  5. Đợi hiệu ứng cuộn mượt hoàn tất (khoảng 300ms - 500ms).
+  6. Đo đạc lại: `const rectAfter = header.getBoundingClientRect();`.
+  7. Thay đổi dropdown `#bank-page-size-select` sang 24 hoặc 48 câu/trang.
+  8. Kiểm tra lại `window.scrollY` và `rectAfterPageSize = header.getBoundingClientRect();`.
+- **Kết quả kỳ vọng:**
+  * `window.scrollY === 0` tuyệt đối ở cả 2 bước (không bị cuộn xuống 65px).
+  * `rectAfter.top === 0` và `rectAfterPageSize.top === 0`, thanh Header hoàn toàn hiển thị sắc nét trên viewport, không bị trồi lên tọa độ âm `top: -65px`.
+  * Thẻ `<header>` có class `shrink-0` và CSS tính toán `getComputedStyle(header).flexShrink === '0'`.
+  * Khối điều khiển phân trang và thẻ câu hỏi trang 2 hiển thị chính xác mà không làm mất Header.
+
+#### TC-BANK-UX-01: Kiểm Thử Dải Nút Lọc Nhanh (Pills) & Đóng/Mở Ngăn Kéo Cây Kiến Thức 6 Tầng
+- **Mô tả:** Kiểm tra thanh tìm kiếm thông minh, dải nút lọc nhanh dạng viên nang (Filter Pills) và ngăn kéo 6 tầng (#bank-taxonomy-drawer).
+- **Thao tác:**
+  * Nhấp các nút lọc nhanh thể thức: `Tất cả`, `Trắc nghiệm đơn (I)`, `Đúng/Sai (II)`, `Trả lời ngắn (III)`.
+  * Nhấp các nút lọc nhanh mức độ nhận thức: `Nhận biết`, `Thông hiểu`, `Vận dụng`, `VDC`.
+  * Bấm nút `#btn-toggle-taxonomy-drawer` để mở/thu gọn ngăn kéo cây kiến thức 6 tầng.
+  * Bấm nút `#btn-reset-bank-filters` để đặt lại toàn bộ bộ lọc.
+- **Kết quả kỳ vọng:**
+  * Nút được chọn chuyển sang trạng thái `.active` màu xanh Apple `#0071e3`, danh sách câu hỏi lọc tức thì.
+  * Ngăn kéo mở/đóng mượt mà, mũi tên chevron xoay 180 độ. Huy hiệu đếm số lượng bộ lọc `#bank-taxonomy-active-count` hiển thị chính xác.
+  * Nút "Đặt lại" xuất hiện khi có bộ lọc hoạt động và ẩn đi khi ngân hàng ở trạng thái mặc định.
+
+#### TC-BANK-UX-02: Kiểm Thử Chế Độ Xem Kép (Thẻ Chi Tiết vs Danh Sách Gọn), Lời Giải Accordion & Sao Chép 1-Click
+- **Mô tả:** Kiểm tra tính năng chuyển đổi chế độ xem kép, nút đóng/mở lời giải chi tiết và sao chép câu hỏi.
+- **Thao tác:**
+  * Bấm nút `#bank-view-compact`: chuyển sang chế độ Danh sách gọn.
+  * Bấm nút `#bank-view-detailed`: chuyển về chế độ Thẻ chi tiết.
+  * Trong thẻ chi tiết: bấm nút "Xem lời giải chi tiết" của câu hỏi bất kỳ. Bấm lại "Ẩn lời giải chi tiết".
+  * Bấm nút "Sao chép" trên card câu hỏi.
+- **Kết quả kỳ vọng:**
+  * Ở chế độ Compact: danh sách hiển thị bảng dữ liệu mật độ cao, đầy đủ các cột Mã, Thể thức, Mức độ, YCCĐ, Trích dẫn và Đáp án chuẩn.
+  * Ở chế độ Detailed: thẻ câu hỏi hiển thị đầy đủ các phương án, đáp án đúng được làm nổi bật, chỉ số $p$ và $D$ hiển thị chuẩn xác.
+  * Nút lời giải chi tiết toggle trơn tru giữa hiển thị và thu gọn, tiết kiệm không gian màn hình.
+  * Nút sao chép lưu định dạng văn bản câu hỏi vào clipboard và hiển thị thông báo toast: "Đã sao chép nội dung câu hỏi vào bộ nhớ tạm!".
+
+#### TC-HEADER-01: Kiểm Thử Cô Lập Vùng Header & Chống Rò Rỉ Phân Trang Ngân Hàng Trên /matrix và /shuffler
+- **Mô tả:** Xác minh cấu trúc DOM thẻ HTML chuẩn xác 100%, không bị đóng sớm thẻ `<section id="tab-itembank">`, triệt tiêu hoàn toàn sự cố rò rỉ `#bank-pagination-controls` đè lên header của Ma trận đề (`/matrix`) và Sinh & Trộn đề (`/shuffler`).
+- **Thao tác:**
+  * Điều hướng trực tiếp đến route `/matrix` và `/shuffler`.
+  * Chuyển đổi qua lại giữa `/bank`, `/matrix`, và `/shuffler`.
+- **Kết quả kỳ vọng:**
+  * Trên `/matrix` và `/shuffler`, `#bank-pagination-controls` hoàn toàn bị ẩn (`display: none` / `is_visible() == False`).
+  * Thanh Toolbar trên đỉnh (`header.apple-header`) cố định chuẩn Apple HIG với hiệu ứng frosted glass.
+  * Thẻ cấu hình ma trận và banner `#shuffler-header-banner` xuất hiện ngay ngắn sát dưới header tại $y = 89\text{px}$ (khoảng cách biên trên $24\text{px}$ chuẩn HIG).
+  * Chuyển tab mượt mà, phân vùng đúng ngữ cảnh dữ liệu của từng tab.
+
+#### TC-HEADER-02: Kiểm Thử Toàn Vẹn Biểu Tượng Cây Phân Cấp Ma Trận & Sticky Thead Corner
+- **Mô tả:** Kiểm tra biểu tượng mũi tên đóng/mở cây kiến thức ma trận không bị lỗi icon Lucide và ô góc giao điểm sticky header cố định vững chắc.
+- **Thao tác:**
+  * Mở tab `/matrix`, kiểm tra icon toggle của các Chương (`topic-row`) và Bài học (`lesson-row`).
+  * Cuộn ngang và cuộn dọc bên trong `#matrix-hierarchical-table-wrapper`.
+- **Kết quả kỳ vọng:**
+  * Icon chevron mở/đóng render sắc nét với mã `chevron-down` và `chevron-right` (không có warning console 'lucide-chevron-down').
+  * Cột cây kiến thức và header `thead th.matrix-tree-col` đạt `z-index: 40`, giữ vững vị trí góc trên-trái khi cuộn ma trận 2 chiều.
+  * Bảng điều khiển DevTools đạt 0 lỗi console (`100% CLEAN`).
 
 ---
 
