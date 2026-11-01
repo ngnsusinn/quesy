@@ -8,12 +8,18 @@ Validates:
 4. Zero DevTools console errors.
 """
 
+import os
 import sys
 import time
 import socket
 import threading
+import shutil
 from pathlib import Path
+import pytest
 import uvicorn
+
+# Gracefully skip if playwright is not installed in the environment
+playwright_module = pytest.importorskip("playwright", reason="Playwright is required for browser E2E tests")
 from playwright.sync_api import sync_playwright
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -61,13 +67,22 @@ def test_e2e_composer_toolbar_streamlining():
     console_errors = []
 
     chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+    launch_kwargs = {"headless": True}
+    if os.path.exists(chrome_path):
+        launch_kwargs["executable_path"] = chrome_path
+    elif shutil.which("google-chrome"):
+        launch_kwargs["executable_path"] = shutil.which("google-chrome")
+    elif shutil.which("chromium"):
+        launch_kwargs["executable_path"] = shutil.which("chromium")
+    elif shutil.which("chromium-browser"):
+        launch_kwargs["executable_path"] = shutil.which("chromium-browser")
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(
-                executable_path=chrome_path,
-                headless=True
-            )
+            try:
+                browser = p.chromium.launch(**launch_kwargs)
+            except Exception as e:
+                pytest.skip(f"Could not launch browser for E2E test: {e}")
             context = browser.new_context(viewport={"width": 1440, "height": 900})
             page = context.new_page()
 
