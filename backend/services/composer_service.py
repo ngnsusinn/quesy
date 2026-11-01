@@ -37,6 +37,400 @@ STORAGE_COMPOSER_CACHE.mkdir(parents=True, exist_ok=True)
 # ---------------------------------------------------------------------------
 
 TEMPLATES: Dict[str, Dict[str, str]] = {
+    "thpt_2026_exam_0101": {
+        "title": "Đề thi Tốt nghiệp THPT 2026 Môn Toán (Mã đề 0101 - 4 Trang)",
+        "description": "Chuẩn quy cách Bộ GD&ĐT: Header 2 cột, 3 phần chuẩn Thông tư 32 & Quyết định 764 (12 Trắc nghiệm đơn, 4 Đúng/Sai, 6 Trả lời ngắn), 100% hình vẽ TikZ và bảng biến thiên căn giữa.",
+        "latex": r"""\noindent
+\begin{minipage}[t]{0.38\textwidth}
+  \centering
+  \textbf{BỘ GIÁO DỤC VÀ ĐÀO TẠO}\\
+  \textbf{ĐỀ THI CHÍNH THỨC}\\
+  \textit{(Đề thi có 04 trang)}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.58\textwidth}
+  \centering
+  \textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG NĂM 2026}\\
+  \textbf{Môn thi: TOÁN}\\
+  \textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}
+\end{minipage}
+\vspace{0.25cm}
+\noindent
+Họ, tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0101}}
+\vspace{0.1cm}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.3cm}
+
+\section*{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn}
+\textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
+
+\begin{ex}
+Cho cấp số cộng $(u_n)$ có số hạng đầu $u_1 = 3$ và công sai $d = 2$. Giá trị của số hạng $u_5$ bằng
+\choice
+{\True $11$}
+{$13$}
+{$9$}
+{$10$}
+\begin{loigiai}
+Ta có $u_5 = u_1 + 4d = 3 + 4 \times 2 = 11$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Cho hai hàm số $u(x)$ và $v(x)$ có đạo hàm tại điểm $x$ thuộc tập xác định. Đạo hàm của hàm số $y = u(x) + v(x)$ là
+\choice
+{\True $y' = u'(x) + v'(x)$}
+{$y' = u'(x) - v'(x)$}
+{$y' = u'(x)v(x) + u(x)v'(x)$}
+{$y' = u'(x)v'(x)$}
+\begin{loigiai}
+Theo quy tắc đạo hàm của tổng: $(u + v)' = u' + v'$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Khẳng định nào dưới đây là đúng?
+\choice
+{\True $\int \cos x\,\mathrm{d}x = \sin x + C$}
+{$\int \cos x\,\mathrm{d}x = -\sin x + C$}
+{$\int \cos x\,\mathrm{d}x = \tan x + C$}
+{$\int \cos x\,\mathrm{d}x = \dfrac{\sin^2 x}{2} + C$}
+\begin{loigiai}
+Ta có $(\sin x + C)' = \cos x$, do đó $\int \cos x\,\mathrm{d}x = \sin x + C$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Với mọi số thực dương $a, b$ thỏa mãn $a \ne 1$, giá trị của biểu thức $\log_a(a^3b)$ bằng
+\choice
+{\True $3 + \log_a b$}
+{$3\log_a b$}
+{$1 + 3\log_a b$}
+{$3 - \log_a b$}
+\begin{loigiai}
+Ta có $\log_a(a^3b) = \log_a(a^3) + \log_a b = 3 + \log_a b$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Trong không gian $Oxyz$, cho vectơ $\vec{u} = 2\vec{i} - 3\vec{j} + \vec{k}$. Tọa độ của vectơ $\vec{u}$ là
+\choice
+{\True $(2; -3; 1)$}
+{$(2; 3; 1)$}
+{$(-2; 3; -1)$}
+{$(1; -3; 2)$}
+\begin{loigiai}
+Tọa độ của $\vec{u} = 2\vec{i} - 3\vec{j} + \vec{k}$ là $(2; -3; 1)$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Cho hai biến cố độc lập $A$ và $B$ có xác suất $P(A) = 0{,}4$ và $P(B) = 0{,}5$. Xác suất của biến cố giao $AB$ bằng
+\choice
+{\True $0{,}2$}
+{$0{,}9$}
+{$0{,}1$}
+{$0{,}45$}
+\begin{loigiai}
+Vì hai biến cố $A$ và $B$ độc lập nên $P(AB) = P(A) \cdot P(B) = 0{,}4 \times 0{,}5 = 0{,}2$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Cho hình lập phương $ABCD.A'B'C'D'$. Góc giữa hai vectơ $\overrightarrow{AB}$ và $\overrightarrow{A'D'}$ bằng
+\begin{center}
+  \begin{tikzpicture}[scale=0.7, >=stealth, line join=round, line cap=round]
+    \coordinate (A) at (0, 0);
+    \coordinate (B) at (3, 0);
+    \coordinate (D) at (-1.4, -1.1);
+    \coordinate (C) at (1.6, -1.1);
+    \coordinate (A1) at (0, 2.6);
+    \coordinate (B1) at (3, 2.6);
+    \coordinate (D1) at (-1.4, 1.5);
+    \coordinate (C1) at (1.6, 1.5);
+
+    \draw[thick] (D) -- (C) -- (B) -- (B1) -- (C1) -- (D1) -- cycle;
+    \draw[thick] (C) -- (C1);
+    \draw[thick] (A1) -- (B1) (A1) -- (D1);
+    \draw[dashed, thick] (A) -- (B) (A) -- (D) (A) -- (A1);
+
+    \node[left] at (A) {$A$};
+    \node[right] at (B) {$B$};
+    \node[below left] at (D) {$D$};
+    \node[below right] at (C) {$C$};
+    \node[above left] at (A1) {$A'$};
+    \node[above right] at (B1) {$B'$};
+    \node[above left] at (D1) {$D'$};
+    \node[above right] at (C1) {$C'$};
+  \end{tikzpicture}
+\end{center}
+\choice
+{\True $90^\circ$}
+{$45^\circ$}
+{$60^\circ$}
+{$120^\circ$}
+\begin{loigiai}
+Do $ABCD.A'B'C'D'$ là hình lập phương nên $A'D' \parallel AD$. Do đó $(\overrightarrow{AB}, \overrightarrow{A'D'}) = (\overrightarrow{AB}, \overrightarrow{AD}) = 90^\circ$ vì $ABCD$ là hình vuông.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Điểm nào dưới đây thuộc miền nghiệm của hệ bất phương trình $\begin{cases} x + y - 2 \le 0 \\ 2x - y + 2 > 0 \end{cases}$?
+\choice
+{\True $(0; 1)$}
+{$(2; 3)$}
+{$(3; 1)$}
+{$(-2; 1)$}
+\begin{loigiai}
+Thay $(0; 1)$ vào hệ: $0 + 1 - 2 = -1 \le 0$ (đúng) và $2(0) - 1 + 2 = 1 > 0$ (đúng). Do đó $(0; 1)$ thuộc miền nghiệm.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Họ nguyên hàm của hàm số $f(x) = 3x^2 + 2x$ là
+\choice
+{\True $x^3 + x^2 + C$}
+{$3x^3 + 2x^2 + C$}
+{$6x + 2 + C$}
+{$x^3 + 2x^2 + C$}
+\begin{loigiai}
+Ta có $\int (3x^2 + 2x)\,\mathrm{d}x = x^3 + x^2 + C$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Cho hàm số phân thức $y = \dfrac{ax+b}{cx+d}$ có bảng biến thiên như sau:
+\begin{center}
+  \begin{tikzpicture}
+    \tikzset{double style/.append style = {double distance=2.5pt}}
+    \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.4]
+    {$x$/.6, $y'$/.6, $y$/2}
+    {$-\infty$,$1$,$+\infty$}
+    \tkzTabLine{,+,d,+,}
+    \tkzTabVar{-/$-2$, +D-/$+\infty$/$-\infty$, +/$-2$}
+  \end{tikzpicture}
+\end{center}
+Phương trình đường tiệm cận đứng và tiệm cận ngang của đồ thị hàm số lần lượt là
+\choice
+{\True $x = 1$ và $y = -2$}
+{$x = -2$ và $y = 1$}
+{$x = 1$ và $y = 2$}
+{$x = -1$ và $y = -2$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, ta có tiệm cận đứng là $x = 1$ và tiệm cận ngang là $y = -2$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Cho cấp số nhân $(u_n)$ có số hạng đầu $u_1 = 2$ và công bội $q = 3$. Giá trị của số hạng $u_4$ bằng
+\choice
+{\True $54$}
+{$24$}
+{$18$}
+{$162$}
+\begin{loigiai}
+Ta có $u_4 = u_1 \cdot q^3 = 2 \cdot 3^3 = 2 \cdot 27 = 54$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Khảo sát thời gian học trực tuyến trong một tuần của 50 học sinh lớp 12 thu được kết quả ở bảng ghép nhóm sau:
+\begin{center}
+  \begin{tabular}{|c|c|c|c|c|c|}
+    \hline
+    Thời gian (giờ) & $[0; 5)$ & $[5; 10)$ & $[10; 15)$ & $[15; 20)$ & $[20; 25)$ \\ \hline
+    Số học sinh & $6$ & $12$ & $18$ & $10$ & $4$ \\ \hline
+  \end{tabular}
+\end{center}
+Số học sinh có thời gian học trực tuyến từ $10$ đến dưới $15$ giờ là
+\choice
+{\True $18$}
+{$12$}
+{$10$}
+{$6$}
+\begin{loigiai}
+Từ bảng số liệu ghép nhóm, số học sinh trong khoảng $[10; 15)$ là $18$ học sinh.
+\end{loigiai}
+\end{ex}
+
+\section*{PHẦN II. Câu trắc nghiệm Đúng/Sai}
+\textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
+\setcounter{ex}{0}
+
+\begin{ex}
+Một mô hình trí tuệ nhân tạo (AI) được triển khai để sàng lọc nguy cơ bệnh tim mạch trong một cộng đồng gồm $10000$ người. Biết rằng xác suất một người thực sự có nguy cơ mắc bệnh là $0{,}05$. Khi người đó có nguy cơ mắc bệnh, xác suất AI kết luận chính xác là $0{,}95$. Khi người đó không có nguy cơ mắc bệnh, xác suất AI đưa ra kết luận dương tính giả là $0{,}03$. Xét tính Đúng/Sai của các mệnh đề sau:
+\choiceTF[1]
+{\True Trong cộng đồng trên có 500 người thực sự có nguy cơ mắc bệnh tim mạch.}
+{Xác suất một người bất kỳ nhận kết quả chẩn đoán dương tính từ AI bằng $0{,}08$.}
+{\True Số người không mắc bệnh nhưng nhận kết quả dương tính giả là 285 người.}
+{Xác suất một người thực sự có bệnh biết rằng AI chẩn đoán dương tính lớn hơn $70\%$.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. Số người có nguy cơ mắc bệnh là $10000 \times 0{,}05 = 500$ người.
+\itemch Sai. Xác suất dương tính là $P(+) = 0{,}05 \times 0{,}95 + 0{,}95 \times 0{,}03 = 0{,}076 \ne 0{,}08$.
+\itemch Đúng. Số người không có bệnh là 9500, số ca dương tính giả là $9500 \times 0{,}03 = 285$ người.
+\itemch Sai. Xác suất có bệnh khi dương tính là $\dfrac{0{,}0475}{0{,}076} = 62{,}5\% < 70\%$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Cho hàm số bậc ba $f(x) = \dfrac{1}{3}x^3 - 5x^2 + 9x + 8$. Xét tính Đúng/Sai của các mệnh đề sau:
+\choiceTF[1]
+{\True Đạo hàm của hàm số đã cho là $f'(x) = x^2 - 10x + 9$.}
+{Hàm số đồng biến trên khoảng $(1; 9)$.}
+{\True Hàm số đạt cực đại tại điểm $x = 1$.}
+{Tâm đối xứng của đồ thị hàm số có hoành độ bằng $3$.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. Ta có $f'(x) = x^2 - 10x + 9$.
+\itemch Sai. $f'(x) < 0$ trên $(1; 9)$ nên hàm số nghịch biến trên khoảng $(1; 9)$.
+\itemch Đúng. $f'(x) = 0 \Leftrightarrow x = 1$ hoặc $x = 9$; qua $x = 1$ thì $f'(x)$ đổi dấu từ dương sang âm nên $x = 1$ là điểm cực đại.
+\itemch Sai. $f''(x) = 2x - 10 = 0 \Leftrightarrow x = 5$, do đó hoành độ tâm đối xứng là $x = 5$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Một hệ thống pin năng lượng mặt trời hoạt động trong khoảng thời gian từ $t = 0$ đến $t = 12$ giờ với công suất tức thời được mô hình hóa bởi hàm số $f(t) = -0{,}3t^2 + 3{,}6t$ (kW), trong đó $t$ tính bằng giờ. Xét tính Đúng/Sai của các mệnh đề sau:
+\choiceTF[1]
+{\True Công suất phát đạt giá trị lớn nhất tại thời điểm $t = 6$ giờ.}
+{Công suất cực đại của hệ thống pin bằng $12\text{ kW}$.}
+{\True Tổng năng lượng điện tạo ra trong 12 giờ là $F(12) = \int_0^{12} (-0{,}3t^2 + 3{,}6t)\,\mathrm{d}t$.}
+{Tổng năng lượng điện tạo ra trong 12 giờ đạt $100\text{ kWh}$.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. Ta có $f'(t) = -0{,}6t + 3{,}6 = 0 \Leftrightarrow t = 6$ giờ.
+\itemch Sai. Công suất cực đại là $f(6) = -0{,}3(36) + 3{,}6(6) = 10{,}8\text{ kW} \ne 12\text{ kW}$.
+\itemch Đúng. Năng lượng điện tích lũy là tích phân của công suất theo thời gian.
+\itemch Sai. Tổng năng lượng tạo ra là $\int_0^{12} (-0{,}3t^2 + 3{,}6t)\,\mathrm{d}t = 86{,}4\text{ kWh} \ne 100\text{ kWh}$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Trong không gian $Oxyz$ (đơn vị: mét), một thiết bị bay không người lái (drone) bay theo đường thẳng từ điểm $M(5; 10; 4)$ đến điểm $N(14; -2; 4)$ để tuần tra bảo vệ một vành đai an toàn hình tròn trên mặt đất có tâm $O(0; 0; 0)$ và bán kính $70\text{ m}$. Xét tính Đúng/Sai của các mệnh đề sau:
+\choiceTF[1]
+{\True Vectơ chỉ phương của đường bay là $\overrightarrow{MN} = (9; -12; 0)$.}
+{Độ dài quãng đường bay từ $M$ đến $N$ bằng $20\text{ m}$.}
+{\True Phương trình hình chiếu của đường bay lên mặt phẳng $(Oxy)$ có dạng $4x + 3y - 50 = 0$.}
+{Khoảng cách ngắn nhất từ drone đến tâm vành đai $O$ nhỏ hơn $10\text{ m}$.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. $\overrightarrow{MN} = (14-5; -2-10; 4-4) = (9; -12; 0)$.
+\itemch Sai. $MN = \sqrt{9^2 + (-12)^2 + 0^2} = 15\text{ m} \ne 20\text{ m}$.
+\itemch Đúng. Hình chiếu của đường thẳng lên $(Oxy)$ đi qua $(5; 10)$ với VTPT $(4; 3)$ có phương trình $4x + 3y - 50 = 0$.
+\itemch Sai. Khoảng cách ngắn nhất từ drone đến $O$ là $\sqrt{10^2 + 4^2} = \sqrt{116} \approx 10{,}77\text{ m} > 10\text{ m}$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}
+
+\section*{PHẦN III. Câu trắc nghiệm trả lời ngắn}
+\textit{Thí sinh trả lời từ câu 1 đến câu 6.}
+\setcounter{ex}{0}
+
+\begin{ex}
+Cho hình lập phương $ABCD.MNPQ$ có cạnh bằng $6$. Gọi $E$ là trung điểm của cạnh $NP$. Tính khoảng cách từ điểm $P$ đến mặt phẳng $(MED)$ (làm tròn kết quả đến hàng phần mười).
+\shortans{2.4}
+\begin{loigiai}
+Đặt hệ trục $Oxyz$, ta tính được khoảng cách từ $P$ đến mặt phẳng $(MED)$ là $\dfrac{12}{5} = 2{,}4$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Một bảng ô vuông dạng bậc thang gồm $15$ ô vuông đơn vị như hình vẽ bên dưới:
+\begin{center}
+  \begin{tikzpicture}[scale=0.6]
+    \draw[thick] (0, 0) grid (5, 1);
+    \draw[thick] (0, 1) grid (4, 2);
+    \draw[thick] (0, 2) grid (3, 3);
+    \draw[thick] (0, 3) grid (2, 4);
+    \draw[thick] (0, 4) grid (1, 5);
+  \end{tikzpicture}
+\end{center}
+Người ta điền 15 số nguyên dương phân biệt từ tập hợp các số không chia hết cho 5 vào 15 ô vuông sao cho tổng các số trên mỗi hàng bằng nhau. Biết số lớn nhất được điền là số nhỏ nhất có thể, tính tổng các số ở hàng đầu tiên (hàng gồm 5 ô).
+\shortans{45}
+\begin{loigiai}
+Tổng các số trên mỗi hàng là $45$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Một hạt cườm trang trí bằng gỗ có dạng khối tròn xoay được tạo thành khi quay miền elip $\dfrac{x^2}{1{,}5^2} + \dfrac{y^2}{1^2} \le 1$ quanh trục $Ox$, sau đó được khoan một lỗ trụ xuyên suốt dọc theo trục $Ox$ có bán kính $r = 0{,}2\text{ cm}$.
+\begin{center}
+  \begin{tikzpicture}[scale=1.1, >=stealth]
+    \draw[->, thick] (-2.2, 0) -- (2.2, 0) node[right] {$x$};
+    \draw[->, thick] (0, -1.5) -- (0, 1.5) node[above] {$y$};
+    \node[below left] at (0, 0) {$O$};
+    \draw[thick, smooth, domain=-1.5:1.5, samples=40] plot (\x, {sqrt(max(0, 1 - (\x/1.5)^2))});
+    \draw[thick, smooth, domain=-1.5:1.5, samples=40] plot (\x, {-sqrt(max(0, 1 - (\x/1.5)^2))});
+    \draw[dashed, red, thick] (-1.47, 0.2) -- (1.47, 0.2);
+    \draw[dashed, red, thick] (-1.47, -0.2) -- (1.47, -0.2);
+    \node[right, red] at (1.5, 0.2) {$y = 0{,}2$};
+  \end{tikzpicture}
+\end{center}
+Tính thể tích phần gỗ còn lại của hạt cườm theo đơn vị $\text{cm}^3$ (làm tròn kết quả đến hàng phần trăm).
+\shortans{5.84}
+\begin{loigiai}
+Thể tích khối tròn xoay elip trừ thể tích lỗ khoan hình trụ cho kết quả xấp xỉ $5{,}84\text{ cm}^3$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Cho một đa giác đều 12 đỉnh $A_1A_2\ldots A_{12}$ nội tiếp đường tròn. Tại mỗi đỉnh gắn một bóng đèn gồm 4 bóng màu đỏ và 8 bóng màu xanh được bố trí ngẫu nhiên:
+\begin{center}
+  \begin{tikzpicture}[scale=1.0]
+    \draw[thick] (0, 0) circle (1.8cm);
+    \foreach \i in {1, 2, ..., 12} {
+      \coordinate (P\i) at ({90 - (\i-1)*30}:1.8cm);
+      \fill (P\i) circle (2pt);
+      \node at ({90 - (\i-1)*30}:2.15cm) {\footnotesize $A_{\i}$};
+    }
+    \draw[thin, dashed] (P1) -- (P5) -- (P9) -- cycle;
+  \end{tikzpicture}
+\end{center}
+Chọn ngẫu nhiên 3 đỉnh của đa giác. Biết xác suất để 3 đỉnh được chọn tạo thành một tam giác có ít nhất một bóng đèn màu đỏ là $P$. Tính giá trị của biểu thức $3190P$.
+\shortans{145}
+\begin{loigiai}
+Tính được xác suất $P$ và giá trị biểu thức $3190P = 145$.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Một nông trại cung cấp ba loại nông sản: Cà chua, Bắp cải và Dưa chuột cho một chuỗi siêu thị. Thống kê khối lượng giao hàng (tấn) và tổng số tiền thanh toán (triệu đồng) trong ba ngày đầu tuần như sau:
+\begin{center}
+  \begin{tabular}{|l|c|c|c|c|}
+    \hline
+    Ngày giao & Cà chua & Bắp cải & Dưa chuột & Tổng tiền (triệu đồng) \\ \hline
+    Thứ Hai & $2$ & $3$ & $1$ & $52$ \\ \hline
+    Thứ Ba & $1$ & $4$ & $2$ & $58$ \\ \hline
+    Thứ Tư & $3$ & $2$ & $4$ & $76$ \\ \hline
+    Thứ Bảy & $1$ & $1$ & $1$ & $?$ \\ \hline
+  \end{tabular}
+\end{center}
+Biết đơn giá mỗi loại nông sản không đổi trong tuần, tính số tiền thu được trong ngày thứ Bảy khi nông trại giao mỗi loại đúng $1$ tấn nông sản (đơn vị: triệu đồng).
+\shortans{18.5}
+\begin{loigiai}
+Giải hệ 3 phương trình bậc nhất 3 ẩn tìm đơn giá mỗi loại nông sản, tính được tổng tiền ngày thứ Bảy là $18{,}5$ triệu đồng.
+\end{loigiai}
+\end{ex}
+
+\begin{ex}
+Một công ty nông sản xác định hàm tổng doanh thu khi bán $x$ tấn sản phẩm là $R(x) = 60x$ (triệu đồng) và hàm tổng chi phí sản xuất là $C(x) = 0{,}001x^3 + 30x + 10$ (triệu đồng), với $x \in [1; 200]$. Để lợi nhuận thu được lớn nhất, công ty cần sản xuất bao nhiêu tấn sản phẩm?
+\shortans{100}
+\begin{loigiai}
+Hàm lợi nhuận $P(x) = R(x) - C(x) = -0{,}001x^3 + 30x - 10$. Đạo hàm $P'(x) = 0 \Leftrightarrow x = 100$. Vậy công ty cần sản xuất $100$ tấn sản phẩm.
+\end{loigiai}
+\end{ex}
+
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.2cm}
+\begin{center}
+  \textbf{--- HẾT ---}\\
+  \textit{Thí sinh không được sử dụng tài liệu. Giám thị không giải thích gì thêm.}
+\end{center}
+"""
+    },
     "ex_test_standard_exam": {
         "title": "Đề thi Chuẩn Quốc Gia 2025 (Gói ex_test v3.3)",
         "description": "Đầy đủ 3 phần: Trắc nghiệm 4 lựa chọn (\\choice), Đúng/Sai (\\choiceTF), Trả lời ngắn (\\shortans), chèn hình TikZ căn giữa.",
@@ -332,6 +726,8 @@ Lời giải chi tiết cho câu hỏi.
 TEMPLATES["calculus_12_exam"] = TEMPLATES["variation_table_calculus"]
 TEMPLATES["geometry_12_exam"] = TEMPLATES["geometry_3d"]
 TEMPLATES["blank_exam"] = TEMPLATES["blank_document"]
+TEMPLATES["de_thi_thpt_2026_0101"] = TEMPLATES["thpt_2026_exam_0101"]
+TEMPLATES["exam_2026_code_0101"] = TEMPLATES["thpt_2026_exam_0101"]
 
 
 def fix_immini_choice_nesting(latex_text: str) -> str:

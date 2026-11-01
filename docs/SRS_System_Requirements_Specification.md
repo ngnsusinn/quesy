@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0 & flex-shrink: 0)  
+- **Phiên bản:** 3.9 (Quy Chuẩn Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán Mã Đề 0101, Tối Ưu Bố Cục Vector PDF 4 Trang Chuẩn Bộ GD&ĐT)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX, cơ chế cuộn mượt container nội bộ bảo toàn cố định Top Header 100%), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input, phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm hiển thị toán học, và chuẩn hóa giao diện dropdown box Apple HIG (.apple-select) đồng bộ 100% typography sans-serif.
-- **Ngày phát hành:** 2026-10-29  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX, cơ chế cuộn mượt container nội bộ bảo toàn cố định Top Header 100%), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", quy chuẩn kiểm nghiệm toàn diện chức năng soạn đề thi Kỳ thi tốt nghiệp THPT năm 2026 môn Toán (Mã đề 0101) gồm 4 trang tài liệu với cấu trúc 3 phần (Phần I: 12 câu trắc nghiệm đơn, Phần II: 4 câu Đúng/Sai \choiceTF[1], Phần III: 6 câu Trả lời ngắn \shortans), tích hợp xử lý đa phương tiện hình ảnh (Multimodal Vision Copilot), chat hình ảnh để tái cấu trúc và thay thế câu hỏi tương đương (Targeted Question Diff Replacement), cơ chế biên dịch PDF vector thuần Tectonic XeTeX đa trang hiển thị sống động qua PDF.js canvas, và xuất file .tex độc lập với Canonical Preamble hoàn chỉnh.
+- **Ngày phát hành:** 2026-11-01  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
 ---
@@ -644,6 +644,38 @@ ight)$$
   1. *Tầng 1: Chế độ Xem trước Tức thì HTML/SVG (Instant Live HTML Preview - 0.2s):* Tự động chuyển đổi sang giao diện xem trước HTML/SVG qua `compile_latex_source_to_html` với bộ đệm Disk Cache TikZ theo mã MD5 (0.01s cho hình không đổi) và MathJax/KaTeX (0.05s).
   2. *Tầng 2: Biên dịch Nhanh Câu Đang Sửa / Phân Đoạn (Focus / Partial Question Quick Compile - 1.5s):* Cho phép giáo viên biên dịch nhanh khối câu hỏi hiện tại tại vị trí con trỏ thành PDF vector trong 1.0 - 1.8 giây qua phím tắt `Ctrl+Shift+S` (nút bấm "CÂU HIỆN TẠI" đã được tinh giản lược bỏ khỏi thanh công cụ đáy để dành toàn bộ không gian cho nút BIÊN DỊCH).
   3. *Tầng 3: Chế độ Biên dịch Nhanh Nháp (Draft Mode - 15s):* Giảm `samples=35` cho toàn bộ đồ thị TikZ khi bật cờ `draft_mode`, cắt giảm 70% thời gian biên dịch tài liệu lớn từ 65s xuống 15s.
+
+#### SRS-FEAT-04aa: Quy Chuẩn Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Kỳ Thi Tốt Nghiệp THPT Năm 2026 (Official 2026 Math Exam Code 0101 Multimodal Verification Standard)
+- **Mô tả:** Thiết lập chuẩn mực khảo thí và kiểm thử toàn diện cho Kỳ thi tốt nghiệp THPT năm 2026 môn Toán (Mã đề 0101, tài liệu chuẩn 4 trang in ấn) thông qua 3 trụ cột: Soạn đề chuẩn cấu trúc Preamble-Free, Số hóa từ ảnh đính kèm (Multimodal Vision), và Chat hình ảnh tái cấu trúc/thay thế câu hỏi tương đương (Targeted Refactoring).
+- **Quy Cách Ấn Phẩm Khảo Thí 4 Trang In Ấn (A4 Portrait MoET Invariant):**
+  1. *Tiêu đề Header 2 cột cân bằng (Trang 1/4):*
+     - Cột trái (`0.38\textwidth`, `\centering`): BỘ GIÁO DỤC VÀ ĐÀO TẠO / ĐỀ THI CHÍNH THỨC / (Đề thi có 04 trang).
+     - Cột phải (`0.58\textwidth`, `\centering`): KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG NĂM 2026 / Môn thi: TOÁN / Thời gian làm bài: 90 phút, không kể thời gian phát đề.
+     - Dòng định danh thí sinh: `Họ, tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\textbf{Mã đề: 0101}}`.
+     - Đường kẻ đơn phân tách: `\noindent\rule{\textwidth}{0.5pt}`.
+  2. *Cấu trúc 3 Phần chuẩn Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT:*
+     - **PHẦN I (12 câu trắc nghiệm nhiều phương án):** Thí sinh trả lời từ Câu 1 đến Câu 12. Mỗi câu chọn 1 phương án duy nhất (`\choice`).
+       * Câu 1 đến Câu 10 (Trang 1/4): Cấp số cộng, đạo hàm tổng hàm số, nguyên hàm tích phân lượng giác, logarit, vectơ Oxyz, xác suất biến cố độc lập, hình học lập phương TikZ (Câu 7), hệ bất phương trình bậc nhất hai ẩn (Câu 8), nguyên hàm hàm đa thức (Câu 9), bảng biến thiên hàm phân thức hữu tỉ `tkz-tab` (Câu 10).
+       * Câu 11 đến Câu 12 (Trang 2/4): Cấp số nhân công bội $q$, bảng số liệu thống kê ghép nhóm thời gian học trực tuyến (Câu 12).
+     - **PHẦN II (4 câu trắc nghiệm Đúng/Sai 4 khẳng định):** Thí sinh trả lời từ Câu 1 đến Câu 4 (`\choiceTF[1]`). Điểm số lũy tiến QĐ 764: Đúng 1 ý = 0.1đ, Đúng 2 ý = 0.25đ, Đúng 3 ý = 0.5đ, Đúng 4 ý = 1.0đ.
+       * Câu 1 đến Câu 3 (Trang 2/4): Ứng dụng AI cảnh báo nguy cơ bệnh (xác suất điều kiện), khảo sát hàm bậc ba $f(x) = \frac{1}{3}x^3 - 5x^2 + 9x + 8$, hệ thống pin năng lượng mặt trời $F(t) = \int f(t)\,\mathrm{d}t$.
+       * Câu 4 (Trang 3/4): Không gian Oxyz máy bay không người lái (drone) bay theo đường thẳng $MN$ bảo vệ vành đai tròn tâm $O$ bán kính $70\text{m}$.
+     - **PHẦN III (6 câu trắc nghiệm trả lời ngắn):** Thí sinh trả lời từ Câu 1 đến Câu 6 (`\shortans{...}`).
+       * Câu 1 đến Câu 3 (Trang 3/4): Khoảng cách từ đỉnh $P$ đến mặt phẳng $(MED)$ trong hình lập phương cạnh 6 (Câu 1); Trò chơi điền 15 số vào 15 ô vuông bậc thang không chia hết cho 5 theo hàng và cột (Câu 2); Thể tích hạt cườm elip xoay quanh $Ox$ khoan lỗ trụ bán kính $0{,}2\text{cm}$ (Câu 3).
+       * Câu 4 đến Câu 6 (Trang 4/4): Hình minh họa elip trục xoay khoan lỗ Câu 3; Đa giác đều 12 cạnh gắn 12 bóng đèn (4 đỏ, 8 xanh) tính xác suất $3190P$ (Câu 4); Nông trại cung cấp 3 loại rau quả giải hệ phương trình tuyến tính (Câu 5); Tối ưu hóa hàm lợi nhuận công ty nông sản $P(x) = R(x) - C(x)$ trên $[1; 200]$ (Câu 6).
+     - Dòng kết thúc trang 4: `--- HẾT ---`, kèm 2 chú thích: *"Thí sinh không được sử dụng tài liệu"*, *"Giám thị không giải thích gì thêm"*.
+  3. *Quy tắc Bố cục Đồ thị & Hình học TikZ (Centered Diagram Invariant):*
+     - Toàn bộ đồ thị hàm số, hình không gian lập phương (Câu 7 Phần I, Câu 1 Phần III), bảng biến thiên `tkz-tab` (Câu 10 Phần I), bảng ghép nhóm (Câu 12 Phần I, Câu 5 Phần III), bảng lưới ô vuông bậc thang (Câu 2 Phần III), hình elip khoan lỗ (Câu 3 Phần III), và đa giác 12 cạnh (Câu 4 Phần III) đều BẮT BUỘC ĐẶT Ở CHÍNH GIỮA (`\begin{center} ... \end{center}`).
+     - Đồ thị TikZ và hình vẽ kỹ thuật vẽ bằng nét đen đậm (`thick, black`), đường dóng nét đứt (`dashed, thick`), số liệu nhãn toán học bọc trong math mode `$ ... $`.
+- **Luồng Xử Lý Đa Phương Tiện & Chat Tái Cấu Trúc Đề Thi (Multimodal Image Copilot):**
+  1. *Nạp ảnh & Nhận dạng:* Giáo viên đính kèm ảnh (Image 1 - Image 4) qua nút upload, clipboard paste (`Ctrl+V`), hoặc kéo thả. Hệ thống hiển thị thumbnail trong khay đính kèm `#composer-attached-images-container` và hỗ trợ xem phóng to qua Modal Lightbox `#composer-image-lightbox`.
+  2. *Chat tái cấu trúc câu hỏi (Visual Question Refactoring):* Giáo viên nhập lệnh yêu cầu (ví dụ: *"Thay thế Câu 7 bằng câu hỏi nhận dạng vectơ hình lập phương tương tự"* hoặc *"Thay câu 10 bằng bảng biến thiên hàm bậc 3"*).
+  3. *Trích xuất Diff đích danh (Targeted Diff Extraction):* AI Copilot phân tích mã nguồn hiện tại, định vị chính xác khối câu hỏi chỉ định qua hàm `find_nth_question_in_latex(current_latex, n)`, trích xuất khối diff thay thế duy nhất câu hỏi đó mà không sinh lại preamble thừa.
+  4. *Giao diện duyệt Diff trực quan:* Hiển thị banner duyệt diff trên đỉnh `#composer-pending-diff-banner` và Inline Overlay `#composer-inline-diff-overlay` với khối đỏ (-) và khối xanh (+), kèm nút Keep / Đồng ý, Undo / Từ chối, và Áp dụng tất cả.
+- **Biên Dịch & Xuất Bản Đề Thi Hoàn Hảo:**
+  1. *Biên dịch Vector PDF qua Tectonic XeTeX:* Hệ thống biên dịch toàn bộ mã LaTeX thành tệp PDF sắc nét chuẩn in ấn 1200 DPI, hiển thị trực tiếp trên PDF.js canvas của cột phải với khả năng cuộn đa trang mượt mà và cập nhật bộ đếm trang chính xác (`Trang X / 4`).
+  2. *Xuất file `.tex` độc lập:* API `POST /api/v1/composer/export` tự động bọc mã nguồn với đầy đủ Canonical Preamble (`fontspec`, `amsmath`, `amssymb`, `geometry` A4 margin 1.5cm, `tikz`, `tkz-tab`, `tcolorbox`, `xparse`, `ex_test` v3.3) để giáo viên có thể biên dịch trực tiếp trên mọi hệ thống TeX bên ngoài.
+  3. *Lưu vào Ngân hàng câu hỏi:* Nút `LƯU NGÂN HÀNG` trích xuất toàn bộ câu hỏi chuẩn 3 thể thức và tự động phân loại YCCĐ theo Chương trình GDPT 2018.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.

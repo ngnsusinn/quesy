@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0 & flex-shrink: 0)  
+- **Phiên bản:** 3.9 (Quy Chuẩn Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán Mã Đề 0101, Tối Ưu Bố Cục Vector PDF 4 Trang Chuẩn Bộ GD&ĐT)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 220+ Tests (100% Passed)  
-- **Ngày lập:** 2026-10-29  
+- **Tổng số kịch bản tự động hóa:** 230+ Tests (100% Passed)  
+- **Ngày lập:** 2026-11-01  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
 ---
@@ -19,6 +19,7 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 3. Xác minh thể thức câu hỏi hiện đại: **Trắc nghiệm Đúng/Sai 4 khẳng định tính điểm bậc thang** và **Trắc nghiệm Trả lời ngắn**.
 4. Thuật toán **Trộn đề An toàn (Safe Shuffling)**: Đảm bảo không tách rời câu hỏi chùm và luôn khóa cố định phương án *"Cả A và B đều đúng"* tại vị trí cuối cùng (D).
 5. Chất lượng xuất bản file Word 2 cột với công thức native OMML và bảng điểm Excel UTF-8 BOM.
+6. Xác minh toàn diện phân hệ Soạn đề (Composer): Cấu trúc 3 phần chuẩn Đề thi Tốt nghiệp THPT 2026 Môn Toán (Mã đề 0101), xử lý ảnh đa phương tiện (Multimodal Image Copilot), chat tái cấu trúc câu hỏi (Targeted Diff Replacement), và biên dịch PDF đa trang hiển thị trên PDF.js canvas.
 
 ### 1.2. Thang đánh giá Kết quả (Test Result Status)
 - **PASS:** Chức năng hoạt động chính xác theo đúng kết quả kỳ vọng.
@@ -43,6 +44,7 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 | **TS-10** | Quản trị CI/CD & Cổng Pre-Commit Gate | NFR-DEV-01..06, TC-DEV-01..02 | 2 | P0 (Critical) |
 | **TS-11** | Hệ Thống Xác Thực Auth (PBKDF2, JWT, OAuth Google/GitHub, RBAC) | BR-05.2, FR-08, AUTH-01 | 19 | P0 (Critical) |
 | **TS-12** | Con Trỏ Soạn Thảo Đen Tương Phản Cao & Phân Trang Ngân Hàng Apple HIG | BR-03, BR-04, FR-04.9, FR-05.6, NFR-USA-09,10 | 5 | P0 (Must Have) |
+| **TS-13** | Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi THPT 2026 (Mã Đề 0101) | FR-02.23, SRS-FEAT-04aa, NFR-PERF-22 | 8 | P0 (Critical) |
 
 ---
 
@@ -776,6 +778,85 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
   * Icon chevron mở/đóng render sắc nét với mã `chevron-down` và `chevron-right` (không có warning console 'lucide-chevron-down').
   * Cột cây kiến thức và header `thead th.matrix-tree-col` đạt `z-index: 40`, giữ vững vị trí góc trên-trái khi cuộn ma trận 2 chiều.
   * Bảng điều khiển DevTools đạt 0 lỗi console (`100% CLEAN`).
+
+---
+
+### TEST SUITE 13: KIỂM NGHIỆM SOẠN ĐỀ, SỐ HÓA TỪ ẢNH, CHAT TÁI CẤU TRÚC VÀ BIÊN DỊCH PDF ĐỀ THI TỐT NGHIỆP THPT 2026 MÔN TOÁN (MÃ ĐỀ 0101)
+
+#### TC-COMPOSER-01: Kiểm Thử Cấu Trúc Đề Thi 4 Trang Chuẩn Bộ GD&ĐT 2026 (Mã Đề 0101)
+- **Mô tả:** Xác minh tài liệu đề thi chính thức Kỳ thi tốt nghiệp THPT năm 2026 môn Toán (Mã đề 0101) được soạn thảo trên trình soạn thảo Preamble-Free với đầy đủ cấu trúc 3 phần và Header 2 cột cân bằng.
+- **Dữ liệu kiểm thử:** Toàn bộ nội dung 4 trang đề thi:
+  * Header 2 cột: Minipage 0.38\textwidth (BỘ GIÁO DỤC VÀ ĐÀO TẠO) và 0.58\textwidth (KỲ THI TỐT NGHIỆP THPT 2026), `\dotfill`, `\framebox{\textbf{Mã đề: 0101}}`, `\rule{\textwidth}{0.5pt}`.
+  * Phần I (Câu 1-12): Trắc nghiệm 4 lựa chọn, có hình lập phương TikZ Câu 7 và bảng biến thiên tkz-tab Câu 10.
+  * Phần II (Câu 1-4): Trắc nghiệm Đúng/Sai 4 khẳng định dùng `\choiceTF[1]`.
+  * Phần III (Câu 1-6): Trắc nghiệm trả lời ngắn dùng `\shortans{...}`.
+- **Thao tác:**
+  1. Mở trang `/composer`.
+  2. Nạp nội dung đề thi 2026 mã 0101 vào ô soạn thảo `#composer-editor-input`.
+  3. Nhấn nút **BIÊN DỊCH** (`#0071e3`).
+- **Kết quả kỳ vọng:**
+  * Biên dịch thành công 100% không phát sinh lỗi TeX.
+  * Tệp PDF sinh ra gồm đúng 4 trang (`total_pages == 4`).
+  * Bộ đếm trang hiển thị chuẩn xác `Trang 1 / 4` và cập nhật mượt mà khi cuộn.
+  * Toàn bộ hình vẽ TikZ và bảng biến thiên tkz-tab được căn giữa đối xứng (`\begin{center} ... \end{center}`).
+
+#### TC-COMPOSER-02: Kiểm Thử Nạp Ảnh Đa Phương Tiện (Image Upload, Thumbnail Tray & Lightbox)
+- **Mô tả:** Kiểm tra khả năng nạp 4 hình ảnh đề thi 2026 (Trang 1 đến Trang 4) vào khay đính kèm và xem trước phóng to qua modal Lightbox.
+- **Thao tác:**
+  1. Tại khung chat AI `#composer-chat-input-container`, nhấp vào nút icon ảnh và chọn 4 tệp ảnh (`5.png`, `6.png`, `7.png`, `8.png`).
+  2. Kiểm tra khay thumbnail `#composer-attached-images-container`.
+  3. Nhấp vào thumbnail của Trang 1 để mở Lightbox.
+  4. Bấm phím `Esc` hoặc nút đóng để tắt Lightbox.
+  5. Xóa thử 1 ảnh bằng nút ✕ trên thumbnail.
+- **Kết quả kỳ vọng:**
+  * 4 ảnh xuất hiện ngay ngắn trong khay thumbnail với kích thước 54px x 54px bo góc tròn.
+  * Modal Lightbox hiển thị ảnh sắc nét trên nền tối mờ `backdrop-blur-md`.
+  * Đóng mở Lightbox mượt mà không làm reload trang hoặc mất mã soạn thảo.
+  * Xóa ảnh cập nhật mảng đính kèm tức thì.
+
+#### TC-COMPOSER-03: Kiểm Thử Chat Hình Ảnh Tái Cấu Trúc Câu Hỏi (Targeted Diff Replacement)
+- **Mô tả:** Xác minh AI Copilot nhận diện hình ảnh đề thi và sinh khối diff thay thế đích danh câu hỏi mà không sinh lại preamble hay toàn bộ tài liệu.
+- **Thao tác:**
+  1. Đính kèm ảnh Trang 1 (`5.png`) vào ô chat.
+  2. Nhập câu lệnh: *"Thay thế Câu 7 bằng câu hỏi nhận dạng vectơ trong hình lập phương tương tự"*.
+  3. Nhấn gửi (Enter).
+- **Kết quả kỳ vọng:**
+  * Backend API `POST /api/v1/composer/chat` xử lý thành công và trả về đối tượng `ChatResponse` có trường `diff` hoặc `diffs`.
+  * `diff.old_text` khớp chính xác khối mã Câu 7 hiện tại trên editor.
+  * Trên editor xuất hiện Top Banner `#composer-pending-diff-banner` và Inline Overlay `#composer-inline-diff-overlay` với khối đỏ (-) và khối xanh (+).
+  * Trong bubble chat không bị nhồi nhét diff thừa thãi; mã câu hỏi mới được bảo toàn đầy đủ.
+
+#### TC-COMPOSER-04: Kiểm Thử Phê Duyệt Thay Thế Diff Trực Tiếp (Keep / Đồng Ý & Undo / Từ Chối)
+- **Mô tả:** Xác minh thao tác bấm **[Keep / Đồng ý]** áp dụng chính xác mã câu hỏi mới vào đúng vị trí dòng trong editor, và bấm **[Undo / Từ chối]** hoàn tác an toàn.
+- **Thao tác:**
+  1. Khi khối diff của Câu 7 đang hiển thị, nhấn nút **[Keep / Đồng ý]**.
+  2. Quan sát nội dung editor và trạng thái tài liệu.
+  3. Kiểm tra tự động biên dịch lại PDF.
+- **Kết quả kỳ vọng:**
+  * Đoạn mã cũ của Câu 7 được thay thế hoàn toàn bằng câu hỏi mới.
+  * Các câu hỏi khác trước và sau Câu 7 giữ nguyên vẹn 100%.
+  * Banner diff và overlay tự động đóng sau khi áp dụng.
+  * Live PDF preview tự động biên dịch lại và hiển thị câu hỏi mới.
+
+#### TC-COMPOSER-05: Kiểm Thử Thể Thức Đúng/Sai \choiceTF[1] Dàn Đơn Cột & Điểm Bậc Thang QĐ 764
+- **Mô tả:** Kiểm tra 4 câu hỏi Phần II của đề thi 2026 tuân thủ nghiêm ngặt chuẩn `\choiceTF[1]`.
+- **Thao tác:**
+  1. Kiểm tra mã nguồn Phần II (Câu 1 đến Câu 4) trong editor.
+  2. Kiểm tra giao diện HTML/PDF kết xuất.
+- **Kết quả kỳ vọng:**
+  * Mỗi câu có đúng 4 ý khẳng định phụ a), b), c), d), mỗi ý nằm trên một dòng riêng biệt chiếm 100% độ rộng cột.
+  * Không có thẻ `\\` gây lỗi `There's no line here to end`.
+  * Nội dung các khẳng định không chứa tiền tố lặp nhãn `a) a)`, `b) b)`.
+  * Điểm số tính theo barem bậc thang: 1 ý = 0.1đ, 2 ý = 0.25đ, 3 ý = 0.5đ, 4 ý = 1.0đ.
+
+#### TC-COMPOSER-06: Kiểm Thử Xuất Bản Độc Lập File .tex Standalone & Lưu Vào Ngân Hàng
+- **Mô tả:** Xác minh xuất file `.tex` độc lập có Canonical Preamble và lưu toàn bộ 22 câu hỏi vào Ngân hàng câu hỏi.
+- **Thao tác:**
+  1. Nhấp `XUẤT FILE ▾` -> `Tải mã nguồn LaTeX (.tex)`.
+  2. Nhấp nút `LƯU NGÂN HÀNG` (`#btn-composer-save-to-bank`).
+- **Kết quả kỳ vọng:**
+  * File `.tex` tải về chứa đầy đủ `\documentclass[12pt,a4paper]{article}`, `\usepackage{fontspec}`, `\usepackage{amsmath,amssymb}`, `\usepackage{tikz,tkz-tab}`, `\usepackage{tcolorbox}`, `\usepackage[dethi]{ex_test}` và `\begin{document} ... \end{document}`.
+  * Lưu vào ngân hàng thành công: Trích xuất 22 câu hỏi (12 Trắc nghiệm đơn, 4 Đúng/Sai, 6 Trả lời ngắn), tự động gán YCCĐ TT 32, và cập nhật badge `#bank-count-badge`.
 
 ---
 

@@ -3,9 +3,9 @@
 **Dự án:** Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học  
 **Tên mã dự án (Project Code):** QUESY  
 **Mục tiêu cốt lõi:** Giải quyết triệt để các rào cản và nút thắt cổ chai trong quy trình số hóa đề thi, tự động tái tạo đồ thị vector, chuẩn hóa công thức toán học, trộn đề an toàn chống vỡ logic và xuất bản ấn phẩm khảo thí in ấn chuyên nghiệp.  
-- **Phiên bản (Version):** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0)  
+- **Phiên bản (Version):** 3.9 (Quy Chuẩn Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán Mã Đề 0101, Tối Ưu Bố Cục Vector PDF 4 Trang Chuẩn Bộ GD&ĐT)  
 - **Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
-- **Ngày phát hành:** 2026-10-29
+- **Ngày phát hành:** 2026-11-01
 
 ---
 
@@ -23,8 +23,9 @@
 | 3.4 | 2026-10-27 | BA Team & Lead Architect | Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D (TT 22 & QĐ 764), 3 Ma trận mẫu Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản đặc tả (PDF/CSV/JSON), Động cơ Sinh Đề Gốc kèm Đổi câu hỏi tương đương, Động cơ Trộn Đề An Toàn 4 Nguyên Tắc (Option Anchor 100%), và Đóng gói Ấn phẩm Khảo thí (.ZIP/.PDF). | Ban Giám đốc & PM |
 | 3.5 | 2026-10-28 | BA Team & Tech Lead | Render KaTeX Toàn Diện Tại Ngân Hàng, Ma Trận Đề & Modals (loại bỏ hoàn toàn chuỗi văn bản thô $ ... $), Chuẩn Hóa Dropdown Box Apple HIG Unified Select (.apple-select) với icon chevron SVG, bo góc 12px, triệt tiêu class font-mono lệch chuẩn, khắc phục dropdown Thời gian làm bài và đồng bộ toàn diện trải nghiệm người dùng. | Ban Giám đốc & PM |
 | 3.6 | 2026-10-29 | BA Team & Lead UX | Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Bold Black Text Cursor & Caret tại các ô Ma trận đề và trường text inputs (SVG I-beam 2.8px tương phản cao, caret-color #000000, hover nổi bật ô ma trận), Hệ thống Phân trang Ngân hàng Câu hỏi Chuẩn Apple HIG (state bankPagination, phân trang dải câu hỏi, chuyển trang, dropdown 12/24/48 câu/trang, auto-reset page 1 khi lọc, render KaTeX on-demand <10ms, cuộn mượt về đầu trang). | Ban Giám đốc & PM |
-| **3.7** | 2026-10-29 | BA Team & Lead Architect | **Sửa lỗi biến mất Top Header khi đổi trang phân trang ngân hàng câu hỏi: Loại bỏ triệt để lệnh `scrollIntoView` gây cuộn `window.scrollY = 65px` đẩy header ra ngoài viewport; thay thế bằng cuộn nội bộ container `#main-scroll-view.scrollTo({ top: 0, behavior: 'smooth' })` và neo `window.scrollTo(0, 0)`; bổ sung `shrink-0` trên HTML và `flex-shrink: 0;` trong CSS bảo toàn vị trí cố định của Apple Header trên mọi kích thước màn hình.** | Ban Giám đốc & PM |
-| **3.8** | 2026-11-01 | BA Team & Lead UX | **Tinh Giản Thanh Công Cụ Soạn Đề LaTeX Apple HIG: Loại bỏ hoàn toàn nút câu hiện tại (`#composer-compile-partial-btn`) khỏi thanh công cụ đáy, tinh giản thành 2 nút tác vụ chính `BIÊN DỊCH` (`flex-1`, `#0071e3`) và `LƯU NGÂN HÀNG`, giảm thiểu tải nhận thức theo nguyên tắc `principle-minimize-reader-load`, phím tắt `Ctrl+Shift+S` vẫn được giữ nguyên cho người dùng nâng cao.** | Ban Giám đốc & PM |
+| 3.7 | 2026-10-29 | BA Team & Lead Architect | Sửa lỗi biến mất Top Header khi đổi trang phân trang ngân hàng câu hỏi: Loại bỏ triệt để lệnh `scrollIntoView` gây cuộn `window.scrollY = 65px` đẩy header ra ngoài viewport; thay thế bằng cuộn nội bộ container `#main-scroll-view.scrollTo({ top: 0, behavior: 'smooth' })` và neo `window.scrollTo(0, 0)`; bổ sung `shrink-0` trên HTML và `flex-shrink: 0;` trong CSS bảo toàn vị trí cố định của Apple Header trên mọi kích thước màn hình. | Ban Giám đốc & PM |
+| 3.8 | 2026-11-01 | BA Team & Lead UX | Tinh Giản Thanh Công Cụ Soạn Đề LaTeX Apple HIG: Loại bỏ hoàn toàn nút câu hiện tại (`#composer-compile-partial-btn`) khỏi thanh công cụ đáy, tinh giản thành 2 nút tác vụ chính `BIÊN DỊCH` (`flex-1`, `#0071e3`) và `LƯU NGÂN HÀNG`, giảm thiểu tải nhận thức theo nguyên tắc `principle-minimize-reader-load`, phím tắt `Ctrl+Shift+S` vẫn được giữ nguyên cho người dùng nâng cao. | Ban Giám đốc & PM |
+| **3.9** | 2026-11-01 | BA Team & Lead Architect | **Kiểm nghiệm Toàn diện Chức năng Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán (Mã Đề 0101): Mô hình hóa trọn vẹn 4 trang in ấn chuẩn MoET (12 câu Phần I, 4 câu Phần II \choiceTF[1], 6 câu Phần III \shortans), kiểm chứng năng lực Multimodal Copilot (nhận diện ảnh, thumbnail tray, lightbox), chat tái cấu trúc câu hỏi có diff trực quan, và biên dịch Vector PDF XeTeX đa trang sống động trên PDF.js canvas.** | Ban Giám đốc & PM |
 
 ---
 

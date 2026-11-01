@@ -4587,3 +4587,245 @@ def test_composer_save_to_bank_empty_latex_graceful_response():
     assert data["counts"]["true_false"] == 0
     assert data["counts"]["short_answer"] == 0
 
+
+# ===========================================================================
+# 15. THPT 2026 Math Exam Code 0101 & Multimodal Refactoring Tests
+# ===========================================================================
+
+def test_composer_template_thpt_2026_0101_structure():
+    """Verify THPT 2026 Exam Code 0101 canonical template has full 22 questions,
+    Header 2 columns with Mã đề 0101, centered TikZ/tkz-tab diagrams, \\choiceTF[1], and \\shortans.
+    """
+    import re
+    from backend.services.composer_service import TEMPLATES
+
+    assert "thpt_2026_exam_0101" in TEMPLATES, "thpt_2026_exam_0101 must be registered in TEMPLATES"
+    tpl = TEMPLATES["thpt_2026_exam_0101"]
+    latex = tpl["latex"]
+
+    # 1. Header 2 columns
+    assert "0.38\\textwidth" in latex
+    assert "0.58\\textwidth" in latex
+    assert "BỘ GIÁO DỤC VÀ ĐÀO TẠO" in latex
+    assert "KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG NĂM 2026" in latex
+    assert "Mã đề: 0101" in latex
+    assert "\\rule{\\textwidth}{0.5pt}" in latex
+
+    # 2. Check 3 sections
+    assert "PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn" in latex
+    assert "PHẦN II. Câu trắc nghiệm Đúng/Sai" in latex
+    assert "PHẦN III. Câu trắc nghiệm trả lời ngắn" in latex
+
+    # 3. Check question counts: 12 in Part I, 4 in Part II, 6 in Part III = 22 total
+    q_matches = re.findall(r'\\begin\{ex\}', latex)
+    assert len(q_matches) == 22, f"Total questions must be 22, got {len(q_matches)}"
+
+    # 4. Check Centered Diagrams Invariant: Every tikzpicture and tkzTab must be inside \begin{center}...\end{center}
+    tikz_blocks = list(re.finditer(r'\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}', latex))
+    assert len(tikz_blocks) >= 5, f"Expected at least 5 TikZ blocks, got {len(tikz_blocks)}"
+    for tb in tikz_blocks:
+        start_idx = tb.start()
+        end_idx = tb.end()
+        preceding = latex[max(0, start_idx - 40):start_idx]
+        assert "\\begin{center}" in preceding, f"TikZ block at pos {start_idx} must be wrapped in \\begin{{center}}"
+        following = latex[end_idx:end_idx + 40]
+        assert "\\end{center}" in following, f"TikZ block at pos {start_idx} must be wrapped in \\end{{center}}"
+
+    # 5. Part II uses \choiceTF[1]
+    assert "\\choiceTF[1]" in latex
+    part2_match = re.search(r'PHẦN II[\s\S]*?(?=PHẦN III|\Z)', latex)
+    assert part2_match is not None
+    part2_text = part2_match.group(0)
+    assert not re.search(r'\{\s*[a-d]\)\s+', part2_text), "Part II sub-statements must not have repeated a), b), c), d) prefixes"
+
+    # 6. Part III uses \shortans
+    part3_match = re.search(r'PHẦN III[\s\S]*', latex)
+    assert part3_match is not None
+    part3_text = part3_match.group(0)
+    shortans_count = len(re.findall(r'\\shortans\{[^}]*\}', part3_text))
+    assert shortans_count == 6, f"Part III must contain exactly 6 \\shortans, got {shortans_count}"
+
+
+def test_composer_chat_multimodal_image_replace_question_7():
+    """Verify TC-COMPOSER-03: Chat with attached image and 'Thay thế Câu 7...'
+    returns targeted DiffSuggestion replacing Question 7 with centered TikZ cube.
+    """
+    from backend.services.composer_service import TEMPLATES
+    from backend.routers.composer import find_nth_question_in_latex
+
+    cur_latex = TEMPLATES["thpt_2026_exam_0101"]["latex"]
+    old_q7 = find_nth_question_in_latex(cur_latex, 7)
+    assert old_q7 is not None
+    assert "Cho hình lập phương" in old_q7
+
+    fake_img = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "Thay thế Câu 7 bằng câu hỏi nhận dạng vectơ trong hình lập phương tương tự",
+            "current_latex": cur_latex,
+            "images": [fake_img],
+            "history": []
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "reply" in data
+    assert data["diff"] is not None, "DiffSuggestion must not be None when user asks to replace Question 7"
+    assert data["diff"]["action"] == "replace"
+    assert data["diff"]["old_text"] == old_q7, "diff.old_text must exactly match Question 7 in current editor code"
+    assert "tikzpicture" in data["diff"]["new_text"]
+    assert "\\begin{center}" in data["diff"]["new_text"]
+    assert "\\choice" in data["diff"]["new_text"]
+    assert "câu 7" in data["diff"]["description"].lower()
+
+    # Simulate applying diff: Question 7 is replaced, others intact
+    applied = cur_latex.replace(data["diff"]["old_text"], data["diff"]["new_text"])
+    assert data["diff"]["new_text"] in applied
+    assert "Cho cấp số cộng" in applied
+    assert "Cho hàm số phân thức" in applied
+
+
+def test_composer_chat_multimodal_image_without_replace():
+    """Verify attaching an image without replace command returns image recognition response with centered TikZ."""
+    fake_img = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "Trích xuất câu hỏi từ hình ảnh đính kèm",
+            "current_latex": "",
+            "images": [fake_img],
+            "history": []
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "reply" in data
+    assert data["suggested_latex"] is not None
+    assert "\\begin{center}" in data["suggested_latex"]
+    assert "\\begin{tikzpicture}" in data["suggested_latex"]
+
+
+def test_composer_chat_replace_question_10_tkz_tab():
+    """Verify replacing question 10 produces targeted diff with centered tkz-tab table of variation."""
+    from backend.services.composer_service import TEMPLATES
+    from backend.routers.composer import find_nth_question_in_latex
+
+    cur_latex = TEMPLATES["thpt_2026_exam_0101"]["latex"]
+    old_q10 = find_nth_question_in_latex(cur_latex, 10)
+    assert old_q10 is not None
+    assert "tiệm cận" in old_q10.lower() or "phân thức" in old_q10.lower()
+
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "sửa câu 10 bằng bảng biến thiên hàm phân thức khác",
+            "current_latex": cur_latex,
+            "history": []
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["diff"] is not None
+    assert data["diff"]["old_text"] == old_q10
+    assert "tkzTabInit" in data["diff"]["new_text"]
+    assert "\\begin{center}" in data["diff"]["new_text"]
+
+
+def test_composer_chat_replace_question_2_part_3():
+    """Verify replacing question 2 in Part III targets the staircase grid question."""
+    from backend.services.composer_service import TEMPLATES
+    from backend.routers.composer import find_nth_question_in_latex
+
+    cur_latex = TEMPLATES["thpt_2026_exam_0101"]["latex"]
+    old_p3_q2 = find_nth_question_in_latex(cur_latex, 2, section=3)
+    assert old_p3_q2 is not None
+    assert "bậc thang" in old_p3_q2 or "ô vuông" in old_p3_q2
+
+    res = client.post(
+        "/api/v1/composer/chat",
+        json={
+            "message": "thay câu 2 phần 3 bằng bài toán ma trận ô vuông khác",
+            "current_latex": cur_latex,
+            "history": []
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["diff"] is not None
+    assert data["diff"]["old_text"] == old_p3_q2
+    assert "shortans" in data["diff"]["new_text"]
+    assert "\\begin{center}" in data["diff"]["new_text"]
+
+
+def test_find_nth_question_in_latex_sections():
+    """Verify find_nth_question_in_latex accurately targets questions within specific sections."""
+    from backend.services.composer_service import TEMPLATES
+    from backend.routers.composer import find_nth_question_in_latex
+
+    latex = TEMPLATES["thpt_2026_exam_0101"]["latex"]
+
+    # Part I: Question 1
+    p1_q1 = find_nth_question_in_latex(latex, 1, section=1)
+    assert p1_q1 is not None
+    assert "cấp số cộng" in p1_q1.lower()
+
+    # Part II: Question 1
+    p2_q1 = find_nth_question_in_latex(latex, 1, section=2)
+    assert p2_q1 is not None
+    assert "trí tuệ nhân tạo" in p2_q1.lower() or "bệnh tim mạch" in p2_q1.lower()
+    assert "choiceTF" in p2_q1
+
+    # Part III: Question 1
+    p3_q1 = find_nth_question_in_latex(latex, 1, section=3)
+    assert p3_q1 is not None
+    assert "ABCD.MNPQ" in p3_q1
+    assert "shortans" in p3_q1
+
+
+def test_composer_save_to_bank_thpt_2026_exam():
+    """Verify saving the 2026 Code 0101 exam extracts all 22 questions into Quesy bank."""
+    from backend.services.composer_service import TEMPLATES
+
+    latex = TEMPLATES["thpt_2026_exam_0101"]["latex"]
+    res = client.post(
+        "/api/v1/composer/save-to-bank",
+        json={"latex_code": latex}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert data["total_saved"] == 22
+    assert data["counts"]["single_choice"] == 12
+    assert data["counts"]["true_false"] == 4
+    assert data["counts"]["short_answer"] == 6
+
+
+def test_composer_html_and_js_thpt_2026_and_hig_compliance():
+    """Verify frontend/index.html and frontend/static/app.js comply with Apple HIG,
+    active:scale-[0.97], and 2026 exam template availability.
+    """
+    import re
+    root = Path(__file__).parent.parent
+    index_html = (root / "frontend" / "index.html").read_text(encoding="utf-8")
+    app_js = (root / "frontend" / "static" / "app.js").read_text(encoding="utf-8")
+
+    # 1. BIÊN DỊCH button uses Apple HIG active:scale-[0.97]
+    assert 'id="composer-compile-btn"' in index_html
+    compile_btn_match = re.search(r'<button[^>]*id="composer-compile-btn"[^>]*class="([^"]*)"', index_html)
+    assert compile_btn_match is not None
+    btn_class = compile_btn_match.group(1)
+    assert "bg-[#0071e3]" in btn_class, "Button must use #0071e3 blue"
+    assert "active:scale-[0.97]" in btn_class, "Button must use Emil Kowalski active:scale-[0.97]"
+
+    # 2. Template thpt_2026_exam_0101 is registered in app.js
+    assert "thpt_2026_exam_0101" in app_js
+    assert "Mã đề: 0101" in app_js
+
+    # 3. Lightbox and thumbnail tray elements exist
+    assert 'id="composer-attached-images-container"' in index_html
+    assert 'id="composer-image-lightbox"' in index_html
+    assert 'id="composer-pending-diff-banner"' in index_html
+    assert 'id="composer-inline-diff-overlay"' in index_html
+
+

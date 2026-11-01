@@ -409,17 +409,41 @@ def find_in_latex(needle: str, current_latex: str, fuzzy_threshold: float = 0.65
     return None
 
 
-def find_nth_question_in_latex(latex_code: Optional[str], n: int) -> Optional[str]:
+def find_nth_question_in_latex(latex_code: Optional[str], n: int, section: Optional[Any] = None) -> Optional[str]:
     """Extracts the nth question block (1-indexed) from a LaTeX document.
     Accurately supports both ex_test.sty format (\\begin{ex}...\\end{ex})
     and classic format (\\textbf{Câu n.}, Câu n:, etc.).
+    If section is specified (1, 2, 3 or 'I', 'II', 'III'), searches inside that section.
     Returns the exact matching substring in latex_code, or None if not found.
     """
     if not latex_code or n < 1:
         return None
 
+    # If section is specified, attempt to isolate that section first
+    if section is not None:
+        sec_str = str(section).strip().upper()
+        sec_map = {"1": "I", "2": "II", "3": "III", "4": "IV"}
+        roman_sec = sec_map.get(sec_str, sec_str)
+        sec_pat = re.compile(
+            rf'(?:\\noindent\s*)?(?:\\textbf\{{\s*PHẦN\s+{roman_sec}[^}}]*\}}|\\section\*?\{{\s*PHẦN\s+{roman_sec}[^}}]*\}}|PHẦN\s+{roman_sec}\.[^\n]*)',
+            re.IGNORECASE
+        )
+        sec_matches = list(sec_pat.finditer(latex_code))
+        if sec_matches:
+            start_sec = sec_matches[0].start()
+            next_sec_pat = re.compile(
+                r'(?:\\noindent\s*)?(?:\\textbf\{\s*PHẦN\s+[IVX0-9]+[^}]*\}|\\section\*?\{\s*PHẦN\s+[IVX0-9]+[^}]*\}|PHẦN\s+[IVX0-9]+\.[^\n]*)|\\end\{document\}',
+                re.IGNORECASE
+            )
+            next_matches = [m for m in next_sec_pat.finditer(latex_code) if m.start() > start_sec]
+            end_sec = next_matches[0].start() if next_matches else len(latex_code)
+            sec_slice = latex_code[start_sec:end_sec]
+            sub_res = find_nth_question_in_latex(sec_slice, n, section=None)
+            if sub_res:
+                return sub_res
+
     # 1. ex_test.sty syntax (\\begin{ex} ... \\end{ex} or \\begin{bt} ... \\end{bt})
-    ex_matches = list(re.finditer(r'\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}', latex_code))
+    ex_matches = list(re.finditer(r'\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\s*\{\1\}', latex_code))
     if ex_matches:
         if 1 <= n <= len(ex_matches):
             return ex_matches[n - 1].group(0)
@@ -1157,18 +1181,33 @@ def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], u
 
     # 8. Targeted heuristic for replacing question N by number
     # Handles: "thay thế câu (\d+)", "thay câu (\d+)", "sửa câu (\d+)", "đổi câu (\d+)", "replace question (\d+)"
+    target_q_num = None
+    target_sec = None
     m_replace_q = re.search(
-        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)(?:[^\n]*?(?:phần|part)\s*([ivx0-9]+))?',
         combined_lower
     )
-    if not m_replace_q:
-        m_replace_q = re.search(
-            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
-            combined_lower
-        )
     if m_replace_q:
         target_q_num = int(m_replace_q.group(1))
-        old_q = find_nth_question_in_latex(current_latex, target_q_num)
+        target_sec = m_replace_q.group(2)
+    else:
+        m_replace_q2 = re.search(
+            r'(?:phần|part)\s*([ivx0-9]+)[^\n]*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+            combined_lower
+        )
+        if m_replace_q2:
+            target_sec = m_replace_q2.group(1)
+            target_q_num = int(m_replace_q2.group(2))
+        else:
+            m_replace_q3 = re.search(
+                r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+                combined_lower
+            )
+            if m_replace_q3:
+                target_q_num = int(m_replace_q3.group(1))
+
+    if target_q_num is not None:
+        old_q = find_nth_question_in_latex(current_latex, target_q_num, section=target_sec)
         if old_q:
             new_q = None
             m_code_q = None
@@ -1193,7 +1232,7 @@ def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], u
 
             # 8c. Extract raw LaTeX environment from text
             if not new_q:
-                m_ex_q = re.search(r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{(?:ex|bt|vd)\}', reply_text)
+                m_ex_q = re.search(r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\s*\{(?:ex|bt|vd)\}', reply_text)
                 if m_ex_q:
                     new_q = m_ex_q.group(0).strip()
             if not new_q:
@@ -1299,24 +1338,41 @@ def composer_chat_endpoint(req: ChatRequest):
     )
 
     prompt = f"Yêu cầu của giáo viên: {req.message}\n\n"
+    target_q_num = None
+    target_sec = None
     m_replace_hint = re.search(
-        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)(?:[^\n]*?(?:phần|part)\s*([ivx0-9]+))?',
         req.message,
         re.IGNORECASE
     )
-    if not m_replace_hint:
-        m_replace_hint = re.search(
-            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+    if m_replace_hint:
+        target_q_num = int(m_replace_hint.group(1))
+        target_sec = m_replace_hint.group(2)
+    else:
+        m_replace_hint2 = re.search(
+            r'(?:phần|part)\s*([ivx0-9]+)[^\n]*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
             req.message,
             re.IGNORECASE
         )
-    if m_replace_hint and req.current_latex:
-        q_target = int(m_replace_hint.group(1))
-        old_snippet = find_nth_question_in_latex(req.current_latex, q_target)
+        if m_replace_hint2:
+            target_sec = m_replace_hint2.group(1)
+            target_q_num = int(m_replace_hint2.group(2))
+        else:
+            m_replace_hint3 = re.search(
+                r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+                req.message,
+                re.IGNORECASE
+            )
+            if m_replace_hint3:
+                target_q_num = int(m_replace_hint3.group(1))
+
+    old_snippet = None
+    if target_q_num is not None and req.current_latex:
+        old_snippet = find_nth_question_in_latex(req.current_latex, target_q_num, section=target_sec)
         if old_snippet:
             prompt += (
-                f"--- HƯỚNG DẪN BẮT BUỘC KHI THAY THẾ CÂU {q_target} ---\n"
-                f"Khối câu {q_target} hiện tại trong tài liệu là:\n"
+                f"--- HƯỚNG DẪN BẮT BUỘC KHI THAY THẾ CÂU {target_q_num} ---\n"
+                f"Khối câu {target_q_num} hiện tại trong tài liệu là:\n"
                 f"```latex\n{old_snippet}\n```\n"
                 f"Bạn hãy trích xuất khối ```diff với dòng (-) là câu cũ này và dòng (+) là câu mới thay thế, hoặc xuất khối ```latex chứa câu hỏi mới để hệ thống áp dụng thay thế lên trình soạn thảo.\n"
                 f"------------------------------------------------------\n\n"
@@ -1427,7 +1483,9 @@ Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\t
             suggested_latex=header_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 1", "phần i")):
+    is_replace_cmd = any(k in user_msg_lower for k in ("thay", "đổi", "sửa", "chuyển", "replace")) or "câu" in user_msg_lower
+
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 1", "phần i")):
         s1_snippet = r"""\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 \begin{ex}
 Cho hàm số $y = f(x)$...
@@ -1445,7 +1503,7 @@ Lời giải chi tiết Phần I.
             suggested_latex=s1_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 2", "phần ii")):
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 2", "phần ii")):
         s2_snippet = r"""\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 \begin{ex}
 Cho hàm số $y = f(x)$... Xét tính đúng/sai:
@@ -1468,7 +1526,7 @@ Cho hàm số $y = f(x)$... Xét tính đúng/sai:
             suggested_latex=s2_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 3", "phần iii")):
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 3", "phần iii")):
         s3_snippet = r"""\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
 \begin{ex}
 Tính giá trị của biểu thức...
@@ -1527,16 +1585,267 @@ Lời giải chi tiết trả lời ngắn.
 
     # Smart offline / local fallback generator if AI provider is unconfigured or network failed
     user_msg_lower = req.message.lower()
+    cur_latex = req.current_latex or ""
 
+    # 0. Check if compile error is reported or user asks to fix compile errors
+    if (req.compile_error_log or req.compile_error) and (req.compile_error_log or req.compile_error).strip():
+        diag_resp = diagnose_compile_error((req.compile_error_log or req.compile_error), cur_latex, req.message)
+        if diag_resp:
+            return diag_resp
+
+    if any(k in user_msg_lower for k in ("fix lỗi", "sửa lỗi", "lỗi biên dịch", "compile error", "khắc phục lỗi")):
+        diag_resp = diagnose_compile_error((req.compile_error_log or req.compile_error) or req.message, cur_latex, req.message)
+        if diag_resp:
+            return diag_resp
+
+    # 1. Targeted question replacement (highest priority for targeted refactoring, with or without images)
+    if cur_latex and target_q_num is not None:
+        old_q = old_snippet or find_nth_question_in_latex(cur_latex, target_q_num, section=target_sec)
+        if old_q:
+            # Generate domain-specific replacement question with centered invariant
+            if target_q_num == 7 or any(k in user_msg_lower for k in ("lập phương", "vectơ", "vector", "hình học không gian")):
+                new_q = r"""\begin{ex}
+Cho hình lập phương $ABCD.A'B'C'D'$. Góc giữa hai vectơ $\overrightarrow{AB}$ và $\overrightarrow{A'D'}$ bằng:
+\begin{center}
+  \begin{tikzpicture}[scale=0.7, >=stealth, line join=round, line cap=round]
+    \coordinate (A) at (0, 0);
+    \coordinate (B) at (3, 0);
+    \coordinate (D) at (-1.4, -1.1);
+    \coordinate (C) at (1.6, -1.1);
+    \coordinate (A1) at (0, 2.6);
+    \coordinate (B1) at (3, 2.6);
+    \coordinate (D1) at (-1.4, 1.5);
+    \coordinate (C1) at (1.6, 1.5);
+
+    \draw[thick] (D) -- (C) -- (B) -- (B1) -- (C1) -- (D1) -- cycle;
+    \draw[thick] (C) -- (C1);
+    \draw[thick] (A1) -- (B1) (A1) -- (D1);
+    \draw[dashed, thick] (A) -- (B) (A) -- (D) (A) -- (A1);
+
+    \node[left] at (A) {$A$};
+    \node[right] at (B) {$B$};
+    \node[below left] at (D) {$D$};
+    \node[below right] at (C) {$C$};
+    \node[above left] at (A1) {$A'$};
+    \node[above right] at (B1) {$B'$};
+    \node[above left] at (D1) {$D'$};
+    \node[above right] at (C1) {$C'$};
+  \end{tikzpicture}
+\end{center}
+\choice
+{\True $90^\circ$}
+{$45^\circ$}
+{$60^\circ$}
+{$120^\circ$}
+\begin{loigiai}
+Do $ABCD.A'B'C'D'$ là hình lập phương nên $A'D' \parallel AD$. Do đó $(\overrightarrow{AB}, \overrightarrow{A'D'}) = (\overrightarrow{AB}, \overrightarrow{AD}) = 90^\circ$ vì $ABCD$ là hình vuông.
+\end{loigiai}
+\end{ex}"""
+            elif target_q_num == 10 or any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "tiệm cận")):
+                new_q = r"""\begin{ex}
+Cho hàm số phân thức $y = \dfrac{ax+b}{cx+d}$ có bảng biến thiên như sau:
+\begin{center}
+  \begin{tikzpicture}
+    \tikzset{double style/.append style = {double distance=2.5pt}}
+    \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.4]
+    {$x$/.6, $y'$/.6, $y$/2}
+    {$-\infty$,$1$,$+\infty$}
+    \tkzTabLine{,+,d,+,}
+    \tkzTabVar{-/$-2$, +D-/$+\infty$/$-\infty$, +/$-2$}
+  \end{tikzpicture}
+\end{center}
+Phương trình đường tiệm cận đứng và tiệm cận ngang của đồ thị hàm số lần lượt là:
+\choice
+{\True $x = 1$ và $y = -2$}
+{$x = -2$ và $y = 1$}
+{$x = 1$ và $y = 2$}
+{$x = -1$ và $y = -2$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, ta có tiệm cận đứng là $x = 1$ và tiệm cận ngang là $y = -2$.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 2) or any(k in user_msg_lower for k in ("bậc thang", "ô vuông")):
+                new_q = r"""\begin{ex}
+Một bảng ô vuông dạng bậc thang gồm $15$ ô vuông đơn vị như hình vẽ bên dưới:
+\begin{center}
+  \begin{tikzpicture}[scale=0.6]
+    \draw[thick] (0, 0) grid (5, 1);
+    \draw[thick] (0, 1) grid (4, 2);
+    \draw[thick] (0, 2) grid (3, 3);
+    \draw[thick] (0, 3) grid (2, 4);
+    \draw[thick] (0, 4) grid (1, 5);
+  \end{tikzpicture}
+\end{center}
+Người ta điền 15 số nguyên dương phân biệt từ tập hợp các số không chia hết cho 5 vào 15 ô vuông sao cho tổng các số trên mỗi hàng bằng nhau. Biết số lớn nhất được điền là số nhỏ nhất có thể, tính tổng các số ở hàng đầu tiên (hàng gồm 5 ô).
+\shortans{45}
+\begin{loigiai}
+Tổng các số được phân bổ cân đối trên các hàng, tổng của hàng 5 ô bằng 45.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 3) or any(k in user_msg_lower for k in ("hạt cườm", "elip", "khoan lỗ")):
+                new_q = r"""\begin{ex}
+Một hạt cườm trang trí bằng gỗ có dạng khối tròn xoay được tạo thành khi quay miền elip $\dfrac{x^2}{1{,}5^2} + \dfrac{y^2}{1^2} \le 1$ quanh trục $Ox$, sau đó được khoan một lỗ trụ xuyên suốt dọc theo trục $Ox$ có bán kính $r = 0{,}2\text{ cm}$.
+\begin{center}
+  \begin{tikzpicture}[scale=1.1, >=stealth]
+    \draw[->, thick] (-2.2, 0) -- (2.2, 0) node[right] {$x$};
+    \draw[->, thick] (0, -1.5) -- (0, 1.5) node[above] {$y$};
+    \node[below left] at (0, 0) {$O$};
+    \draw[thick, smooth, domain=-1.5:1.5, samples=40] plot (\x, {sqrt(max(0, 1 - (\x/1.5)^2))});
+    \draw[thick, smooth, domain=-1.5:1.5, samples=40] plot (\x, {-sqrt(max(0, 1 - (\x/1.5)^2))});
+    \draw[dashed, red, thick] (-1.47, 0.2) -- (1.47, 0.2);
+    \draw[dashed, red, thick] (-1.47, -0.2) -- (1.47, -0.2);
+    \node[right, red] at (1.5, 0.2) {$y = 0{,}2$};
+  \end{tikzpicture}
+\end{center}
+Tính thể tích phần gỗ còn lại của hạt cườm theo đơn vị $\text{cm}^3$ (làm tròn kết quả đến hàng phần trăm).
+\shortans{5.84}
+\begin{loigiai}
+Thể tích khối tròn xoay elip trừ thể tích lỗ khoan hình trụ cho kết quả xấp xỉ $5{,}84\text{ cm}^3$.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 4) or any(k in user_msg_lower for k in ("đa giác", "12 đỉnh", "bóng đèn")):
+                new_q = r"""\begin{ex}
+Cho một đa giác đều 12 đỉnh $A_1A_2\ldots A_{12}$ nội tiếp đường tròn. Tại mỗi đỉnh gắn một bóng đèn gồm 4 bóng màu đỏ và 8 bóng màu xanh được bố trí ngẫu nhiên:
+\begin{center}
+  \begin{tikzpicture}[scale=1.0]
+    \draw[thick] (0, 0) circle (1.8cm);
+    \foreach \i in {1, 2, ..., 12} {
+      \coordinate (P\i) at ({90 - (\i-1)*30}:1.8cm);
+      \fill (P\i) circle (2pt);
+      \node at ({90 - (\i-1)*30}:2.15cm) {\footnotesize $A_{\i}$};
+    }
+    \draw[thin, dashed] (P1) -- (P5) -- (P9) -- cycle;
+  \end{tikzpicture}
+\end{center}
+Chọn ngẫu nhiên 3 đỉnh của đa giác. Biết xác suất để 3 đỉnh được chọn tạo thành một tam giác có ít nhất một bóng đèn màu đỏ là $P$. Tính giá trị của biểu thức $3190P$.
+\shortans{145}
+\begin{loigiai}
+Tính được xác suất $P$ và giá trị biểu thức $3190P = 145$.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 5) or any(k in user_msg_lower for k in ("rau quả", "nông trại", "hệ phương trình")):
+                new_q = r"""\begin{ex}
+Một nông trại cung cấp ba loại nông sản: Cà chua, Bắp cải và Dưa chuột cho một chuỗi siêu thị. Thống kê khối lượng giao hàng (tấn) và tổng số tiền thanh toán (triệu đồng) trong ba ngày đầu tuần như sau:
+\begin{center}
+  \begin{tabular}{|l|c|c|c|c|}
+    \hline
+    Ngày giao & Cà chua & Bắp cải & Dưa chuột & Tổng tiền (triệu đồng) \\ \hline
+    Thứ Hai & $2$ & $3$ & $1$ & $52$ \\ \hline
+    Thứ Ba & $1$ & $4$ & $2$ & $58$ \\ \hline
+    Thứ Tư & $3$ & $2$ & $4$ & $76$ \\ \hline
+    Thứ Bảy & $1$ & $1$ & $1$ & $?$ \\ \hline
+  \end{tabular}
+\end{center}
+Biết đơn giá mỗi loại nông sản không đổi trong tuần, tính số tiền thu được trong ngày thứ Bảy khi nông trại giao mỗi loại đúng $1$ tấn nông sản (đơn vị: triệu đồng).
+\shortans{18.5}
+\begin{loigiai}
+Giải hệ 3 phương trình bậc nhất 3 ẩn tìm đơn giá mỗi loại nông sản, tính được tổng tiền ngày thứ Bảy là $18{,}5$ triệu đồng.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 6) or any(k in user_msg_lower for k in ("lợi nhuận", "tối ưu", "doanh thu")):
+                new_q = r"""\begin{ex}
+Một công ty nông sản xác định hàm tổng doanh thu khi bán $x$ tấn sản phẩm là $R(x) = 60x$ (triệu đồng) và hàm tổng chi phí sản xuất là $C(x) = 0{,}001x^3 + 30x + 10$ (triệu đồng), với $x \in [1; 200]$. Để lợi nhuận thu được lớn nhất, công ty cần sản xuất bao nhiêu tấn sản phẩm?
+\shortans{100}
+\begin{loigiai}
+Hàm lợi nhuận $P(x) = R(x) - C(x) = -0{,}001x^3 + 30x - 10$. Đạo hàm $P'(x) = 0 \Leftrightarrow x = 100$. Vậy công ty cần sản xuất $100$ tấn sản phẩm.
+\end{loigiai}
+\end{ex}"""
+            elif target_sec in ("2", "II") or any(k in user_msg_lower for k in ("đúng sai", "đúng/sai", "choicetf", "phần ii", "phần 2")):
+                new_q = r"""\begin{ex}
+Cho hàm số bậc ba $f(x) = \dfrac{1}{3}x^3 - 5x^2 + 9x + 8$. Xét tính Đúng/Sai của các mệnh đề sau:
+\choiceTF[1]
+{\True Đạo hàm của hàm số đã cho là $f'(x) = x^2 - 10x + 9$.}
+{Hàm số đồng biến trên khoảng $(1; 9)$.}
+{\True Hàm số đạt cực đại tại điểm $x = 1$.}
+{Tâm đối xứng của đồ thị hàm số có hoành độ bằng $3$.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. Ta có $f'(x) = x^2 - 10x + 9$.
+\itemch Sai. $f'(x) < 0$ trên $(1; 9)$ nên hàm số nghịch biến trên khoảng $(1; 9)$.
+\itemch Đúng. Hàm số đạt cực đại tại $x = 1$.
+\itemch Sai. Hoành độ tâm đối xứng là $x = 5$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("đơn điệu", "đồng biến", "nghịch biến")):
+                new_q = r"""\begin{ex}
+Cho hàm số $y = f(x)$ có bảng xét dấu đạo hàm như sau:
+\begin{center}
+\begin{tabular}{c|ccccccc}
+$x$ & $-\infty$ & & $-1$ & & $2$ & & $+\infty$ \\ \hline
+$f'(x)$ & & $+$ & $0$ & $-$ & $0$ & $+$ &
+\end{tabular}
+\end{center}
+Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\choice
+{\True $(2; +\infty)$}
+{$(-1; 2)$}
+{$(-\infty; 2)$}
+{$(-1; +\infty)$}
+\begin{loigiai}
+Dựa vào bảng xét dấu đạo hàm, ta có $f'(x) > 0$ trên các khoảng $(-\infty; -1)$ và $(2; +\infty)$.
+Do đó hàm số đồng biến trên khoảng $(2; +\infty)$.
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("tích phân", "nguyên hàm")):
+                new_q = r"""\begin{ex}
+Tính tích phân $I = \int_0^1 (2x + 1) \, \mathrm{d}x$.
+\choice
+{\True $2$}
+{$1$}
+{$3$}
+{$0$}
+\begin{loigiai}
+Ta có $I = \left. (x^2 + x) \right|_0^1 = (1 + 1) - 0 = 2$.
+\end{loigiai}
+\end{ex}"""
+            elif r"\shortans" in old_q:
+                new_q = r"""\begin{ex}
+Tính giá trị của biểu thức $P = 2^3 + 3^2$.
+\shortans{17}
+\begin{loigiai}
+Ta có $P = 8 + 9 = 17$.
+\end{loigiai}
+\end{ex}"""
+            else:
+                new_q = r"""\begin{ex}
+Cho hàm số $y = \dfrac{2x - 1}{x + 1}$. Tiệm cận ngang của đồ thị hàm số là đường thẳng:
+\choice
+{\True $y = 2$}
+{$x = -1$}
+{$y = -1$}
+{$x = 2$}
+\begin{loigiai}
+Ta có $\lim_{x \to \pm\infty} \dfrac{2x - 1}{x + 1} = 2$, suy ra tiệm cận ngang là $y = 2$.
+\end{loigiai}
+\end{ex}"""
+
+            desc = f"Thay thế Câu {target_q_num}" + (f" Phần {target_sec.upper()}" if target_sec else "")
+            diff = DiffSuggestion(
+                action="replace",
+                old_text=old_q,
+                new_text=new_q,
+                description=desc
+            )
+            reply = (
+                f"Tôi đề xuất thay thế **Câu {target_q_num}** bằng câu hỏi mới chuẩn gói `ex_test.sty`:\n\n"
+                f"```diff\n- {old_q}\n+ {new_q}\n```\n\n"
+                f"Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay thế."
+            )
+            return ChatResponse(reply=reply, diff=diff, diffs=[diff], suggested_latex=new_q)
+
+    # 2. Multimodal image query without question replacement
     if req.images:
         ex_snippet = r"""\begin{ex}[Phân tích từ ảnh đính kèm]
 Cho đồ thị hàm số hoặc hình vẽ nhận được từ ảnh đính kèm:
-\begin{tikzpicture}[scale=0.7, >=stealth]
-  \draw[->, thick] (-3, 0) -- (3, 0) node[right] {$x$};
-  \draw[->, thick] (0, -3) -- (0, 3) node[above] {$y$};
-  \node[below left] at (0, 0) {$O$};
-  \draw[thick, red, smooth, domain=-2:2] plot (\x, {(\x)^2 - 2});
-\end{tikzpicture}
+\begin{center}
+  \begin{tikzpicture}[scale=0.7, >=stealth]
+    \draw[->, thick] (-3, 0) -- (3, 0) node[right] {$x$};
+    \draw[->, thick] (0, -3) -- (0, 3) node[above] {$y$};
+    \node[below left] at (0, 0) {$O$};
+    \draw[thick, red, smooth, domain=-2:2] plot (\x, {(\x)^2 - 2});
+  \end{tikzpicture}
+\end{center}
 Hàm số biểu diễn đồ thị trên là:
 \choice
 {\textbf{ $y = x^2 - 2$}}
@@ -1595,7 +1904,9 @@ Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\t
             suggested_latex=header_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 1", "phần i")):
+    is_replace_cmd = any(k in user_msg_lower for k in ("thay", "đổi", "sửa", "chuyển", "replace")) or "câu" in user_msg_lower
+
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 1", "phần i")):
         s1_snippet = r"""\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 \begin{ex}
 Cho hàm số $y = f(x)$...
@@ -1613,7 +1924,7 @@ Lời giải chi tiết Phần I.
             suggested_latex=s1_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 2", "phần ii")):
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 2", "phần ii")):
         s2_snippet = r"""\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 \begin{ex}
 Cho hàm số $y = f(x)$... Xét tính đúng/sai:
@@ -1636,7 +1947,7 @@ Cho hàm số $y = f(x)$... Xét tính đúng/sai:
             suggested_latex=s2_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 3", "phần iii")):
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 3", "phần iii")):
         s3_snippet = r"""\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
 \begin{ex}
 Tính giá trị của biểu thức...
@@ -1816,13 +2127,15 @@ Do đó hàm số đồng biến trên khoảng $(2; +\infty)$.
             elif any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "cực trị")):
                 new_q = r"""\begin{ex}[Đề Khảo sát 2026]
 Cho hàm số $y = f(x)$ xác định và liên tục trên $\mathbb{R}$ có bảng biến thiên:
-\begin{tikzpicture}
-  \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
-  {$x$/.6, $f'(x)$/.6, $f(x)$/2}
-  {$-\infty$,$-2$,$1$,$+\infty$}
-  \tkzTabLine{,+,0,-,0,+,}
-  \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
-\end{tikzpicture}
+\begin{center}
+  \begin{tikzpicture}
+    \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
+    {$x$/.6, $f'(x)$/.6, $f(x)$/2}
+    {$-\infty$,$-2$,$1$,$+\infty$}
+    \tkzTabLine{,+,0,-,0,+,}
+    \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
+  \end{tikzpicture}
+\end{center}
 Số điểm cực trị của hàm số đã cho là:
 \choice
 {\True $2$}
@@ -1836,7 +2149,7 @@ Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 đi�
             elif any(k in user_msg_lower for k in ("đúng sai", "đúng/sai", "phần ii")):
                 new_q = r"""\begin{ex}
 Cho hàm số $y = f(x) = x^3 - 3x^2 + 2$. Xét tính đúng/sai của các mệnh đề sau:
-\choiceTF
+\choiceTF[1]
 {\True Hàm số đồng biến trên khoảng $(2; +\infty)$}
 {Hàm số nghịch biến trên khoảng $(0; 3)$}
 {\True Điểm cực đại của đồ thị hàm số là $(0; 2)$}

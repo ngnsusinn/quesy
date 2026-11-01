@@ -5944,6 +5944,27 @@
     templates: {},
 
         EX_TEST_TEMPLATES: {
+      'thpt_2026_exam_0101': `\\noindent
+\\begin{minipage}[t]{0.38\\textwidth}
+  \\centering
+  \\textbf{BỘ GIÁO DỤC VÀ ĐÀO TẠO}\\\\
+  \\textbf{ĐỀ THI CHÍNH THỨC}\\\\
+  \\textit{(Đề thi có 04 trang)}
+\\end{minipage}
+\\hfill
+\\begin{minipage}[t]{0.58\\textwidth}
+  \\centering
+  \\textbf{KỲ THI TỐT NGHIỆP TRUNG HỌC PHỔ THÔNG NĂM 2026}\\\\
+  \\textbf{Môn thi: TOÁN}\\\\
+  \\textit{Thời gian làm bài: 90 phút, không kể thời gian phát đề}
+\\end{minipage}
+\\vspace{0.25cm}
+\\noindent
+Họ, tên thí sinh: \\dotfill\\ Số báo danh: \\dotfill\\ \\hfill \\framebox{\\textbf{Mã đề: 0101}}
+\\vspace{0.1cm}
+\\noindent\\rule{\\textwidth}{0.5pt}
+\\vspace{0.3cm}
+`,
       'header_quocgia': `\\noindent
 \\begin{minipage}[t]{0.38\\textwidth}
   \\centering
@@ -7724,9 +7745,30 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     },
 
     findNthQuestionInLatex(latexCode, n) {
+      const section = arguments.length > 2 ? arguments[2] : null;
       if (!latexCode || n < 1) return null;
+
+      // If section is specified, attempt to isolate that section first
+      if (section !== null && section !== undefined) {
+        const secStr = String(section).trim().toUpperCase();
+        const secMap = { '1': 'I', '2': 'II', '3': 'III', '4': 'IV' };
+        const romanSec = secMap[secStr] || secStr;
+        const secRegex = new RegExp(`(?:\\\\noindent\\s*)?(?:\\\\textbf\\{\\s*PHẦN\\s+${romanSec}[^}]*\\}|\\\\section\\*?\\{\\s*PHẦN\\s+${romanSec}[^}]*\\}|PHẦN\\s+${romanSec}\\.[^\\n]*)`, 'i');
+        const secMatch = latexCode.match(secRegex);
+        if (secMatch && secMatch.index !== undefined) {
+          const startSec = secMatch.index;
+          const nextSecRegex = /(?:\\noindent\s*)?(?:\\textbf\{\s*PHẦN\s+[IVX0-9]+[^}]*\}|\\section\*?\{\s*PHẦN\s+[IVX0-9]+[^}]*\}|PHẦN\s+[IVX0-9]+\.[^\n]*)|\\end\{document\}/gi;
+          nextSecRegex.lastIndex = startSec + secMatch[0].length;
+          const nextMatch = nextSecRegex.exec(latexCode);
+          const endSec = nextMatch ? nextMatch.index : latexCode.length;
+          const secSlice = latexCode.substring(startSec, endSec);
+          const subRes = this.findNthQuestionInLatex(secSlice, n, null);
+          if (subRes) return subRes;
+        }
+      }
+
       // 1. ex_test.sty syntax (\begin{ex} ... \end{ex})
-      const exRegex = /\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}/g;
+      const exRegex = /\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\s*\{\1\}/g;
       const exMatches = [];
       let m;
       while ((m = exRegex.exec(latexCode)) !== null) {
@@ -7957,11 +7999,25 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
       }
 
       // Question N replacement heuristic: "thay thế câu (\d+)", "thay câu (\d+)", "sửa câu (\d+)", "đổi câu (\d+)", "replace question (\d+)"
-      const replaceQMatch = combinedLower.match(/(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)/i) ||
-                            combinedLower.match(/(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)/i);
-      if (replaceQMatch) {
-        const targetQ = parseInt(replaceQMatch[1], 10);
-        const oldQ = this.findNthQuestionInLatex ? this.findNthQuestionInLatex(currentLatex, targetQ) : null;
+      let targetQ = null;
+      let targetSec = null;
+      const mRep1 = combinedLower.match(/(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)(?:[^\n]*?(?:phần|part)\s*([ivx0-9]+))?/i);
+      if (mRep1) {
+        targetQ = parseInt(mRep1[1], 10);
+        targetSec = mRep1[2] || null;
+      } else {
+        const mRep2 = combinedLower.match(/(?:phần|part)\s*([ivx0-9]+)[^\n]*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)/i);
+        if (mRep2) {
+          targetSec = mRep2[1];
+          targetQ = parseInt(mRep2[2], 10);
+        } else {
+          const mRep3 = combinedLower.match(/(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)/i);
+          if (mRep3) targetQ = parseInt(mRep3[1], 10);
+        }
+      }
+
+      if (targetQ !== null) {
+        const oldQ = this.findNthQuestionInLatex ? this.findNthQuestionInLatex(currentLatex, targetQ, targetSec) : null;
         if (oldQ) {
           let newQ = null;
           // Check diff block for + lines first
@@ -7975,7 +8031,7 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
             if (codeM && !codeM[1].trim().startsWith('\\documentclass')) {
               newQ = codeM[1].trim();
             } else {
-              const exM = replyText.match(/\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{(?:ex|bt|vd)\}/i);
+              const exM = replyText.match(/\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\s*\{(?:ex|bt|vd)\}/i);
               if (exM) newQ = exM[0].trim();
             }
           }
@@ -7984,7 +8040,7 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
               action: 'replace',
               old_text: oldQ,
               new_text: newQ,
-              description: `Thay thế Câu ${targetQ}`
+              description: `Thay thế Câu ${targetQ}` + (targetSec ? ` Phần ${targetSec.toUpperCase()}` : '')
             };
           }
         }
