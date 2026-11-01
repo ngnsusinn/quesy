@@ -802,6 +802,24 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
     - **Loại bỏ triệt để `grid.scrollIntoView(...)`:** Nghiêm cấm sử dụng `grid.scrollIntoView({ behavior: 'smooth', block: 'start' })`. Thực nghiệm kỹ thuật chỉ ra rằng lệnh này làm trình duyệt cuộn cả cấp `window` xuống 65px, khiến header `<header class="apple-header">` bị trồi lên tọa độ âm `top: -65px` và biến mất hoàn toàn khỏi màn hình do thuộc tính `overflow: hidden` của thẻ `<body>` ngăn cản cuộn ngược lại.
     - **Thiết lập chống co rúm (Header Flex Shrink Invariant):** Khai báo `shrink-0` trên thẻ HTML header và `flex-shrink: 0;` trong CSS `.apple-header` đảm bảo thanh điều hướng trên cùng luôn ghim cố định ở `top: 0` trên viewport.
 
+### 2.8.8. FR-04.10: Tái Cơ Cấu Giao Diện Ngân Hàng Câu Hỏi Thân Thiện & Trực Quan (Friendly Item Bank Studio UI & Dual-View Mode)
+- **Màn hình:** `SCR-BANK` (Route: `/bank`, tab: `#tab-itembank`)
+- **Vấn đề giải quyết:** Trước đây, khu vực bộ lọc 6 tầng chứa 10 menu chọn và ô nhập liệu dạng lưới 3x2 + 4 cột chiếm tới 350-400px chiều cao màn hình, đẩy các thẻ câu hỏi xuống rất sâu. Đồng thời, toàn bộ câu hỏi đều hiển thị dàn trải lời giải dài gây choáng ngợp và khó rà soát nhanh.
+- **Giải Pháp Nâng Cấp Công Thái Học (Ergonomic UX):**
+  1. *Banner Thống Kê Tổng Quan (`#bank-stats-banner`):*
+     - Hiển thị trực quan tổng số câu hỏi trong ngân hàng và phân bố tức thời theo 3 thể thức (Trắc nghiệm đơn, Đúng/Sai 4 ý, Trả lời ngắn) và 4 mức độ nhận thức (NB, TH, VD, VDC).
+  2. *Thanh Tìm Kiếm & Lọc Nhanh Thông Minh (Unified Search & Quick Filter Pills):*
+     - Ô tìm kiếm nổi bật với biểu tượng kính lúp, hỗ trợ tìm kiếm theo nội dung, mã câu (`Q-`), mã YCCĐ hoặc từ khóa công thức. Nút xóa nhanh (✕) xuất hiện tự động khi có văn bản.
+     - Dải nút lọc nhanh dạng viên nang (Filter Pills): Chuyển đổi 1-click giữa các Thể thức câu hỏi (`Tất cả`, `Trắc nghiệm đơn (I)`, `Đúng/Sai (II)`, `Trả lời ngắn (III)`) và Mức độ nhận thức (`Tất cả`, `Nhận biết`, `Thông hiểu`, `Vận dụng`, `VDC`).
+     - Ngăn kéo Cây kiến thức 6 tầng (`#bank-taxonomy-drawer`): Gập gọn linh hoạt với nút bấm công thái học kèm huy hiệu đếm số lượng bộ lọc đang kích hoạt (`#bank-taxonomy-active-count`). Cho phép mở bung khi cần lọc sâu theo Khối/Môn/Mạch/Chủ đề/Bài/YCCĐ/Dạng bài và thu gọn khi duyệt bài.
+     - Nút "Đặt lại bộ lọc" (`#btn-reset-bank-filters`): Tự động hiển thị khi có bất kỳ bộ lọc hoặc từ khóa nào đang hoạt động, cho phép đưa toàn bộ ngân hàng về trạng thái mặc định chỉ với 1 click.
+  3. *Bộ Chuyển Đổi Chế Độ Xem Kép (Dual View Mode Switcher):*
+     - Quản trị state: `state.bankUI.viewMode` (`'detailed'` hoặc `'compact'`).
+     - *Chế độ Thẻ chi tiết (`detailed`):* Thẻ Apple card hoàn chỉnh, hiển thị trực quan các phương án, chỉ số tâm đo học $p$ và $D$. Lời giải chi tiết được thiết kế dạng accordion đóng/mở (`toggleCardExplanation`), mặc định thu gọn giúp tiết kiệm không gian cuộn và chỉ mở ra khi giáo viên bấm "Xem lời giải chi tiết".
+     - *Chế độ Danh sách gọn (`compact`):* Bảng dữ liệu mật độ cao (`.bank-compact-table`), hiển thị danh mục câu hỏi với các cột: Số thứ tự, Mã câu, Thể thức, Mức độ, YCCĐ, Trích dẫn nội dung (render KaTeX), Đáp án chuẩn và Cụm thao tác nhanh. Giúp giáo viên quét nhanh hàng chục câu hỏi cùng lúc.
+  4. *Nút Sao Chép Câu Hỏi 1-Click (`copyQuestionStem`):*
+     - Sao chép toàn bộ nội dung câu hỏi, các phương án và đáp án vào clipboard của hệ điều hành, kèm thông báo toast xác nhận tức thì.
+
 ---
 
 ```

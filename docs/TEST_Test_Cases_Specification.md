@@ -731,6 +731,31 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
   * Thẻ `<header>` có class `shrink-0` và CSS tính toán `getComputedStyle(header).flexShrink === '0'`.
   * Khối điều khiển phân trang và thẻ câu hỏi trang 2 hiển thị chính xác mà không làm mất Header.
 
+#### TC-BANK-UX-01: Kiểm Thử Dải Nút Lọc Nhanh (Pills) & Đóng/Mở Ngăn Kéo Cây Kiến Thức 6 Tầng
+- **Mô tả:** Kiểm tra thanh tìm kiếm thông minh, dải nút lọc nhanh dạng viên nang (Filter Pills) và ngăn kéo 6 tầng (#bank-taxonomy-drawer).
+- **Thao tác:**
+  * Nhấp các nút lọc nhanh thể thức: `Tất cả`, `Trắc nghiệm đơn (I)`, `Đúng/Sai (II)`, `Trả lời ngắn (III)`.
+  * Nhấp các nút lọc nhanh mức độ nhận thức: `Nhận biết`, `Thông hiểu`, `Vận dụng`, `VDC`.
+  * Bấm nút `#btn-toggle-taxonomy-drawer` để mở/thu gọn ngăn kéo cây kiến thức 6 tầng.
+  * Bấm nút `#btn-reset-bank-filters` để đặt lại toàn bộ bộ lọc.
+- **Kết quả kỳ vọng:**
+  * Nút được chọn chuyển sang trạng thái `.active` màu xanh Apple `#0071e3`, danh sách câu hỏi lọc tức thì.
+  * Ngăn kéo mở/đóng mượt mà, mũi tên chevron xoay 180 độ. Huy hiệu đếm số lượng bộ lọc `#bank-taxonomy-active-count` hiển thị chính xác.
+  * Nút "Đặt lại" xuất hiện khi có bộ lọc hoạt động và ẩn đi khi ngân hàng ở trạng thái mặc định.
+
+#### TC-BANK-UX-02: Kiểm Thử Chế Độ Xem Kép (Thẻ Chi Tiết vs Danh Sách Gọn), Lời Giải Accordion & Sao Chép 1-Click
+- **Mô tả:** Kiểm tra tính năng chuyển đổi chế độ xem kép, nút đóng/mở lời giải chi tiết và sao chép câu hỏi.
+- **Thao tác:**
+  * Bấm nút `#bank-view-compact`: chuyển sang chế độ Danh sách gọn.
+  * Bấm nút `#bank-view-detailed`: chuyển về chế độ Thẻ chi tiết.
+  * Trong thẻ chi tiết: bấm nút "Xem lời giải chi tiết" của câu hỏi bất kỳ. Bấm lại "Ẩn lời giải chi tiết".
+  * Bấm nút "Sao chép" trên card câu hỏi.
+- **Kết quả kỳ vọng:**
+  * Ở chế độ Compact: danh sách hiển thị bảng dữ liệu mật độ cao, đầy đủ các cột Mã, Thể thức, Mức độ, YCCĐ, Trích dẫn và Đáp án chuẩn.
+  * Ở chế độ Detailed: thẻ câu hỏi hiển thị đầy đủ các phương án, đáp án đúng được làm nổi bật, chỉ số $p$ và $D$ hiển thị chuẩn xác.
+  * Nút lời giải chi tiết toggle trơn tru giữa hiển thị và thu gọn, tiết kiệm không gian màn hình.
+  * Nút sao chép lưu định dạng văn bản câu hỏi vào clipboard và hiển thị thông báo toast: "Đã sao chép nội dung câu hỏi vào bộ nhớ tạm!".
+
 ---
 
 ## 4. TIÊU CHÍ ĐÓNG GIAI ĐOẠN KIỂM THỬ (TEST EXIT CRITERIA)

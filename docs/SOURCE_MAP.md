@@ -127,12 +127,12 @@ quesy/
 │       └── ex_test.sty                # Gói lệnh khảo thí chuẩn Việt Nam v3.3.6 (4,258 dòng)
 │
 ├── frontend/                          # Giao diện Người dùng Web Client (SPA)
-│   ├── index.html                     # Trang khung HTML5 duy nhất chứa 6 màn hình chức năng (1,499 dòng)
+│   ├── index.html                     # Trang khung HTML5 duy nhất chứa 6 màn hình chức năng: Dashboard, Digitization, Friendly Item Bank (Stats banner, Quick Filter Pills, Collapsible 6-Tier Taxonomy Drawer, Dual View Mode), Hierarchical Exam Matrix, Composer, Shuffler & Publishing
 │   ├── manifest.json                  # Cấu hình PWA Web App Manifest (16 dòng)
 │   ├── sw.js                          # Service Worker cache tĩnh (65 dòng)
 │   └── static/
-│       ├── app.js                     # Toàn bộ logic Client SPA, State Store, Event Handlers (4,991 dòng)
-│       ├── style.css                  # Toàn bộ CSS giao diện, Apple HIG, Dark Code Editor (631 dòng)
+│       ├── app.js                     # Toàn bộ logic Client SPA, State Store, Event Handlers (Dual View Mode, Quick Filter Pills, Collapsible Drawer, 1-Click Copy Question, Slice Pagination)
+│       ├── style.css                  # Toàn bộ CSS giao diện, Apple HIG, Quick Filter Pills, High-density Compact Table, Dark Code Editor
 │       └── fonts/                     # Thư mục font chữ dự án
 │
 ├── docs/                              # Toàn bộ tài liệu chuẩn hóa kỹ thuật dự án

@@ -131,6 +131,13 @@
     // Item Bank (Default 12 Rich Standard Items)
     itemBank: [],
     bankPagination: { currentPage: 1, pageSize: 12 },
+    bankUI: {
+      viewMode: 'detailed',
+      taxonomyDrawerOpen: false,
+      expandedExplanations: {},
+      quickFilterFormat: 'all',
+      quickFilterCognitive: 'all',
+    },
 
     // Exam Matrix Config & Cells
     matrixConfig: {
@@ -2893,6 +2900,187 @@
   // ============================================================================
   // 9. TAB 3: ITEM BANK EXPLORER (6-TIER CASCADING TAXONOMY & APPLE HIG PAGINATION)
   // ============================================================================
+  function updateBankStatsBanner() {
+    const totalEl = document.getElementById('bank-stat-total');
+    const singleEl = document.getElementById('bank-stat-single');
+    const tfEl = document.getElementById('bank-stat-tf');
+    const shortEl = document.getElementById('bank-stat-short');
+    const otherEl = document.getElementById('bank-stat-other');
+    const otherContainer = document.getElementById('bank-stat-other-container');
+
+    if (!totalEl || !state.itemBank) return;
+
+    const total = state.itemBank.length;
+    let singleCount = 0;
+    let tfCount = 0;
+    let shortCount = 0;
+    let otherCount = 0;
+
+    state.itemBank.forEach((q) => {
+      if (q.item_format === 'SINGLE_CHOICE') singleCount++;
+      else if (q.item_format === 'TRUE_FALSE_GROUP') tfCount++;
+      else if (q.item_format === 'SHORT_ANSWER') shortCount++;
+      else otherCount++;
+    });
+
+    totalEl.textContent = total;
+    if (singleEl) singleEl.textContent = singleCount;
+    if (tfEl) tfEl.textContent = tfCount;
+    if (shortEl) shortEl.textContent = shortCount;
+
+    if (otherEl && otherContainer) {
+      if (otherCount > 0) {
+        otherEl.textContent = otherCount;
+        otherContainer.classList.remove('hidden');
+      } else {
+        otherContainer.classList.add('hidden');
+      }
+    }
+  }
+
+  function toggleTaxonomyDrawer() {
+    const drawer = document.getElementById('bank-taxonomy-drawer');
+    const chevron = document.getElementById('bank-drawer-chevron');
+    if (!drawer) return;
+
+    state.bankUI.taxonomyDrawerOpen = !state.bankUI.taxonomyDrawerOpen;
+    if (state.bankUI.taxonomyDrawerOpen) {
+      drawer.classList.remove('hidden');
+      if (chevron) chevron.classList.add('rotate-180');
+    } else {
+      drawer.classList.add('hidden');
+      if (chevron) chevron.classList.remove('rotate-180');
+    }
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function setBankViewMode(mode) {
+    state.bankUI.viewMode = mode;
+    const detailedBtn = document.getElementById('bank-view-detailed');
+    const compactBtn = document.getElementById('bank-view-compact');
+
+    if (mode === 'detailed') {
+      detailedBtn?.classList.add('active');
+      compactBtn?.classList.remove('active');
+    } else {
+      compactBtn?.classList.add('active');
+      detailedBtn?.classList.remove('active');
+    }
+
+    renderItemBank();
+  }
+
+  function setQuickFilterFormat(fmt) {
+    state.bankUI.quickFilterFormat = fmt;
+    const formatSelect = document.getElementById('bank-filter-format');
+    if (formatSelect) formatSelect.value = fmt;
+
+    ['all', 'SINGLE_CHOICE', 'TRUE_FALSE_GROUP', 'SHORT_ANSWER'].forEach((f) => {
+      const pill = document.getElementById(`pill-format-${f}`);
+      if (pill) {
+        if (f === fmt) pill.classList.add('active');
+        else pill.classList.remove('active');
+      }
+    });
+
+    handleBankFilterChange();
+  }
+
+  function setQuickFilterCognitive(cog) {
+    state.bankUI.quickFilterCognitive = cog;
+    const cogSelect = document.getElementById('bank-filter-cognitive');
+    if (cogSelect) cogSelect.value = cog;
+
+    const cogMap = {
+      all: 'pill-cog-all',
+      RECOGNITION: 'pill-cog-RECOGNITION',
+      COMPREHENSION: 'pill-cog-COMPREHENSION',
+      APPLICATION: 'pill-cog-APPLICATION',
+      HIGH_APPLICATION: 'pill-cog-HIGH_APPLICATION',
+    };
+
+    Object.keys(cogMap).forEach((c) => {
+      const pill = document.getElementById(cogMap[c]);
+      if (pill) {
+        if (c === cog) pill.classList.add('active');
+        else pill.classList.remove('active');
+      }
+    });
+
+    handleBankFilterChange();
+  }
+
+  function clearBankSearch() {
+    const input = document.getElementById('bank-search-input');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+    handleBankFilterChange();
+  }
+
+  function resetAllBankFilters() {
+    const searchInput = document.getElementById('bank-search-input');
+    if (searchInput) searchInput.value = '';
+
+    const strandSelect = document.getElementById('bank-filter-strand');
+    if (strandSelect) strandSelect.value = 'all';
+
+    const topicSelect = document.getElementById('bank-filter-topic');
+    if (topicSelect) topicSelect.value = 'all';
+
+    const lessonSelect = document.getElementById('bank-filter-lesson');
+    if (lessonSelect) lessonSelect.value = 'all';
+
+    const yccdSelect = document.getElementById('bank-filter-yccd');
+    if (yccdSelect) yccdSelect.value = 'all';
+
+    const archSelect = document.getElementById('bank-filter-archetype');
+    if (archSelect) archSelect.value = 'all';
+
+    setQuickFilterFormat('all');
+    setQuickFilterCognitive('all');
+
+    showToast('Đã đặt lại tất cả bộ lọc về mặc định!', 'info');
+  }
+
+  function toggleCardExplanation(qId) {
+    state.bankUI.expandedExplanations[qId] = !state.bankUI.expandedExplanations[qId];
+    renderItemBank();
+  }
+
+  function copyQuestionStem(qId) {
+    const q = state.itemBank.find((item) => String(item.id) === String(qId));
+    if (!q) return;
+
+    let textToCopy = `[${q.code || ('Q-' + q.id)}] ${q.stem}\n`;
+    if (q.item_format === 'SINGLE_CHOICE' && q.options) {
+      q.options.forEach((opt) => {
+        textToCopy += `${opt.label}. ${opt.content} ${opt.is_correct ? '(Đúng)' : ''}\n`;
+      });
+    } else if (q.item_format === 'TRUE_FALSE_GROUP' && q.sub_statements) {
+      q.sub_statements.forEach((sub) => {
+        textToCopy += `${sub.label}) ${sub.content} [${sub.is_true ? 'ĐÚNG' : 'SAI'}]\n`;
+      });
+    } else if (q.item_format === 'SHORT_ANSWER') {
+      textToCopy += `Đáp án: ${q.short_answer_value || q.short_answer_key || ''}\n`;
+    }
+
+    if (q.explanation) {
+      textToCopy += `Lời giải: ${q.explanation}\n`;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        showToast('Đã sao chép nội dung câu hỏi vào bộ nhớ tạm!', 'success');
+      }).catch(() => {
+        showToast('Không thể sao chép vào bộ nhớ tạm', 'warning');
+      });
+    } else {
+      showToast('Đã chuẩn bị nội dung câu hỏi', 'info');
+    }
+  }
+
   function handleBankFilterChange() {
     state.bankPagination.currentPage = 1;
     renderItemBank();
@@ -3072,13 +3260,56 @@
     const container = document.getElementById('bank-cards-grid');
     if (!container) return;
 
+    // Update Top Overview Stats Banner
+    updateBankStatsBanner();
+
     // Filters
     const strandFilter = document.getElementById('bank-filter-strand')?.value || 'all';
+    const topicFilter = document.getElementById('bank-filter-topic')?.value || 'all';
+    const lessonFilter = document.getElementById('bank-filter-lesson')?.value || 'all';
     const yccdFilter = document.getElementById('bank-filter-yccd')?.value || 'all';
     const cogFilter = document.getElementById('bank-filter-cognitive')?.value || 'all';
     const formatFilter = document.getElementById('bank-filter-format')?.value || 'all';
     const searchFilter = (document.getElementById('bank-search-input')?.value || '').toLowerCase().trim();
     const archetypeFilter = document.getElementById('bank-filter-archetype')?.value || 'all';
+
+    // Update active taxonomy filters count badge
+    let activeTaxonomyCount = 0;
+    if (strandFilter !== 'all') activeTaxonomyCount++;
+    if (topicFilter !== 'all') activeTaxonomyCount++;
+    if (lessonFilter !== 'all') activeTaxonomyCount++;
+    if (yccdFilter !== 'all') activeTaxonomyCount++;
+    if (archetypeFilter !== 'all') activeTaxonomyCount++;
+
+    const taxCountBadge = document.getElementById('bank-taxonomy-active-count');
+    if (taxCountBadge) {
+      if (activeTaxonomyCount > 0) {
+        taxCountBadge.textContent = activeTaxonomyCount;
+        taxCountBadge.classList.remove('hidden');
+      } else {
+        taxCountBadge.classList.add('hidden');
+      }
+    }
+
+    // Toggle Clear All Filters button
+    const hasActiveFilters = Boolean(
+      searchFilter ||
+      activeTaxonomyCount > 0 ||
+      formatFilter !== 'all' ||
+      cogFilter !== 'all'
+    );
+    const resetBtn = document.getElementById('btn-reset-bank-filters');
+    if (resetBtn) {
+      if (hasActiveFilters) resetBtn.classList.remove('hidden');
+      else resetBtn.classList.add('hidden');
+    }
+
+    // Toggle Search Input Clear Button
+    const searchClearBtn = document.getElementById('bank-search-clear-btn');
+    if (searchClearBtn) {
+      if (searchFilter) searchClearBtn.classList.remove('hidden');
+      else searchClearBtn.classList.add('hidden');
+    }
 
     const filtered = state.itemBank.filter((item) => {
       if (strandFilter !== 'all' && item.strand_id !== strandFilter) return false;
@@ -3109,9 +3340,16 @@
 
     if (totalItems === 0) {
       container.innerHTML = `
-        <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400 text-xs">
-          <i data-lucide="search-x" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
-          Không tìm thấy câu hỏi nào thỏa mãn các tiêu chí lọc. Bấm <strong>+ Thêm câu hỏi</strong> hoặc <strong>📥 Nhập câu hỏi</strong> để bổ sung.
+        <div class="apple-card p-10 text-center text-slate-500 text-xs space-y-2">
+          <i data-lucide="search-x" class="w-10 h-10 mx-auto text-slate-300"></i>
+          <p class="font-bold text-slate-800 text-sm">Không tìm thấy câu hỏi nào phù hợp</p>
+          <p class="text-slate-500 max-w-md mx-auto">Vui lòng thử điều chỉnh lại từ khóa tìm kiếm hoặc các tiêu chí trong bộ lọc cây kiến thức.</p>
+          <div>
+            <button onclick="app.resetAllBankFilters()" class="px-3.5 py-1.5 mt-2 bg-[#0071e3] hover:bg-[#0077ed] text-white font-semibold rounded-xl text-xs inline-flex items-center space-x-1 cursor-pointer transition-all">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              <span>Đặt lại bộ lọc</span>
+            </button>
+          </div>
         </div>
       `;
       if (window.lucide) lucide.createIcons();
@@ -3122,124 +3360,251 @@
     const endIndex = Math.min(startIndex + pageSize, totalItems);
     const pagedItems = filtered.slice(startIndex, endIndex);
 
-    let html = '';
-    pagedItems.forEach((q, pIdx) => {
-      const globalIdx = startIndex + pIdx + 1;
-      const cogLabels = {
-        RECOGNITION: 'Nhận biết',
-        COMPREHENSION: 'Thông hiểu',
-        APPLICATION: 'Vận dụng',
-        HIGH_APPLICATION: 'Vận dụng cao',
-      };
-      const cogColors = {
-        RECOGNITION: 'bg-blue-50 text-blue-700 border-blue-200',
-        COMPREHENSION: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-        APPLICATION: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        HIGH_APPLICATION: 'bg-purple-50 text-purple-700 border-purple-200',
-      };
+    const cogLabels = {
+      RECOGNITION: 'Nhận biết',
+      COMPREHENSION: 'Thông hiểu',
+      APPLICATION: 'Vận dụng',
+      HIGH_APPLICATION: 'Vận dụng cao',
+    };
+    const cogColors = {
+      RECOGNITION: 'bg-blue-50 text-blue-700 border-blue-200',
+      COMPREHENSION: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      APPLICATION: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      HIGH_APPLICATION: 'bg-purple-50 text-purple-700 border-purple-200',
+    };
+    const formatLabels = {
+      SINGLE_CHOICE: 'Trắc nghiệm đơn',
+      TRUE_FALSE_GROUP: 'Đúng / Sai 4 ý',
+      SHORT_ANSWER: 'Trả lời ngắn',
+    };
 
+    let html = '';
+
+    // ==========================================
+    // COMPACT LIST VIEW
+    // ==========================================
+    if (state.bankUI.viewMode === 'compact') {
       html += `
-        <div class="apple-card p-5 space-y-3 hover:shadow-md transition-all">
-          
-          <!-- Header: Code, Badges, Psychometrics -->
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-black/[0.06] pb-3 text-xs">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="font-bold text-brand-700">Câu ${globalIdx}</span>
-              <span class="font-mono font-bold text-slate-800 bg-black/[0.04] px-2 py-0.5 rounded-md text-xs">${q.code || ('Q-' + q.id)}</span>
-              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${cogColors[q.cognitive_level] || 'bg-slate-100'}">
+        <div class="apple-card overflow-hidden border border-black/[0.06] shadow-2xs">
+          <div class="overflow-x-auto">
+            <table class="bank-compact-table">
+              <thead>
+                <tr>
+                  <th style="width: 48px;">#</th>
+                  <th style="width: 100px;">Mã câu</th>
+                  <th style="width: 125px;">Thể thức</th>
+                  <th style="width: 105px;">Mức độ</th>
+                  <th style="width: 115px;">YCCĐ</th>
+                  <th>Nội dung câu hỏi (Trích dẫn)</th>
+                  <th style="width: 140px;">Đáp án chuẩn</th>
+                  <th style="width: 140px; text-align: right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+
+      pagedItems.forEach((q, pIdx) => {
+        const globalIdx = startIndex + pIdx + 1;
+
+        let answerSummary = '-';
+        if (q.item_format === 'SINGLE_CHOICE' && q.options) {
+          const correctOpt = q.options.find((o) => o.is_correct);
+          if (correctOpt) {
+            answerSummary = `<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold font-mono">${correctOpt.label}</span>`;
+          }
+        } else if (q.item_format === 'TRUE_FALSE_GROUP' && q.sub_statements) {
+          const tfParts = q.sub_statements.map((s) => `${s.label}:${s.is_true ? 'Đ' : 'S'}`).join(' ');
+          answerSummary = `<span class="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-mono text-[11px] font-semibold">${tfParts}</span>`;
+        } else if (q.item_format === 'SHORT_ANSWER') {
+          const val = q.short_answer_value || q.short_answer_key || '-';
+          answerSummary = `<span class="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-mono font-bold">${val}</span>`;
+        }
+
+        html += `
+          <tr class="bank-compact-row">
+            <td class="font-bold text-slate-500">${globalIdx}</td>
+            <td>
+              <span class="font-mono font-bold text-slate-800 bg-black/[0.04] px-1.5 py-0.5 rounded text-xs">${q.code || ('Q-' + q.id)}</span>
+            </td>
+            <td>
+              <span class="text-[11px] font-medium text-slate-700">${formatLabels[q.item_format] || q.item_format}</span>
+            </td>
+            <td>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cogColors[q.cognitive_level] || 'bg-slate-100'}">
                 ${cogLabels[q.cognitive_level] || q.cognitive_level}
               </span>
-              <span class="px-2 py-0.5 rounded-md bg-[#0071E3]/[0.08] text-[#0071E3] text-[11px] font-bold border border-[#0071E3]/[0.15] font-mono">
+            </td>
+            <td>
+              <span class="px-1.5 py-0.5 rounded bg-[#0071e3]/[0.08] text-[#0071e3] text-[10px] font-bold font-mono">
                 ${q.learning_outcome_id || 'TOAN12'}
               </span>
-              <span class="text-slate-400 text-[11px]">• ${q.source_ref || 'Thông tư 32'}</span>
-            </div>
-
-            <!-- Psychometric Indices: p & D -->
-            <div class="flex items-center space-x-2 text-[11px]">
-              <span class="px-2 py-0.5 bg-black/[0.03] border border-black/[0.06] rounded-md text-slate-700 font-mono" title="Độ khó thực nghiệm (Tỷ lệ làm đúng p = R/N)">
-                Độ khó $p = ${q.p_index || 0.65}$
-              </span>
-              <span class="px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-700 font-mono font-bold" title="Độ phân biệt D = P_H - P_L">
-                Độ PB $D = ${q.d_index || 0.42}$
-              </span>
-            </div>
-          </div>
-
-          <!-- Question Stem -->
-          <div class="text-xs text-slate-800 leading-relaxed font-medium">
-            ${formatStemForDisplay(q.stem)}
-          </div>
-      `;
-
-      // Options
-      if (q.item_format === 'SINGLE_CHOICE' && q.options) {
-        html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">`;
-        q.options.forEach((opt) => {
-          const isCorrect = opt.is_correct;
-          const optClass = isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold' : 'bg-slate-50 border-black/[0.06] text-slate-700';
-          html += `
-            <div class="flex items-center justify-between p-2 rounded-xl border ${optClass}">
-              <div class="flex items-center space-x-2">
-                <span class="w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
-                  ${opt.label}
-                </span>
-                <span>${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}</span>
+            </td>
+            <td class="font-medium text-slate-800 max-w-md truncate">
+              ${formatStemForDisplay(q.stem)}
+            </td>
+            <td>
+              ${answerSummary}
+            </td>
+            <td style="text-align: right;">
+              <div class="inline-flex items-center space-x-1">
+                <button onclick="app.copyQuestionStem('${q.id}')" class="p-1 rounded hover:bg-slate-200 text-slate-600 transition-colors" title="Sao chép nội dung">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="app.openQuestionEditorModal('${q.id}')" class="p-1 rounded hover:bg-slate-200 text-[#0071e3] transition-colors" title="Chỉnh sửa câu hỏi">
+                  <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="app.checkQuestionDuplicate(${q.id})" class="p-1 rounded hover:bg-slate-200 text-teal-600 transition-colors" title="So khớp trùng lặp">
+                  <i data-lucide="scan" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="app.deleteBankQuestion(${q.id})" class="p-1 rounded hover:bg-rose-100 text-rose-600 transition-colors" title="Xóa">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
               </div>
-              ${opt.is_fixed ? '<span class="option-anchor-indicator"><i data-lucide="anchor" class="w-3 h-3"></i> Khóa D</span>' : ''}
-            </div>
-          `;
-        });
-        html += `</div>`;
-      } else if (q.item_format === 'TRUE_FALSE_GROUP' && q.sub_statements) {
-        html += `<div class="space-y-1.5 pt-1 text-xs">`;
-        q.sub_statements.forEach((sub) => {
-          html += `
-            <div class="p-2 rounded-lg bg-slate-50 border border-black/[0.06] flex items-center justify-between">
-              <div><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</div>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${sub.is_true ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                ${sub.is_true ? 'ĐÚNG' : 'SAI'}
-              </span>
-            </div>
-          `;
-        });
-        html += `</div>`;
-      } else if (q.item_format === 'SHORT_ANSWER') {
-        html += `
-          <div class="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200 text-xs text-purple-900 font-mono">
-            <strong>Đáp án:</strong> ${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'), true)} (Dung sai $\\pm ${q.tolerance || 0}$)
-          </div>
+            </td>
+          </tr>
         `;
-      }
+      });
 
-      if (q.explanation) {
-        html += `
-          <div class="p-2.5 rounded-xl bg-blue-50/50 border border-blue-100 text-xs text-slate-700">
-            <strong>Lời giải chi tiết:</strong> ${formatStemForDisplay(q.explanation)}
-          </div>
-        `;
-      }
-
-      // Actions
       html += `
-        <div class="flex items-center justify-end space-x-2 pt-2.5 border-t border-black/[0.06] text-xs">
-          <button onclick="app.checkQuestionDuplicate(${q.id})" class="btn-apple-secondary py-1 px-2.5 text-xs cursor-pointer">
-            <i data-lucide="scan" class="w-3.5 h-3.5"></i>
-            <span>So khớp Trùng lặp AI</span>
-          </button>
-          <button onclick="app.openQuestionEditorModal('${q.id}')" class="btn-apple-secondary py-1 px-2.5 text-xs cursor-pointer">
-            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-            <span>Sửa</span>
-          </button>
-          <button onclick="app.deleteBankQuestion(${q.id})" class="btn-apple-danger py-1 px-2.5 text-xs cursor-pointer">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            <span>Xóa</span>
-          </button>
+              </tbody>
+            </table>
+          </div>
         </div>
-
-      </div>
       `;
-    });
+    }
+
+    // ==========================================
+    // DETAILED CARDS VIEW
+    // ==========================================
+    else {
+      pagedItems.forEach((q, pIdx) => {
+        const globalIdx = startIndex + pIdx + 1;
+        const isExpExpanded = Boolean(state.bankUI.expandedExplanations[q.id]);
+
+        html += `
+          <div class="apple-card p-5 space-y-3 hover:shadow-md transition-all border border-black/[0.06]">
+
+            <!-- Header: Code, Badges, Psychometrics -->
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-black/[0.06] pb-3 text-xs">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-bold text-[#0071e3]">Câu ${globalIdx}</span>
+                <span class="font-mono font-bold text-slate-800 bg-black/[0.04] px-2 py-0.5 rounded-md text-xs">${q.code || ('Q-' + q.id)}</span>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${cogColors[q.cognitive_level] || 'bg-slate-100'}">
+                  ${cogLabels[q.cognitive_level] || q.cognitive_level}
+                </span>
+                <span class="px-2 py-0.5 rounded-md bg-[#0071e3]/[0.08] text-[#0071e3] text-[11px] font-bold border border-[#0071e3]/[0.15] font-mono">
+                  ${q.learning_outcome_id || 'TOAN12'}
+                </span>
+                <span class="text-slate-500 text-[11px] font-medium">• ${formatLabels[q.item_format] || q.item_format}</span>
+                <span class="text-slate-400 text-[11px]">• ${q.source_ref || 'Thông tư 32'}</span>
+              </div>
+
+              <!-- Psychometric Indices: p & D -->
+              <div class="flex items-center space-x-2 text-[11px]">
+                <span class="px-2 py-0.5 bg-black/[0.03] border border-black/[0.06] rounded-md text-slate-700 font-mono" title="Độ khó thực nghiệm (Tỷ lệ làm đúng p = R/N)">
+                  Độ khó $p = ${q.p_index || 0.65}$
+                </span>
+                <span class="px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-700 font-mono font-bold" title="Độ phân biệt D = P_H - P_L">
+                  Độ PB $D = ${q.d_index || 0.42}$
+                </span>
+              </div>
+            </div>
+
+            <!-- Question Stem -->
+            <div class="text-xs text-slate-800 leading-relaxed font-medium">
+              ${formatStemForDisplay(q.stem)}
+            </div>
+        `;
+
+        // Options
+        if (q.item_format === 'SINGLE_CHOICE' && q.options) {
+          html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">`;
+          q.options.forEach((opt) => {
+            const isCorrect = opt.is_correct;
+            const optClass = isCorrect ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold' : 'bg-slate-50 border-black/[0.06] text-slate-700';
+            html += `
+              <div class="flex items-center justify-between p-2.5 rounded-xl border ${optClass}">
+                <div class="flex items-center space-x-2">
+                  <span class="w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'}">
+                    ${opt.label}
+                  </span>
+                  <span>${formatStemForDisplay(cleanOptionAnswer(opt.content), true)}</span>
+                </div>
+                ${opt.is_fixed ? '<span class="option-anchor-indicator"><i data-lucide="anchor" class="w-3 h-3"></i> Khóa D</span>' : ''}
+              </div>
+            `;
+          });
+          html += `</div>`;
+        } else if (q.item_format === 'TRUE_FALSE_GROUP' && q.sub_statements) {
+          html += `<div class="space-y-1.5 pt-1 text-xs">`;
+          q.sub_statements.forEach((sub) => {
+            html += `
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-black/[0.06] flex items-center justify-between">
+                <div><strong>${sub.label})</strong> ${formatStemForDisplay(sub.content, true)}</div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${sub.is_true ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                  ${sub.is_true ? 'ĐÚNG' : 'SAI'}
+                </span>
+              </div>
+            `;
+          });
+          html += `</div>`;
+        } else if (q.item_format === 'SHORT_ANSWER') {
+          html += `
+            <div class="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200 text-xs text-purple-900 font-mono">
+              <strong>Đáp án:</strong> ${formatStemForDisplay(cleanShortAnswer(q.short_answer_value || q.short_answer_key || 'Chưa thiết lập'), true)} (Dung sai $\\pm ${q.tolerance || 0}$)
+            </div>
+          `;
+        }
+
+        // Collapsible Explanation
+        if (q.explanation) {
+          html += `
+            <div class="pt-1">
+              <button onclick="app.toggleCardExplanation('${q.id}')" class="text-[#0071e3] hover:text-[#0077ed] font-semibold text-xs inline-flex items-center space-x-1 cursor-pointer transition-colors py-1">
+                <i data-lucide="${isExpExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
+                <span>${isExpExpanded ? 'Ẩn lời giải chi tiết' : 'Xem lời giải chi tiết'}</span>
+              </button>
+          `;
+
+          if (isExpExpanded) {
+            html += `
+              <div class="p-3 rounded-xl bg-blue-50/50 border border-blue-100 text-xs text-slate-700 mt-1.5 transition-all">
+                <div class="font-bold text-slate-800 mb-1 flex items-center space-x-1">
+                  <i data-lucide="book-open" class="w-3.5 h-3.5 text-[#0071e3]"></i>
+                  <span>Lời giải chi tiết:</span>
+                </div>
+                ${formatStemForDisplay(q.explanation)}
+              </div>
+            `;
+          }
+          html += `</div>`;
+        }
+
+        // Actions Toolbar on Card
+        html += `
+          <div class="flex items-center justify-end space-x-2 pt-2.5 border-t border-black/[0.06] text-xs">
+            <button onclick="app.copyQuestionStem('${q.id}')" class="btn-apple-secondary py-1 px-2.5 text-xs cursor-pointer flex items-center space-x-1" title="Sao chép câu hỏi vào clipboard">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Sao chép</span>
+            </button>
+            <button onclick="app.checkQuestionDuplicate(${q.id})" class="btn-apple-secondary py-1 px-2.5 text-xs cursor-pointer flex items-center space-x-1">
+              <i data-lucide="scan" class="w-3.5 h-3.5"></i>
+              <span>So khớp AI</span>
+            </button>
+            <button onclick="app.openQuestionEditorModal('${q.id}')" class="btn-apple-secondary py-1 px-2.5 text-xs cursor-pointer flex items-center space-x-1">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+              <span>Sửa</span>
+            </button>
+            <button onclick="app.deleteBankQuestion(${q.id})" class="btn-apple-danger py-1 px-2.5 text-xs cursor-pointer flex items-center space-x-1">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span>Xóa</span>
+            </button>
+          </div>
+
+        </div>
+        `;
+      });
+    }
 
     container.innerHTML = html;
     renderKaTeX(container);
@@ -9011,6 +9376,14 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     handleTaxonomyFilterChange,
     renderItemBank,
     deleteBankQuestion,
+    toggleTaxonomyDrawer,
+    setBankViewMode,
+    setQuickFilterFormat,
+    setQuickFilterCognitive,
+    clearBankSearch,
+    resetAllBankFilters,
+    toggleCardExplanation,
+    copyQuestionStem,
     initHierarchicalMatrix,
     renderHierarchicalMatrix,
     toggleMatrixNode,

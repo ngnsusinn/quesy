@@ -982,136 +982,241 @@
       </section>
 
       <!-- ================= TAB 3: ITEM BANK EXPLORER ================= -->
-      <section id="tab-itembank" class="tab-pane hidden space-y-5">
-        
-        <!-- 6-Tier Taxonomy Filter Bar (Strictly Circular 32, NO TEXTBOOK!) -->
-        <div class="apple-card p-5 space-y-4">
-          <div class="flex items-center justify-between border-b border-black/[0.06] pb-3">
-            <div class="flex items-center space-x-2">
-              <div class="w-7 h-7 rounded-lg bg-black/[0.04] text-brand-700 flex items-center justify-center font-bold text-xs">
-                <i data-lucide="filter" class="w-4 h-4"></i>
-              </div>
-              <h2 class="text-sm font-bold text-slate-900">Bộ Lọc Cây Kiến Thức 6 Tầng (Thông tư 32/2018/TT-BGDĐT)</h2>
+      <section id="tab-itembank" class="tab-pane hidden space-y-4">
+
+        <!-- Bank Stats & Distribution Overview Banner -->
+        <div id="bank-stats-banner" class="apple-card p-4 bg-gradient-to-r from-slate-50 via-white to-blue-50/30 border border-black/[0.06] flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-xl bg-[#0071e3]/10 text-[#0071e3] flex items-center justify-center font-bold">
+              <i data-lucide="database" class="w-4 h-4"></i>
             </div>
-            <span class="text-[11px] text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-              Quy chuẩn quốc gia: Tuyệt đối không phân chia Bộ sách
+            <div>
+              <div class="font-bold text-slate-900 text-sm flex items-center space-x-2">
+                <span>Ngân hàng Câu hỏi Khảo thí</span>
+                <span class="text-[10px] bg-rose-50 text-rose-600 font-semibold px-2 py-0.5 rounded-full border border-rose-200">Chuẩn TT 32/2018</span>
+              </div>
+              <p class="text-[11px] text-slate-500">Kho học liệu số hóa phân loại theo Yêu cầu cần đạt (YCCĐ) & Barem Quyết định 764/QĐ-BGDĐT</p>
+            </div>
+          </div>
+
+          <!-- Quick Stat Chips -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium">
+              <span class="w-2 h-2 rounded-full bg-[#0071e3] mr-1.5"></span>
+              Tổng số: <strong id="bank-stat-total" class="ml-1 text-slate-900 font-bold">12</strong>
             </span>
-          </div>
-
-          <!-- The 6 Cascading Dropdowns -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <!-- Tier 1: Grade -->
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">1. Cấp học / Khối lớp</label>
-              <select id="bank-filter-grade" onchange="app.handleTaxonomyFilterChange('grade')" class="apple-select w-full text-xs">
-                <option value="12">Lớp 12 (Cấp THPT)</option>
-                <option value="11">Lớp 11 (Cấp THPT)</option>
-                <option value="10">Lớp 10 (Cấp THPT)</option>
-              </select>
-            </div>
-
-            <!-- Tier 2: Subject -->
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">2. Môn học</label>
-              <select id="bank-filter-subject" onchange="app.handleTaxonomyFilterChange('subject')" class="apple-select w-full text-xs">
-                <option value="toan">Toán học</option>
-                <option value="vatli">Vật lí</option>
-                <option value="hoahoc">Hóa học</option>
-                <option value="sinhhoc">Sinh học</option>
-              </select>
-            </div>
-
-            <!-- Tier 3: Strand (Mạch nội dung TT 32) -->
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">3. Mạch nội dung (Thông tư 32)</label>
-              <select id="bank-filter-strand" onchange="app.handleTaxonomyFilterChange('strand')" class="apple-select w-full text-xs">
-                <option value="all">Tất cả các Mạch</option>
-                <option value="giai-tich">Mạch 1: Số, Đại số & Giải tích</option>
-                <option value="hinh-hoc">Mạch 2: Hình học & Đo lường</option>
-                <option value="xac-suat">Mạch 3: Thống kê & Xác suất</option>
-                <option value="thuc-hanh">Mạch 4: Thực hành & Trải nghiệm</option>
-              </select>
-            </div>
-
-            <!-- Tier 4: Topic (Chủ đề) -->
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">4. Chủ đề / Chuyên đề</label>
-              <select id="bank-filter-topic" onchange="app.handleTaxonomyFilterChange('topic')" class="apple-select w-full text-xs">
-                <option value="all">Tất cả Chủ đề</option>
-              </select>
-            </div>
-
-            <!-- Tier 5: Lesson (Bài học) -->
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">5. Bài học / Đơn vị kiến thức</label>
-              <select id="bank-filter-lesson" onchange="app.handleTaxonomyFilterChange('lesson')" class="apple-select w-full text-xs">
-                <option value="all">Tất cả Bài học</option>
-              </select>
-            </div>
-
-            <!-- Tier 6: Learning Outcome (YCCĐ) -->
-            <div>
-              <label class="block text-[11px] font-bold text-slate-600 mb-1">6. Yêu cầu cần đạt</label>
-              <select id="bank-filter-yccd" onchange="app.handleTaxonomyFilterChange('yccd')" class="apple-select w-full text-xs">
-                <option value="all">Tất cả Mã YCCĐ</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Secondary Filters Row: Archetype, Bloom level, Format, Keyword Search -->
-          <div class="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            <!-- Problem Archetype -->
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 mb-1">Dạng câu hỏi (Problem Archetype)</label>
-              <select id="bank-filter-archetype" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
-                <option value="all">Tất cả Dạng bài</option>
-              </select>
-            </div>
-
-            <!-- Cognitive Level -->
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 mb-1">Mức độ nhận thức</label>
-              <select id="bank-filter-cognitive" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
-                <option value="all">Tất cả Mức độ</option>
-                <option value="RECOGNITION">Nhận biết</option>
-                <option value="COMPREHENSION">Thông hiểu</option>
-                <option value="APPLICATION">Vận dụng</option>
-                <option value="HIGH_APPLICATION">Vận dụng cao</option>
-              </select>
-            </div>
-
-            <!-- Item Format (QĐ 764) -->
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 mb-1">Thể thức câu hỏi (QĐ 764)</label>
-              <select id="bank-filter-format" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
-                <option value="all">Tất cả Thể thức</option>
-                <option value="SINGLE_CHOICE">Trắc nghiệm đơn (4 lựa chọn)</option>
-                <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý</option>
-                <option value="SHORT_ANSWER">Trả lời ngắn</option>
-              </select>
-            </div>
-
-            <!-- Search Stem Keyword -->
-            <div>
-              <label class="block text-[11px] font-medium text-slate-500 mb-1">Tìm kiếm từ khóa / Mã câu</label>
-              <div class="relative">
-                <input type="text" id="bank-search-input" oninput="app.handleBankFilterChange()" placeholder="Nhập từ khóa hoặc công thức..." class="w-full text-xs rounded-xl border border-slate-200 py-1.5 pl-8 pr-3 bg-white focus:ring-2 focus:ring-brand-500 search-input-with-icon">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none"></i>
-              </div>
-            </div>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium">
+              <span class="w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span>
+              Trắc nghiệm (I): <strong id="bank-stat-single" class="ml-1 text-slate-900 font-bold">8</strong>
+            </span>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium">
+              <span class="w-2 h-2 rounded-full bg-indigo-500 mr-1.5"></span>
+              Đúng/Sai (II): <strong id="bank-stat-tf" class="ml-1 text-slate-900 font-bold">2</strong>
+            </span>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium">
+              <span class="w-2 h-2 rounded-full bg-purple-500 mr-1.5"></span>
+              Trả lời ngắn (III): <strong id="bank-stat-short" class="ml-1 text-slate-900 font-bold">2</strong>
+            </span>
+            <span id="bank-stat-other-container" class="hidden inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-medium">
+              <span class="w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span>
+              Câu hỏi chùm: <strong id="bank-stat-other" class="ml-1 text-slate-900 font-bold">0</strong>
+            </span>
           </div>
         </div>
 
-        <!-- Bank Results Header & Stats -->
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-600 px-1">
-          <div class="flex items-center space-x-2">
-            <span>Tìm thấy <strong id="bank-results-count" class="text-brand-700 font-bold">12</strong> câu hỏi phù hợp bộ lọc</span>
-            <span>•</span>
-            <span class="text-emerald-600 font-medium">Kho sẵn sàng phục vụ Ma trận Đề thi</span>
+        <!-- Unified Search & Quick Filter Card -->
+        <div class="apple-card p-4 space-y-3.5">
+
+          <!-- Top Row: Prominent Search + Taxonomy Drawer Toggle + Clear Filters -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div class="relative flex-1">
+              <input type="text" id="bank-search-input" oninput="app.handleBankFilterChange()" placeholder="Tìm kiếm nhanh nội dung câu hỏi, mã câu (Q-), mã YCCĐ, từ khóa công thức..." class="w-full text-xs rounded-xl border border-slate-200 py-2.5 pl-9 pr-8 bg-white focus:ring-2 focus:ring-[#0071e3] focus:border-[#0071e3] transition-all search-input-with-icon">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none"></i>
+              <button id="bank-search-clear-btn" onclick="app.clearBankSearch()" class="hidden absolute right-2.5 top-2.5 w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] cursor-pointer" title="Xóa tìm kiếm">✕</button>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <!-- Taxonomy 6-Tier Drawer Toggle Button -->
+              <button id="btn-toggle-taxonomy-drawer" onclick="app.toggleTaxonomyDrawer()" class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center space-x-1.5 cursor-pointer shadow-2xs transition-all">
+                <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-[#0071e3]"></i>
+                <span>Cây kiến thức 6 tầng</span>
+                <span id="bank-taxonomy-active-count" class="hidden px-1.5 py-0.2 rounded-full bg-[#0071e3] text-white text-[10px] font-bold">0</span>
+                <i id="bank-drawer-chevron" data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform"></i>
+              </button>
+
+              <!-- Clear All Filters Button -->
+              <button id="btn-reset-bank-filters" onclick="app.resetAllBankFilters()" class="hidden px-3 py-2 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700 font-semibold text-xs flex items-center space-x-1 cursor-pointer transition-all" title="Xóa tất cả các bộ lọc">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Đặt lại</span>
+              </button>
+            </div>
           </div>
 
+          <!-- Quick Filter Segmented Pills (Format & Cognitive Level) -->
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 pt-2 border-t border-black/[0.04]">
+
+            <!-- Format Pills -->
+            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Thể thức:</span>
+              <button type="button" id="pill-format-all" onclick="app.setQuickFilterFormat('all')" class="bank-filter-pill active">
+                <span>Tất cả</span>
+              </button>
+              <button type="button" id="pill-format-SINGLE_CHOICE" onclick="app.setQuickFilterFormat('SINGLE_CHOICE')" class="bank-filter-pill">
+                <span>Trắc nghiệm (Part I)</span>
+              </button>
+              <button type="button" id="pill-format-TRUE_FALSE_GROUP" onclick="app.setQuickFilterFormat('TRUE_FALSE_GROUP')" class="bank-filter-pill">
+                <span>Đúng/Sai (Part II)</span>
+              </button>
+              <button type="button" id="pill-format-SHORT_ANSWER" onclick="app.setQuickFilterFormat('SHORT_ANSWER')" class="bank-filter-pill">
+                <span>Trả lời ngắn (Part III)</span>
+              </button>
+            </div>
+
+            <!-- Cognitive Level Pills -->
+            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Mức độ:</span>
+              <button type="button" id="pill-cog-all" onclick="app.setQuickFilterCognitive('all')" class="bank-filter-pill active">
+                <span>Tất cả</span>
+              </button>
+              <button type="button" id="pill-cog-RECOGNITION" onclick="app.setQuickFilterCognitive('RECOGNITION')" class="bank-filter-pill">
+                <span>Nhận biết</span>
+              </button>
+              <button type="button" id="pill-cog-COMPREHENSION" onclick="app.setQuickFilterCognitive('COMPREHENSION')" class="bank-filter-pill">
+                <span>Thông hiểu</span>
+              </button>
+              <button type="button" id="pill-cog-APPLICATION" onclick="app.setQuickFilterCognitive('APPLICATION')" class="bank-filter-pill">
+                <span>Vận dụng</span>
+              </button>
+              <button type="button" id="pill-cog-HIGH_APPLICATION" onclick="app.setQuickFilterCognitive('HIGH_APPLICATION')" class="bank-filter-pill">
+                <span>VDC</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Hidden Sync Selects (Preserves 100% backward compatibility with existing tests & logic) -->
+          <select id="bank-filter-format" onchange="app.handleBankFilterChange()" class="hidden">
+            <option value="all">Tất cả Thể thức</option>
+            <option value="SINGLE_CHOICE">Trắc nghiệm đơn (4 lựa chọn)</option>
+            <option value="TRUE_FALSE_GROUP">Đúng / Sai 4 ý</option>
+            <option value="SHORT_ANSWER">Trả lời ngắn</option>
+          </select>
+          <select id="bank-filter-cognitive" onchange="app.handleBankFilterChange()" class="hidden">
+            <option value="all">Tất cả Mức độ</option>
+            <option value="RECOGNITION">Nhận biết</option>
+            <option value="COMPREHENSION">Thông hiểu</option>
+            <option value="APPLICATION">Vận dụng</option>
+            <option value="HIGH_APPLICATION">Vận dụng cao</option>
+          </select>
+
+          <!-- Collapsible 6-Tier Cascading Taxonomy Drawer (Circular 32/2018/TT-BGDĐT) -->
+          <div id="bank-taxonomy-drawer" class="hidden pt-3 border-t border-slate-100 space-y-3 transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="layers" class="w-4 h-4 text-[#0071e3]"></i>
+                <h3 class="text-xs font-bold text-slate-800">Phân loại Cây kiến thức 6 tầng theo Chuẩn Thông tư 32/2018</h3>
+              </div>
+              <button type="button" onclick="app.toggleTaxonomyDrawer()" class="text-[11px] text-slate-500 hover:text-slate-700 font-semibold cursor-pointer">
+                ✕ Đóng ngăn lọc
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <!-- Tier 1: Grade -->
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">1. Cấp học / Khối lớp</label>
+                <select id="bank-filter-grade" onchange="app.handleTaxonomyFilterChange('grade')" class="apple-select w-full text-xs">
+                  <option value="12">Lớp 12 (Cấp THPT)</option>
+                  <option value="11">Lớp 11 (Cấp THPT)</option>
+                  <option value="10">Lớp 10 (Cấp THPT)</option>
+                </select>
+              </div>
+
+              <!-- Tier 2: Subject -->
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">2. Môn học</label>
+                <select id="bank-filter-subject" onchange="app.handleTaxonomyFilterChange('subject')" class="apple-select w-full text-xs">
+                  <option value="toan">Toán học</option>
+                  <option value="vatli">Vật lí</option>
+                  <option value="hoahoc">Hóa học</option>
+                  <option value="sinhhoc">Sinh học</option>
+                </select>
+              </div>
+
+              <!-- Tier 3: Strand (Mạch nội dung TT 32) -->
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">3. Mạch nội dung (Thông tư 32)</label>
+                <select id="bank-filter-strand" onchange="app.handleTaxonomyFilterChange('strand')" class="apple-select w-full text-xs">
+                  <option value="all">Tất cả các Mạch</option>
+                  <option value="giai-tich">Mạch 1: Số, Đại số & Giải tích</option>
+                  <option value="hinh-hoc">Mạch 2: Hình học & Đo lường</option>
+                  <option value="xac-suat">Mạch 3: Thống kê & Xác suất</option>
+                  <option value="thuc-hanh">Mạch 4: Thực hành & Trải nghiệm</option>
+                </select>
+              </div>
+
+              <!-- Tier 4: Topic (Chủ đề) -->
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">4. Chủ đề / Chuyên đề</label>
+                <select id="bank-filter-topic" onchange="app.handleTaxonomyFilterChange('topic')" class="apple-select w-full text-xs">
+                  <option value="all">Tất cả Chủ đề</option>
+                </select>
+              </div>
+
+              <!-- Tier 5: Lesson (Bài học) -->
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">5. Bài học / Đơn vị kiến thức</label>
+                <select id="bank-filter-lesson" onchange="app.handleTaxonomyFilterChange('lesson')" class="apple-select w-full text-xs">
+                  <option value="all">Tất cả Bài học</option>
+                </select>
+              </div>
+
+              <!-- Tier 6: Learning Outcome (YCCĐ) -->
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">6. Yêu cầu cần đạt (YCCĐ)</label>
+                <select id="bank-filter-yccd" onchange="app.handleTaxonomyFilterChange('yccd')" class="apple-select w-full text-xs">
+                  <option value="all">Tất cả Mã YCCĐ</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Archetype Filter -->
+            <div class="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div class="w-full sm:w-1/2">
+                <label class="block text-[11px] font-medium text-slate-600 mb-1">Dạng câu hỏi (Problem Archetype):</label>
+                <select id="bank-filter-archetype" onchange="app.handleBankFilterChange()" class="apple-select w-full text-xs">
+                  <option value="all">Tất cả Dạng bài</option>
+                </select>
+              </div>
+              <div class="text-[11px] text-slate-400 self-end">
+                * Chuẩn cây kiến thức phân loại theo Thông tư 32/2018/TT-BGDĐT, không lệ thuộc bộ SGK thương mại.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bank Results Header, View Switcher & Action Buttons -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-600 px-1">
+          <div class="flex items-center space-x-2.5">
+            <span>Tìm thấy <strong id="bank-results-count" class="text-[#0071e3] font-bold text-sm">12</strong> câu hỏi phù hợp</span>
+            <span class="text-slate-300">•</span>
+
+            <!-- View Mode Switcher -->
+            <div class="inline-flex items-center p-0.5 rounded-lg bg-slate-200/70 border border-slate-300/60">
+              <button id="bank-view-detailed" onclick="app.setBankViewMode('detailed')" class="bank-view-btn active" title="Hiển thị dạng thẻ chi tiết">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                <span>Thẻ chi tiết</span>
+              </button>
+              <button id="bank-view-compact" onclick="app.setBankViewMode('compact')" class="bank-view-btn" title="Hiển thị dạng danh sách gọn">
+                <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                <span>Danh sách gọn</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Actions Toolbar -->
           <div class="flex flex-wrap items-center gap-2">
-            <button onclick="app.openCreateQuestionModal()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow-xs transition-all flex items-center space-x-1 cursor-pointer">
+            <button onclick="app.openCreateQuestionModal()" class="px-3 py-1.5 bg-[#0071e3] hover:bg-[#0077ed] text-white font-semibold rounded-xl shadow-xs transition-all flex items-center space-x-1 cursor-pointer">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               <span>Thêm câu hỏi</span>
             </button>
@@ -1130,8 +1235,12 @@
           </div>
         </div>
 
-        <!-- Question Cards Grid -->
+        <!-- Question Cards Grid (Renders Detailed Cards or Compact Rows) -->
         <div id="bank-cards-grid" class="space-y-4">
+          <!-- Dynamic Bank Items render here -->
+        </div>
+
+        <!-- Bank Pagination Controls (Apple HIG) -->
           <!-- Dynamic Bank Items render here -->
         </div>
 
