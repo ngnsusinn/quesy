@@ -332,9 +332,9 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Mô tả:** Kiểm tra textarea `#composer-editor-input` duy trì đúng nền tối `#141824` và chữ sáng khi nhận focus, không bị rule CSS toàn cục làm biến đổi sang nền trắng.
 - **Kết quả kỳ vọng:** Màu nền giữ nguyên `#141824`, không lóa trắng mắt giáo viên khi gõ văn bản.
 
-#### TC-COMP-06: Nút Biên dịch Xanh Dương Chuẩn Khảo thí
-- **Mô tả:** Kiểm tra thanh nút tác vụ `BIÊN DỊCH` dưới đáy giao diện hiển thị màu xanh dương (`#0071e3`) kích hoạt biên dịch tức thì khi click.
-- **Kết quả kỳ vọng:** Nút hiển thị màu xanh dương chuẩn, kích hoạt compile và phản hồi trạng thái loading.
+#### TC-COMP-06: Nút Biên dịch Xanh Dương Chuẩn Khảo thí & Thanh Công Cụ Đáy Tinh Giản 2 Nút
+- **Mô tả:** Kiểm tra thanh nút tác vụ dưới đáy `#tab-composer` hiển thị đúng 2 nút: nút `BIÊN DỊCH` (`#composer-compile-btn`) màu xanh dương (`#0071e3`, `flex-1`) và nút `LƯU NGÂN HÀNG` (`#btn-composer-save-to-bank`). Xác nhận nút "⚡ CÂU HIỆN TẠI" (`#composer-compile-partial-btn`) đã bị loại bỏ hoàn toàn khỏi DOM giao diện.
+- **Kết quả kỳ vọng:** Nút hiển thị màu xanh dương chuẩn, kích hoạt compile và phản hồi trạng thái loading, nút câu hiện tại không tồn tại trong DOM.
 
 #### TC-COMP-07: Độ Tương Phản Màu Sắc Ô Nhập Chat & Compact Bar Trên Dark Mode
 - **Mô tả:** Kiểm tra trường nhập liệu `#composer-compact-input` và `#composer-chat-input` hiển thị văn bản màu trắng sáng `#f8fafc` hoặc `#ffffff` và con trỏ caret màu xanh Apple `#38bdf8` trên nền tối, không bị rule toàn cục ghi đè thành chữ đen `#1d1d1f`.

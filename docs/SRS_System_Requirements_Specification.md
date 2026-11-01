@@ -191,7 +191,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   3. *Cột bên phải (Live Preview Pane):*
      - *Thanh công cụ:* Tab `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động đảo giữa in đề thi `[dethi]` và in đáp án `[loigiai]`), menu `XUẤT FILE ▾` (PDF, TeX, Ngân hàng, Copy).
      - *Bản xem trước Live Preview:* Hiển thị trực tiếp trang PDF biên dịch sắc nét từ Tectonic XeTeX Engine (Docker trên host ARM) hoặc Chromium Headless.
-     - *Chân trang (Footer):* Nút bấm thanh ngang toàn chiều rộng nổi bật màu xanh dương **`BIÊN DỊCH`** (`#0071e3`).
+     - *Chân trang (Footer):* Thanh công cụ 2 nút tối giản gồm nút bấm thanh ngang toàn chiều rộng nổi bật màu xanh dương **`BIÊN DỊCH`** (`#0071e3`, `flex-1`) và nút **`LƯU NGÂN HÀNG`** (`#btn-composer-save-to-bank`), loại bỏ hoàn toàn nút câu hiện tại để tối ưu không gian nút bấm chính.
   4. *Lưu trữ tự động (Local Persistence):* Tự động lưu bản nháp văn bản, cấu hình tỷ lệ chia cột, độ cao trợ lý và kho lưu trữ lịch sử các phiên chat vào `localStorage` của trình duyệt.
   5. *Tích hợp Ngân hàng Câu hỏi (1-Click Save to Bank):* Tự động bóc tách và trích xuất câu hỏi từ cả 2 cú pháp: gói lệnh `ex_test` (`\begin{ex}`) và cú pháp truyền thống (`\textbf{Câu X.}`) sang các bản ghi ngân hàng câu hỏi chuẩn hóa (`questions` table).
 
@@ -642,7 +642,7 @@ ight)$$
 #### SRS-FEAT-04z: Kiến Trúc Biên Dịch Nhanh Đa Tầng Cho Soạn Thảo Đề Thi (Focus Mode, Instant Preview & Draft Mode)
 - **Mô tả:** Giải quyết triệt để vấn đề thời gian chờ khi sửa đổi mã nguồn LaTeX bằng kiến trúc tăng tốc biên dịch đa tầng:
   1. *Tầng 1: Chế độ Xem trước Tức thì HTML/SVG (Instant Live HTML Preview - 0.2s):* Tự động chuyển đổi sang giao diện xem trước HTML/SVG qua `compile_latex_source_to_html` với bộ đệm Disk Cache TikZ theo mã MD5 (0.01s cho hình không đổi) và MathJax/KaTeX (0.05s).
-  2. *Tầng 2: Biên dịch Nhanh Câu Đang Sửa / Phân Đoạn (Focus / Partial Question Quick Compile - 1.5s):* Cho phép giáo viên biên dịch riêng khối câu hỏi hiện tại tại vị trí con trỏ hoặc đoạn văn bản bôi đen thành PDF vector trong 1.0 - 1.8 giây qua nút bấm `⚡ BIÊN DỊCH CÂU NÀY` hoặc phím tắt `Ctrl+Shift+S`.
+  2. *Tầng 2: Biên dịch Nhanh Câu Đang Sửa / Phân Đoạn (Focus / Partial Question Quick Compile - 1.5s):* Cho phép giáo viên biên dịch nhanh khối câu hỏi hiện tại tại vị trí con trỏ thành PDF vector trong 1.0 - 1.8 giây qua phím tắt `Ctrl+Shift+S` (nút bấm "CÂU HIỆN TẠI" đã được tinh giản lược bỏ khỏi thanh công cụ đáy để dành toàn bộ không gian cho nút BIÊN DỊCH).
   3. *Tầng 3: Chế độ Biên dịch Nhanh Nháp (Draft Mode - 15s):* Giảm `samples=35` cho toàn bộ đồ thị TikZ khi bật cờ `draft_mode`, cắt giảm 70% thời gian biên dịch tài liệu lớn từ 65s xuống 15s.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings

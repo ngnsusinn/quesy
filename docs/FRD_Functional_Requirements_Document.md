@@ -104,7 +104,7 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
   - **Cột bên phải (Preview Pane):**
     - *Thanh công cụ trên (Light mode):* Hai tab điều hướng `ẢNH` và `LỊCH SỬ`, công tắc chuyển đổi `LỜI GIẢI` (tự động chuyển đổi giữa chế độ in đề thi `[dethi]` và in lời giải `[loigiai]`), menu `XUẤT FILE ▾` (tải PDF, tải TeX, lưu Ngân hàng, sao chép mã).
     - *Khung giữa:* Bản xem trước PDF Trực tiếp (Live Preview) hiển thị PDF biên dịch sắc nét từ Tectonic XeTeX engine hoặc danh sách lịch sử các phiên bản.
-    - *Chân trang (Footer):* Nút bấm toàn chiều rộng nổi bật màu xanh dương **`BIÊN DỊCH`** (`#0071e3`) kích hoạt biên dịch tài liệu tức thì.
+    - *Chân trang (Footer):* Thanh công cụ chân trang gồm 2 nút tác vụ: Nút bấm toàn chiều rộng nổi bật màu xanh dương **`BIÊN DỊCH`** (`#0071e3`, `flex-1`) kích hoạt biên dịch tài liệu tức thì, và nút xanh lá **`LƯU NGÂN HÀNG`** (`#btn-composer-save-to-bank`). Nút "CÂU HIỆN TẠI" đã được lược bỏ khỏi thanh công cụ đáy để tinh giản giao diện theo chuẩn Apple HIG, mở rộng tối đa diện tích nút BIÊN DỊCH. Phím tắt `Ctrl+Shift+S` vẫn được giữ nguyên cho người dùng nâng cao.
 
 ### 2.4. FR-02.2: Tự Động Biên Dịch, Lưu Trữ Cục Bộ & Xuất Bản Đề Thi
 - **Hành vi thao tác:**

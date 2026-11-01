@@ -414,7 +414,7 @@
   4. Nếu trong mã nguồn có các thẻ `\large`, `\Large` ở tiêu đề phần (do người dùng vô tình dán vào), bộ tiền xử lý tự động bóc tách sạch sẽ, đưa tiêu đề về dạng chuẩn 12pt in đậm `\noindent\textbf{PHẦN ...}` `\textit{...}`.
 - **Luồng 6n - Quy Trình Biên Dịch Nhanh Đa Tầng (Instant Preview 0.2s, Focus Quick Compile 1.5s & Draft Mode 15s):**
   1. *Xem trước Tức thì (Instant Live Preview):* Khi đang soạn thảo gõ chữ, hệ thống tự động kích hoạt chế độ xem trước HTML/SVG với độ trễ 0.2s, nạp lại các hình TikZ cũ từ MD5 Disk Cache trong 10ms.
-  2. *Biên dịch Nhanh Câu Đang Sửa (Focus Quick Compile):* Khi giáo viên vừa sửa 1 câu hỏi cụ thể, bấm nút `⚡ BIÊN DỊCH CÂU NÀY` hoặc nhấn `Ctrl+Shift+S`. Hệ thống chỉ biên dịch duy nhất câu hỏi tại con trỏ sang PDF vector trong 1.0 - 1.8 giây để kiểm tra ngay bố cục.
+  2. *Biên dịch Nhanh Câu Đang Sửa (Focus Quick Compile):* Khi giáo viên vừa sửa 1 câu hỏi cụ thể, nhấn phím tắt `Ctrl+Shift+S`. Hệ thống chỉ biên dịch duy nhất câu hỏi tại con trỏ sang PDF vector trong 1.0 - 1.8 giây để kiểm tra ngay bố cục (thanh công cụ dưới đáy được tinh giản lược bỏ nút phụ để mở rộng tối đa nút BIÊN DỊCH toàn đề).
   3. *Chế độ Nháp (Draft Mode):* Khi cần biên dịch toàn bộ đề nhưng muốn tiết kiệm thời gian, giáo viên bật cờ "Chế độ Nháp". Hệ thống tự động giảm `samples=35` cho toàn bộ đồ thị TikZ, hoàn thành biên dịch toàn bộ 22 câu trong 12 - 18 giây thay vì 65 giây.
   4. *Xuất bản Chính thức:* Khi đề thi hoàn thiện, tắt Chế độ Nháp và nhấn `BIÊN DỊCH` (`Ctrl+S`) để xuất bản bản in chất lượng cao 1200 DPI.
 

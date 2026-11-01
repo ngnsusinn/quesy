@@ -3,7 +3,7 @@
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Phiên bản:** v3.7 (Cô Lập Toàn Vẹn Vùng Header Ma Trận Đề & Sinh Trộn Đề, Triệt Tiêu Rò Rỉ Phân Trang Ngân Hàng, Khắc Phục Biểu Tượng Cây Phân Cấp Ma Trận, Chuẩn Hóa Header Banner Shuffler Apple HIG)  
+> **Phiên bản:** v3.8 (Tinh Giản Thanh Công Cụ Soạn Đề LaTeX Apple HIG, Loại Bỏ Nút Câu Hiện Tại, Tối Ưu Diện Tích Nút Biên Dịch Toàn Đề)  
 > **Cập nhật lần cuối:** 01/11/2026
 
 ---
