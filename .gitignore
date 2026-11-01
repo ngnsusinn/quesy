@@ -182,13 +182,10 @@ Thumbs.db
 desktop.ini
 
 # ------------------------------------------------------------------------------
-# 10. Claude Code Local Configuration & Worktrees
+# 10. Claude Code Configuration, Skills & Worktrees
 # ------------------------------------------------------------------------------
-.claude/settings.json
-.claude/settings.local.json
-.claude/worktrees/
-.claude/agents/
-!.claude/skills/
+.claude/
+.claude
 
 # ------------------------------------------------------------------------------
 # 11. Logs & Diagnostics
