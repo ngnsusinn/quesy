@@ -1,17 +1,38 @@
-# Byte-compiled / optimized / DLL files
+# ==============================================================================
+# QUESY - Git Ignore Specification
+# Comprehensive configuration for FastAPI, TeX/LaTeX, Playwright, SQLite & Web
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Python, Bytecode & Build Artifacts
+# ------------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-
-# C extensions
-*.obj
-*.o
-*.a
-*.lib
 *.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Environments & Virtual Environments
+# ------------------------------------------------------------------------------
+# 2. Virtual Environments & Secrets
+# ------------------------------------------------------------------------------
 .env
 .env.*
 !.env.example
@@ -21,52 +42,129 @@ ENV/
 env/
 env.bak/
 venv.bak/
+*.venv/
 
-# Testing & Coverage
+# ------------------------------------------------------------------------------
+# 3. Node.js & Package Managers
+# ------------------------------------------------------------------------------
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm/
+.eslintcache/
+
+# ------------------------------------------------------------------------------
+# 4. Testing, Coverage & Playwright / E2E
+# ------------------------------------------------------------------------------
 .pytest_cache/
 .coverage
 .coverage.*
 htmlcov/
 .tox/
-
-# Node modules
-node_modules/
-package-lock.json
 .nox/
-nosetests.xml
 coverage.xml
+nosetests.xml
 *.cover
 *.py,cover
-
-# Temporary test pipeline outputs
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 tests/tmp_*/
 tests/tmp_test_pipeline/
 
-# Storage & Databases
+# ------------------------------------------------------------------------------
+# 5. Local Databases & SQLite
+# ------------------------------------------------------------------------------
 *.db
 *.db-journal
 *.sqlite
 *.sqlite3
 storage/*.db
 storage/*.db-journal
+storage/*.sqlite
 storage/*.sqlite3
+storage/quesy.db
 
-# Uploads, Exports & Generated Assets
+# ------------------------------------------------------------------------------
+# 6. Storage, Caches & Generated Assets
+# ------------------------------------------------------------------------------
 storage/uploads/*
 !storage/uploads/.gitkeep
 storage/exports/*
 !storage/exports/.gitkeep
 storage/assets/*
 !storage/assets/.gitkeep
-
-# Temporary test / probe scripts & reports
+storage/cache/
+storage/composer_cache/
+storage/tikz_cache/
+storage/math_cache/
+storage/test_evidence/
 storage/test_*.py
 storage/*.json
 storage/loop_test_report.json
-storage/tikz_cache/
-storage/math_cache/
 
-# IDE & Editor files
+# ------------------------------------------------------------------------------
+# 7. TeX, LaTeX & Vector PDF Compilation Artifacts
+# ------------------------------------------------------------------------------
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.dvi
+*.fdb_latexmk
+*.fls
+*.glg
+*.glo
+*.gls
+*.idx
+*.ilg
+*.ind
+*.ist
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.pdfsync
+*.ps
+*.run.xml
+*.snm
+*.synctex
+*.synctex(busy)
+*.synctex.gz
+*.toc
+*.vrb
+*.xdv
+*.tup
+*.pdf.tmp
+
+# ------------------------------------------------------------------------------
+# 8. Temporary Test Artifacts, Dogfood & Document Exports
+# ------------------------------------------------------------------------------
+dogfood-output/
+test-file/
+export_flow_inspection/
+test_*.png
+test_*.docx
+test_*.xlsx
+test_*.wmf
+test_*.html
+test_*.pdf
+*.tmp
+*.docx
+~$*
+~$*.docx
+~$*.xlsx
+~$*.pptx
+thong-tu-32-2018-tt-bgddt-ban-hanh-chuong-trinh-giao-duc-pho-thong-moi_d79a0783f6_f3b32480ba.pdf
+
+# ------------------------------------------------------------------------------
+# 9. IDEs, Text Editors & Operating Systems
+# ------------------------------------------------------------------------------
 .vscode/
 .idea/
 *.sublime-project
@@ -74,8 +172,6 @@ storage/math_cache/
 *.swp
 *.swo
 *~
-
-# Operating System & Office lock files
 .DS_Store
 .DS_Store?
 ._*
@@ -84,35 +180,18 @@ storage/math_cache/
 ehthumbs.db
 Thumbs.db
 desktop.ini
-~$*
-~$*.docx
-~$*.xlsx
-~$*.pptx
-*.docx
 
-# Large reference document files & test files
-thong-tu-32-2018-tt-bgddt-ban-hanh-chuong-trinh-giao-duc-pho-thong-moi_d79a0783f6_f3b32480ba.pdf
-*.pdf.tmp
-test-file/
-export_flow_inspection/
+# ------------------------------------------------------------------------------
+# 10. Claude Code Local Configuration & Worktrees
+# ------------------------------------------------------------------------------
+.claude/settings.json
+.claude/settings.local.json
+.claude/worktrees/
+.claude/agents/
+!.claude/skills/
 
-# Temporary test artifacts
-dogfood-output/
-test_*.png
-test_*.docx
-test_*.wmf
-test_*.html
-test_*.pdf
-*.tmp
-
-# Storage caches
-storage/cache/
-storage/composer_cache/
-storage/*.db-journal
-
-# Log & Debug files
-*.log
+# ------------------------------------------------------------------------------
+# 11. Logs & Diagnostics
+# ------------------------------------------------------------------------------
 logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+*.log
