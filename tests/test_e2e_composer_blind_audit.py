@@ -308,5 +308,144 @@ def test_e2e_composer_blind_audit():
     print("\n[E2E AUDIT] ALL 6 SCENARIOS PASSED 100% WITH ZERO ERRORS.\n")
 
 
+def test_e2e_composer_multimodal_quota_guard_and_armbian_ai():
+    """Anti-Regression E2E Test:
+    1. Attach 4 images into composer chat.
+    2. Submit prompt 'giúp tôi soạn lại đề thi này' calling live armbian:8317 AI endpoint.
+    3. Assert ZERO LocalStorage QuotaExceededError and ZERO 'Setting the value exceeded the quota' errors.
+    4. Assert total LocalStorage footprint remains < 50KB.
+    5. Assert AI response renders in chat with zero console.error exceptions.
+    """
+    port = find_free_port()
+    server = ServerThread("127.0.0.1", port)
+    server.start()
+    time.sleep(1.5)
+
+    evidence_dir = PROJECT_ROOT / "storage" / "test_evidence"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+
+    console_errors = []
+
+    chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+    launch_kwargs = {"headless": True}
+    if os.path.exists(chrome_path):
+        launch_kwargs["executable_path"] = chrome_path
+    elif shutil.which("google-chrome"):
+        launch_kwargs["executable_path"] = shutil.which("google-chrome")
+    elif shutil.which("chromium"):
+        launch_kwargs["executable_path"] = shutil.which("chromium")
+    elif shutil.which("chromium-browser"):
+        launch_kwargs["executable_path"] = shutil.which("chromium-browser")
+
+    try:
+        with sync_playwright() as p:
+            try:
+                browser = p.chromium.launch(**launch_kwargs)
+            except Exception as e:
+                pytest.skip(f"Could not launch browser for E2E test: {e}")
+
+            context = browser.new_context(viewport={"width": 1440, "height": 900})
+            page = context.new_page()
+
+            page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+
+            print("\n[E2E QUOTA & AI] Navigating to /composer...")
+            page.goto(f"http://127.0.0.1:{port}/composer", wait_until="networkidle")
+            time.sleep(1.0)
+
+            # Open AI chat popup
+            page.evaluate("app.composer.openAIPopup()")
+            time.sleep(0.5)
+
+            # Attach 4 distinct images
+            print("[E2E QUOTA & AI] Attaching 4 exam page images to composer chat...")
+            page.evaluate("""
+                () => {
+                    const validPngs = [
+                        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+                        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+                        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==',
+                        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+                    ];
+                    validPngs.forEach((png, idx) => {
+                        app.composer.addAttachedImage(png, 'de_thi_trang_' + (idx + 1) + '.png');
+                    });
+                }
+            """)
+            time.sleep(0.5)
+
+            # Verify 4 chips in tray
+            tray = page.locator("#composer-attached-images-container")
+            assert tray.is_visible()
+            chips_count = tray.locator(".composer-image-chip").count()
+            assert chips_count == 4, f"Expected 4 attached image chips, found {chips_count}"
+
+            # Fill chat input with user's prompt
+            print("[E2E QUOTA & AI] Typing prompt: 'giúp tôi soạn lại đề thi này'...")
+            chat_input = page.locator("#composer-chat-input")
+            chat_input.fill("giúp tôi soạn lại đề thi này")
+            time.sleep(0.3)
+
+            # Submit prompt
+            send_btn = page.locator("#composer-send-btn")
+            send_btn.click()
+            print("[E2E QUOTA & AI] Submitted prompt. Waiting for AI response...")
+
+            # Wait for assistant response in chat messages container
+            messages_container = page.locator("#composer-chat-messages")
+            messages_container.locator(".bg-\\[\\#202024\\]").last.wait_for(state="visible", timeout=35000)
+            time.sleep(1.0)
+
+            # Verify chat content
+            chat_text = messages_container.inner_text()
+            print(f"[E2E QUOTA & AI] Chat text received (snippet): {chat_text[-300:]}")
+
+            # ASSERTION 1: Zero QuotaExceededError or Storage quota error
+            assert "exceeded the quota" not in chat_text, (
+                "FATAL DEFECT: Found 'exceeded the quota' in chat text! LocalStorage Quota Guard failed!"
+            )
+            assert "Failed to execute 'setItem' on 'Storage'" not in chat_text, (
+                "FATAL DEFECT: Found setItem on Storage error in chat text!"
+            )
+
+            # ASSERTION 2: LocalStorage size is well below quota (< 50KB)
+            ls_size = page.evaluate("""
+                () => {
+                    let total = 0;
+                    for (let key in localStorage) {
+                        if (localStorage.hasOwnProperty(key)) {
+                            total += (localStorage[key] || '').length;
+                        }
+                    }
+                    return total;
+                }
+            """)
+            print(f"[E2E QUOTA & AI] Total LocalStorage length in bytes: {ls_size}")
+            assert ls_size < 50000, f"LocalStorage payload too large: {ls_size} bytes (must be < 50KB)"
+
+            # ASSERTION 3: AI responded successfully (not connection error)
+            assert "Lỗi kết nối:" not in chat_text, f"Unexpected connection error: {chat_text}"
+
+            # Capture evidence screenshot
+            ss_path = evidence_dir / "06_composer_multimodal_armbian_ai_and_quota_guard.png"
+            page.screenshot(path=str(ss_path))
+            print(f" -> Screenshot captured: {ss_path}")
+
+            # ASSERTION 4: Zero console errors
+            critical_errors = [e for e in console_errors if "favicon" not in e.lower()]
+            print(f" -> Critical console errors: {len(critical_errors)}")
+            assert len(critical_errors) == 0, f"Console errors detected: {critical_errors}"
+
+            browser.close()
+    finally:
+        print("[E2E QUOTA & AI] Stopping server thread and cleaning up...")
+        server.stop()
+        time.sleep(0.5)
+
+    print("\n[E2E QUOTA & AI] ANTI-REGRESSION TEST PASSED 100% WITH ZERO ERRORS.\n")
+
+
 if __name__ == "__main__":
     test_e2e_composer_blind_audit()
+    test_e2e_composer_multimodal_quota_guard_and_armbian_ai()
+
