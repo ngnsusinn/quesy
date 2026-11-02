@@ -2,8 +2,8 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 4.0 (Hoàn Thiện Giao Diện Trang Chính Tổng Quan Khảo Thí Apple HIG, Trung Tâm Khởi Chạy Nhanh 4 Thao Tác, Tiêu Điểm Đề Thi Minh Họa 2026 Mã 0101, Bảng Giám Sát Bất Biến Khảo Thí Quốc Gia & Lịch Sử Đề Thi)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh (Apple HIG Launchpad 4 thẻ, Tiêu điểm Đề tham khảo THPT 2026 Mã 0101, Bảng giám sát bất biến khảo thí RULE-01/02/03/Centered Diagrams, Lịch sử ấn phẩm đề thi), phân hệ Ngân hàng câu hỏi toàn diện, phân hệ Soạn đề tinh gọn tích hợp xử lý đa phương tiện hình ảnh, chat hình ảnh tái cấu trúc câu hỏi, biên dịch PDF vector thuần Tectonic XeTeX.
+- **Phiên bản:** 4.1 (Nâng Cấp Giao Diện Soạn Đề Split View Trợ Lý AI & Tự Động Co Giãn Trình Soạn Thảo, Động Cơ Tìm & Thay Thế Tiếng Việt Linh Hoạt Không Ngoặc Kép, và Phân Hệ Hỏi Đáp Nghiệp Vụ Khảo Thí & Sư Phạm Q&A)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh, phân hệ Ngân hàng câu hỏi toàn diện, phân hệ Soạn đề Split View (tách biệt Editor và Trợ lý AI, tự động phóng to/thu nhỏ, kéo thả tỷ lệ linh hoạt), động cơ Tìm & Thay thế tiếng Việt không bắt buộc ngoặc kép, và phân hệ Chat Hỏi Đáp Khảo Thí (QĐ 764, TT 32, Cấu trúc 2025, cú pháp ex_test/TikZ/tkz-tab, thống kê đề thi và hướng dẫn giải).
 - **Ngày phát hành:** 2026-11-02  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
@@ -667,6 +667,30 @@ ight)$$
             - Nén ảnh client-side qua Canvas: Ảnh người dùng tải lên từ clipboard (`Ctrl+V`), nút đính kèm hoặc kéo thả được tự động co giãn về kích thước tối đa 1600x1600px và nén JPEG 0.85, giảm 90% dung lượng truyền tải.
             - Phân tách lưu trữ bộ nhớ và bộ nhớ vĩnh viễn: Dữ liệu base64 ảnh dung lượng lớn chỉ lưu trong bộ nhớ phiên (RAM); trước khi ghi vào `localStorage` (`quesy_composer_chat`, `quesy_composer_sessions`), các chuỗi base64 lớn được tự động lược bỏ hoặc thay thế bằng `[image_attached]`, duy trì mức chiếm dụng LocalStorage luôn < 50KB.
             - Bọc cơ chế lưu trữ an toàn `safeSetLocalStorage(key, value)`: Tự động phát hiện và xử lý `QuotaExceededError`, giải phóng cache không cần thiết mà không bao giờ ném ngoại lệ làm gián đoạn luồng phản hồi AI hoặc gây hiểu lầm thành lỗi mạng.
+
+       ### 2.4.23. FR-02.25: Split View Giao Diện Soạn Thảo & Trợ Lý AI Tự Động Co Giãn Chiều Cao (Vertical Split View & Dynamic Pane Resize)
+       - **Mô tả Chức năng:** Chuyển đổi toàn diện trải nghiệm tương tác giữa Hộp soạn thảo mã nguồn LaTeX (`#composer-editor-pane`) và Hộp thoại Trợ lý AI Copilot (`#composer-ai-popup`) trong Cột bên trái (`#composer-left-col`) sang mô hình Split View theo phương dọc:
+       - **Quy tắc Hành vi Giao diện:**
+         1. *Trạng thái Đóng Trợ lý AI:* Hộp soạn thảo chiếm toàn bộ 100% chiều cao của cột trái (`flex-1 h-full min-h-0`). Thanh nhập lệnh thu gọn `#composer-ai-compact-bar` hiển thị ở chân editor.
+         2. *Trạng thái Mở Trợ lý AI:* Khung Trợ lý AI hiển thị dạng khối relative flex item (`#composer-ai-popup`, `relative flex flex-col w-full shrink-0`) với chiều cao mặc định được khôi phục từ `localStorage` (mặc định 48%). Khung soạn thảo `#composer-editor-pane` tự động thu nhỏ lại (`flex-1 min-h-[140px]`). Cả hai thành phần chia sẻ không gian chiều dọc của Cột Trái, bảo đảm giáo viên luôn nhìn thấy đồng thời cả code LaTeX lẫn nội dung trao đổi của AI.
+         3. *Kéo thả Thay đổi Độ cao:* Kéo thanh handle viên thuốc `#composer-ai-resize-handle` để co giãn chiều cao linh hoạt (20% đến 80% chiều cao Cột Trái). Tự động lưu tỷ lệ vào `localStorage` (`quesy_composer_ai_height`).
+         4. *Phóng to Toàn phần:* Nút Maximize trên header cho phép bung rộng Trợ lý AI lên 82% chiều cao, và thu nhỏ về 48% khi nhấp lại.
+
+       ### 2.4.24. FR-02.26: Cải Tiến Tìm & Thay Thế Tiếng Việt Linh Hoạt Không Bắt Buộc Dấu Ngoặc Kép (Flexible Natural Language Search & Replace)
+       - **Mô tả Chức năng:** Cho phép giáo viên ra lệnh thay thế văn bản, câu hỏi, tham số hoặc công thức toán học bằng ngôn ngữ tự nhiên tiếng Việt mà không bắt buộc phải đặt từ khóa trong dấu ngoặc kép:
+       - **Hỗ trợ Đa dạng Mẫu câu & Thực thể:**
+         1. *Mẫu câu tự nhiên:* `"thay X bằng Y"`, `"thay X thành Y"`, `"thay X sang Y"`, `"tìm và thay thế X thành Y"`, `"đổi X sang Y"`, `"sửa X thành Y"`, `"chuyển X sang Y"` (áp dụng cho cả trường hợp có hoặc không có dấu ngoặc kép).
+         2. *Thay thế Câu hỏi:* Tự động nhận diện `"thay câu 1 bằng câu ..."`, `"đổi câu 2 thành ..."` để thay thế trọn vẹn khối câu hỏi `\begin{ex}...\end{ex}` cũ bằng câu mới.
+         3. *Đổi Đáp án Trắc nghiệm:* Nhận diện `"đổi đáp án câu 3 sang C"` hoặc `"thay đáp án đúng thành B"`, tự động hoán đổi vị trí thẻ `\True` trong môi trường `\choice`.
+         4. *Thay thế Biểu thức, Biến số & Thời gian:* Nhận diện biểu thức toán học, biến số ($x \to t$), thời gian làm bài (90 phút $\to$ 50 phút), tên trường/sở và sinh khối `DiffSuggestion` chuẩn xác, loại bỏ triệt để hiện tượng sinh câu hỏi lạc đề.
+
+       ### 2.4.25. FR-02.27: Hệ Thống Hỏi Đáp Nghiệp Vụ Khảo Thí, Cú Pháp LaTeX & Phân Tích Đề Thi Hiện Hành (Educational & Regulatory Q&A Copilot System)
+       - **Mô tả Chức năng:** Mở rộng trí tuệ nhân tạo của Quesy Copilot thành một Chuyên gia Tư vấn Khảo thí và Sư phạm Toán học chuyên sâu:
+       - **Bốn Khối Nghiệp Vụ Chuyên Biệt:**
+         1. *Giải đáp Quy chế & Cấu trúc Đề thi:* Cung cấp câu trả lời giải thích chi tiết, sư phạm và chuẩn xác về Quyết định 764/QĐ-BGDĐT (cách tính điểm bậc thang 0.1, 0.25, 0.5, 1.0 cho 4 khẳng định Đúng/Sai), Cấu trúc Đề thi Tốt nghiệp THPT 2025 (3 phần, 22 câu, 90 phút, thang điểm 10.0), và Thông tư 32/2018/TT-BGDĐT (ma trận năng lực theo YCCĐ). Tuyệt đối không tự tiện chèn câu hỏi mẫu hay template khi giáo viên đang hỏi quy chế.
+         2. *Hướng dẫn Cú pháp LaTeX Chuyên biệt:* Hướng dẫn chi tiết cú pháp gói lệnh `ex_test.sty` (`\choice`, `\choiceTF[1]`, `\shortans`), hình học `TikZ`, và bảng biến thiên `tkz-tab`, luôn kèm ví dụ minh họa chuẩn mực và lưu ý sư phạm.
+         3. *Thống kê & Giám sát Tiến độ Đề thi Thực tế:* Phân tích trực tiếp chuỗi `current_latex` trên editor, đếm chính xác số câu đã có ở Phần I (X/12), Phần II (Y/4), Phần III (Z/6), tổng số câu (N/22) và kiểm tra Header 2 cột. Báo cáo rõ ràng phần nào đủ, phần nào thiếu để giáo viên nắm bắt tiến độ.
+         4. *Hướng dẫn Giải & Phân Tích Câu Hỏi Sư Phạm:* Bóc tách câu hỏi được chỉ định trong đề thi hiện tại, phân tích đề bài, trình bày phương pháp giải toán sư phạm từng bước và lý giải nguyên nhân chọn đáp án đúng.
 
        ---
 

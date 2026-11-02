@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 4.0 (Hoàn Thiện Giao Diện Trang Chính Tổng Quan Khảo Thí Apple HIG, Trung Tâm Khởi Chạy Nhanh 4 Thao Tác, Tiêu Điểm Đề Thi Minh Họa 2026 Mã 0101, Bảng Giám Sát Bất Biến Khảo Thí Quốc Gia & Lịch Sử Đề Thi)  
+- **Phiên bản:** 4.1 (Nâng Cấp Giao Diện Soạn Đề Split View Trợ Lý AI & Tự Động Co Giãn Trình Soạn Thảo, Động Cơ Tìm & Thay Thế Tiếng Việt Linh Hoạt Không Ngoặc Kép, và Phân Hệ Hỏi Đáp Nghiệp Vụ Khảo Thí & Sư Phạm Q&A)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh (Apple HIG Launchpad 4 thẻ, Tiêu điểm Đề tham khảo THPT 2026 Mã 0101, Bảng giám sát bất biến khảo thí RULE-01/02/03/Centered Diagrams, Lịch sử ấn phẩm đề thi), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện, phân hệ Soạn đề tinh gọn tích hợp xử lý đa phương tiện hình ảnh, chat hình ảnh tái cấu trúc câu hỏi, biên dịch PDF vector thuần Tectonic XeTeX.
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh, phân hệ Ngân hàng câu hỏi, phân hệ Soạn đề Split View (tách biệt Editor và Trợ lý AI, tự động phóng to/thu nhỏ, kéo thả tỷ lệ linh hoạt), động cơ Tìm & Thay thế tiếng Việt không bắt buộc ngoặc kép, và phân hệ Chat Hỏi Đáp Khảo Thí (QĐ 764, TT 32, Cấu trúc 2025, cú pháp ex_test/TikZ/tkz-tab, thống kê đề thi và hướng dẫn giải).
 - **Ngày phát hành:** 2026-11-02  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
@@ -690,6 +690,57 @@ ight)$$
      - Nén ảnh client-side qua HTML5 Canvas: Trước khi đưa vào khay đính kèm, ảnh chụp độ phân giải cao được tự động co giãn về kích thước tối đa 1600x1600px và nén JPEG 0.85, giảm 90% dung lượng payload truyền tải mà vẫn giữ độ sắc nét 100% cho công thức toán và hình vẽ.
      - Tách biệt lưu trữ ảnh trong phiên (In-Memory Session) và lưu trữ cục bộ (LocalStorage Sanitization): Mảng chuỗi base64 ảnh dung lượng lớn chỉ lưu trong RAM phiên hiện tại; khi đồng bộ vào `localStorage` (`quesy_composer_chat`, `quesy_composer_sessions`), các chuỗi base64 lớn được tự động lược bỏ hoặc thay thế bằng placeholder `[image_attached]`, giữ dung lượng lưu trữ cục bộ luôn < 50KB.
      - Bộ bọc an toàn `safeSetLocalStorage(key, value)`: Tự động bắt và xử lý `QuotaExceededError` (dọn dẹp cache phụ hoặc tỉa bớt session cũ), tuyệt đối không để ngoại lệ storage văng ra làm gián đoạn hoặc hiểu lầm thành lỗi kết nối AI.
+
+#### SRS-FEAT-04ac: Giao Diện Soạn Đề Split View Phân Tách Không Gian Trợ Lý AI & Trình Soạn Thảo Tự Động Co Giãn Chiều Cao (Copilot Split View & Dynamic Auto-Resize Editor Pane)
+- **Mô tả:** Loại bỏ hoàn toàn kiến trúc popup phủ đè lên editor dạng `absolute bottom-0 overlay` cũ. Thay vào đó, phân hệ Soạn đề (`/composer`) chuyển sang mô hình Split View theo phương dọc (Vertical Split View) chia sẻ trực tiếp không gian của Cột bên trái (`#composer-left-col`).
+- **Hành vi Tương tác & Kiến trúc Giao diện:**
+  1. *Khi Trợ lý AI Đóng (`closeAIPopup`):*
+     - Khung Trợ lý AI (`#composer-ai-popup`) mang class `hidden`.
+     - Hộp soạn thảo mã nguồn LaTeX (`#composer-editor-pane`) tự động nở rộng chiếm trọn vẹn 100% chiều cao của Cột Trái (`flex-1 h-full min-h-0`).
+     - Thanh prompt thu gọn (`#composer-ai-compact-bar`) neo nổi ở đáy editor phục vụ việc gõ lệnh nhanh.
+  2. *Khi Trợ lý AI Mở (`openAIPopup`):*
+     - Thanh compact bar tạm thời ẩn đi (`compactBar.classList.add('hidden')`).
+     - Khung Trợ lý AI (`#composer-ai-popup`) hiển thị dạng khối flex tương đối (`flex flex-col relative w-full shrink-0`) với chiều cao mặc định được khôi phục từ `localStorage` (`quesy_composer_ai_height`), mặc định 48% chiều cao.
+     - Hộp soạn thảo LaTeX (`#composer-editor-pane`) đồng thời tự động thu nhỏ lại (`flex-1 min-h-[140px]`), nhường không gian cho Trợ lý AI. Giáo viên có thể vừa cuộn xem mã LaTeX ở trên, vừa trao đổi với AI ở dưới mà không bị che khuất bất kỳ dòng code nào.
+  3. *Thanh Kéo Thả Độ Cao Trợ Lý (Vertical Drag Resizer):*
+     - Thanh handle viên thuốc `#composer-ai-resize-handle` đặt ở header popup cho phép người dùng kéo thả chuột hoặc cảm ứng để thay đổi tỷ lệ chiều cao giữa Editor và Trợ lý một cách mượt mà (giới hạn từ 20% đến 80% chiều cao Cột Trái, 60 FPS).
+     - Chiều cao tùy chỉnh được lưu bền vững vào `localStorage` (`quesy_composer_ai_height`).
+  4. *Nút Phóng To / Thu Nhỏ Toàn Phần (Fullscreen Toggle):*
+     - Nút phóng to trên header popup hỗ trợ chuyển nhanh giữa tỷ lệ làm việc tiêu chuẩn (48% AI : 52% Editor) và tỷ lệ phóng đại (82% AI : 18% Editor).
+
+#### SRS-FEAT-04ad: Động Cơ Tìm & Thay Thế Tiếng Việt Linh Hoạt Không Bắt Buộc Ngoặc Kép & Đa Thực Thể Khảo Thí (Flexible Natural Language Search & Replace Engine)
+- **Mô tả:** Nâng cấp động cơ phân tích câu lệnh thay thế trong `extract_all_diffs_from_text` và `composer_chat_endpoint`, hỗ trợ trích xuất chính xác cặp dữ liệu cũ - mới (`old_text` -> `new_text`) từ các mẫu câu tiếng Việt tự nhiên phong phú mà không bắt buộc người dùng phải đóng mở dấu ngoặc kép.
+- **Quy chuẩn Nhận diện Ngôn ngữ Tự nhiên & Đa Thực Thể:**
+  1. *Cú pháp Không Ngoặc Kép (Unquoted Natural Language Syntax):*
+     - Hỗ trợ các mẫu câu: `"thay X bằng Y"`, `"thay X thành Y"`, `"thay X sang Y"`, `"tìm và thay thế X thành Y"`, `"tìm và thay thế X bằng Y"`, `"đổi X sang Y"`, `"đổi X thành Y"`, `"sửa X thành Y"`, `"chuyển X sang Y"`.
+     - Bộ regex tự động tách biệt chính xác thực thể nguồn $X$ và thực thể đích $Y$, tự động làm sạch khoảng trắng và bỏ các ký tự bọc ngoài nếu có.
+  2. *Hỗ trợ Đa dạng Thực thể Toán & Khảo thí:*
+     - *Thay thế câu hỏi:* `"thay câu 1 bằng câu ..."`, `"đổi câu hỏi 2 thành ..."` -> Bóc tách khối `\begin{ex}...\end{ex}` thứ $N$ trong `current_latex` làm `old_text` và khối câu hỏi mới làm `new_text`.
+     - *Đổi đáp án đúng:* `"đổi đáp án câu 3 thành C"`, `"thay đáp án đúng sang B"` -> Bóc tách khối `\choice` của câu đó, chuyển vị trí `\True` sang phương án mới.
+     - *Thay thế biểu thức / công thức:* `"thay biểu thức x^2 + 1 bằng x^2 - 1"`, `"đổi $f(x)$ thành $g(x)$"`.
+     - *Thay thế biến số:* `"thay biến x bằng t"`, `"đổi biến x thành y"`.
+     - *Thay thế thông số thời gian:* `"đổi thời gian làm bài thành 50 phút"`, `"thay 90 phút bằng 50 phút"`.
+     - *Thay thế tên trường / Sở GD:* `"thay tên trường thành THPT Chuyên Lê Hồng Phong"`, `"đổi sở GD sang Sở GD&ĐT Hà Nội"`.
+  3. *Tạo Diff Trực Quan & Ngăn Chặn Lạc Đề:*
+     - Luôn đóng gói kết quả thành `DiffSuggestion(action="replace", old_text=matched_old, new_text=new_text, description=desc)` hiển thị lên khung soạn thảo để giáo viên bấm **[Keep / Đồng ý]**.
+     - Tuyệt đối loại bỏ nguy cơ rơi xuống nhánh mặc định (sinh câu hỏi tiệm cận lạc đề) khi người dùng ra lệnh thay thế văn bản.
+
+#### SRS-FEAT-04ae: Phân Hệ Hỏi Đáp Nghiệp Vụ Khảo Thí, Cú Pháp LaTeX & Thống Kê Đề Thi Thời Gian Thực (Educational & Regulatory Q&A Copilot System)
+- **Mô tả:** Tách biệt rõ ràng giữa ý định Thực thi/Sinh mã đề (Action/Generate Intent) và ý định Hỏi đáp/Tư vấn/Sư phạm (Q&A/Pedagogical Intent). Khi giáo viên đặt câu hỏi thông tin, hệ thống giải thích rõ ràng, chi tiết, mang tính sư phạm cao, tuyệt đối không tự tiện chèn câu hỏi mẫu lạc đề.
+- **Bốn Trụ Cột Nghiệp Vụ Q&A:**
+  1. *Quy chế & Cấu trúc Đề thi Quốc gia:*
+     - Quyết định 764/QĐ-BGDĐT: Giải thích chi tiết quy tắc tính điểm bậc thang Phần II Đúng/Sai (Đúng 1 ý = 0.1đ; Đúng 2 ý = 0.25đ; Đúng 3 ý = 0.5đ; Đúng cả 4 ý = 1.0đ; tối đa 4.0đ cho 4 câu).
+     - Cấu trúc Đề thi Tốt nghiệp THPT 2025: Giải thích cấu trúc 3 Phần - 22 câu hỏi - 90 phút - thang điểm 10.0 (Phần I: 12 câu trắc nghiệm 3.0đ; Phần II: 4 câu Đúng/Sai 4.0đ; Phần III: 6 câu Trả lời ngắn 3.0đ).
+     - Thông tư 32/2018/TT-BGDĐT: Giải thích ma trận định hướng năng lực 4 mức độ nhận thức (40% NB, 30% TH, 20% VD, 10% VDC) theo Yêu cầu cần đạt (YCCĐ).
+  2. *Cú pháp Gói lệnh ex_test, TikZ & tkz-tab:*
+     - Giải thích cấu trúc lệnh, các tham số bắt buộc (đặc biệt là tham số `[1]` trong `\choiceTF[1]`), quy tắc căn giữa `\begin{center}` cho hình vẽ TikZ, và tham số `samples=50` tối ưu tốc độ XeTeX.
+     - Cung cấp đoạn mã ví dụ minh họa chuẩn mực và hướng dẫn giáo viên cách chèn/sử dụng trong đề thi.
+  3. *Kiểm tra & Thống kê Đề thi Hiện tại (Exam Auditor / Statistics):*
+     - Phân tích trực tiếp nội dung chuỗi `current_latex` đang có trên editor.
+     - Thống kê chính xác: Tổng số câu hiện có ($N/22$), Phần I ($A/12$ câu), Phần II ($B/4$ câu), Phần III ($C/6$ câu), và tình trạng Header 2 cột.
+     - Báo cáo rõ phần nào đủ, phần nào thiếu/thừa và đưa ra khuyến nghị hành động cụ thể cho giáo viên.
+  4. *Hướng dẫn Giải & Giải thích Câu hỏi Sư phạm:*
+     - Khi giáo viên hỏi cách giải hoặc giải thích câu hỏi trong đề, hệ thống bóc tách câu hỏi tương ứng trong `current_latex`, phân tích bài toán, nêu phương pháp giải, giải thích chi tiết các bước biến đổi toán học và lý do chọn đáp án đúng.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.

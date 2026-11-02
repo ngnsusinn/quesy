@@ -3,7 +3,7 @@
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025 - 2026)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Phiên bản:** v4.0 (Hoàn Thiện Trang Chính Tổng Quan Khảo Thí Apple HIG, Trung Tâm Khởi Chạy Nhanh 4 Thao Tác, Tiêu Điểm Đề Thi Minh Họa 2026 Mã 0101, Bảng Giám Sát Bất Biến Khảo Thí Quốc Gia & Lịch Sử Đề Thi)  
+> **Phiên bản:** v4.1 (Nâng Cấp Giao Diện Soạn Đề Split View Trợ Lý AI & Tự Động Co Giãn Trình Soạn Thảo, Động Cơ Tìm & Thay Thế Tiếng Việt Linh Hoạt Không Ngoặc Kép, và Phân Hệ Hỏi Đáp Nghiệp Vụ Khảo Thí & Sư Phạm Q&A)  
 > **Cập nhật lần cuối:** 02/11/2026
 
 ---
@@ -95,7 +95,7 @@ quesy/
 │   │
 │   ├── routers/                       # Tầng Controller & API Endpoints
 │   │   ├── auth.py                    # API Xác thực người dùng: Register, Login JWT, OAuth Google/GitHub, Me, Logout
-│   │   ├── composer.py                # API Soạn đề LaTeX, Tectonic compile, AI Diff Copilot, Chẩn đoán timeout, Save-to-bank đa thể thức
+│   │   ├── composer.py                # API Soạn đề LaTeX, Tectonic compile, AI Diff Copilot, Chẩn đoán timeout, Tìm & Thay thế tiếng Việt không ngoặc kép, Phân hệ Chat Q&A Khảo thí (QĐ 764, TT 32, Cấu trúc 2025, ex_test/TikZ/tkz-tab, thống kê đề & hướng dẫn giải), Save-to-bank đa thể thức
 │   │   ├── digitize.py                # API Số hóa đề thi 2-Pass, quản lý tiến trình, cắt ảnh
 │   │   ├── exams.py                   # API Tạo đề thi gốc, quản lý mã đề hoán vị, chấm thi
 │   │   ├── matrix.py                  # API Ma trận đặc tả đề thi theo YCCĐ
@@ -129,11 +129,11 @@ quesy/
 │       └── ex_test.sty                # Gói lệnh khảo thí chuẩn Việt Nam v3.3.6 (4,258 dòng)
 │
 ├── frontend/                          # Giao diện Người dùng Web Client (SPA)
-│   ├── index.html                     # Trang khung HTML5 duy nhất chứa 6 màn hình chức năng: Dashboard, Digitization, Friendly Item Bank (Stats banner, Quick Filter Pills, Collapsible 6-Tier Taxonomy Drawer, Dual View Mode), Hierarchical Exam Matrix, Composer, Shuffler & Publishing
+│   ├── index.html                     # Trang khung HTML5 duy nhất chứa 6 màn hình chức năng: Dashboard, Digitization, Friendly Item Bank (Stats banner, Quick Filter Pills, Collapsible 6-Tier Taxonomy Drawer, Dual View Mode), Hierarchical Exam Matrix, Composer (Split View Vertical Pane Trợ lý AI & Auto-Resize Editor), Shuffler & Publishing
 │   ├── manifest.json                  # Cấu hình PWA Web App Manifest (16 dòng)
 │   ├── sw.js                          # Service Worker cache tĩnh (65 dòng)
 │   └── static/
-│       ├── app.js                     # Toàn bộ logic Client SPA, State Store, Event Handlers (Dual View Mode, Quick Filter Pills, Collapsible Drawer, 1-Click Copy Question, Slice Pagination)
+│       ├── app.js                     # Toàn bộ logic Client SPA, State Store, Event Handlers (Dual View Mode, Quick Filter Pills, Collapsible Drawer, 1-Click Copy Question, Slice Pagination, Vertical Split Resizer Trợ lý AI & Auto-Resize Editor)
 │       ├── style.css                  # Toàn bộ CSS giao diện, Apple HIG, Quick Filter Pills, High-density Compact Table, Dark Code Editor
 │       └── fonts/                     # Thư mục font chữ dự án
 │

@@ -6710,7 +6710,7 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     },
 
     isAIPopupOpen: false,
-    aiPopupHeight: '56%',
+    aiPopupHeight: '48%',
     isHistoryViewOpen: false,
 
     openAIPopup(prefillPrompt = '') {
@@ -6720,8 +6720,21 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
       const compactInput = document.getElementById('composer-compact-input');
 
       if (popup) {
+        const savedH = localStorage.getItem('quesy_composer_ai_height');
+        if (savedH) {
+          this.aiPopupHeight = savedH;
+        } else if (!this.aiPopupHeight || this.aiPopupHeight === '56%') {
+          this.aiPopupHeight = '48%';
+        }
+        popup.style.height = this.aiPopupHeight;
         popup.classList.remove('hidden');
         this.isAIPopupOpen = true;
+
+        const icon = document.getElementById('composer-ai-max-icon');
+        if (icon) {
+          const curPct = parseFloat(this.aiPopupHeight);
+          icon.setAttribute('data-lucide', curPct >= 80 ? 'minimize-2' : 'maximize-2');
+        }
       }
       if (compactBar) {
         compactBar.classList.add('hidden');
@@ -6771,13 +6784,19 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     toggleAIPopupHeight() {
       const popup = document.getElementById('composer-ai-popup');
       if (!popup) return;
-      if (this.aiPopupHeight === '56%') {
-        this.aiPopupHeight = '78%';
-        popup.style.height = '78%';
+      const curPct = parseFloat(this.aiPopupHeight || popup.style.height || '48');
+      if (curPct > 60) {
+        this.aiPopupHeight = '48%';
       } else {
-        this.aiPopupHeight = '56%';
-        popup.style.height = '56%';
+        this.aiPopupHeight = '78%';
       }
+      popup.style.height = this.aiPopupHeight;
+      localStorage.setItem('quesy_composer_ai_height', this.aiPopupHeight);
+      const icon = document.getElementById('composer-ai-max-icon');
+      if (icon) {
+        icon.setAttribute('data-lucide', parseFloat(this.aiPopupHeight) >= 80 ? 'minimize-2' : 'maximize-2');
+      }
+      if (window.lucide) lucide.createIcons();
     },
 
     toggleAIPopupFullscreen() {
@@ -6785,15 +6804,17 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
       const icon = document.getElementById('composer-ai-max-icon');
       if (!popup) return;
 
-      if (this.aiPopupHeight === '92%') {
-        this.aiPopupHeight = '56%';
-        popup.style.height = '56%';
+      const curPct = parseFloat(this.aiPopupHeight || popup.style.height || '48');
+      if (curPct >= 80) {
+        this.aiPopupHeight = '48%';
+        popup.style.height = '48%';
         if (icon) icon.setAttribute('data-lucide', 'maximize-2');
       } else {
-        this.aiPopupHeight = '92%';
-        popup.style.height = '92%';
+        this.aiPopupHeight = '82%';
+        popup.style.height = '82%';
         if (icon) icon.setAttribute('data-lucide', 'minimize-2');
       }
+      localStorage.setItem('quesy_composer_ai_height', this.aiPopupHeight);
       if (window.lucide) lucide.createIcons();
     },
 
@@ -7052,13 +7073,16 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
     initAIPopupResizer() {
       const popup = document.getElementById('composer-ai-popup');
       const handle = document.getElementById('composer-ai-resize-handle');
-      const editorPane = document.getElementById('composer-editor-pane');
-      if (!popup || !editorPane) return;
+      const leftCol = document.getElementById('composer-left-col');
+      if (!popup || !leftCol) return;
 
       const savedHeight = localStorage.getItem('quesy_composer_ai_height');
       if (savedHeight) {
         this.aiPopupHeight = savedHeight;
         popup.style.height = savedHeight;
+      } else {
+        this.aiPopupHeight = '48%';
+        popup.style.height = '48%';
       }
 
       let isDragging = false;
@@ -7082,12 +7106,12 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
         if (Math.abs(e.clientY - startY) > 4) {
           hasDragged = true;
         }
-        const paneRect = editorPane.getBoundingClientRect();
-        if (!paneRect.height) return;
+        const colRect = leftCol.getBoundingClientRect();
+        if (!colRect.height) return;
 
-        const newHeightPx = paneRect.bottom - e.clientY;
-        let pct = (newHeightPx / paneRect.height) * 100;
-        pct = Math.min(90, Math.max(20, pct));
+        const newHeightPx = colRect.bottom - e.clientY;
+        let pct = (newHeightPx / colRect.height) * 100;
+        pct = Math.min(80, Math.max(20, pct));
 
         popup.style.height = `${pct.toFixed(1)}%`;
         this.aiPopupHeight = `${pct.toFixed(1)}%`;
@@ -7102,6 +7126,13 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
         if (this.aiPopupHeight) {
           localStorage.setItem('quesy_composer_ai_height', this.aiPopupHeight);
         }
+
+        const icon = document.getElementById('composer-ai-max-icon');
+        if (icon) {
+          const curPct = parseFloat(this.aiPopupHeight);
+          icon.setAttribute('data-lucide', curPct >= 80 ? 'minimize-2' : 'maximize-2');
+        }
+        if (window.lucide) lucide.createIcons();
 
         window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('mouseup', onMouseUp);
@@ -7713,7 +7744,11 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
           if (kw.length < 5) continue;
           const idx = lines.findIndex(l => l.includes(kw));
           if (idx !== -1) {
-            lines[idx] = safeNew;
+            if (oldText && lines[idx].includes(oldText)) {
+              lines[idx] = lines[idx].replace(oldText, safeNew);
+            } else {
+              lines[idx] = safeNew;
+            }
             val = lines.join('\n');
             replaced = true;
             break;
@@ -8638,6 +8673,10 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
         `;
       });
 
+      html = html.replace(/^### (.*$)/gim, '<div class="text-[13px] font-bold text-purple-400 mt-2 mb-1">$1</div>');
+      html = html.replace(/^#### (.*$)/gim, '<div class="text-[12px] font-semibold text-slate-200 mt-1.5 mb-0.5">$1</div>');
+      html = html.replace(/^> (.*$)/gim, '<blockquote class="border-l-2 border-purple-500/50 pl-2 text-slate-300 text-xs italic my-1">$1</blockquote>');
+      html = html.replace(/^[*-] (.*$)/gim, '<div class="flex items-start space-x-1.5 text-slate-300 my-0.5"><span class="text-purple-400 font-bold shrink-0">•</span><span>$1</span></div>');
       html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
       html = html.replace(/\*([^*]+)\*/g, '<em class="text-slate-300">$1</em>');
       html = html.replace(/`([^`]+)`/g, '<code class="bg-[#2d2d31] text-purple-300 border border-white/10 px-1.5 py-0.5 rounded font-mono text-[11px] font-semibold">$1</code>');

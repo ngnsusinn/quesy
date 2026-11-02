@@ -737,8 +737,8 @@
           <!-- ================= CỘT TRÁI (LEFT COLUMN): CODE EDITOR + POPUP TRỢ LÝ (60% WIDTH) ================= -->
           <div id="composer-left-col" class="w-full lg:w-[60%] flex flex-col h-full min-h-0 overflow-hidden relative shrink-0">
             
-            <!-- HỘP SOẠN THẢO MÃ NGUỒN LATEX (DARK MODE) - FULL HEIGHT -->
-            <div id="composer-editor-pane" class="w-full h-full flex-1 min-h-0 bg-[#141824] rounded-xl border border-[#272f42] flex flex-col overflow-hidden shadow-xs relative">
+            <!-- HỘP SOẠN THẢO MÃ NGUỒN LATEX (DARK MODE) - SPLIT VIEW (FLEX-1) -->
+            <div id="composer-editor-pane" class="w-full flex-1 min-h-[140px] bg-[#141824] rounded-xl border border-[#272f42] flex flex-col overflow-hidden shadow-xs relative transition-[height,flex] duration-200">
               
               <!-- Editor Header Toolbar (Dark Theme) -->
               <div class="bg-[#1c2230] border-b border-[#283144] px-3 py-1.5 flex items-center justify-between text-xs select-none">
@@ -1048,8 +1048,10 @@
                 </div>
               </div>
 
-              <!-- B. Full AI Assistant Popup / Bottom Sheet (Image 3 style) -->
-              <div id="composer-ai-popup" class="hidden absolute bottom-0 left-0 right-0 z-30 bg-[#18181b] border-t border-white/10 shadow-2xl rounded-t-2xl flex flex-col overflow-hidden transition-all duration-300 h-[56%]">
+            </div>
+
+            <!-- B. Trợ lý Soạn thảo AI Copilot (Vertical Split View Pane) -->
+            <div id="composer-ai-popup" class="hidden relative w-full bg-[#18181b] border border-white/10 shadow-2xl rounded-xl flex flex-col overflow-hidden shrink-0 mt-2 transition-[height] duration-200">
 
                 <!-- Popup Header (Matching Image 3) -->
                 <div class="px-4 py-1.5 bg-[#18181b] border-b border-white/10 flex items-center justify-between text-xs select-none shrink-0">
@@ -1177,8 +1179,6 @@
                   <img id="composer-lightbox-img" src="" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-white/20 bg-black" alt="Lightbox Image">
                 </div>
               </div>
-
-            </div>
 
           </div>
 

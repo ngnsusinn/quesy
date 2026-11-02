@@ -29,16 +29,17 @@ from backend.config import settings
 from backend.services.composer_service import compile_latex_to_pdf
 from backend.services.latex_converter import sanitize_latex_for_xetex
 
-try:
-    import matplotlib
-    matplotlib.rcParams['mathtext.fontset'] = 'custom'
-    matplotlib.rcParams['mathtext.rm'] = 'Times New Roman'
-    matplotlib.rcParams['mathtext.it'] = 'Times New Roman:italic'
-    matplotlib.rcParams['mathtext.bf'] = 'Times New Roman:bold'
-    matplotlib.rcParams['mathtext.sf'] = 'Times New Roman'
-    matplotlib.rcParams['mathtext.tt'] = 'Courier New'
-except Exception:
-    pass
+def _configure_matplotlib_rc():
+    try:
+        import matplotlib
+        matplotlib.rcParams['mathtext.fontset'] = 'custom'
+        matplotlib.rcParams['mathtext.rm'] = 'Times New Roman'
+        matplotlib.rcParams['mathtext.it'] = 'Times New Roman:italic'
+        matplotlib.rcParams['mathtext.bf'] = 'Times New Roman:bold'
+        matplotlib.rcParams['mathtext.sf'] = 'Times New Roman'
+        matplotlib.rcParams['mathtext.tt'] = 'Courier New'
+    except Exception:
+        pass
 
 # Register VML / Office namespaces for MathType OLE embedding
 nsmap['v'] = 'urn:schemas-microsoft-com:vml'
@@ -82,6 +83,7 @@ def _get_math_parser():
     global _MATH_PARSER
     if _MATH_PARSER is None:
         try:
+            _configure_matplotlib_rc()
             from matplotlib.mathtext import MathTextParser
             _MATH_PARSER = MathTextParser('agg')
         except Exception as e:

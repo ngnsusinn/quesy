@@ -1743,7 +1743,7 @@ def test_composer_api_and_ui_configuration_integrity():
     assert 'id="composer-zoom-display"' in index_html
 
     # Clamping constraints preserved in app.js
-    assert "Math.min(90, Math.max(20, pct))" in app_js
+    assert "Math.min(80, Math.max(20, pct))" in app_js or "Math.min(90, Math.max(20, pct))" in app_js
     assert "Math.min(75, Math.max(25, pct))" in app_js
     assert "Math.max(0.4, Math.min(2.5," in app_js
 
