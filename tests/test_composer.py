@@ -4659,15 +4659,16 @@ def test_composer_chat_multimodal_image_replace_question_7():
     assert "Cho hình lập phương" in old_q7
 
     fake_img = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-    res = client.post(
-        "/api/v1/composer/chat",
-        json={
-            "message": "Thay thế Câu 7 bằng câu hỏi nhận dạng vectơ trong hình lập phương tương tự",
-            "current_latex": cur_latex,
-            "images": [fake_img],
-            "history": []
-        }
-    )
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Thay thế Câu 7 bằng câu hỏi nhận dạng vectơ trong hình lập phương tương tự",
+                "current_latex": cur_latex,
+                "images": [fake_img],
+                "history": []
+            }
+        )
     assert res.status_code == 200
     data = res.json()
     assert "reply" in data
@@ -4689,15 +4690,16 @@ def test_composer_chat_multimodal_image_replace_question_7():
 def test_composer_chat_multimodal_image_without_replace():
     """Verify attaching an image without replace command returns image recognition response with centered TikZ."""
     fake_img = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-    res = client.post(
-        "/api/v1/composer/chat",
-        json={
-            "message": "Trích xuất câu hỏi từ hình ảnh đính kèm",
-            "current_latex": "",
-            "images": [fake_img],
-            "history": []
-        }
-    )
+    with patch("backend.routers.composer.default_ai_provider_service", None):
+        res = client.post(
+            "/api/v1/composer/chat",
+            json={
+                "message": "Trích xuất câu hỏi từ hình ảnh đính kèm",
+                "current_latex": "",
+                "images": [fake_img],
+                "history": []
+            }
+        )
     assert res.status_code == 200
     data = res.json()
     assert "reply" in data
@@ -4827,5 +4829,147 @@ def test_composer_html_and_js_thpt_2026_and_hig_compliance():
     assert 'id="composer-image-lightbox"' in index_html
     assert 'id="composer-pending-diff-banner"' in index_html
     assert 'id="composer-inline-diff-overlay"' in index_html
+
+
+def test_composer_chat_api_armbian_8317_endpoint_normalization():
+    """Verify backend automatically normalizes armbian:8317 base URL to append /v1/chat/completions."""
+    mock_service = MagicMock()
+    mock_service.api_key = "123"
+    mock_service.provider = "custom"
+    mock_service.model = "gemini-3.8-flash-high"
+    mock_service.base_url = "http://armbian:8317"  # deliberately missing /v1
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": "Tôi đã phân tích đề thi từ cụm armbian:8317."
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client):
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": "soạn đề thi",
+                    "current_latex": r"\begin{document}\end{document}",
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert "armbian:8317" in data["reply"]
+            # Verify normalized endpoint URL
+            called_endpoint = mock_client.post.call_args[0][0]
+            assert called_endpoint == "http://armbian:8317/v1/chat/completions"
+            # Verify authorization header carries key 123
+            called_headers = mock_client.post.call_args[1]["headers"]
+            assert called_headers["Authorization"] == "Bearer 123"
+            # Verify model sent is gemini-3.8-flash-high
+            called_json = mock_client.post.call_args[1]["json"]
+            assert called_json["model"] == "gemini-3.8-flash-high"
+
+
+def test_composer_chat_api_armbian_8317_multimodal_vision_call():
+    """Verify multimodal vision request formats image_url blocks and connects with 60s timeout."""
+    mock_service = MagicMock()
+    mock_service.api_key = "123"
+    mock_service.provider = "custom"
+    mock_service.model = "gemini-3.8-flash-high"
+    mock_service.base_url = "http://armbian:8317/v1"
+    mock_service.timeout = 60.0
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": (
+                        "Đã phân tích 4 hình ảnh đề thi thành công:\n"
+                        "```latex\n"
+                        "\\begin{ex}\n"
+                        "Câu hỏi số hóa từ cụm AI armbian:8317.\n"
+                        "\\choice{$A$}{\\True $B$}{$C$}{$D$}\n"
+                        "\\end{ex}\n"
+                        "```"
+                    )
+                }
+            }
+        ]
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.post.return_value = mock_resp
+
+    fake_images = [
+        "data:image/jpeg;base64,fakeimage1",
+        "data:image/jpeg;base64,fakeimage2",
+        "data:image/jpeg;base64,fakeimage3",
+        "data:image/jpeg;base64,fakeimage4"
+    ]
+
+    with patch("backend.routers.composer.default_ai_provider_service", mock_service):
+        with patch("backend.routers.composer.httpx.Client", return_value=mock_client) as mock_httpx_cls:
+            res = client.post(
+                "/api/v1/composer/chat",
+                json={
+                    "message": "giúp tôi soạn lại đề thi này",
+                    "current_latex": r"\begin{document}\end{document}",
+                    "images": fake_images,
+                    "history": []
+                }
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert "armbian:8317" in data["reply"]
+            assert data["suggested_latex"] is not None
+
+            # Verify httpx client timeout was at least 60s
+            client_timeout = mock_httpx_cls.call_args[1].get("timeout")
+            assert client_timeout >= 60.0
+
+            # Verify messages format carries image_url blocks for all 4 images
+            called_json = mock_client.post.call_args[1]["json"]
+            user_msg = [m for m in called_json["messages"] if m["role"] == "user"][0]
+            assert isinstance(user_msg["content"], list)
+            image_blocks = [item for item in user_msg["content"] if item.get("type") == "image_url"]
+            assert len(image_blocks) == 4
+            assert image_blocks[0]["image_url"]["url"] == "data:image/jpeg;base64,fakeimage1"
+
+
+def test_composer_frontend_localstorage_quota_guard_and_compress_image():
+    """Verify frontend/static/app.js implements safeSetLocalStorage, sanitizeMessagesForStorage,
+    and compressImage to protect against QuotaExceededError.
+    """
+    app_js = (Path(__file__).parent.parent / "frontend" / "static" / "app.js").read_text(encoding="utf-8")
+
+    # 1. safeSetLocalStorage function exists and handles QuotaExceededError
+    assert "function safeSetLocalStorage(key, value)" in app_js
+    assert "QuotaExceededError" in app_js
+    assert "quesy_composer_chat" in app_js
+
+    # 2. sanitizeMessagesForStorage replaces large base64 data URLs with [image_attached]
+    assert "function sanitizeMessagesForStorage(messages)" in app_js
+    assert "[image_attached]" in app_js
+
+    # 3. Canvas image compression exists
+    assert "function compressImage(dataUrl" in app_js
+    assert "canvas.toDataURL" in app_js
+
+    # 4. Storage operations in sendPrompt use safeSetLocalStorage and sanitizeMessagesForStorage
+    assert "safeSetLocalStorage('quesy_composer_chat'" in app_js
+    assert "safeSetLocalStorage('quesy_composer_sessions'" in app_js
+
 
 

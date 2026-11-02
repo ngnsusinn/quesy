@@ -2,9 +2,9 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-UC-01  
-- **Phiên bản:** 3.9 (Quy Chuẩn Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán Mã Đề 0101, Tối Ưu Bố Cục Vector PDF 4 Trang Chuẩn Bộ GD&ĐT)  
-- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX, cơ chế cuộn mượt container nội bộ bảo toàn cố định Top Header 100%), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG" (trích xuất trọn vẹn trắc nghiệm, đúng sai QĐ 764, trả lời ngắn, TikZ, BBT, tự động gắn tag YCCĐ AI), phân hệ Soạn đề tinh gọn không cần preamble (Canonical Preamble Injection ex_test v3.3, tikz, tkz-tab, tcolorbox, A4), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input text, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn, trợ lý soạn đề AI Copilot trực tiếp, cơ chế render KaTeX toàn diện triệt tiêu lỗi văn bản thô, và chuẩn hóa hệ thống dropdown select Apple HIG (.apple-select).
-- **Ngày phát hành:** 2026-11-01  
+- **Phiên bản:** 4.0 (Hoàn Thiện Giao Diện Trang Chính Tổng Quan Khảo Thí Apple HIG, Trung Tâm Khởi Chạy Nhanh 4 Thao Tác, Tiêu Điểm Đề Thi Minh Họa 2026 Mã 0101, Bảng Giám Sát Bất Biến Khảo Thí Quốc Gia & Lịch Sử Đề Thi)  
+- **Mục tiêu tài liệu:** Đặc tả chi tiết các ca sử dụng (Use Cases) giải quyết bài toán số hóa đề thi, kiểm soát trùng lặp, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh (Apple HIG Launchpad 4 thẻ, Tiêu điểm Đề tham khảo THPT 2026 Mã 0101, Bảng giám sát bất biến khảo thí RULE-01/02/03/Centered Diagrams, Lịch sử ấn phẩm đề thi), phân hệ Ngân hàng câu hỏi toàn diện, phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Soạn đề tinh gọn không cần preamble, dựng đồ thị vector SVG, trộn đề an toàn, xuất bản in ấn.
+- **Ngày phát hành:** 2026-11-02  
 - **Tiêu chuẩn áp dụng:** RUP / Unified Modeling Language (UML)
 
 ---
@@ -434,6 +434,25 @@
      - Bấm nút **BIÊN DỊCH** (`#0071e3`), tiến trình Tectonic XeTeX biên dịch ra bản in vector PDF 4 trang với bố cục chuẩn Bộ GD&ĐT, font CMU Serif 12pt, lề 1.5cm.
      - PDF.js canvas hiển thị sắc nét, cuộn đa trang mượt mà, bộ đếm trang hiển thị chính xác `Trang 1 / 4` đến `Trang 4 / 4`.
      - Giáo viên có thể bấm `XUẤT FILE ▾` -> `Tải mã nguồn TeX (.tex)` để nhận file standalone với Canonical Preamble, hoặc nhấn `LƯU NGÂN HÀNG` để đưa 22 câu hỏi vào kho chung.
+
+  ---
+
+  ### UC-12: SỐ HÓA ĐỀ THI ĐA PHƯƠNG THỨC QUA CỤM AI NỘI BỘ armbian:8317 & BẢO VỆ HẠN NGẠCH LOCALSTORAGE
+
+  - **Mã Use Case:** `UC-12`
+  - **Tên Use Case:** Số hóa đề thi đa phương thức qua Cụm AI suy luận nội bộ armbian:8317 & Bảo vệ hạn ngạch bộ nhớ LocalStorage
+  - **Tác nhân chính:** Giáo viên Bộ môn
+  - **Tác nhân hỗ trợ:** Internal AI Cluster Service (`http://armbian:8317/v1`), Client Canvas Image Resizer, LocalStorage Quota Guard
+  - **Điều kiện tiên quyết:** Người dùng mở phân hệ Soạn đề (`/composer`).
+  - **Luồng sự kiện chính (MSS):**
+    1. Giáo viên đính kèm nhiều ảnh chụp đề thi chất lượng cao (1 đến 4 ảnh) qua thao tác kéo thả hoặc dán từ clipboard (`Ctrl+V`).
+    2. Phía client kích hoạt Canvas Image Resizer: Tự động co giãn ảnh về tối đa 1600x1600px và nén JPEG 0.85, giảm 90% dung lượng payload truyền tải.
+    3. Giáo viên nhập câu lệnh: *"giúp tôi soạn lại đề thi này"* và bấm Gửi.
+    4. Trình duyệt gửi request `POST /api/v1/composer/chat` với mảng `images` đã nén và tin nhắn yêu cầu.
+    5. Backend kết nối trực tiếp đến cụm AI nội bộ `http://armbian:8317/v1/chat/completions` với API Key `123`, tự động chuẩn hóa URL (bổ sung `/v1` nếu cần), đặt timeout 60 giây và truyền tải mảng `image_url`.
+    6. Mô hình suy luận nội bộ `gemini-3.8-flash-high` phân tích nội dung toán học từ ảnh và sinh mã LaTeX chuẩn `ex_test.sty`.
+    7. Client tiếp nhận phản hồi, hiển thị mã câu hỏi chuẩn và diff trên editor.
+    8. Client kích hoạt LocalStorage Quota Guard: Lọc bỏ chuỗi base64 ảnh dung lượng lớn trước khi lưu vào `quesy_composer_chat` và `quesy_composer_sessions`, duy trì dung lượng lưu trữ cục bộ luôn < 50KB, loại bỏ 100% lỗi `QuotaExceededError`.
 
   ---
 

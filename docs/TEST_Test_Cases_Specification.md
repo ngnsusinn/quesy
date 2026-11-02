@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-TEST-01  
-- **Phiên bản:** 3.9 (Quy Chuẩn Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán Mã Đề 0101, Tối Ưu Bố Cục Vector PDF 4 Trang Chuẩn Bộ GD&ĐT)  
+- **Phiên bản:** 4.0 (Hoàn Thiện Giao Diện Trang Chính Tổng Quan Khảo Thí Apple HIG, Trung Tâm Khởi Chạy Nhanh 4 Thao Tác, Tiêu Điểm Đề Thi Minh Họa 2026 Mã 0101, Bảng Giám Sát Bất Biến Khảo Thí Quốc Gia & Lịch Sử Đề Thi)  
 - **Tiêu chuẩn kiểm thử:** IEEE 829 (Standard for Software Test Documentation)  
-- **Tổng số kịch bản tự động hóa:** 230+ Tests (100% Passed)  
-- **Ngày lập:** 2026-11-01  
+- **Tổng số kịch bản tự động hóa:** 254+ Tests (100% Passed)  
+- **Ngày lập:** 2026-11-02  
 - **Môi trường áp dụng:** Staging & Production Verification (Pytest & CI)
 
 ---
@@ -20,6 +20,7 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 4. Thuật toán **Trộn đề An toàn (Safe Shuffling)**: Đảm bảo không tách rời câu hỏi chùm và luôn khóa cố định phương án *"Cả A và B đều đúng"* tại vị trí cuối cùng (D).
 5. Chất lượng xuất bản file Word 2 cột với công thức native OMML và bảng điểm Excel UTF-8 BOM.
 6. Xác minh toàn diện phân hệ Soạn đề (Composer): Cấu trúc 3 phần chuẩn Đề thi Tốt nghiệp THPT 2026 Môn Toán (Mã đề 0101), xử lý ảnh đa phương tiện (Multimodal Image Copilot), chat tái cấu trúc câu hỏi (Targeted Diff Replacement), và biên dịch PDF đa trang hiển thị trên PDF.js canvas.
+7. Xác minh phân hệ Trang chính (Dashboard Hub): Trung tâm khởi chạy nhanh 4 thao tác (Composer, Digitize, Matrix, Shuffler), Tiêu điểm Đề thi 2026 Mã 0101, Bảng kiểm soát bất biến RULE-01/02/03/Centered Diagrams, và đồng bộ số liệu động thời gian thực.
 
 ### 1.2. Thang đánh giá Kết quả (Test Result Status)
 - **PASS:** Chức năng hoạt động chính xác theo đúng kết quả kỳ vọng.
@@ -857,6 +858,28 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 - **Kết quả kỳ vọng:**
   * File `.tex` tải về chứa đầy đủ `\documentclass[12pt,a4paper]{article}`, `\usepackage{fontspec}`, `\usepackage{amsmath,amssymb}`, `\usepackage{tikz,tkz-tab}`, `\usepackage{tcolorbox}`, `\usepackage[dethi]{ex_test}` và `\begin{document} ... \end{document}`.
   * Lưu vào ngân hàng thành công: Trích xuất 22 câu hỏi (12 Trắc nghiệm đơn, 4 Đúng/Sai, 6 Trả lời ngắn), tự động gán YCCĐ TT 32, và cập nhật badge `#bank-count-badge`.
+
+#### TC-COMPOSER-07: Kiểm Thử Cấu Hình & Gọi AI Suy Luận Nội Bộ armbian:8317 với Key 123
+- **Mô tả:** Xác minh hệ thống Composer Chat ưu tiên kết nối tới cụm máy chủ nội bộ `http://armbian:8317/v1` với API Key `123`, tự động chuẩn hóa URL `/v1`, và gửi payload ảnh đa phương thức thành công.
+- **Thao tác:**
+  1. Gửi request `POST /api/v1/composer/chat` kèm prompt và mảng ảnh base64.
+  2. Kiểm tra endpoint gọi tới là `http://armbian:8317/v1/chat/completions`, header mang `Authorization: Bearer 123`, model là `gemini-3.8-flash-high`.
+- **Kết quả kỳ vọng:**
+  * Endpoint được chuẩn hóa tự động nếu thiếu `/v1`.
+  * AI phản hồi phân tích ảnh thực tế thành mã LaTeX chuẩn `ex_test.sty`, không bị rơi vào canned fallback mock.
+  * Timeout được thiết lập an toàn $\ge 60\text{s}$.
+
+#### TC-COMPOSER-08: Kiểm Thử An Toàn Hạn Ngạch LocalStorage Quota Guard Khi Đính Kèm Nhiều Ảnh
+- **Mô tả:** Xác minh đính kèm 4 ảnh chất lượng cao vào ô chat không gây ngoại lệ `QuotaExceededError` và không hiển thị thông báo lỗi kết nối giả lập.
+- **Thao tác:**
+  1. Đính kèm 4 ảnh đề thi vào khung chat.
+  2. Gửi tin nhắn và quan sát lưu trữ `localStorage` (`quesy_composer_chat` và `quesy_composer_sessions`).
+- **Kết quả kỳ vọng:**
+  * Ảnh được tự động nén kích thước qua Canvas trước khi đưa vào khay.
+  * Mảng base64 ảnh lớn được lọc bỏ (`[image_attached]`) khi đồng bộ vào `localStorage`.
+  * Tổng dung lượng lưu trữ cục bộ duy trì $\le 50\text{KB}$.
+  * Không phát sinh lỗi `Failed to execute 'setItem' on 'Storage': Setting the value of 'quesy_composer_chat' exceeded the quota.`
+  * Trình duyệt không có lỗi console màu đỏ.
 
 ---
 

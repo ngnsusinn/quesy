@@ -1545,12 +1545,24 @@ Lời giải chi tiết trả lời ngắn.
         if default_ai_provider_service and (default_ai_provider_service.api_key or default_ai_provider_service.provider in ("openai", "openrouter", "custom", "gemini")):
             # We can use the configured provider
             provider = default_ai_provider_service.provider
-            model = default_ai_provider_service.model
-            base_url = default_ai_provider_service.base_url
-            api_key = default_ai_provider_service.api_key or "gemini-mock-key"
+            model = default_ai_provider_service.model or ("gemini-3.8-flash-high" if provider == "custom" else "gpt-4o")
+            base_url = (default_ai_provider_service.base_url or ("http://armbian:8317/v1" if provider == "custom" else "")).strip()
+            api_key = default_ai_provider_service.api_key or ("123" if provider == "custom" else "gemini-mock-key")
+
+            # Normalize base_url: if armbian or missing /v1, ensure /v1 is appended
+            clean_base = base_url.rstrip('/')
+            if clean_base:
+                if not clean_base.endswith('/v1') and ('8317' in clean_base or not clean_base.endswith('/openai')):
+                    clean_base = f"{clean_base}/v1"
 
             if provider in ("openai", "openrouter", "custom", "gemini"):
-                endpoint = f"{(base_url or ('https://generativelanguage.googleapis.com/v1beta/openai' if provider == 'gemini' else 'https://api.openai.com/v1')).rstrip('/')}/chat/completions"
+                if clean_base:
+                    endpoint = f"{clean_base}/chat/completions"
+                elif provider == "gemini":
+                    endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+                else:
+                    endpoint = "https://api.openai.com/v1/chat/completions"
+
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
@@ -1567,7 +1579,8 @@ Lời giải chi tiết trả lời ngắn.
                 else:
                     messages.append({"role": "user", "content": prompt})
 
-                with httpx.Client(timeout=25.0) as client:
+                ai_timeout = float(getattr(default_ai_provider_service, "timeout", 60.0) or 60.0)
+                with httpx.Client(timeout=max(ai_timeout, 60.0)) as client:
                     resp = client.post(endpoint, headers=headers, json={"model": model, "messages": messages, "temperature": 0.4})
                     if resp.status_code == 200:
                         data = resp.json()
@@ -1576,7 +1589,7 @@ Lời giải chi tiết trả lời ngắn.
                         diff = diffs[0] if diffs else None
                         suggested_latex = None
                         m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
-                        if m_code and not diffs:
+                        if m_code:
                             suggested_latex = m_code.group(1).strip()
                         return ChatResponse(reply=reply_text, diff=diff, diffs=diffs, suggested_latex=suggested_latex)
 

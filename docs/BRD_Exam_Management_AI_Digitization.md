@@ -3,9 +3,9 @@
 **Dự án:** Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học  
 **Tên mã dự án (Project Code):** QUESY  
 **Mục tiêu cốt lõi:** Giải quyết triệt để các rào cản và nút thắt cổ chai trong quy trình số hóa đề thi, tự động tái tạo đồ thị vector, chuẩn hóa công thức toán học, trộn đề an toàn chống vỡ logic và xuất bản ấn phẩm khảo thí in ấn chuyên nghiệp.  
-- **Phiên bản (Version):** 3.9 (Quy Chuẩn Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán Mã Đề 0101, Tối Ưu Bố Cục Vector PDF 4 Trang Chuẩn Bộ GD&ĐT)  
+- **Phiên bản (Version):** 4.0 (Hoàn Thiện Giao Diện Trang Chính Tổng Quan Khảo Thí Apple HIG, Trung Tâm Khởi Chạy Nhanh 4 Thao Tác, Tiêu Điểm Đề Thi Minh Họa 2026 Mã 0101, Bảng Giám Sát Bất Biến Khảo Thí Quốc Gia & Lịch Sử Đề Thi)  
 - **Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
-- **Ngày phát hành:** 2026-11-01
+- **Ngày phát hành:** 2026-11-02
 
 ---
 
@@ -25,7 +25,8 @@
 | 3.6 | 2026-10-29 | BA Team & Lead UX | Con Trỏ Soạn Thảo Đen Nổi Bật High-Contrast Bold Black Text Cursor & Caret tại các ô Ma trận đề và trường text inputs (SVG I-beam 2.8px tương phản cao, caret-color #000000, hover nổi bật ô ma trận), Hệ thống Phân trang Ngân hàng Câu hỏi Chuẩn Apple HIG (state bankPagination, phân trang dải câu hỏi, chuyển trang, dropdown 12/24/48 câu/trang, auto-reset page 1 khi lọc, render KaTeX on-demand <10ms, cuộn mượt về đầu trang). | Ban Giám đốc & PM |
 | 3.7 | 2026-10-29 | BA Team & Lead Architect | Sửa lỗi biến mất Top Header khi đổi trang phân trang ngân hàng câu hỏi: Loại bỏ triệt để lệnh `scrollIntoView` gây cuộn `window.scrollY = 65px` đẩy header ra ngoài viewport; thay thế bằng cuộn nội bộ container `#main-scroll-view.scrollTo({ top: 0, behavior: 'smooth' })` và neo `window.scrollTo(0, 0)`; bổ sung `shrink-0` trên HTML và `flex-shrink: 0;` trong CSS bảo toàn vị trí cố định của Apple Header trên mọi kích thước màn hình. | Ban Giám đốc & PM |
 | 3.8 | 2026-11-01 | BA Team & Lead UX | Tinh Giản Thanh Công Cụ Soạn Đề LaTeX Apple HIG: Loại bỏ hoàn toàn nút câu hiện tại (`#composer-compile-partial-btn`) khỏi thanh công cụ đáy, tinh giản thành 2 nút tác vụ chính `BIÊN DỊCH` (`flex-1`, `#0071e3`) và `LƯU NGÂN HÀNG`, giảm thiểu tải nhận thức theo nguyên tắc `principle-minimize-reader-load`, phím tắt `Ctrl+Shift+S` vẫn được giữ nguyên cho người dùng nâng cao. | Ban Giám đốc & PM |
-| **3.9** | 2026-11-01 | BA Team & Lead Architect | **Kiểm nghiệm Toàn diện Chức năng Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán (Mã Đề 0101): Mô hình hóa trọn vẹn 4 trang in ấn chuẩn MoET (12 câu Phần I, 4 câu Phần II \choiceTF[1], 6 câu Phần III \shortans), kiểm chứng năng lực Multimodal Copilot (nhận diện ảnh, thumbnail tray, lightbox), chat tái cấu trúc câu hỏi có diff trực quan, và biên dịch Vector PDF XeTeX đa trang sống động trên PDF.js canvas.** | Ban Giám đốc & PM |
+| 3.9 | 2026-11-01 | BA Team & Lead Architect | Kiểm nghiệm Toàn diện Chức năng Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán (Mã Đề 0101): Mô hình hóa trọn vẹn 4 trang in ấn chuẩn MoET (12 câu Phần I, 4 câu Phần II \choiceTF[1], 6 câu Phần III \shortans), kiểm chứng năng lực Multimodal Copilot (nhận diện ảnh, thumbnail tray, lightbox), chat tái cấu trúc câu hỏi có diff trực quan, và biên dịch Vector PDF XeTeX đa trang sống động trên PDF.js canvas. | Ban Giám đốc & PM |
+| **4.0** | 2026-11-02 | BA Team & Lead UX | **Hoàn thiện Giao diện Trang Chính Tổng Quan Khảo Thí Apple HIG: Nâng cấp Bảng Điều Khiển Trung Tâm với Trung tâm Khởi chạy Nhanh 4 Thao tác (Soạn đề 2026, Số hóa AI, Ma trận 2D, Sinh & Trộn đề ZIP), Tiêu điểm Đề thi Tham khảo Tốt nghiệp THPT 2026 Môn Toán (Mã 0101), Bảng Giám sát Bất biến Khảo thí Quốc gia (RULE-01/02/03/Centered Diagrams) và Lịch sử Ấn phẩm Khảo thí Gần đây.** | Ban Giám đốc & PM |
 
 ---
 
@@ -82,6 +83,10 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 - **BR-01.3 Tự động cắt ảnh hình học & đồ thị (Auto Image Crop):** Bounding Box đồ thị hàm số, hình học không gian, sơ đồ mạch điện, biểu đồ. Cắt ảnh độ phân giải cao, nén WebP, lưu trữ và nhúng vào câu hỏi.
 - **BR-01.4 Gợi ý gán nhãn thông minh bằng AI:** Tự động phân tích ngữ nghĩa thân câu hỏi và đề xuất chủ đề, bài học, dạng câu hỏi và mức độ tư duy.
 - **BR-01.5 Studio hậu kiểm song song (HITL Studio):** Thiết kế tối giản Apple HIG: Cột trái xem tài liệu gốc có tính năng thu phóng; Cột phải hiển thị danh sách câu hỏi bóc tách render KaTeX thời gian thực. Cảnh báo độ tin cậy theo màu sắc, chỉnh sửa nhanh công thức và đổi đáp án trắc nghiệm chỉ bằng 1 cú nhấp chuột.
+- **BR-01.6 Tự chủ Hạ tầng AI Suy luận Nội bộ (Internal AI Cluster armbian:8317 & Data Sovereignty):**
+  - Vận hành trực tiếp trên cụm máy chủ nội bộ độ trễ thấp `http://armbian:8317/v1` với API Key `123` và mô hình thị giác đa phương thức `gemini-3.8-flash-high`.
+  - Bảo mật dữ liệu đề thi tuyệt đối trước giờ G: Đề thi và hình ảnh bài toán không bao giờ bị gửi sang các nhà cung cấp đám mây quốc tế của bên thứ ba.
+  - Cơ chế Quota Guard chống nghẽn bộ nhớ trình duyệt: Nén ảnh client-side qua Canvas và tinh lọc mảng hình ảnh trước khi lưu trữ cục bộ, bảo đảm giáo viên thao tác liên tục trên hàng chục ảnh đề thi dung lượng lớn mà không bao giờ gặp lỗi tràn hạn ngạch LocalStorage.
 
 ---
 

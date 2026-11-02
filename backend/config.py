@@ -73,19 +73,21 @@ class Settings:
 
     # Online AI Provider Configuration (Loaded from .env)
     # Supported: openai | gemini | anthropic | openrouter | custom
-    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "").lower()
+    # Default: High-performance local cluster armbian:8317 with gemini-3.8-flash-high & key 123
+    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "custom").lower()
     AI_API_KEY: str = (
         os.getenv("AI_API_KEY", "")
         or os.getenv("GEMINI_API_KEY", "")
         or os.getenv("OPENAI_API_KEY", "")
         or os.getenv("ANTHROPIC_API_KEY", "")
         or os.getenv("OPENROUTER_API_KEY", "")
+        or "123"
     )
-    AI_MODEL: str = os.getenv("AI_MODEL", "")
-    AI_BASE_URL: str = os.getenv("AI_BASE_URL", "")
+    AI_MODEL: str = os.getenv("AI_MODEL", "gemini-3.8-flash-high")
+    AI_BASE_URL: str = os.getenv("AI_BASE_URL", "http://armbian:8317/v1")
     AI_MAX_TOKENS: int = int(os.getenv("AI_MAX_TOKENS", "8192"))
     AI_TEMPERATURE: float = float(os.getenv("AI_TEMPERATURE", "0.1"))
-    AI_TIMEOUT: float = float(os.getenv("AI_TIMEOUT", "300.0"))
+    AI_TIMEOUT: float = float(os.getenv("AI_TIMEOUT", "60.0"))
 
     # MathJax LaTeX Engine settings
     USE_MATHJAX: bool = os.getenv("USE_MATHJAX", "true").lower() in ("true", "1", "yes")

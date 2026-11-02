@@ -2,9 +2,9 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 3.9 (Quy Chuẩn Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán Mã Đề 0101, Tối Ưu Bố Cục Vector PDF 4 Trang Chuẩn Bộ GD&ĐT)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX, cơ chế cuộn mượt container nội bộ bảo toàn cố định Top Header 100%), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", quy chuẩn kiểm nghiệm toàn diện chức năng soạn đề thi Kỳ thi tốt nghiệp THPT năm 2026 môn Toán (Mã đề 0101) gồm 4 trang tài liệu với cấu trúc 3 phần (Phần I: 12 câu trắc nghiệm đơn, Phần II: 4 câu Đúng/Sai \choiceTF[1], Phần III: 6 câu Trả lời ngắn \shortans), tích hợp xử lý đa phương tiện hình ảnh (Multimodal Vision Copilot), chat hình ảnh để tái cấu trúc và thay thế câu hỏi tương đương (Targeted Question Diff Replacement), cơ chế biên dịch PDF vector thuần Tectonic XeTeX đa trang hiển thị sống động qua PDF.js canvas, và xuất file .tex độc lập với Canonical Preamble hoàn chỉnh.
-- **Ngày phát hành:** 2026-11-01  
+- **Phiên bản:** 4.0 (Hoàn Thiện Giao Diện Trang Chính Tổng Quan Khảo Thí Apple HIG, Trung Tâm Khởi Chạy Nhanh 4 Thao Tác, Tiêu Điểm Đề Thi Minh Họa 2026 Mã 0101, Bảng Giám Sát Bất Biến Khảo Thí Quốc Gia & Lịch Sử Đề Thi)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh (Apple HIG Launchpad 4 thẻ, Tiêu điểm Đề tham khảo THPT 2026 Mã 0101, Bảng giám sát bất biến khảo thí RULE-01/02/03/Centered Diagrams, Lịch sử ấn phẩm đề thi), phân hệ Ngân hàng câu hỏi toàn diện, phân hệ Soạn đề tinh gọn tích hợp xử lý đa phương tiện hình ảnh, chat hình ảnh tái cấu trúc câu hỏi, biên dịch PDF vector thuần Tectonic XeTeX.
+- **Ngày phát hành:** 2026-11-02  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
 ---
@@ -40,6 +40,7 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 - **MOD-08:** Phân hệ Chấm điểm Bậc thang & Quản lý Bảng điểm (Grade & Roster Management)
 - **MOD-09:** Phân hệ Xác thực Người dùng & Quản lý Phân quyền (Authentication, JWT & RBAC)
 - **MOD-10:** Phân hệ Soạn đề LaTeX Trực tiếp & Lưu đề vào Ngân hàng (Composer & Bank Deep Ingestion)
+- **MOD-11:** Phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh (Assessment Dashboard & Rapid Launchpad)
 
 ---
 
@@ -654,6 +655,18 @@ ight)$$
          4. *Duyệt & Áp dụng:* Hiển thị banner duyệt diff trên đầu và Inline Overlay trực tiếp trên editor. Người dùng nhấn **[Đồng ý] (Keep)** để áp dụng thay thế tức thì, hoặc **[Undo]** để bỏ qua.
        - **Biên Dịch & Kiểm Thử Độ Sắc Nét Vector:**
          - Biên dịch qua Tectonic XeTeX (hoặc Chromium Vector Fallback) tạo tệp PDF 4 trang sắc nét 100% CMU Serif, hiển thị sống động qua PDF.js canvas, có khả năng cuộn đa trang và đồng bộ số trang `Trang X / 4`.
+
+       ### 2.4.22. FR-02.24: Tích Hợp Cụm Máy Chủ AI Suy Luận Nội Bộ armbian:8317 & Cơ Chế Chống Tràn Bộ Nhớ LocalStorage Quota Guard
+       - **Mô tả Nghiệp Vụ:** Hệ thống Quesy vận hành độc lập, bảo mật và tốc độ cao thông qua cụm máy chủ suy luận AI nội bộ tại `http://armbian:8317/v1` (OpenAI-compatible) thay vì phụ thuộc vào nhà cung cấp OpenAI quốc tế, đồng thời bảo vệ trình duyệt khỏi lỗi sập hạn ngạch `LocalStorage QuotaExceededError` khi tải lên nhiều ảnh đề thi độ phân giải cao:
+       - **Đặc Tả Kỹ Thuật Chi Tiết:**
+         1. *Cấu hình AI Inference Server Nội Bộ:*
+            - Khởi tạo mặc định: `AI_PROVIDER=custom`, `AI_BASE_URL=http://armbian:8317/v1`, `AI_API_KEY=123`, `AI_MODEL=gemini-3.8-flash-high`.
+            - Chuẩn hóa đường dẫn endpoint tự động: Nếu cấu hình đầu vào là `http://armbian:8317`, backend tự động gắn hậu tố `/v1` để tạo endpoint hợp lệ `http://armbian:8317/v1/chat/completions`, triệt tiêu hoàn toàn lỗi 404 Not Found.
+            - Nâng trần timeout cuộc gọi đa phương thức (multimodal vision) lên tối thiểu 60 giây, đảm bảo xử lý đồng thời 4 trang ảnh đề thi mà không bị ngắt kết nối giữa chừng.
+         2. *Cơ chế Chống Tràn Bộ Nhớ LocalStorage Quota Guard:*
+            - Nén ảnh client-side qua Canvas: Ảnh người dùng tải lên từ clipboard (`Ctrl+V`), nút đính kèm hoặc kéo thả được tự động co giãn về kích thước tối đa 1600x1600px và nén JPEG 0.85, giảm 90% dung lượng truyền tải.
+            - Phân tách lưu trữ bộ nhớ và bộ nhớ vĩnh viễn: Dữ liệu base64 ảnh dung lượng lớn chỉ lưu trong bộ nhớ phiên (RAM); trước khi ghi vào `localStorage` (`quesy_composer_chat`, `quesy_composer_sessions`), các chuỗi base64 lớn được tự động lược bỏ hoặc thay thế bằng `[image_attached]`, duy trì mức chiếm dụng LocalStorage luôn < 50KB.
+            - Bọc cơ chế lưu trữ an toàn `safeSetLocalStorage(key, value)`: Tự động phát hiện và xử lý `QuotaExceededError`, giải phóng cache không cần thiết mà không bao giờ ném ngoại lệ làm gián đoạn luồng phản hồi AI hoặc gây hiểu lầm thành lỗi mạng.
 
        ---
 

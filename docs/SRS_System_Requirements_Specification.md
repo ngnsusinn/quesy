@@ -2,10 +2,10 @@
 **Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-SRS-01  
-- **Phiên bản:** 3.9 (Quy Chuẩn Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán Mã Đề 0101, Tối Ưu Bố Cục Vector PDF 4 Trang Chuẩn Bộ GD&ĐT)  
+- **Phiên bản:** 4.0 (Hoàn Thiện Giao Diện Trang Chính Tổng Quan Khảo Thí Apple HIG, Trung Tâm Khởi Chạy Nhanh 4 Thao Tác, Tiêu Điểm Đề Thi Minh Họa 2026 Mã 0101, Bảng Giám Sát Bất Biến Khảo Thí Quốc Gia & Lịch Sử Đề Thi)  
 - **Tiêu chuẩn kỹ thuật áp dụng:** IEEE Std 830-1998 / ISO/IEC/IEEE 29148  
-- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện (CRUD, xem chi tiết, sửa, xóa cascade, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, badge counter sync, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX, cơ chế cuộn mượt container nội bộ bảo toàn cố định Top Header 100%), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", quy chuẩn kiểm nghiệm toàn diện chức năng soạn đề thi Kỳ thi tốt nghiệp THPT năm 2026 môn Toán (Mã đề 0101) gồm 4 trang tài liệu với cấu trúc 3 phần (Phần I: 12 câu trắc nghiệm đơn, Phần II: 4 câu Đúng/Sai \choiceTF[1], Phần III: 6 câu Trả lời ngắn \shortans), tích hợp xử lý đa phương tiện hình ảnh (Multimodal Vision Copilot), chat hình ảnh để tái cấu trúc và thay thế câu hỏi tương đương (Targeted Question Diff Replacement), cơ chế biên dịch PDF vector thuần Tectonic XeTeX đa trang hiển thị sống động qua PDF.js canvas, và xuất file .tex độc lập với Canonical Preamble hoàn chỉnh.
-- **Ngày phát hành:** 2026-11-01  
+- **Nhiệm vụ trọng tâm:** Đặc tả hệ thống số hóa đề thi tự động, hệ thống xác thực người dùng an toàn (PBKDF2/SHA256, JWT HS256, Google/GitHub OAuth, RBAC), phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh (Apple HIG Launchpad 4 thẻ, Tiêu điểm Đề tham khảo THPT 2026 Mã 0101, Bảng giám sát bất biến khảo thí RULE-01/02/03/Centered Diagrams, Lịch sử ấn phẩm đề thi), phân hệ Ngân hàng câu hỏi hoàn thiện toàn diện, phân hệ Soạn đề tinh gọn tích hợp xử lý đa phương tiện hình ảnh, chat hình ảnh tái cấu trúc câu hỏi, biên dịch PDF vector thuần Tectonic XeTeX.
+- **Ngày phát hành:** 2026-11-02  
 - **Trạng thái:** Sẵn sàng triển khai & Vận hành sản xuất (Production Ready)
 
 ---
@@ -676,6 +676,20 @@ ight)$$
   1. *Biên dịch Vector PDF qua Tectonic XeTeX:* Hệ thống biên dịch toàn bộ mã LaTeX thành tệp PDF sắc nét chuẩn in ấn 1200 DPI, hiển thị trực tiếp trên PDF.js canvas của cột phải với khả năng cuộn đa trang mượt mà và cập nhật bộ đếm trang chính xác (`Trang X / 4`).
   2. *Xuất file `.tex` độc lập:* API `POST /api/v1/composer/export` tự động bọc mã nguồn với đầy đủ Canonical Preamble (`fontspec`, `amsmath`, `amssymb`, `geometry` A4 margin 1.5cm, `tikz`, `tkz-tab`, `tcolorbox`, `xparse`, `ex_test` v3.3) để giáo viên có thể biên dịch trực tiếp trên mọi hệ thống TeX bên ngoài.
   3. *Lưu vào Ngân hàng câu hỏi:* Nút `LƯU NGÂN HÀNG` trích xuất toàn bộ câu hỏi chuẩn 3 thể thức và tự động phân loại YCCĐ theo Chương trình GDPT 2018.
+
+#### SRS-FEAT-04ab: Tích Hợp Cụm Máy Chủ AI Suy Luận Nội Bộ armbian:8317 & Cơ Chế Chống Tràn Bộ Nhớ LocalStorage Quota Guard
+- **Bối cảnh & Vấn đề Kỹ thuật:**
+  1. *Sự cố phân giải AI Provider ngoại vi:* Trước đây hệ thống mặc định chọn nhà cung cấp `openai` với `https://api.openai.com/v1`. Khi không có kết nối internet quốc tế hoặc không có API key hợp lệ, cuộc gọi AI thất bại và bị khối `try...except` nuốt lỗi, rơi xuống bộ sinh giả lập cục bộ (`req.images` trả về mẫu cố định "Tôi đã phân tích hình ảnh đính kèm và nhận dạng cấu trúc toán học... Cho đồ thị hàm số hoặc hình vẽ nhận được từ ảnh đính kèm..."), tạo cảm giác hệ thống "tự OCR" thay vì gửi ảnh lên AI.
+  2. *Lỗi tràn hạn ngạch LocalStorage (`QuotaExceededError`):* Khi người dùng đính kèm nhiều ảnh đề thi chất lượng cao (4 ảnh base64 ~10–20MB), `app.js` đẩy toàn bộ chuỗi base64 khổng lồ vào `this.chatHistory`. Việc gọi `localStorage.setItem('quesy_composer_chat', ...)` và `localStorage.setItem('quesy_composer_sessions', ...)` vượt quá trần 5MB của trình duyệt, gây ngoại lệ `QuotaExceededError`. Ngoại lệ này bị khối `catch` trong hàm `sendPrompt` bắt lấy và hiển thị nhầm thành thông báo bóng chat: *"Lỗi kết nối: Failed to execute 'setItem' on 'Storage': Setting the value of 'quesy_composer_chat' exceeded the quota."*
+- **Đặc tả Kỹ thuật & Giải pháp Đa tầng:**
+  1. *Tích Hợp Cụm AI Suy Luận Nội Bộ `armbian:8317`:*
+     - Hệ thống cấu hình mặc định kết nối đến cụm máy chủ nội bộ tốc độ cao: `AI_PROVIDER=custom`, `AI_BASE_URL=http://armbian:8317/v1`, `AI_API_KEY=123`, `AI_MODEL=gemini-3.8-flash-high`.
+     - Bộ chuẩn hóa URL thông minh: Nếu người dùng nhập `http://armbian:8317` (thiếu `/v1`), backend tự động chuẩn hóa gắn `/v1` thành endpoint `/v1/chat/completions`, ngăn ngừa tuyệt đối lỗi 404 Not Found.
+     - Thiết lập timeout mạng tối thiểu 60.0 giây cho các truy vấn thị giác máy tính đa phương thức (multimodal vision) xử lý đồng thời nhiều ảnh đề thi lớn.
+  2. *Cơ chế Chống Tràn Bộ Nhớ Trình Duyệt LocalStorage Quota Guard & Tối Ưu Nén Ảnh Client-side:*
+     - Nén ảnh client-side qua HTML5 Canvas: Trước khi đưa vào khay đính kèm, ảnh chụp độ phân giải cao được tự động co giãn về kích thước tối đa 1600x1600px và nén JPEG 0.85, giảm 90% dung lượng payload truyền tải mà vẫn giữ độ sắc nét 100% cho công thức toán và hình vẽ.
+     - Tách biệt lưu trữ ảnh trong phiên (In-Memory Session) và lưu trữ cục bộ (LocalStorage Sanitization): Mảng chuỗi base64 ảnh dung lượng lớn chỉ lưu trong RAM phiên hiện tại; khi đồng bộ vào `localStorage` (`quesy_composer_chat`, `quesy_composer_sessions`), các chuỗi base64 lớn được tự động lược bỏ hoặc thay thế bằng placeholder `[image_attached]`, giữ dung lượng lưu trữ cục bộ luôn < 50KB.
+     - Bộ bọc an toàn `safeSetLocalStorage(key, value)`: Tự động bắt và xử lý `QuotaExceededError` (dọn dẹp cache phụ hoặc tỉa bớt session cũ), tuyệt đối không để ngoại lệ storage văng ra làm gián đoạn hoặc hiểu lầm thành lỗi kết nối AI.
 
 #### SRS-FEAT-05: Kiểm soát Trùng lặp bằng AI Vector Embeddings
 - **Mô tả:** Chống trùng lặp câu hỏi trong kho ngân hàng.

@@ -56,6 +56,18 @@ The platform is strictly tailored to national assessment standards:
 
 ## Core Capabilities
 
+### 0. Assessment Dashboard Hub & Rapid Quick-Action Launchpad (Apple HIG)
+
+Located in `frontend/index.html` (`#tab-dashboard`) & `frontend/static/app.js` (`renderDashboard`):
+- **4-Action Rapid Launchpad Cards:** Instant 1-click execution for educators to access core workflows:
+  1. **LaTeX AI Composer (2026):** Direct jump to LaTeX authoring loaded with the National 2026 Blueprint (Code 0101) and live vector preview.
+  2. **AI Intelligent Digitize:** Instant trigger for the 2-Pass AI digitizer to ingest PDF, Word, or image documents into KaTeX and TikZ.
+  3. **2D Assessment Matrix:** Configuration of Circular 32 4-strand knowledge taxonomies, Bloom 40-30-20-10 distribution, and 90-minute time budgeting.
+  4. **Safe Shuffling & Packaging:** Shuffling variants generation with Option Anchor locking, passage integrity preservation, and full publication ZIP packaging.
+- **Featured 2026 National Mathematics Blueprint Showcase (Code 0101):** High-profile hero showcase highlighting the flagship 2026 National Exam: 22 questions, 90 minutes, 3 parts (Part I: 12 Single Choice, Part II: 4 True/False tiered grading, Part III: 6 Short Answer real numbers), 100% centered TikZ diagrams, with direct actions to open in Composer, view matrix, or generate variants.
+- **National Examination Invariant Compliance Monitor:** Real-time formal verification status indicators for RULE-01 (Tiered grading 0.1/0.25/0.5/1.0 pt), RULE-02 (Option Anchor locking meta-choices at D), RULE-03 (Passage contiguity preservation), and Centered Diagrams (zero raster PNGs, full vector CMU Serif typesetting).
+- **Recent Examination Publications & Activity Roster:** Interactive table displaying recently compiled exams, validation status, and rapid triggers.
+
 ### 1. AI-Powered LaTeX Exam Composer & Live PDF Preview (Noctorium & Open-Prism Layout)
 
 Located in `backend/services/composer_service.py` & `backend/routers/composer.py`:
@@ -295,13 +307,19 @@ Ensure you have the following installed on your machine:
 
 ### Environment Configuration
 
-Create a `.env` file in the project root (optional if running in offline mode):
+Create a `.env` file in the project root:
 
 ```env
-# AI Multimodal Provider (gemini, openai, anthropic, openrouter)
-AI_PROVIDER=gemini
-AI_MODEL=gemini-1.5-flash
-AI_API_KEY=your_api_key_here
+# Internal AI Inference Cluster (armbian:8317) - Recommended
+AI_PROVIDER=custom
+AI_BASE_URL=http://armbian:8317/v1
+AI_API_KEY=123
+AI_MODEL=gemini-3.8-flash-high
+
+# Or External AI Providers (gemini, openai, anthropic, openrouter)
+# AI_PROVIDER=gemini
+# AI_MODEL=gemini-1.5-flash
+# AI_API_KEY=your_api_key_here
 
 # Server host & port (default: 127.0.0.1:8000)
 HOST=127.0.0.1
@@ -309,7 +327,7 @@ PORT=8000
 ```
 
 > [!TIP]
-> If `AI_API_KEY` is not provided, Quesy automatically operates in **Offline Mode**, utilizing its built-in rule-based document parser and pre-seeded Circular 32 math bank.
+> Quesy connects by default to the high-performance local AI inference cluster at `http://armbian:8317/v1` with key `123`. If unavailable or running in isolated testing, Quesy gracefully operates in **Offline Mode**, utilizing its built-in rule-based document parser and pre-seeded Circular 32 math bank.
 
 ### Running the Application
 

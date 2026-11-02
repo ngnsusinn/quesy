@@ -169,7 +169,9 @@ def detect_provider() -> str:
         return "anthropic"
     if key.startswith("sk-or") or os.getenv("OPENROUTER_API_KEY"):
         return "openrouter"
-    return "openai"
+    if settings.AI_BASE_URL:
+        return "custom"
+    return "custom" if "8317" in (settings.AI_BASE_URL or "") else "openai"
 
 
 def get_default_model(provider: str) -> str:
@@ -182,8 +184,9 @@ def get_default_model(provider: str) -> str:
         "anthropic": "claude-3-5-sonnet-20241022",
         "openrouter": "google/gemini-2.0-flash-exp:free",
         "openai": "gpt-4o",
+        "custom": "gemini-3.8-flash-high",
     }
-    return model_defaults.get(provider, "gpt-4o")
+    return model_defaults.get(provider, "gemini-3.8-flash-high" if provider == "custom" else "gpt-4o")
 
 
 def file_to_base64_data_url(file_path: Union[str, Path]) -> Tuple[str, str]:
