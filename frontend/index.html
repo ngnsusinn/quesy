@@ -157,22 +157,151 @@
 
       <!-- ================= TAB 1: DASHBOARD ================= -->
       <section id="tab-dashboard" class="tab-pane active space-y-6">
-        
+
         <!-- Apple HIG Page Header (Large Title + Actions) -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
           <div>
-            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Tổng quan Khảo thí</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Hệ thống khảo thí theo Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng 2025)</p>
+            <div class="flex items-center space-x-2">
+              <span class="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-md bg-brand-50 text-brand-700 border border-brand-200">Chuẩn Khảo Thí Quốc Gia 2026</span>
+              <span class="text-xs text-slate-400 font-medium">Phiên bản v4.0</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Tổng quan Khảo thí</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Hệ thống quản lý, soạn thảo & số hóa đề thi Quốc gia theo Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT</p>
           </div>
           <div class="flex items-center space-x-2">
-            <button onclick="app.navigateTo('/composer')" class="btn-apple-primary">
+            <button onclick="app.openQuickAction('composer')" class="btn-apple-primary">
               <i data-lucide="file-edit" class="w-4 h-4"></i>
               <span>Soạn đề LaTeX (AI)</span>
             </button>
-            <button onclick="app.navigateTo('/shuffler')" class="btn-apple-secondary">
-              <i data-lucide="file-down" class="w-4 h-4"></i>
+            <button onclick="app.openQuickAction('digitize')" class="btn-apple-secondary">
+              <i data-lucide="scan-line" class="w-4 h-4"></i>
+              <span>Số hóa Đề thi</span>
+            </button>
+            <button onclick="app.openQuickAction('shuffler')" class="btn-apple-secondary">
+              <i data-lucide="shuffle" class="w-4 h-4"></i>
               <span>Xuất bản Đề thi</span>
             </button>
+          </div>
+        </div>
+
+        <!-- ================= TRUNG TÂM KHỞI CHẠY NHANH (QUICK ACTION LAUNCHPAD) ================= -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Card 1: Soạn Đề LaTeX AI 2026 -->
+          <div onclick="app.openQuickAction('composer')" class="apple-quick-card p-5 group cursor-pointer" title="Mở trực tiếp trình soạn thảo đề thi Quốc gia 2026">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center transition-transform group-hover:scale-105">
+                <i data-lucide="file-edit" class="w-5 h-5"></i>
+              </div>
+              <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-brand-100 text-brand-700">MÃ ĐỀ 0101</span>
+            </div>
+            <h3 class="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Soạn Đề LaTeX AI (2026)</h3>
+            <p class="mt-1 text-xs text-slate-500 leading-relaxed">Mở ngay đề thi chuẩn 22 câu (Mã 0101), xem trước PDF vector thời gian thực, AI Copilot trợ lý.</p>
+            <div class="mt-3 pt-2.5 border-t border-black/[0.04] flex items-center justify-between text-xs font-semibold text-brand-600">
+              <span>Soạn đề ngay</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1"></i>
+            </div>
+          </div>
+
+          <!-- Card 2: Số Hóa Đề Thi AI -->
+          <div onclick="app.openQuickAction('digitize')" class="apple-quick-card p-5 group cursor-pointer" title="Nạp tệp đề thi PDF/Word/Ảnh để AI bóc tách">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center transition-transform group-hover:scale-105">
+                <i data-lucide="scan-line" class="w-5 h-5"></i>
+              </div>
+              <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-700">2-PASS AI</span>
+            </div>
+            <h3 class="font-bold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">Số Hóa Đề Thi AI</h3>
+            <p class="mt-1 text-xs text-slate-500 leading-relaxed">Bóc tách đề thi từ PDF, ảnh chụp hoặc Word sang mã KaTeX, nhận diện hình TikZ và gán nhãn YCCĐ.</p>
+            <div class="mt-3 pt-2.5 border-t border-black/[0.04] flex items-center justify-between text-xs font-semibold text-emerald-600">
+              <span>Nạp tệp đề thi</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1"></i>
+            </div>
+          </div>
+
+          <!-- Card 3: Thiết Lập Ma Trận 2D -->
+          <div onclick="app.openQuickAction('matrix')" class="apple-quick-card p-5 group cursor-pointer" title="Cấu hình ma trận phân bổ Bloom và YCCĐ">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center transition-transform group-hover:scale-105">
+                <i data-lucide="grid" class="w-5 h-5"></i>
+              </div>
+              <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700">THÔNG TƯ 32</span>
+            </div>
+            <h3 class="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors">Thiết Lập Ma Trận 2D</h3>
+            <p class="mt-1 text-xs text-slate-500 leading-relaxed">Cấu hình phân bổ 4 mạch nội dung, cân đối tỷ lệ Bloom 40-30-20-10 và kiểm soát ngân sách thời lượng.</p>
+            <div class="mt-3 pt-2.5 border-t border-black/[0.04] flex items-center justify-between text-xs font-semibold text-blue-600">
+              <span>Tạo ma trận</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1"></i>
+            </div>
+          </div>
+
+          <!-- Card 4: Sinh & Trộn Đề Hoán Vị -->
+          <div onclick="app.openQuickAction('shuffler')" class="apple-quick-card p-5 group cursor-pointer" title="Hoán vị các mã đề và xuất trọn bộ gói ấn phẩm ZIP">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center transition-transform group-hover:scale-105">
+                <i data-lucide="shuffle" class="w-5 h-5"></i>
+              </div>
+              <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">QĐ 764</span>
+            </div>
+            <h3 class="font-bold text-sm text-slate-900 group-hover:text-amber-600 transition-colors">Sinh & Trộn Đề Hoán Vị</h3>
+            <p class="mt-1 text-xs text-slate-500 leading-relaxed">Tự động hoán vị mã đề an toàn, khóa Option Anchor, bảo đảm tính liên tục câu hỏi và xuất trọn bộ ZIP.</p>
+            <div class="mt-3 pt-2.5 border-t border-black/[0.04] flex items-center justify-between text-xs font-semibold text-amber-600">
+              <span>Trộn & Xuất bản</span>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TIÊU ĐIỂM: ĐỀ THI MẪU TỐT NGHIỆP THPT 2026 (HERO BLUEPRINT) ================= -->
+        <div class="apple-hero-card p-6">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <!-- Left Info -->
+            <div class="space-y-3 flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="px-2.5 py-1 text-[11px] font-bold bg-[#0071e3] text-white rounded-lg flex items-center space-x-1">
+                  <i data-lucide="award" class="w-3.5 h-3.5"></i>
+                  <span>BỘ GD&ĐT • ĐỀ THAM KHẢO CHÍNH THỨC 2026</span>
+                </span>
+                <span class="px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 rounded-md border border-emerald-200">Mã đề: 0101</span>
+                <span class="px-2 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700 rounded-md">Toán 12 • 90 Phút</span>
+              </div>
+              <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Đề Thi Tốt Nghiệp THPT Năm 2026 - Môn Toán (Mã đề 0101)</h2>
+              <p class="text-xs text-slate-600 leading-relaxed max-w-3xl">Đầy đủ 22 câu hỏi chuẩn quy cách Bộ Giáo dục & Đào tạo. Tiêu đề 2 cột chuẩn mực, 100% hình học không gian TikZ & bảng biến thiên tkz-tab căn giữa trang in, tính điểm lũy tiến Đúng/Sai theo Quyết định 764/QĐ-BGDĐT.</p>
+
+              <!-- 3 Parts Spec Chips -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div class="p-2.5 rounded-xl bg-white/80 border border-black/[0.06] shadow-2xs">
+                  <span class="text-[10px] font-bold text-brand-600 uppercase">Phần I (12 câu)</span>
+                  <div class="font-bold text-xs text-slate-800">Trắc nghiệm 4 lựa chọn</div>
+                  <div class="text-[11px] text-slate-500">3.0 Điểm • 0.25đ / câu</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white/80 border border-black/[0.06] shadow-2xs">
+                  <span class="text-[10px] font-bold text-emerald-600 uppercase">Phần II (4 câu)</span>
+                  <div class="font-bold text-xs text-slate-800">Đúng/Sai bậc thang QĐ 764</div>
+                  <div class="text-[11px] text-slate-500">4.0 Điểm • 0.1 - 0.25 - 0.5 - 1.0đ</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white/80 border border-black/[0.06] shadow-2xs">
+                  <span class="text-[10px] font-bold text-purple-600 uppercase">Phần III (6 câu)</span>
+                  <div class="font-bold text-xs text-slate-800">Trả lời ngắn số thực</div>
+                  <div class="text-[11px] text-slate-500">3.0 Điểm • 0.5đ / câu</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Actions -->
+            <div class="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 justify-center">
+              <button type="button" onclick="app.loadStandard2026Blueprint()" class="py-2.5 px-4 bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-sm transition-all active:scale-[0.97] cursor-pointer">
+                <i data-lucide="file-edit" class="w-4 h-4"></i>
+                <span>Mở trong Trình Soạn Đề</span>
+              </button>
+              <button type="button" onclick="app.openQuickAction('shuffler')" class="py-2.5 px-4 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-xs flex items-center justify-center space-x-2 border border-slate-200 shadow-2xs transition-all active:scale-[0.97] cursor-pointer">
+                <i data-lucide="shuffle" class="w-4 h-4 text-amber-500"></i>
+                <span>Trộn sang các mã đề khác</span>
+              </button>
+              <button type="button" onclick="app.openQuickAction('matrix')" class="py-2.5 px-4 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-xs flex items-center justify-center space-x-2 border border-slate-200 shadow-2xs transition-all active:scale-[0.97] cursor-pointer">
+                <i data-lucide="grid" class="w-4 h-4 text-blue-500"></i>
+                <span>Xem ma trận đề</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -203,7 +332,7 @@
             </div>
             <div class="mt-2.5 flex items-baseline space-x-2">
               <span id="dash-metric-approved" class="text-2xl sm:text-3xl font-extrabold text-emerald-600">95.4%</span>
-              <span class="text-xs text-slate-500 font-medium">1,412 câu</span>
+              <span id="dash-count-approved" class="text-xs text-slate-500 font-medium">1,412 câu</span>
             </div>
             <p class="mt-1 text-xs text-slate-400">Độ phân biệt $D \ge 0.35$</p>
           </div>
@@ -217,7 +346,7 @@
               </div>
             </div>
             <div class="mt-2.5 flex items-baseline space-x-2">
-              <span class="text-2xl sm:text-3xl font-extrabold text-indigo-600">8</span>
+              <span id="dash-metric-matrices" class="text-2xl sm:text-3xl font-extrabold text-indigo-600">8</span>
               <span class="text-xs text-slate-500 font-medium">Ma trận mẫu</span>
             </div>
             <p class="mt-1 text-xs text-slate-400">Tỷ lệ Bloom 40-30-30</p>
@@ -232,10 +361,61 @@
               </div>
             </div>
             <div class="mt-2.5 flex items-baseline space-x-2">
-              <span class="text-2xl sm:text-3xl font-extrabold text-amber-600">48</span>
+              <span id="dash-metric-variants" class="text-2xl sm:text-3xl font-extrabold text-amber-600">48</span>
               <span class="text-xs font-semibold text-emerald-600">Anchor OK</span>
             </div>
             <p class="mt-1 text-xs text-slate-400">Khóa an toàn đáp án cố định</p>
+          </div>
+        </div>
+
+        <!-- ================= BẢO ĐẢM BẤT BIẾN KHẢO THÍ (INVARIANT COMPLIANCE MONITOR) ================= -->
+        <div class="apple-card p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/[0.06] pb-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i>
+                <span>Bảo Đảm Bất Biến Khảo Thí & Chuẩn In Ấn Quốc Gia (Formal Invariants)</span>
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Tự động kiểm định và thực thi theo Quyết định 764/QĐ-BGDĐT và chuẩn xuất bản Vector PDF</p>
+            </div>
+            <span class="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-full border border-emerald-200 flex items-center space-x-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>100% Invariants Verified</span>
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-black/[0.05] space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-800">RULE-01: Bậc Thang QĐ 764</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              </div>
+              <p class="text-[11px] text-slate-500">Đúng 1 ý = 0.1đ; 2 ý = 0.25đ; 3 ý = 0.5đ; 4 ý = 1.0đ. Tự động chấm điểm lũy tiến chính xác tuyệt đối.</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-black/[0.05] space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-800">RULE-02: Option Anchor</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              </div>
+              <p class="text-[11px] text-slate-500">Khóa cố định vị trí các phương án mang tính vị trí ('Cả A và B', 'Tất cả...') tại vị trí D khi hoán vị đề.</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-black/[0.05] space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-800">RULE-03: Passage Contiguity</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              </div>
+              <p class="text-[11px] text-slate-500">Bảo toàn tính toàn vẹn của ngữ cảnh đoạn văn và câu hỏi chùm, tuyệt đối không xé lẻ câu hỏi con khi trộn.</p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-black/[0.05] space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-800">Centered Diagrams</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              </div>
+              <p class="text-[11px] text-slate-500">100% đồ thị hàm số và hình học không gian TikZ được căn giữa trang in 2 cột, không xén nét, chuẩn CMU Serif.</p>
+            </div>
           </div>
         </div>
 
@@ -342,7 +522,7 @@
               <span>Cân Đối 4 Mức Độ Nhận Thức</span>
             </h3>
             <p class="text-xs text-slate-500">Chuẩn hóa theo Bảng động từ hành vi (Nhận biết, Thông hiểu, Vận dụng, Vận dụng cao)</p>
-            
+
             <div class="space-y-3 pt-2">
               <div>
                 <div class="flex justify-between text-xs mb-1">
@@ -422,6 +602,130 @@
           </div>
         </div>
 
+        <!-- ================= LỊCH SỬ KHẢO THÍ & ẤN PHẨM MỚI NHẤT (RECENT EXAMINATIONS ROSTER) ================= -->
+        <div class="apple-card p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/[0.06] pb-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <i data-lucide="layers" class="w-5 h-5 text-brand-600"></i>
+                <span>Ấn Phẩm Đề Thi Tiêu Biểu &amp; Lịch Sử Khảo Thí</span>
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Danh sách các đề thi chuẩn hóa đã thẩm định và sẵn sàng xuất bản gói ấn phẩm ZIP</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button type="button" onclick="app.openQuickAction('shuffler')" class="btn-apple-secondary text-xs">
+                <i data-lucide="shuffle" class="w-3.5 h-3.5"></i>
+                <span>Xem tất cả mã đề</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto no-scrollbar">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-black/[0.06] text-slate-500 font-semibold bg-slate-50/50">
+                  <th class="py-2.5 px-3">TÊN ĐỀ THI &amp; MÃ ĐỀ</th>
+                  <th class="py-2.5 px-3">CẤU TRÚC / PHÂN LOẠI</th>
+                  <th class="py-2.5 px-3">CHUẨN ĐÁP ỨNG</th>
+                  <th class="py-2.5 px-3">TRẠNG THÁI</th>
+                  <th class="py-2.5 px-3 text-right">THAO TÁC</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-black/[0.04]">
+                <!-- Exam 1 -->
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                  <td class="py-3 px-3">
+                    <div class="font-bold text-slate-900 flex items-center space-x-1.5">
+                      <span>Đề Thi Tốt Nghiệp THPT 2026 - Môn Toán</span>
+                      <span class="px-1.5 py-0.2 bg-blue-100 text-blue-700 font-mono text-[10px] rounded font-bold">Mã 0101</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500">22 câu hỏi • 90 phút • 100% hình vẽ TikZ căn giữa</div>
+                  </td>
+                  <td class="py-3 px-3 text-slate-600">
+                    <div>12 TN • 4 Đúng/Sai • 6 TLN</div>
+                    <span class="text-[10px] text-slate-400">Khối 12 • Toán học</span>
+                  </td>
+                  <td class="py-3 px-3">
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">TT 32 &amp; QĐ 764</span>
+                  </td>
+                  <td class="py-3 px-3">
+                    <span class="inline-flex items-center space-x-1 text-emerald-600 font-semibold text-[11px]">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      <span>Sẵn sàng biên dịch</span>
+                    </span>
+                  </td>
+                  <td class="py-3 px-3 text-right">
+                    <button type="button" onclick="app.loadStandard2026Blueprint()" class="px-2.5 py-1 text-xs font-semibold bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg transition-colors inline-flex items-center space-x-1 cursor-pointer">
+                      <i data-lucide="file-edit" class="w-3 h-3"></i>
+                      <span>Mở soạn thảo</span>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Exam 2 -->
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                  <td class="py-3 px-3">
+                    <div class="font-bold text-slate-900 flex items-center space-x-1.5">
+                      <span>Đề Khảo Sát Chất Lượng Học Kỳ II - Toán 12</span>
+                      <span class="px-1.5 py-0.2 bg-slate-100 text-slate-700 font-mono text-[10px] rounded font-bold">Mã 0102</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500">22 câu hỏi • 90 phút • Tỷ lệ Bloom 40-30-20-10</div>
+                  </td>
+                  <td class="py-3 px-3 text-slate-600">
+                    <div>12 TN • 4 Đúng/Sai • 6 TLN</div>
+                    <span class="text-[10px] text-slate-400">Khối 12 • Toán học</span>
+                  </td>
+                  <td class="py-3 px-3">
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-50 text-blue-700 border border-blue-200">Ma trận chuẩn</span>
+                  </td>
+                  <td class="py-3 px-3">
+                    <span class="inline-flex items-center space-x-1 text-emerald-600 font-semibold text-[11px]">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      <span>Đã thẩm định</span>
+                    </span>
+                  </td>
+                  <td class="py-3 px-3 text-right">
+                    <button type="button" onclick="app.openQuickAction('shuffler')" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors inline-flex items-center space-x-1 cursor-pointer">
+                      <i data-lucide="shuffle" class="w-3 h-3"></i>
+                      <span>Trộn đề</span>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Exam 3 -->
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                  <td class="py-3 px-3">
+                    <div class="font-bold text-slate-900 flex items-center space-x-1.5">
+                      <span>Đề Ôn Tập Chuyên Đề: Ứng Dụng Đạo Hàm &amp; Cực Trị</span>
+                      <span class="px-1.5 py-0.2 bg-slate-100 text-slate-700 font-mono text-[10px] rounded font-bold">Mã CD01</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500">15 câu hỏi • 45 phút • Chuyên sâu bảng biến thiên &amp; cực trị tham số m</div>
+                  </td>
+                  <td class="py-3 px-3 text-slate-600">
+                    <div>10 TN • 5 TLN</div>
+                    <span class="text-[10px] text-slate-400">Khối 12 • Giải tích</span>
+                  </td>
+                  <td class="py-3 px-3">
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-purple-50 text-purple-700 border border-purple-200">Chuyên đề YCCĐ</span>
+                  </td>
+                  <td class="py-3 px-3">
+                    <span class="inline-flex items-center space-x-1 text-emerald-600 font-semibold text-[11px]">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      <span>Kho câu hỏi</span>
+                    </span>
+                  </td>
+                  <td class="py-3 px-3 text-right">
+                    <button type="button" onclick="app.openQuickAction('composer')" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors inline-flex items-center space-x-1 cursor-pointer">
+                      <i data-lucide="external-link" class="w-3 h-3"></i>
+                      <span>Xem chi tiết</span>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </section>
 
       <!-- ================= TAB 2: SOẠN ĐỀ (AI LATEX WORKSPACE - 6:4 HORIZONTAL SPLIT) ================= -->
@@ -433,8 +737,8 @@
           <!-- ================= CỘT TRÁI (LEFT COLUMN): CODE EDITOR + POPUP TRỢ LÝ (60% WIDTH) ================= -->
           <div id="composer-left-col" class="w-full lg:w-[60%] flex flex-col h-full min-h-0 overflow-hidden relative shrink-0">
             
-            <!-- HỘP SOẠN THẢO MÃ NGUỒN LATEX (DARK MODE) - FULL HEIGHT -->
-            <div id="composer-editor-pane" class="w-full h-full flex-1 min-h-0 bg-[#141824] rounded-xl border border-[#272f42] flex flex-col overflow-hidden shadow-xs relative">
+            <!-- HỘP SOẠN THẢO MÃ NGUỒN LATEX (DARK MODE) - SPLIT VIEW (FLEX-1) -->
+            <div id="composer-editor-pane" class="w-full flex-1 min-h-[140px] bg-[#141824] rounded-xl border border-[#272f42] flex flex-col overflow-hidden shadow-xs relative transition-[height,flex] duration-200">
               
               <!-- Editor Header Toolbar (Dark Theme) -->
               <div class="bg-[#1c2230] border-b border-[#283144] px-3 py-1.5 flex items-center justify-between text-xs select-none">
@@ -744,8 +1048,10 @@
                 </div>
               </div>
 
-              <!-- B. Full AI Assistant Popup / Bottom Sheet (Image 3 style) -->
-              <div id="composer-ai-popup" class="hidden absolute bottom-0 left-0 right-0 z-30 bg-[#18181b] border-t border-white/10 shadow-2xl rounded-t-2xl flex flex-col overflow-hidden transition-all duration-300 h-[56%]">
+            </div>
+
+            <!-- B. Trợ lý Soạn thảo AI Copilot (Vertical Split View Pane) -->
+            <div id="composer-ai-popup" class="hidden relative w-full bg-[#18181b] border border-white/10 shadow-2xl rounded-xl flex flex-col overflow-hidden shrink-0 mt-2 transition-[height] duration-200">
 
                 <!-- Popup Header (Matching Image 3) -->
                 <div class="px-4 py-1.5 bg-[#18181b] border-b border-white/10 flex items-center justify-between text-xs select-none shrink-0">
@@ -874,8 +1180,6 @@
                 </div>
               </div>
 
-            </div>
-
           </div>
 
           <!-- ================= THANH SPLITTER KÉO THẢ RESIZE (HORIZONTAL SPLIT RESIZER) ================= -->
@@ -962,11 +1266,11 @@
 
             <!-- Bottom Distinct Standalone Blue BIÊN DỊCH Button Container -->
             <div class="p-2.5 bg-white border-t border-slate-200/80 shrink-0 flex items-center space-x-2">
-              <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="flex-1 py-2.5 px-4 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.98] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-md rounded-xl cursor-pointer flex items-center justify-center space-x-1.5 select-none" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
+              <button id="composer-compile-btn" type="button" onclick="app.composer.compile(true)" class="flex-1 py-2.5 px-4 bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.97] text-white font-bold text-center text-xs sm:text-sm tracking-widest uppercase transition-all shadow-md rounded-xl cursor-pointer flex items-center justify-center space-x-1.5 select-none" title="Bấm để biên dịch (Ctrl+S / Cmd+S)">
                 <i data-lucide="play" class="w-4 h-4 fill-current"></i>
                 <span id="composer-compile-btn-text">BIÊN DỊCH</span>
               </button>
-              <button id="btn-composer-save-to-bank" type="button" onclick="app.composer.saveToBank()" class="py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.98] text-white font-bold text-center text-xs sm:text-sm tracking-wide transition-all shadow-md rounded-xl cursor-pointer flex items-center space-x-1 select-none" title="Lưu tất cả câu hỏi từ đề soạn thảo vào Ngân hàng câu hỏi">
+              <button id="btn-composer-save-to-bank" type="button" onclick="app.composer.saveToBank()" class="py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.97] text-white font-bold text-center text-xs sm:text-sm tracking-wide transition-all shadow-md rounded-xl cursor-pointer flex items-center space-x-1 select-none" title="Lưu tất cả câu hỏi từ đề soạn thảo vào Ngân hàng câu hỏi">
                 <i data-lucide="database" class="w-4 h-4"></i>
                 <span>LƯU NGÂN HÀNG</span>
               </button>

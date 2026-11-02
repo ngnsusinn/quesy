@@ -1,19 +1,20 @@
 # BẢN ĐỒ MÃ NGUỒN & KIẾN TRÚC HỆ THỐNG CHI TIẾT (QUESY SOURCE MAP)
 
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
-> **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)  
+> **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025 - 2026)  
 > **Trạng thái mã nguồn:** Đạt 100% kiểm thử tự động (129/129 test cases PASSED)  
-> **Phiên bản:** v3.8 (Tinh Giản Thanh Công Cụ Soạn Đề LaTeX Apple HIG, Loại Bỏ Nút Câu Hiện Tại, Tối Ưu Diện Tích Nút Biên Dịch Toàn Đề)  
-> **Cập nhật lần cuối:** 01/11/2026
+> **Phiên bản:** v4.1 (Nâng Cấp Giao Diện Soạn Đề Split View Trợ Lý AI & Tự Động Co Giãn Trình Soạn Thảo, Động Cơ Tìm & Thay Thế Tiếng Việt Linh Hoạt Không Ngoặc Kép, và Phân Hệ Hỏi Đáp Nghiệp Vụ Khảo Thí & Sư Phạm Q&A)  
+> **Cập nhật lần cuối:** 02/11/2026
 
 ---
 
 ## 1. TỔNG QUAN KIẾN TRÚC HỆ THỐNG (SYSTEM ARCHITECTURE OVERVIEW)
 
 Quesy được xây dựng theo kiến trúc **Module-based Monolith** kết hợp **External Compiling Microservices**, phân tách rõ ràng 4 tầng:
-1. **Frontend Presentation & Micro-interaction Layer:** Single Page Application (SPA) điều hướng sạch (`/path`), tuân thủ Apple HIG và tương tác Emil Kowalski (phản hồi xúc giác 0.97, Dark Code Editor `#141824`, Live PDF Preview).
+1. **Frontend Presentation & Micro-interaction Layer:** Single Page Application (SPA) điều hướng sạch (`/path`), tuân thủ Apple HIG và tương tác Emil Kowalski (phản hồi xúc giác 0.97, Dark Code Editor `#141824`, Live PDF Preview, Dashboard Launchpad 4 thẻ tương tác cao cấp, Tiêu điểm Đề thi 2026 Mã 0101, Bảng giám sát bất biến khảo thí).
 2. **API Gateway & Routing Layer:** FastAPI (Python 3.13) bất đồng bộ, tự động validate Pydantic V2 schemas, bảo toàn route SPA tránh lỗi 404 khi F5.
 3. **Core Domain Services & Processing Pipelines:**
+   - *Tổng quan Khảo thí & Khởi chạy Nhanh (Dashboard Hub):* Giao diện điều khiển trung tâm Apple HIG, liên kết trực tiếp Soạn đề Quốc gia 2026, Số hóa AI 2-Pass, Thiết lập Ma trận 2D và Sinh & Trộn đề hoán vị. Đồng bộ số liệu động thời gian thực từ Ngân hàng câu hỏi.
    - *Soạn đề & Biên dịch Hybrid:* `composer_service.py` kết nối Remote Tectonic XeTeX Engine Docker (host `armbian:8090`), gói lệnh chuẩn quốc gia `ex_test.sty` (v3.3.6), động cơ Canonical Preamble Injection (tự động nhúng ngầm fontspec, amsmath, tikz, tkz-tab, tcolorbox, xparse, ex_test v3.3, geometry A4), hỗ trợ ô soạn thảo tinh gọn Preamble-Free Question Editor, và AI Inline Diff Replacer.
    - *Số hóa 2-Pass AI Decoupled:* Tiền xử lý ảnh OpenCV/Pillow, phân đoạn layout, Pass 1 trích xuất văn bản/đáp án, Pass 2 dựng mã TikZ/Array song song.
    - *Xuất bản MathType OLE Word & CMU Serif PDF:* Dựng luồng nhị phân CFB MTEF v5 + ảnh vector WMF (APM header chuẩn) sửa 2 chiều trong Microsoft Word; chuyển đổi bảng biến thiên sang `<w:tbl>` native.
@@ -94,7 +95,7 @@ quesy/
 │   │
 │   ├── routers/                       # Tầng Controller & API Endpoints
 │   │   ├── auth.py                    # API Xác thực người dùng: Register, Login JWT, OAuth Google/GitHub, Me, Logout
-│   │   ├── composer.py                # API Soạn đề LaTeX, Tectonic compile, AI Diff Copilot, Chẩn đoán timeout, Save-to-bank đa thể thức
+│   │   ├── composer.py                # API Soạn đề LaTeX, Tectonic compile, AI Diff Copilot, Chẩn đoán timeout, Tìm & Thay thế tiếng Việt không ngoặc kép, Phân hệ Chat Q&A Khảo thí (QĐ 764, TT 32, Cấu trúc 2025, ex_test/TikZ/tkz-tab, thống kê đề & hướng dẫn giải), Save-to-bank đa thể thức
 │   │   ├── digitize.py                # API Số hóa đề thi 2-Pass, quản lý tiến trình, cắt ảnh
 │   │   ├── exams.py                   # API Tạo đề thi gốc, quản lý mã đề hoán vị, chấm thi
 │   │   ├── matrix.py                  # API Ma trận đặc tả đề thi theo YCCĐ
@@ -128,11 +129,11 @@ quesy/
 │       └── ex_test.sty                # Gói lệnh khảo thí chuẩn Việt Nam v3.3.6 (4,258 dòng)
 │
 ├── frontend/                          # Giao diện Người dùng Web Client (SPA)
-│   ├── index.html                     # Trang khung HTML5 duy nhất chứa 6 màn hình chức năng: Dashboard, Digitization, Friendly Item Bank (Stats banner, Quick Filter Pills, Collapsible 6-Tier Taxonomy Drawer, Dual View Mode), Hierarchical Exam Matrix, Composer, Shuffler & Publishing
+│   ├── index.html                     # Trang khung HTML5 duy nhất chứa 6 màn hình chức năng: Dashboard, Digitization, Friendly Item Bank (Stats banner, Quick Filter Pills, Collapsible 6-Tier Taxonomy Drawer, Dual View Mode), Hierarchical Exam Matrix, Composer (Split View Vertical Pane Trợ lý AI & Auto-Resize Editor), Shuffler & Publishing
 │   ├── manifest.json                  # Cấu hình PWA Web App Manifest (16 dòng)
 │   ├── sw.js                          # Service Worker cache tĩnh (65 dòng)
 │   └── static/
-│       ├── app.js                     # Toàn bộ logic Client SPA, State Store, Event Handlers (Dual View Mode, Quick Filter Pills, Collapsible Drawer, 1-Click Copy Question, Slice Pagination)
+│       ├── app.js                     # Toàn bộ logic Client SPA, State Store, Event Handlers (Dual View Mode, Quick Filter Pills, Collapsible Drawer, 1-Click Copy Question, Slice Pagination, Vertical Split Resizer Trợ lý AI & Auto-Resize Editor)
 │       ├── style.css                  # Toàn bộ CSS giao diện, Apple HIG, Quick Filter Pills, High-density Compact Table, Dark Code Editor
 │       └── fonts/                     # Thư mục font chữ dự án
 │
@@ -226,7 +227,7 @@ Hệ thống quản lý **20 thực thể** chia thành 5 nhóm nghiệp vụ:
 | **POST** | `/api/v1/composer/compile` | Biên dịch mã LaTeX sang Live PDF Preview (hỗ trợ Preamble-Free Question Editor, Canonical Preamble Injection, mode: dethi/loigiai, draft_mode, focus_mode) | `composer.py` |
 | **POST** | `/api/v1/composer/compile-partial` | Biên dịch nhanh câu hỏi hiện tại / phân đoạn (Focus Compile trong 1-2s) | `composer.py` |
 | **POST** | `/api/v1/composer/preview-html` | Trả về HTML xem trước tức thì (0.2s) kèm TikZ Disk Cache và MathJax | `composer.py` |
-| **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, chẩn đoán log lỗi biên dịch LaTeX (compile_error_log), hỗ trợ đính kèm/dán ảnh đa phương tiện (images), đề xuất Smart Inline Diff | `composer.py` |
+| **POST** | `/api/v1/composer/chat` | AI Copilot hỗ trợ soạn thảo, chẩn đoán log lỗi biên dịch LaTeX (compile_error_log), kết nối cụm AI nội bộ armbian:8317 (key: 123) / OpenAI-compatible, tự động chuẩn hóa URL /v1, timeout 60s, hỗ trợ đính kèm/dán ảnh đa phương tiện (images), đề xuất Smart Inline Diff | `composer.py` |
 | **GET** | `/api/v1/composer/pdf/{doc_id}.pdf` | Stream trực tiếp tệp PDF xem trước | `composer.py` |
 | **GET** | `/api/v1/composer/templates` | Danh mục mẫu đề thi chuẩn quốc gia (`ex_test.sty` v3.3) | `composer.py` |
 | **POST/GET** | `/api/v1/composer/export` | Xuất file .tex độc lập hoàn chỉnh có canonical preamble chuẩn in ấn | `composer.py` |
@@ -290,8 +291,9 @@ Hệ thống quản lý **20 thực thể** chia thành 5 nhóm nghiệp vụ:
        │         ▼
        │    [FASTAPI BACKEND: composer.py & composer_service.py]
        │    - Phân tích ngữ cảnh LaTeX + Log lỗi biên dịch (compile_error) + Mảng ảnh đa phương tiện (images) + System Prompt ex_test.sty v3.3
-       │    - Đóng gói cấu trúc Multi-modal Blocks [{"type": "text", ...}, {"type": "image_url", ...}] cho external AI provider (Gemini/OpenAI/OpenRouter)
-       │    - Offline Fallback Engine: Nhận diện ảnh bài toán, đồ thị, bảng biến thiên, sinh mã TikZ / ex_test.sty tương ứng
+       │    - Kết nối cụm AI suy luận nội bộ armbian:8317 (key: 123, model: gemini-3.8-flash-high), tự động chuẩn hóa Base URL gắn /v1 thành /v1/chat/completions, timeout 60s
+       │    - Đóng gói cấu trúc Multi-modal Blocks [{"type": "text", ...}, {"type": "image_url", ...}]
+       │    - Offline Fallback Engine: Nhận diện ảnh bài toán, đồ thị, bảng biến thiên, sinh mã TikZ / ex_test.sty tương ứng khi mất mạng
        │    - diagnose_compile_error: Trích xuất số dòng lỗi compiler (L_comp), tự động trừ 11 dòng preamble chuẩn (L_user = L_comp - 11), chẩn đoán 5 nhóm lỗi (No line here to end, Undefined control sequence, Missing $, Missing 
 ight., Environment undefined)
        │    - extract_all_diffs_from_text: Bóc tách khối diff đa tầng (unified diff, search/replace, old/new, syntax diagnostics)
@@ -512,6 +514,8 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
     4. *Tiêu chí 4 (Fast Dispatch & Smooth Chat):* Gửi prompt từ compact input hoặc chat input phản hồi tức thì không bị delay, chuyển động mở popup và cuộn tin nhắn mượt mà chuẩn 60 FPS, không có lỗi JavaScript màu đỏ trong console.
     5. *Tiêu chí 5 (Question Replacement & Smart Diff Binding):* Khi gửi prompt thay thế câu hỏi (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*), hệ thống tự động bóc tách câu 1 (`find_question_block`), gán diff chính xác lên editor, hiển thị banner và overlay mà không phụ thuộc vào `SequenceMatcher`.
     6. *Tiêu chí 6 (Safe Chat Bubble Rendering & Zero Code Loss):* Nếu không có diff hoặc diff không khớp, khối code LaTeX không được ẩn mất khỏi chat bubble; hiển thị đầy đủ 3 nút hành động `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`, tuyệt đối không nuốt mất mã của người dùng.
+    7. *Tiêu chí 7 (Internal AI Inference Cluster armbian:8317):* Kiểm tra kết nối AI nội bộ tại `http://armbian:8317/v1` với API Key `123` và model `gemini-3.8-flash-high`, tự động chuẩn hóa URL `/v1`, timeout 60s, nhận diện hình ảnh thật thành LaTeX ex_test thay vì rơi vào mock template.
+    8. *Tiêu chí 8 (LocalStorage Quota Guard & Zero QuotaExceededError):* Đính kèm đồng thời 4 ảnh chụp đề thi chất lượng cao và gửi prompt không làm vỡ quota trình duyệt, không xuất hiện thông báo lỗi `Failed to execute 'setItem' on 'Storage': Setting the value of 'quesy_composer_chat' exceeded the quota.` và không có lỗi console.
   - Sub-Agent 4 bắt buộc phải thao tác trực tiếp trên trình duyệt thật (`browser_exec`), chụp ảnh màn hình và đối chứng thực tế để bảo đảm các lỗi trên không tái phát trước khi nghiệm thu.
 
 ---

@@ -409,17 +409,41 @@ def find_in_latex(needle: str, current_latex: str, fuzzy_threshold: float = 0.65
     return None
 
 
-def find_nth_question_in_latex(latex_code: Optional[str], n: int) -> Optional[str]:
+def find_nth_question_in_latex(latex_code: Optional[str], n: int, section: Optional[Any] = None) -> Optional[str]:
     """Extracts the nth question block (1-indexed) from a LaTeX document.
     Accurately supports both ex_test.sty format (\\begin{ex}...\\end{ex})
     and classic format (\\textbf{Câu n.}, Câu n:, etc.).
+    If section is specified (1, 2, 3 or 'I', 'II', 'III'), searches inside that section.
     Returns the exact matching substring in latex_code, or None if not found.
     """
     if not latex_code or n < 1:
         return None
 
+    # If section is specified, attempt to isolate that section first
+    if section is not None:
+        sec_str = str(section).strip().upper()
+        sec_map = {"1": "I", "2": "II", "3": "III", "4": "IV"}
+        roman_sec = sec_map.get(sec_str, sec_str)
+        sec_pat = re.compile(
+            rf'(?:\\noindent\s*)?(?:\\textbf\{{\s*PHẦN\s+{roman_sec}[^}}]*\}}|\\section\*?\{{\s*PHẦN\s+{roman_sec}[^}}]*\}}|PHẦN\s+{roman_sec}\.[^\n]*)',
+            re.IGNORECASE
+        )
+        sec_matches = list(sec_pat.finditer(latex_code))
+        if sec_matches:
+            start_sec = sec_matches[0].start()
+            next_sec_pat = re.compile(
+                r'(?:\\noindent\s*)?(?:\\textbf\{\s*PHẦN\s+[IVX0-9]+[^}]*\}|\\section\*?\{\s*PHẦN\s+[IVX0-9]+[^}]*\}|PHẦN\s+[IVX0-9]+\.[^\n]*)|\\end\{document\}',
+                re.IGNORECASE
+            )
+            next_matches = [m for m in next_sec_pat.finditer(latex_code) if m.start() > start_sec]
+            end_sec = next_matches[0].start() if next_matches else len(latex_code)
+            sec_slice = latex_code[start_sec:end_sec]
+            sub_res = find_nth_question_in_latex(sec_slice, n, section=None)
+            if sub_res:
+                return sub_res
+
     # 1. ex_test.sty syntax (\\begin{ex} ... \\end{ex} or \\begin{bt} ... \\end{bt})
-    ex_matches = list(re.finditer(r'\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}', latex_code))
+    ex_matches = list(re.finditer(r'\\begin\{(ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\s*\{\1\}', latex_code))
     if ex_matches:
         if 1 <= n <= len(ex_matches):
             return ex_matches[n - 1].group(0)
@@ -975,6 +999,449 @@ def find_best_matching_block(snippet: str, document: str) -> Optional[str]:
     return None
 
 
+def parse_flexible_replace_command(text: str) -> Optional[Tuple[str, str]]:
+    """Trích xuất cặp (old_term, new_term) từ câu lệnh tiếng Việt tự nhiên không bắt buộc có ngoặc kép."""
+    if not text:
+        return None
+    raw = text.strip()
+
+    # 1. Có ngoặc kép/nháy đơn/backtick
+    m_quoted = re.search(
+        r'(?:tìm\s+và\s+thay\s+thế|thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]\s+(?:bằng|thành|sang|với|bởi|by|with)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]',
+        raw,
+        re.IGNORECASE
+    )
+    if m_quoted:
+        return m_quoted.group(1).strip(), m_quoted.group(2).strip()
+
+    # 2. Các mẫu câu tự nhiên không có ngoặc kép
+    patterns = [
+        # "tìm và thay thế X thành/bằng/sang/bởi Y"
+        r'(?:^|[,\.;\n]|\bhãy\s+)tìm\s+và\s+thay\s+thế\s+(.+?)\s+(?:thành|bằng|sang|bởi)\s+(.+)$',
+        # "thay thế X bằng/thành/sang/bởi Y"
+        r'(?:^|[,\.;\n]|\bhãy\s+)thay\s+thế\s+(.+?)\s+(?:bằng|thành|sang|bởi)\s+(.+)$',
+        # "thay X bằng/thành/sang/bởi Y"
+        r'(?:^|[,\.;\n]|\bhãy\s+)thay\s+(.+?)\s+(?:bằng|thành|sang|bởi)\s+(.+)$',
+        # "đổi X sang/thành/bằng Y"
+        r'(?:^|[,\.;\n]|\bhãy\s+)đổi\s+(.+?)\s+(?:sang|thành|bằng)\s+(.+)$',
+        # "sửa X thành/sang/bằng Y"
+        r'(?:^|[,\.;\n]|\bhãy\s+)sửa\s+(.+?)\s+(?:thành|sang|bằng)\s+(.+)$',
+        # "chuyển X sang/thành Y"
+        r'(?:^|[,\.;\n]|\bhãy\s+)chuyển\s+(.+?)\s+(?:sang|thành)\s+(.+)$',
+    ]
+
+    for pat in patterns:
+        m = re.search(pat, raw, re.IGNORECASE)
+        if m:
+            old_part = m.group(1).strip()
+            new_part = m.group(2).strip()
+            # Clean possible trailing punctuation like . or ! or ?
+            new_part = re.sub(r'[\.!\?]+$', '', new_part).strip()
+            # Strip enclosing quotes if user used asymmetric quotes
+            old_part = re.sub(r'^[`"“\'‘]|[`"”\'’]$', '', old_part).strip()
+            new_part = re.sub(r'^[`"“\'‘]|[`"”\'’]$', '', new_part).strip()
+            if old_part and new_part:
+                return old_part, new_part
+
+    return None
+
+
+def is_qa_request(message: str) -> bool:
+    """Classifies whether the user prompt has pedagogical/educational Q&A intent."""
+    if not message:
+        return False
+    msg_l = message.strip().lower()
+
+    # If it starts with replacement verbs, it's NOT Q&A
+    if any(msg_l.startswith(v) for v in ("thay", "đổi", "sửa", "chuyển", "tìm và thay thế", "replace")):
+        return False
+
+    # Action exclusions: e.g. "tạo đề", "thêm câu" without inquiry
+    action_prefixes = ["tạo ", "chèn ", "thêm ", "sinh ", "viết "]
+    if any(msg_l.startswith(act) for act in action_prefixes) and not any(k in msg_l for k in ("như thế nào", "là gì", "tại sao", "?", "hướng dẫn", "giải thích")):
+        return False
+
+    qa_phrases = [
+        "quy chế", "quy định", "qđ 764", "quyết định 764", "764/qđ", "thông tư 32", "tt 32", "32/2018",
+        "cách tính điểm", "điểm bậc thang", "tính điểm đúng sai", "thang điểm",
+        "cấu trúc đề thi 2025", "cấu trúc đề thi", "bao nhiêu câu", "thời gian làm bài thi",
+        "thời gian thi tốt nghiệp", "thời gian làm bài là", "thời gian làm bài bao nhiêu",
+        "cú pháp ex_test", "hướng dẫn ex_test", "cú pháp tikz", "hướng dẫn vẽ tikz", "hướng dẫn tikz",
+        "cú pháp tkz-tab", "hướng dẫn tkz-tab", "bảng biến thiên tkz-tab", "cú pháp",
+        "kiểm tra đề", "thống kê đề", "đủ câu chưa", "đã có bao nhiêu câu", "đề còn thiếu gì",
+        "kiểm tra cấu trúc", "soát đề", "tiến độ đề thi", "tiến độ", "thống kê số câu", "đề có mấy câu",
+        "kiểm tra tiến độ", "hướng dẫn giải", "giải thích câu", "giải câu", "tại sao câu",
+        "cách giải câu", "hướng dẫn câu", "chữa câu"
+    ]
+    if any(p in msg_l for p in qa_phrases):
+        return True
+
+    return False
+
+
+def analyze_exam_progress(latex_code: Optional[str]) -> dict:
+    """Analyze current_latex according to MoET 2025 exam structure (Part I: 12, Part II: 4, Part III: 6)."""
+    if not latex_code:
+        return {
+            "has_header": False,
+            "part1_count": 0,
+            "part2_count": 0,
+            "part3_count": 0,
+            "total_count": 0,
+            "questions": []
+        }
+
+    # 1. Check Header (2 minipages, 0.38\textwidth / 0.58\textwidth, Mã đề)
+    has_header = False
+    if ("minipage" in latex_code and ("0.38" in latex_code or "0.4" in latex_code)) or (
+        any(k in latex_code for k in ("SỞ GIÁO DỤC", "TRƯỜNG THPT", "ĐỀ CHÍNH THỨC")) and
+        any(k in latex_code for k in ("KỲ THI TỐT NGHIỆP", "MÔN: TOÁN", "Mã đề"))
+    ):
+        has_header = True
+
+    # 2. Extract all question blocks
+    q_matches = list(re.finditer(r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?([\s\S]*?)\\end\s*\{(?:ex|bt|vd)\}', latex_code))
+    if not q_matches:
+        q_matches = list(re.finditer(
+            r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?([\s\S]*?)(?=(?:\\begin\{(?:ex|bt|vd)\}|\\end\{document\}|\Z))',
+            latex_code
+        ))
+
+    part1_count = 0
+    part2_count = 0
+    part3_count = 0
+    questions_info = []
+
+    for idx, m in enumerate(q_matches):
+        q_text = m.group(0)
+        q_type = "part1"
+        if r"\choiceTF" in q_text:
+            part2_count += 1
+            q_type = "part2"
+        elif r"\shortans" in q_text or r"\SA" in q_text:
+            part3_count += 1
+            q_type = "part3"
+        elif r"\choice" in q_text:
+            part1_count += 1
+            q_type = "part1"
+        else:
+            part1_count += 1
+            q_type = "part1"
+
+        questions_info.append({
+            "index": idx + 1,
+            "type": q_type,
+            "raw": q_text
+        })
+
+    return {
+        "has_header": has_header,
+        "part1_count": part1_count,
+        "part2_count": part2_count,
+        "part3_count": part3_count,
+        "total_count": len(q_matches),
+        "questions": questions_info
+    }
+
+
+def explain_question_pedagogy(q_raw: str, q_num: int) -> str:
+    """Provides pedagogical explanation, step-by-step logic and reasons for the correct answer."""
+    m_loigiai = re.search(r'\\begin\{loigiai\}([\s\S]*?)\\end\{loigiai\}', q_raw)
+    loigiai_text = m_loigiai.group(1).strip() if m_loigiai else ""
+
+    stem_part = re.split(r'\\choice|\\choiceTF|\\shortans|\\begin\{loigiai\}', q_raw)[0]
+    stem_part = re.sub(r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?', '', stem_part).strip()
+
+    if r"\choiceTF" in q_raw:
+        raw_tf_block = q_raw[q_raw.find(r"\choiceTF"):]
+        if r"\begin{loigiai}" in raw_tf_block:
+            raw_tf_block = raw_tf_block[:raw_tf_block.find(r"\begin{loigiai}")]
+        elif r"\end{ex}" in raw_tf_block:
+            raw_tf_block = raw_tf_block[:raw_tf_block.find(r"\end{ex}")]
+
+        sub_items = re.findall(r'\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}', raw_tf_block)
+        items = sub_items[:4]
+
+        report = f"### 💡 HƯỚNG DẪN GIẢI SƯ PHẠM — CÂU {q_num} (TRẮC NGHIỆM ĐÚNG/SAI)\n\n"
+        report += f"**Đề bài:**\n> {stem_part}\n\n"
+        report += "**Phương pháp tiếp cận:**\n"
+        report += "- Xét tính đúng/sai độc lập của từng mệnh đề $a), b), c), d)$.\n"
+        report += "- Vận dụng định lý, đạo hàm, bảng biến thiên và tính chất hàm số để chứng minh.\n\n"
+        report += "**Phân tích chi tiết từng khẳng định:**\n\n"
+
+        letters = ["a", "b", "c", "d"]
+        for i, it in enumerate(items):
+            letter = letters[i] if i < len(letters) else f"ý {i+1}"
+            is_true = r"\True" in it
+            clean_it = re.sub(r'\\True\s*', '', it).strip()
+            status_badge = "✅ **ĐÚNG**" if is_true else "❌ **SAI**"
+            report += f"- **Ý {letter})** {clean_it}\n"
+            report += f"  - Kết luận: {status_badge}\n"
+
+        if loigiai_text:
+            clean_lg = re.sub(r'\\begin\{itemchoice\}|\\end\{itemchoice\}', '', loigiai_text).strip()
+            report += f"\n**Lời giải chi tiết:**\n{clean_lg}\n\n"
+
+        report += "> 📌 **Quy chế điểm bậc thang (QĐ 764):** Đúng 1 ý = 0,1đ; Đúng 2 ý = 0,25đ; Đúng 3 ý = 0,5đ; Đúng cả 4 ý = 1,0đ."
+        return report
+
+    elif r"\shortans" in q_raw or r"\SA" in q_raw:
+        m_ans = re.search(r'\\(?:shortans|SA)\{([^}]*)\}', q_raw)
+        ans_val = m_ans.group(1).strip() if m_ans else "chưa có"
+
+        report = f"### 💡 HƯỚNG DẪN GIẢI SƯ PHẠM — CÂU {q_num} (TRẢ LỜI NGẮN)\n\n"
+        report += f"**Đề bài:**\n> {stem_part}\n\n"
+        report += f"🎯 **Đáp số chuẩn:** `{ans_val}`\n\n"
+        report += "**Các bước tư duy & giải toán:**\n"
+        report += "1. **Mô hình hóa bài toán:** Thiết lập hệ thức toán học hoặc đặt hàm số thích hợp từ giả thiết.\n"
+        report += "2. **Thực hiện tính toán:** Khảo sát cực trị, giải phương trình, hoặc tính tích phân / xác suất.\n"
+        report += "3. **Kết luận & định dạng đáp số:** Làm tròn theo đúng yêu cầu đề bài và tuân thủ định dạng tối đa 4 ký tự trên phiếu trả lời OMR.\n\n"
+        if loigiai_text:
+            report += f"**Lời giải chi tiết:**\n{loigiai_text}\n"
+        return report
+
+    else:
+        m_ch = re.search(r'\\choice\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}', q_raw)
+        opts = []
+        correct_letter = "A"
+        if m_ch:
+            letters = ["A", "B", "C", "D"]
+            for i in range(1, 5):
+                raw_opt = m_ch.group(i)
+                is_correct = r"\True" in raw_opt
+                cleaned = re.sub(r'\\True\s*', '', raw_opt).strip()
+                opts.append((letters[i - 1], cleaned, is_correct))
+                if is_correct:
+                    correct_letter = letters[i - 1]
+
+        report = f"### 💡 HƯỚNG DẪN GIẢI SƯ PHẠM — CÂU {q_num} (TRẮC NGHIỆM 4 LỰA CHỌN)\n\n"
+        report += f"**Đề bài:**\n> {stem_part}\n\n"
+        if opts:
+            report += "**Các phương án lựa chọn:**\n"
+            for let, text, is_c in opts:
+                mark = " *(Phương án ĐÚNG)*" if is_c else ""
+                report += f"- **{let}.** {text}{mark}\n"
+            report += f"\n🏆 **Đáp án chính xác:** **{correct_letter}**\n\n"
+
+        report += "**Các bước giải sư phạm:**\n"
+        report += "1. **Nhận dạng bài toán:** Xác định kiến thức trọng tâm (tính đơn điệu, cực trị, tiệm cận, hình học không gian...).\n"
+        report += "2. **Biến đổi toán học:** Áp dụng định lý hoặc công thức giải tích tương ứng để tìm ra kết quả.\n"
+        report += f"3. **Đối chiếu phương án & loại trừ:** Chọn phương án **{correct_letter}**. Các phương án còn lại là bẫy sai lầm do nhầm dấu hoặc áp dụng sai công thức.\n\n"
+        if loigiai_text:
+            report += f"**Lời giải chi tiết mẫu:**\n{loigiai_text}\n"
+        return report
+
+
+def generate_exam_statistics_report(latex_code: Optional[str]) -> ChatResponse:
+    """Analyzes exam structure against MoET 2025 standard (3 sections, 22 questions)."""
+    stats = analyze_exam_progress(latex_code)
+    p1 = stats["part1_count"]
+    p2 = stats["part2_count"]
+    p3 = stats["part3_count"]
+    total = stats["total_count"]
+    has_hdr = stats["has_header"]
+
+    hdr_status = "✅ Đã có Header 2 cột chuẩn MoET" if has_hdr else "⚠️ Chưa có Header tiêu đề 2 cột chuẩn"
+
+    def _badge(cur: int, target: int) -> str:
+        if cur == target:
+            return f"✅ Đạt chuẩn ({cur}/{target} câu)"
+        elif cur < target:
+            return f"⚠️ Còn thiếu {target - cur} câu ({cur}/{target} câu)"
+        else:
+            return f"⚠️ Thừa {cur - target} câu ({cur}/{target} câu)"
+
+    status_p1 = _badge(p1, 12)
+    status_p2 = _badge(p2, 4)
+    status_p3 = _badge(p3, 6)
+    pct = (total / 22.0) * 100 if total <= 22 else 100.0
+
+    lines = [
+        "### 📊 BÁO CÁO THỐNG KÊ & TIẾN ĐỘ ĐỀ THI QUỐC GIA 2025\n",
+        "| Thành phần cấu trúc | Số câu hiện có | Chuẩn MoET 2025 | Trạng thái đánh giá |",
+        "|---|:---:|:---:|---|",
+        f"| **Tiêu đề đề thi (Header)** | - | 2 cột minipage | {hdr_status} |",
+        f"| **Phần I (Trắc nghiệm 4 lựa chọn)** | {p1} | 12 câu | {status_p1} |",
+        f"| **Phần II (Đúng/Sai QĐ 764)** | {p2} | 4 câu | {status_p2} |",
+        f"| **Phần III (Trả lời ngắn)** | {p3} | 6 câu | {status_p3} |",
+        f"| **TỔNG TIẾN ĐỘ TOÀN ĐỀ** | **{total} / 22** | **22 câu** | **{pct:.1f}% hoàn thành** |\n",
+        "💡 **Khuyến nghị & Hành động tiếp theo:**"
+    ]
+
+    actions = []
+    if not has_hdr:
+        actions.append("- Bạn nên chèn **Header tiêu đề 2 cột** vào đầu đề thi bằng menu **THÊM ▾** hoặc yêu cầu AI: *\"Tạo header tiêu đề 2 cột\"*.")
+    if p1 < 12:
+        actions.append(f"- **Phần I:** Cần soạn thêm **{12 - p1} câu** trắc nghiệm 4 lựa chọn (`\\choice`).")
+    elif p1 > 12:
+        actions.append(f"- **Phần I:** Đang vượt quá {p1 - 12} câu (chuẩn chỉ gồm 12 câu).")
+    if p2 < 4:
+        actions.append(f"- **Phần II:** Cần soạn thêm **{4 - p2} câu** Đúng/Sai 4 khẳng định (`\\choiceTF[1]`).")
+    elif p2 > 4:
+        actions.append(f"- **Phần II:** Đang vượt quá {p2 - 4} câu (chuẩn chỉ gồm 4 câu).")
+    if p3 < 6:
+        actions.append(f"- **Phần III:** Cần soạn thêm **{6 - p3} câu** Trả lời ngắn (`\\shortans`).")
+    elif p3 > 6:
+        actions.append(f"- **Phần III:** Đang vượt quá {p3 - 6} câu (chuẩn chỉ gồm 6 câu).")
+
+    if not actions:
+        actions.append("🎉 **Đề thi đã hoàn thiện 100% chuẩn cấu trúc Đề thi Tốt nghiệp THPT 2025!** Bạn có thể nhấn **BIÊN DỊCH** để xuất file PDF in ấn.")
+
+    lines.extend(actions)
+    reply_md = "\n".join(lines)
+    return ChatResponse(reply=reply_md)
+
+
+def generate_question_solution_guide(latex_code: Optional[str], message: str) -> ChatResponse:
+    """Finds question N in current_latex and produces step-by-step pedagogical guide."""
+    if not latex_code:
+        return ChatResponse(reply="Khung soạn thảo hiện chưa có mã LaTeX đề thi. Bạn hãy soạn thảo hoặc chèn đề thi mẫu trước khi yêu cầu hướng dẫn giải!")
+
+    m_q = re.search(r'(?:câu\s+hỏi|câu)\s*(\d+)', message, re.IGNORECASE)
+    target_q_num = int(m_q.group(1)) if m_q else 1
+
+    m_sec = re.search(r'(?:phần|part)\s*([ivx0-9]+)', message, re.IGNORECASE)
+    target_sec = m_sec.group(1) if m_sec else None
+
+    q_raw = find_nth_question_in_latex(latex_code, target_q_num, section=target_sec)
+    if not q_raw:
+        stats = analyze_exam_progress(latex_code)
+        tot = stats["total_count"]
+        return ChatResponse(
+            reply=f"Trong tài liệu hiện tại không tìm thấy **Câu {target_q_num}**" +
+                  (f" (Phần {target_sec})" if target_sec else "") +
+                  f". Hiện tài liệu có tổng cộng {tot} câu hỏi. Bạn vui lòng kiểm tra lại số thứ tự câu hỏi!"
+        )
+
+    explanation = explain_question_pedagogy(q_raw, target_q_num)
+    return ChatResponse(reply=explanation)
+
+
+def generate_syntax_qa_response(user_msg: str) -> ChatResponse:
+    """Explains syntax of ex_test.sty, TikZ, and tkz-tab with illustrative examples."""
+    reply = (
+        "### 📚 HƯỚNG DẪN CÚ PHÁP EX_TEST.STY (v3.3) & TIKZ / TKZ-TAB\n\n"
+        "Hệ thống Quesy đã tích hợp sẵn toàn bộ preamble và các gói lệnh chuẩn. Bạn chỉ cần viết trực tiếp nội dung các lệnh bên dưới:\n\n"
+        "#### 1. Gói lệnh `ex_test.sty` (Chuẩn Quốc Gia 2025)\n"
+        "- **Phần I (Trắc nghiệm 4 lựa chọn):**\n"
+        "  ```latex\n"
+        "  \\begin{ex}\n"
+        "  Nội dung câu hỏi ở đây...\n"
+        "  \\choice\n"
+        "  {Phương án A}\n"
+        "  {\\True Phương án B đúng}\n"
+        "  {Phương án C}\n"
+        "  {Phương án D}\n"
+        "  \\begin{loigiai}\n"
+        "  Lời giải chi tiết...\n"
+        "  \\end{loigiai}\n"
+        "  \\end{ex}\n"
+        "  ```\n"
+        "  *(Đặt `\\True` trước phương án đúng, gói sẽ tự động canh cột cân đối).*\n\n"
+        "- **Phần II (Đúng/Sai 4 khẳng định theo QĐ 764):**\n"
+        "  ```latex\n"
+        "  \\begin{ex}\n"
+        "  Cho hàm số... Xét tính đúng/sai:\n"
+        "  \\choiceTF[1]\n"
+        "  {\\True Khẳng định a đúng.}\n"
+        "  {Khẳng định b sai.}\n"
+        "  {\\True Khẳng định c đúng.}\n"
+        "  {Khẳng định d sai.}\n"
+        "  \\begin{loigiai}\n"
+        "  \\begin{itemchoice}\n"
+        "  \\itemch Đúng. Giải thích ý a...\n"
+        "  \\itemch Sai. Giải thích ý b...\n"
+        "  \\itemch Đúng. Giải thích ý c...\n"
+        "  \\itemch Sai. Giải thích ý d...\n"
+        "  \\end{itemchoice}\n"
+        "  \\end{loigiai}\n"
+        "  \\end{ex}\n"
+        "  ```\n"
+        "  *(⚠️ **LƯU Ý QUAN TRỌNG:** Bắt buộc có tham số `[1]` trong `\\choiceTF[1]` để mỗi ý chiếm 1 dòng. Không gõ nhãn a), b), c), d) thủ công).* \n\n"
+        "- **Phần III (Trả lời ngắn):**\n"
+        "  ```latex\n"
+        "  \\begin{ex}\n"
+        "  Tính giá trị biểu thức...\n"
+        "  \\shortans{45}\n"
+        "  \\begin{loigiai}\n"
+        "  Lời giải chi tiết...\n"
+        "  \\end{loigiai}\n"
+        "  \\end{ex}\n"
+        "  ```\n\n"
+        "#### 2. Quy tắc Bất biến Căn giữa TikZ & tkz-tab\n"
+        "- Mọi hình vẽ TikZ và bảng biến thiên **bắt buộc** bọc trong `\\begin{center} ... \\end{center}`.\n"
+        "- Khi vẽ đồ thị hàm số `plot`, luôn thêm `samples=50` để tối ưu hóa thời gian biên dịch XeTeX.\n"
+        "- Bảng biến thiên chuẩn dùng `tkz-tab` qua 3 lệnh: `\\tkzTabInit`, `\\tkzTabLine`, `\\tkzTabVar`."
+    )
+
+    example_code = r"""\begin{ex}
+Cho hàm số $y = f(x)$ liên tục trên $\mathbb{R}$ có bảng biến thiên:
+\begin{center}
+  \begin{tikzpicture}
+    \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
+    {$x$/.6, $f'(x)$/.6, $f(x)$/2}
+    {$-\infty$,$-1$,$2$,$+\infty$}
+    \tkzTabLine{,+,0,-,0,+,}
+    \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
+  \end{tikzpicture}
+\end{center}
+Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\choice
+{\True $(2; +\infty)$}
+{$(-1; 2)$}
+{$(-\infty; 2)$}
+{$(-1; +\infty)$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, $f'(x) > 0$ trên $(-\infty; -1)$ và $(2; +\infty)$.
+\end{loigiai}
+\end{ex}"""
+
+    return ChatResponse(reply=reply, suggested_latex=example_code)
+
+
+def generate_regulations_qa_response() -> ChatResponse:
+    """Returns authoritative explanation of MoET Decision 764, 2025 Exam Structure, and Circular 32."""
+    reply = (
+        "### 📋 QUY CHẾ KHẢO THÍ & CẤU TRÚC ĐỀ THI TỐT NGHIỆP THPT 2025 MÔN TOÁN\n\n"
+        "Theo **Quyết định số 764/QĐ-BGDĐT** và **Thông tư số 32/2018/TT-BGDĐT** của Bộ Giáo dục và Đào tạo, kỳ thi Tốt nghiệp THPT từ năm 2025 môn Toán áp dụng các quy chuẩn khảo thí sau:\n\n"
+        "---\n\n"
+        "#### 1. Thang điểm Bậc thang Phần II (Quyết định 764/QĐ-BGDĐT)\n"
+        "Phần II gồm **4 câu hỏi trắc nghiệm Đúng/Sai**, mỗi câu gồm **4 ý khẳng định (a, b, c, d)**. Điểm của từng câu được tính theo bậc thang lũy tiến:\n"
+        "- 🎯 Thí sinh chọn chính xác **1 ý**: được **0,10 điểm**.\n"
+        "- 🎯 Thí sinh chọn chính xác **2 ý**: được **0,25 điểm**.\n"
+        "- 🎯 Thí sinh chọn chính xác **3 ý**: được **0,50 điểm**.\n"
+        "- 🎯 Thí sinh chọn chính xác **cả 4 ý**: được **1,00 điểm**.\n\n"
+        "> **Tổng điểm tối đa Phần II:** $4 \\times 1{,}0 = \\mathbf{4{,}0\\text{ điểm}}$.\n"
+        "> *(Quy chế bậc thang này đánh giá chuẩn xác năng lực tư duy phản biện, kiểm chứng mệnh đề và triệt tiêu hoàn toàn xác suất đoán mò).* \n\n"
+        "---\n\n"
+        "#### 2. Cấu trúc Đề thi Tốt nghiệp THPT 2025 Môn Toán\n"
+        "- **Thời gian làm bài:** **90 phút** (không kể thời gian phát đề).\n"
+        "- **Tổng số lượng:** **22 câu hỏi**, thang điểm **10,0 điểm**, chia làm 3 phần rõ rệt:\n"
+        "  1. **Phần I — Trắc nghiệm 4 lựa chọn (A, B, C, D):**\n"
+        "     - Gồm **12 câu** (Câu 1 đến Câu 12).\n"
+        "     - Mỗi câu có duy nhất 1 phương án đúng.\n"
+        "     - Mỗi câu đúng được **0,25 điểm** -> **Tổng: 3,0 điểm**.\n"
+        "  2. **Phần II — Trắc nghiệm Đúng/Sai 4 khẳng định:**\n"
+        "     - Gồm **4 câu** (Câu 1 đến Câu 4).\n"
+        "     - Mỗi câu gồm 4 lệnh hỏi $a, b, c, d$. Chấm điểm bậc thang QĐ 764.\n"
+        "     - Tối đa 1,0 điểm/câu -> **Tổng: 4,0 điểm**.\n"
+        "  3. **Phần III — Trắc nghiệm Trả lời ngắn:**\n"
+        "     - Gồm **6 câu** (Câu 1 đến Câu 6).\n"
+        "     - Thí sinh tự giải toán và điền đáp số vào phiếu trả lời OMR (tối đa 4 ký tự).\n"
+        "     - Mỗi câu đúng được **0,50 điểm** -> **Tổng: 3,0 điểm**.\n\n"
+        "---\n\n"
+        "#### 3. Ma trận & Định hướng Năng lực (Thông tư 32/2018/TT-BGDĐT)\n"
+        "- Đề thi định hướng đánh giá năng lực toán học bám sát **Yêu cầu cần đạt (YCCĐ)** trong Chương trình GDPT 2018.\n"
+        "- Ma trận phân bổ tỷ lệ 4 mức độ nhận thức:\n"
+        "  - **Nhận biết:** 40% (4,0 điểm)\n"
+        "  - **Thông hiểu:** 30% (3,0 điểm)\n"
+        "  - **Vận dụng:** 20% (2,0 điểm)\n"
+        "  - **Vận dụng cao:** 10% (1,0 điểm)\n"
+        "- Hệ thống khảo thí Quesy tuân thủ nguyên tắc xây dựng cây kiến thức 6 tầng theo YCCĐ, **hoàn toàn độc lập với các bộ sách giáo khoa thương mại** (Cánh diều, Kết nối tri thức, Chân trời sáng tạo)."
+    )
+    return ChatResponse(reply=reply)
+
+
 def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], user_message: str = "") -> List[DiffSuggestion]:
     """Helper to detect ALL unified diff blocks, search/replace blocks, OLD/NEW blocks,
     choice modifications, font size changes, or string replacement proposals from AI responses.
@@ -994,9 +1461,9 @@ def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], u
             return
         if old_text == new_text and new_text:
             return
-        # check duplicate
+        # check duplicate or conflicting replacement on same old_text
         for existing in found_diffs:
-            if existing.old_text == old_text and existing.new_text == new_text:
+            if existing.old_text == old_text:
                 return
         found_diffs.append(DiffSuggestion(
             action=action,
@@ -1094,22 +1561,135 @@ def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], u
             desc = _clean_diff_description(reply_text[:block_replace.start()]) or "Thay đổi theo gợi ý AI"
             _add_diff("replace", matched_old, new_raw, desc)
 
-    # 5. Inline replacement proposals: Thay thế `old` bằng/thành/sang `new`
-    for m_phrase in re.finditer(
-        r'(?:thay thế|thay|đổi|sửa|chuyển|replace)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]\s+(?:bằng|thành|sang|với|by|with)\s+[`"“\'‘]([^`"”\'’\n]+)[`"”\'’]',
-        reply_text,
-        re.IGNORECASE
-    ):
-        old_raw = m_phrase.group(1).strip()
-        new_raw = m_phrase.group(2).strip()
-        matched_old = find_in_latex(old_raw, current_latex)
-        if matched_old and matched_old != new_raw:
-            desc = _clean_diff_description(reply_text[:m_phrase.start()]) or f"Thay thế '{old_raw}' thành '{new_raw}'"
-            _add_diff("replace", matched_old, new_raw, desc)
+    # 5. Flexible natural language replacement proposals (with or without quotes)
+    flex_cmd = parse_flexible_replace_command(user_message) or parse_flexible_replace_command(reply_text)
+    if flex_cmd:
+        old_term, new_term = flex_cmd
+        clean_old = old_term.strip()
+        clean_new = new_term.strip()
 
-    # If explicit blocks found diffs, return them
-    if found_diffs:
-        return found_diffs
+        # Strip "biểu thức " or "biến " prefixes if present
+        if clean_old.lower().startswith("biểu thức "):
+            clean_old = clean_old[10:].strip()
+        if clean_new.lower().startswith("biểu thức "):
+            clean_new = clean_new[10:].strip()
+        if clean_old.lower().startswith("biến "):
+            clean_old = clean_old[5:].strip()
+        if clean_new.lower().startswith("biến "):
+            clean_new = clean_new[5:].strip()
+
+        # Check if user meant school name
+        if any(k in clean_old.lower() for k in ("tên trường", "trường thpt", "trường")):
+            school_target = re.sub(r'^(?:tên\s+trường|trường)\s*', '', clean_new, flags=re.IGNORECASE).strip()
+            if not school_target:
+                school_target = clean_new
+            if not school_target.startswith("TRƯỜNG") and not school_target.startswith("Trường"):
+                school_target = f"TRƯỜNG {school_target}"
+            for line in current_latex.splitlines():
+                if "TRƯỜNG" in line or "Trường" in line:
+                    if re.search(r'\\textbf\{[^}]*(?:TRƯỜNG|Trường)[^}]*\}', line):
+                        new_line = re.sub(r'\\textbf\{[^}]*(?:TRƯỜNG|Trường)[^}]*\}', f"\\textbf{{{school_target}}}", line)
+                    elif r"\textbf{" in line:
+                        new_line = re.sub(r'\\textbf\{[^}]*\}', f"\\textbf{{{school_target}}}", line)
+                    else:
+                        new_line = f"  \\textbf{{{school_target}}}\\\\"
+                    if new_line != line:
+                        _add_diff("replace", line, new_line, f"Thay tên trường thành {school_target}")
+                        break
+
+        # Check if user meant department name
+        elif any(k in clean_old.lower() for k in ("tên sở", "sở gd", "sở giáo dục")):
+            so_target = re.sub(r'^(?:tên\s+sở|sở\s+gd&đt|sở\s+giáo\s+dục)\s*', '', clean_new, flags=re.IGNORECASE).strip()
+            if not so_target:
+                so_target = clean_new
+            if not so_target.startswith("SỞ") and not so_target.startswith("Sở"):
+                so_target = f"SỞ GIÁO DỤC VÀ ĐÀO TẠO {so_target}"
+            for line in current_latex.splitlines():
+                if "SỞ" in line or "Sở" in line:
+                    if re.search(r'\\textbf\{[^}]*(?:SỞ|Sở)[^}]*\}', line):
+                        new_line = re.sub(r'\\textbf\{[^}]*(?:SỞ|Sở)[^}]*\}', f"\\textbf{{{so_target}}}", line)
+                    elif r"\textbf{" in line:
+                        new_line = re.sub(r'\\textbf\{[^}]*\}', f"\\textbf{{{so_target}}}", line)
+                    else:
+                        new_line = f"  \\textbf{{{so_target}}}\\\\"
+                    if new_line != line:
+                        _add_diff("replace", line, new_line, f"Thay tên Sở GD&ĐT thành {so_target}")
+                        break
+
+        # Check if user meant exam duration
+        elif "thời gian" in clean_old.lower() or "phút" in clean_old.lower() or "phút" in clean_new.lower():
+            m_mins = re.search(r'(\d+)\s*phút', clean_new) or re.search(r'(\d+)', clean_new)
+            if m_mins:
+                mins_val = m_mins.group(1)
+                for line in current_latex.splitlines():
+                    if "thời gian làm bài" in line.lower() or "thời gian" in line.lower():
+                        new_line = re.sub(r'\d+\s*phút', f"{mins_val} phút", line)
+                        if new_line != line:
+                            _add_diff("replace", line, new_line, f"Đổi thời gian làm bài thành {mins_val} phút")
+                            break
+
+        # Check if user meant variable replacement
+        elif len(clean_old) == 1 and len(clean_new) == 1 and clean_old.isalpha() and clean_new.isalpha() and any(k in user_lower for k in ("biến", "variable")):
+            old_var, new_var = clean_old, clean_new
+            for line in current_latex.splitlines():
+                if ("$" in line and old_var in line) or f" {old_var} " in line:
+                    new_line = re.sub(rf'(?<![a-ce-zA-CE-Z\\]){old_var}(?![a-zA-Z])', new_var, line)
+                    if new_line != line:
+                        _add_diff("replace", line, new_line, f"Thay biến '{old_var}' thành '{new_var}'")
+                        break
+
+        # General / Math / Substring replace
+        if not found_diffs:
+            matched_target = None
+            replacement_target = clean_new
+            if clean_old in current_latex:
+                matched_target = clean_old
+            elif f"${clean_old}$" in current_latex:
+                matched_target = f"${clean_old}$"
+                if not replacement_target.startswith("$"):
+                    replacement_target = f"${replacement_target}$"
+            elif f"\\{clean_old}" in current_latex:
+                matched_target = f"\\{clean_old}"
+                if not replacement_target.startswith("\\"):
+                    replacement_target = f"\\{replacement_target}"
+            else:
+                fuzzy_match = find_in_latex(clean_old, current_latex)
+                if fuzzy_match:
+                    matched_target = fuzzy_match
+                    if clean_old in fuzzy_match:
+                        replacement_target = fuzzy_match.replace(clean_old, clean_new)
+
+            if matched_target and matched_target != replacement_target:
+                _add_diff("replace", matched_target, replacement_target, f"Thay thế '{clean_old}' thành '{clean_new}'")
+
+    # 5b. Direct targeted heuristic for duration changes
+    m_time_direct = re.search(r'(?:đổi|thay|sửa)\s+(?:thời\s+gian\s+làm\s+bài|thời\s+gian)\s+(?:thành|sang|bằng)\s*(\d+)\s*phút', combined_lower)
+    if m_time_direct:
+        mins_val = m_time_direct.group(1)
+        for line in current_latex.splitlines():
+            if "thời gian làm bài" in line.lower() or "thời gian" in line.lower():
+                new_line = re.sub(r'\d+\s*phút', f"{mins_val} phút", line)
+                if new_line != line:
+                    _add_diff("replace", line, new_line, f"Đổi thời gian làm bài thành {mins_val} phút")
+                    break
+
+    # 5c. Direct targeted heuristic for school name changes
+    m_school_direct = re.search(r'(?:thay|đổi|sửa)\s+tên\s+trường\s+(?:thành|sang|bằng)\s+([^\n\.,;]+)', combined_text, re.IGNORECASE)
+    if m_school_direct:
+        new_sch = m_school_direct.group(1).strip()
+        if not new_sch.startswith("TRƯỜNG") and not new_sch.startswith("Trường"):
+            new_sch = f"TRƯỜNG {new_sch}"
+        for line in current_latex.splitlines():
+            if "TRƯỜNG" in line or "Trường" in line:
+                if re.search(r'\\textbf\{[^}]*(?:TRƯỜNG|Trường)[^}]*\}', line):
+                    new_line = re.sub(r'\\textbf\{[^}]*(?:TRƯỜNG|Trường)[^}]*\}', f"\\textbf{{{new_sch}}}", line)
+                elif r"\textbf{" in line:
+                    new_line = re.sub(r'\\textbf\{[^}]*\}', f"\\textbf{{{new_sch}}}", line)
+                else:
+                    new_line = f"  \\textbf{{{new_sch}}}\\\\"
+                if new_line != line:
+                    _add_diff("replace", line, new_line, f"Thay tên trường thành {new_sch}")
+                    break
 
     # 6. Targeted heuristic for font size changes (e.g. 11pt -> 12pt, font 12, cỡ chữ 11pt)
     if any(k in combined_lower for k in ("font", "cỡ chữ", "size")):
@@ -1131,17 +1711,34 @@ def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], u
                     if new_line != line:
                         _add_diff("replace", line, new_line, f"Đổi cỡ chữ toàn tài liệu sang {target_pt}")
 
-    # 7. Targeted heuristic for choice modifications (đổi đáp án A sang B, sửa đáp án thành C, etc.)
+    # 7. Targeted heuristic for choice modifications (đổi đáp án câu 2 sang D, thay đáp án đúng thành C, sửa đáp án câu 1 thành B, etc.)
     m_choice_chg = re.search(
-        r'(?:đổi|sửa|chuyển)\s+(?:đáp án|lựa chọn)(?:\s+đúng)?\s+(?:từ\s+[ABCD]\s+sang\s+|thành\s+|sang\s+)([ABCD])\b',
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển)\s+(?:đáp án|lựa chọn)(?:\s+đúng)?(?:\s+(?:của\s+)?(?:câu\s+hỏi|câu)\s*(\d+))?\s+(?:từ\s+[ABCD]\s+sang\s+|thành\s+|sang\s+|về\s+)([ABCD])\b',
         combined_lower,
         re.IGNORECASE
     )
+    if not m_choice_chg:
+        m_choice_chg = re.search(
+            r'(?:câu\s+hỏi|câu)\s*(\d+)[^.\n]*?(?:thay\s+thế|thay|đổi|sửa|chuyển)\s+(?:đáp án|lựa chọn)(?:\s+đúng)?\s+(?:từ\s+[ABCD]\s+sang\s+|thành\s+|sang\s+|về\s+)([ABCD])\b',
+            combined_lower,
+            re.IGNORECASE
+        )
     if m_choice_chg:
-        target_choice = m_choice_chg.group(1).upper()
+        q_idx_str = m_choice_chg.group(1)
+        target_q_idx = int(q_idx_str) if q_idx_str else None
+        target_choice = m_choice_chg.group(2).upper()
         target_idx = {"A": 0, "B": 1, "C": 2, "D": 3}.get(target_choice)
         if target_idx is not None:
-            m_ch = re.search(r'\\choice\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}', current_latex)
+            scope_text = current_latex
+            if target_q_idx:
+                q_scope = find_nth_question_in_latex(current_latex, target_q_idx)
+                if q_scope:
+                    scope_text = q_scope
+
+            m_ch = re.search(
+                r'\\choice\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}',
+                scope_text
+            )
             if m_ch:
                 old_full = m_ch.group(0)
                 opts = [m_ch.group(1), m_ch.group(2), m_ch.group(3), m_ch.group(4)]
@@ -1150,25 +1747,52 @@ def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], u
                 sep = "\n" if "\n" in old_full else ""
                 new_full = f"\\choice{sep}{{{cleaned_opts[0]}}}{sep}{{{cleaned_opts[1]}}}{sep}{{{cleaned_opts[2]}}}{sep}{{{cleaned_opts[3]}}}"
                 if old_full != new_full:
-                    _add_diff("replace", old_full, new_full, f"Đổi đáp án đúng sang {target_choice}")
+                    desc_str = f"Đổi đáp án đúng câu {target_q_idx} sang {target_choice}" if target_q_idx else f"Đổi đáp án đúng sang {target_choice}"
+                    _add_diff("replace", old_full, new_full, desc_str)
+
+    # 7b. Targeted heuristic for variable replacement (e.g. "thay biến x thành t", "đổi biến x sang y")
+    m_var = re.search(r'(?:thay|đổi|sửa)\s+biến\s+([a-zA-Z])\s+(?:thành|bằng|sang)(?:\s+biến)?\s+([a-zA-Z])\b', combined_lower)
+    if m_var:
+        old_var, new_var = m_var.group(1), m_var.group(2)
+        for line in current_latex.splitlines():
+            if ("$" in line and old_var in line) or f" {old_var} " in line:
+                new_line = re.sub(rf'(?<![a-ce-zA-CE-Z\\]){old_var}(?![a-zA-Z])', new_var, line)
+                if new_line != line:
+                    _add_diff("replace", line, new_line, f"Thay biến '{old_var}' thành '{new_var}'")
+                    break
 
     if found_diffs:
         return found_diffs
 
     # 8. Targeted heuristic for replacing question N by number
     # Handles: "thay thế câu (\d+)", "thay câu (\d+)", "sửa câu (\d+)", "đổi câu (\d+)", "replace question (\d+)"
+    target_q_num = None
+    target_sec = None
     m_replace_q = re.search(
-        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)(?:[^\n]*?(?:phần|part)\s*([ivx0-9]+))?',
         combined_lower
     )
-    if not m_replace_q:
-        m_replace_q = re.search(
-            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
-            combined_lower
-        )
     if m_replace_q:
         target_q_num = int(m_replace_q.group(1))
-        old_q = find_nth_question_in_latex(current_latex, target_q_num)
+        target_sec = m_replace_q.group(2)
+    else:
+        m_replace_q2 = re.search(
+            r'(?:phần|part)\s*([ivx0-9]+)[^\n]*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+            combined_lower
+        )
+        if m_replace_q2:
+            target_sec = m_replace_q2.group(1)
+            target_q_num = int(m_replace_q2.group(2))
+        else:
+            m_replace_q3 = re.search(
+                r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+                combined_lower
+            )
+            if m_replace_q3:
+                target_q_num = int(m_replace_q3.group(1))
+
+    if target_q_num is not None:
+        old_q = find_nth_question_in_latex(current_latex, target_q_num, section=target_sec)
         if old_q:
             new_q = None
             m_code_q = None
@@ -1193,7 +1817,7 @@ def extract_all_diffs_from_text(reply_text: str, current_latex: Optional[str], u
 
             # 8c. Extract raw LaTeX environment from text
             if not new_q:
-                m_ex_q = re.search(r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{(?:ex|bt|vd)\}', reply_text)
+                m_ex_q = re.search(r'\\begin\{(?:ex|bt|vd)\}(?:\[[^\]]*\])?[\s\S]*?\\end\s*\{(?:ex|bt|vd)\}', reply_text)
                 if m_ex_q:
                     new_q = m_ex_q.group(0).strip()
             if not new_q:
@@ -1299,24 +1923,41 @@ def composer_chat_endpoint(req: ChatRequest):
     )
 
     prompt = f"Yêu cầu của giáo viên: {req.message}\n\n"
+    target_q_num = None
+    target_sec = None
     m_replace_hint = re.search(
-        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
+        r'(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)(?:[^\n]*?(?:phần|part)\s*([ivx0-9]+))?',
         req.message,
         re.IGNORECASE
     )
-    if not m_replace_hint:
-        m_replace_hint = re.search(
-            r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+    if m_replace_hint:
+        target_q_num = int(m_replace_hint.group(1))
+        target_sec = m_replace_hint.group(2)
+    else:
+        m_replace_hint2 = re.search(
+            r'(?:phần|part)\s*([ivx0-9]+)[^\n]*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)\s+(?:câu\s+hỏi|câu|question)\s*(\d+)',
             req.message,
             re.IGNORECASE
         )
-    if m_replace_hint and req.current_latex:
-        q_target = int(m_replace_hint.group(1))
-        old_snippet = find_nth_question_in_latex(req.current_latex, q_target)
+        if m_replace_hint2:
+            target_sec = m_replace_hint2.group(1)
+            target_q_num = int(m_replace_hint2.group(2))
+        else:
+            m_replace_hint3 = re.search(
+                r'(?:câu\s+hỏi|câu|question)\s+(\d+).*?(?:thay\s+thế|thay|đổi|sửa|chuyển|replace)',
+                req.message,
+                re.IGNORECASE
+            )
+            if m_replace_hint3:
+                target_q_num = int(m_replace_hint3.group(1))
+
+    old_snippet = None
+    if target_q_num is not None and req.current_latex:
+        old_snippet = find_nth_question_in_latex(req.current_latex, target_q_num, section=target_sec)
         if old_snippet:
             prompt += (
-                f"--- HƯỚNG DẪN BẮT BUỘC KHI THAY THẾ CÂU {q_target} ---\n"
-                f"Khối câu {q_target} hiện tại trong tài liệu là:\n"
+                f"--- HƯỚNG DẪN BẮT BUỘC KHI THAY THẾ CÂU {target_q_num} ---\n"
+                f"Khối câu {target_q_num} hiện tại trong tài liệu là:\n"
                 f"```latex\n{old_snippet}\n```\n"
                 f"Bạn hãy trích xuất khối ```diff với dòng (-) là câu cũ này và dòng (+) là câu mới thay thế, hoặc xuất khối ```latex chứa câu hỏi mới để hệ thống áp dụng thay thế lên trình soạn thảo.\n"
                 f"------------------------------------------------------\n\n"
@@ -1329,10 +1970,81 @@ def composer_chat_endpoint(req: ChatRequest):
             ctx = ctx[:12000] + "\n... [đoạn giữa được rút gọn] ...\n" + ctx[-12000:]
         prompt += f"--- NỘI DUNG TÀI LIỆU HIỆN TẠI ---\n{ctx}\n--------------------------------------------\n"
 
-    user_msg_lower = req.message.lower()
+    user_msg_lower = req.message.lower().strip()
+    cur_latex = req.current_latex or ""
+
+    # ================= 1. HỆ THỐNG HỎI ĐÁP KHẢO THÍ & SƯ PHẠM (Q&A COPILOT) =================
+    if is_qa_request(req.message):
+        # 1a. Kịch bản 3: Thống kê & Kiểm tra đề thi hiện tại trong current_latex
+        if any(k in user_msg_lower for k in (
+            "kiểm tra đề", "thống kê đề", "đủ câu chưa", "đã có bao nhiêu câu", "đề còn thiếu gì",
+            "kiểm tra cấu trúc", "soát đề", "tiến độ đề thi", "tiến độ", "thống kê số câu",
+            "đề có mấy câu", "kiểm tra tiến độ"
+        )):
+            return generate_exam_statistics_report(cur_latex)
+
+        # 1b. Kịch bản 4: Hướng dẫn giải / Giải thích câu hỏi trong đề
+        if any(k in user_msg_lower for k in (
+            "hướng dẫn giải", "giải thích câu", "giải câu", "tại sao câu", "cách giải câu",
+            "hướng dẫn câu", "chữa câu"
+        )):
+            return generate_question_solution_guide(cur_latex, req.message)
+
+        # 1c. Kịch bản 2: Hỏi về cú pháp ex_test, TikZ, tkz-tab
+        if any(k in user_msg_lower for k in (
+            "cú pháp ex_test", "hướng dẫn ex_test", "lệnh choice", "lệnh choicetf", "choicetf",
+            "shortans", "cú pháp tikz", "hướng dẫn vẽ tikz", "hướng dẫn tikz", "cú pháp tkz-tab",
+            "hướng dẫn tkz-tab", "bảng biến thiên tkz-tab", "cú pháp", "cách dùng ex_test",
+            "cách dùng tikz", "cách dùng tkz-tab"
+        )):
+            return generate_syntax_qa_response(req.message)
+
+        # 1d. Kịch bản 1: Quy chế QĐ 764, Cấu trúc Đề thi 2025, Thông tư 32
+        if any(k in user_msg_lower for k in (
+            "quy chế", "quy định", "764", "cách tính điểm", "điểm bậc thang", "tính điểm đúng sai",
+            "thông tư 32", "tt 32", "cấu trúc đề thi 2025", "cấu trúc đề thi", "bao nhiêu câu",
+            "thời gian làm bài thi", "thời gian thi", "thang điểm"
+        )) or any(k in user_msg_lower for k in ("như thế nào", "là gì", "tại sao", "nghĩa là gì")):
+            return generate_regulations_qa_response()
+
+        # Mặc định giải đáp thông tin quy chế & sư phạm
+        return generate_regulations_qa_response()
+
+    has_active_ai_provider = bool(
+        default_ai_provider_service and
+        getattr(default_ai_provider_service, "api_key", None) and
+        str(default_ai_provider_service.api_key).strip()
+    )
+
+    if not has_active_ai_provider:
+        # ================= 2. KIỂM TRA LỖI BIÊN DỊCH NẾU CÓ (OFFLINE) =================
+        err_log = (req.compile_error_log or req.compile_error or "").strip()
+        if err_log:
+            diag_resp = diagnose_compile_error(err_log, cur_latex, req.message)
+            if diag_resp:
+                return diag_resp
+
+        if any(k in user_msg_lower for k in ("fix lỗi", "sửa lỗi", "lỗi biên dịch", "compile error", "khắc phục lỗi")):
+            diag_resp = diagnose_compile_error(err_log or req.message, cur_latex, req.message)
+            if diag_resp:
+                return diag_resp
+
+        # ================= 3. TÌM & THAY THẾ LINH HOẠT TRỰC TIẾP (DIFF REPLACEMENT) =================
+        direct_diffs = extract_all_diffs_from_text("", cur_latex, user_message=req.message)
+        if direct_diffs:
+            d = direct_diffs[0]
+            reply_msg = (
+                f"Tôi đề xuất {d.description.lower()}:\n\n"
+                f"```diff\n- {d.old_text}\n+ {d.new_text}\n```\n\n"
+                "Bấm **Đồng ý (Keep)** trên thanh gợi ý của khung soạn thảo để áp dụng thay đổi này."
+            )
+            return ChatResponse(reply=reply_msg, diff=d, diffs=direct_diffs)
 
     # Fast deterministic canonical 2025 templates router
-    if any(k in user_msg_lower for k in ("3 phần", "chuẩn quốc gia 2025", "trọn bộ", "đề thi chuẩn quốc gia")):
+    if any(k in user_msg_lower for k in ("tạo đề", "chèn đề", "sinh đề", "mẫu đề", "trọn bộ đề", "3 phần chuẩn quốc gia")) or (
+        any(k in user_msg_lower for k in ("3 phần", "chuẩn quốc gia 2025", "trọn bộ", "đề thi chuẩn quốc gia")) and
+        any(k in user_msg_lower for k in ("tạo", "chèn", "sinh", "viết", "cho tôi", "lập"))
+    ):
         full_national_exam = r"""\noindent
 \begin{minipage}[t]{0.38\textwidth}
   \centering
@@ -1427,7 +2139,9 @@ Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\t
             suggested_latex=header_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 1", "phần i")):
+    is_replace_cmd = any(k in user_msg_lower for k in ("thay", "đổi", "sửa", "chuyển", "replace")) or "câu" in user_msg_lower
+
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 1", "phần i")):
         s1_snippet = r"""\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 \begin{ex}
 Cho hàm số $y = f(x)$...
@@ -1445,7 +2159,7 @@ Lời giải chi tiết Phần I.
             suggested_latex=s1_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 2", "phần ii")):
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 2", "phần ii")):
         s2_snippet = r"""\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 \begin{ex}
 Cho hàm số $y = f(x)$... Xét tính đúng/sai:
@@ -1468,7 +2182,7 @@ Cho hàm số $y = f(x)$... Xét tính đúng/sai:
             suggested_latex=s2_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 3", "phần iii")):
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 3", "phần iii")):
         s3_snippet = r"""\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
 \begin{ex}
 Tính giá trị của biểu thức...
@@ -1487,12 +2201,24 @@ Lời giải chi tiết trả lời ngắn.
         if default_ai_provider_service and (default_ai_provider_service.api_key or default_ai_provider_service.provider in ("openai", "openrouter", "custom", "gemini")):
             # We can use the configured provider
             provider = default_ai_provider_service.provider
-            model = default_ai_provider_service.model
-            base_url = default_ai_provider_service.base_url
-            api_key = default_ai_provider_service.api_key or "gemini-mock-key"
+            model = default_ai_provider_service.model or ("gemini-3.8-flash-high" if provider == "custom" else "gpt-4o")
+            base_url = (default_ai_provider_service.base_url or ("http://armbian:8317/v1" if provider == "custom" else "")).strip()
+            api_key = default_ai_provider_service.api_key or ("123" if provider == "custom" else "gemini-mock-key")
+
+            # Normalize base_url: if armbian or missing /v1, ensure /v1 is appended
+            clean_base = base_url.rstrip('/')
+            if clean_base:
+                if not clean_base.endswith('/v1') and ('8317' in clean_base or not clean_base.endswith('/openai')):
+                    clean_base = f"{clean_base}/v1"
 
             if provider in ("openai", "openrouter", "custom", "gemini"):
-                endpoint = f"{(base_url or ('https://generativelanguage.googleapis.com/v1beta/openai' if provider == 'gemini' else 'https://api.openai.com/v1')).rstrip('/')}/chat/completions"
+                if clean_base:
+                    endpoint = f"{clean_base}/chat/completions"
+                elif provider == "gemini":
+                    endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+                else:
+                    endpoint = "https://api.openai.com/v1/chat/completions"
+
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
@@ -1509,7 +2235,8 @@ Lời giải chi tiết trả lời ngắn.
                 else:
                     messages.append({"role": "user", "content": prompt})
 
-                with httpx.Client(timeout=25.0) as client:
+                ai_timeout = float(getattr(default_ai_provider_service, "timeout", 60.0) or 60.0)
+                with httpx.Client(timeout=max(ai_timeout, 60.0)) as client:
                     resp = client.post(endpoint, headers=headers, json={"model": model, "messages": messages, "temperature": 0.4})
                     if resp.status_code == 200:
                         data = resp.json()
@@ -1518,7 +2245,7 @@ Lời giải chi tiết trả lời ngắn.
                         diff = diffs[0] if diffs else None
                         suggested_latex = None
                         m_code = re.search(r'```(?:latex|tex)?\s*\n([\s\S]*?)```', reply_text)
-                        if m_code and not diffs:
+                        if m_code:
                             suggested_latex = m_code.group(1).strip()
                         return ChatResponse(reply=reply_text, diff=diff, diffs=diffs, suggested_latex=suggested_latex)
 
@@ -1527,16 +2254,267 @@ Lời giải chi tiết trả lời ngắn.
 
     # Smart offline / local fallback generator if AI provider is unconfigured or network failed
     user_msg_lower = req.message.lower()
+    cur_latex = req.current_latex or ""
 
+    # 0. Check if compile error is reported or user asks to fix compile errors
+    if (req.compile_error_log or req.compile_error) and (req.compile_error_log or req.compile_error).strip():
+        diag_resp = diagnose_compile_error((req.compile_error_log or req.compile_error), cur_latex, req.message)
+        if diag_resp:
+            return diag_resp
+
+    if any(k in user_msg_lower for k in ("fix lỗi", "sửa lỗi", "lỗi biên dịch", "compile error", "khắc phục lỗi")):
+        diag_resp = diagnose_compile_error((req.compile_error_log or req.compile_error) or req.message, cur_latex, req.message)
+        if diag_resp:
+            return diag_resp
+
+    # 1. Targeted question replacement (highest priority for targeted refactoring, with or without images)
+    if cur_latex and target_q_num is not None:
+        old_q = old_snippet or find_nth_question_in_latex(cur_latex, target_q_num, section=target_sec)
+        if old_q:
+            # Generate domain-specific replacement question with centered invariant
+            if target_q_num == 7 or any(k in user_msg_lower for k in ("lập phương", "vectơ", "vector", "hình học không gian")):
+                new_q = r"""\begin{ex}
+Cho hình lập phương $ABCD.A'B'C'D'$. Góc giữa hai vectơ $\overrightarrow{AB}$ và $\overrightarrow{A'D'}$ bằng:
+\begin{center}
+  \begin{tikzpicture}[scale=0.7, >=stealth, line join=round, line cap=round]
+    \coordinate (A) at (0, 0);
+    \coordinate (B) at (3, 0);
+    \coordinate (D) at (-1.4, -1.1);
+    \coordinate (C) at (1.6, -1.1);
+    \coordinate (A1) at (0, 2.6);
+    \coordinate (B1) at (3, 2.6);
+    \coordinate (D1) at (-1.4, 1.5);
+    \coordinate (C1) at (1.6, 1.5);
+
+    \draw[thick] (D) -- (C) -- (B) -- (B1) -- (C1) -- (D1) -- cycle;
+    \draw[thick] (C) -- (C1);
+    \draw[thick] (A1) -- (B1) (A1) -- (D1);
+    \draw[dashed, thick] (A) -- (B) (A) -- (D) (A) -- (A1);
+
+    \node[left] at (A) {$A$};
+    \node[right] at (B) {$B$};
+    \node[below left] at (D) {$D$};
+    \node[below right] at (C) {$C$};
+    \node[above left] at (A1) {$A'$};
+    \node[above right] at (B1) {$B'$};
+    \node[above left] at (D1) {$D'$};
+    \node[above right] at (C1) {$C'$};
+  \end{tikzpicture}
+\end{center}
+\choice
+{\True $90^\circ$}
+{$45^\circ$}
+{$60^\circ$}
+{$120^\circ$}
+\begin{loigiai}
+Do $ABCD.A'B'C'D'$ là hình lập phương nên $A'D' \parallel AD$. Do đó $(\overrightarrow{AB}, \overrightarrow{A'D'}) = (\overrightarrow{AB}, \overrightarrow{AD}) = 90^\circ$ vì $ABCD$ là hình vuông.
+\end{loigiai}
+\end{ex}"""
+            elif target_q_num == 10 or any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "tiệm cận")):
+                new_q = r"""\begin{ex}
+Cho hàm số phân thức $y = \dfrac{ax+b}{cx+d}$ có bảng biến thiên như sau:
+\begin{center}
+  \begin{tikzpicture}
+    \tikzset{double style/.append style = {double distance=2.5pt}}
+    \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.4]
+    {$x$/.6, $y'$/.6, $y$/2}
+    {$-\infty$,$1$,$+\infty$}
+    \tkzTabLine{,+,d,+,}
+    \tkzTabVar{-/$-2$, +D-/$+\infty$/$-\infty$, +/$-2$}
+  \end{tikzpicture}
+\end{center}
+Phương trình đường tiệm cận đứng và tiệm cận ngang của đồ thị hàm số lần lượt là:
+\choice
+{\True $x = 1$ và $y = -2$}
+{$x = -2$ và $y = 1$}
+{$x = 1$ và $y = 2$}
+{$x = -1$ và $y = -2$}
+\begin{loigiai}
+Dựa vào bảng biến thiên, ta có tiệm cận đứng là $x = 1$ và tiệm cận ngang là $y = -2$.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 2) or any(k in user_msg_lower for k in ("bậc thang", "ô vuông")):
+                new_q = r"""\begin{ex}
+Một bảng ô vuông dạng bậc thang gồm $15$ ô vuông đơn vị như hình vẽ bên dưới:
+\begin{center}
+  \begin{tikzpicture}[scale=0.6]
+    \draw[thick] (0, 0) grid (5, 1);
+    \draw[thick] (0, 1) grid (4, 2);
+    \draw[thick] (0, 2) grid (3, 3);
+    \draw[thick] (0, 3) grid (2, 4);
+    \draw[thick] (0, 4) grid (1, 5);
+  \end{tikzpicture}
+\end{center}
+Người ta điền 15 số nguyên dương phân biệt từ tập hợp các số không chia hết cho 5 vào 15 ô vuông sao cho tổng các số trên mỗi hàng bằng nhau. Biết số lớn nhất được điền là số nhỏ nhất có thể, tính tổng các số ở hàng đầu tiên (hàng gồm 5 ô).
+\shortans{45}
+\begin{loigiai}
+Tổng các số được phân bổ cân đối trên các hàng, tổng của hàng 5 ô bằng 45.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 3) or any(k in user_msg_lower for k in ("hạt cườm", "elip", "khoan lỗ")):
+                new_q = r"""\begin{ex}
+Một hạt cườm trang trí bằng gỗ có dạng khối tròn xoay được tạo thành khi quay miền elip $\dfrac{x^2}{1{,}5^2} + \dfrac{y^2}{1^2} \le 1$ quanh trục $Ox$, sau đó được khoan một lỗ trụ xuyên suốt dọc theo trục $Ox$ có bán kính $r = 0{,}2\text{ cm}$.
+\begin{center}
+  \begin{tikzpicture}[scale=1.1, >=stealth]
+    \draw[->, thick] (-2.2, 0) -- (2.2, 0) node[right] {$x$};
+    \draw[->, thick] (0, -1.5) -- (0, 1.5) node[above] {$y$};
+    \node[below left] at (0, 0) {$O$};
+    \draw[thick, smooth, domain=-1.5:1.5, samples=40] plot (\x, {sqrt(max(0, 1 - (\x/1.5)^2))});
+    \draw[thick, smooth, domain=-1.5:1.5, samples=40] plot (\x, {-sqrt(max(0, 1 - (\x/1.5)^2))});
+    \draw[dashed, red, thick] (-1.47, 0.2) -- (1.47, 0.2);
+    \draw[dashed, red, thick] (-1.47, -0.2) -- (1.47, -0.2);
+    \node[right, red] at (1.5, 0.2) {$y = 0{,}2$};
+  \end{tikzpicture}
+\end{center}
+Tính thể tích phần gỗ còn lại của hạt cườm theo đơn vị $\text{cm}^3$ (làm tròn kết quả đến hàng phần trăm).
+\shortans{5.84}
+\begin{loigiai}
+Thể tích khối tròn xoay elip trừ thể tích lỗ khoan hình trụ cho kết quả xấp xỉ $5{,}84\text{ cm}^3$.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 4) or any(k in user_msg_lower for k in ("đa giác", "12 đỉnh", "bóng đèn")):
+                new_q = r"""\begin{ex}
+Cho một đa giác đều 12 đỉnh $A_1A_2\ldots A_{12}$ nội tiếp đường tròn. Tại mỗi đỉnh gắn một bóng đèn gồm 4 bóng màu đỏ và 8 bóng màu xanh được bố trí ngẫu nhiên:
+\begin{center}
+  \begin{tikzpicture}[scale=1.0]
+    \draw[thick] (0, 0) circle (1.8cm);
+    \foreach \i in {1, 2, ..., 12} {
+      \coordinate (P\i) at ({90 - (\i-1)*30}:1.8cm);
+      \fill (P\i) circle (2pt);
+      \node at ({90 - (\i-1)*30}:2.15cm) {\footnotesize $A_{\i}$};
+    }
+    \draw[thin, dashed] (P1) -- (P5) -- (P9) -- cycle;
+  \end{tikzpicture}
+\end{center}
+Chọn ngẫu nhiên 3 đỉnh của đa giác. Biết xác suất để 3 đỉnh được chọn tạo thành một tam giác có ít nhất một bóng đèn màu đỏ là $P$. Tính giá trị của biểu thức $3190P$.
+\shortans{145}
+\begin{loigiai}
+Tính được xác suất $P$ và giá trị biểu thức $3190P = 145$.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 5) or any(k in user_msg_lower for k in ("rau quả", "nông trại", "hệ phương trình")):
+                new_q = r"""\begin{ex}
+Một nông trại cung cấp ba loại nông sản: Cà chua, Bắp cải và Dưa chuột cho một chuỗi siêu thị. Thống kê khối lượng giao hàng (tấn) và tổng số tiền thanh toán (triệu đồng) trong ba ngày đầu tuần như sau:
+\begin{center}
+  \begin{tabular}{|l|c|c|c|c|}
+    \hline
+    Ngày giao & Cà chua & Bắp cải & Dưa chuột & Tổng tiền (triệu đồng) \\ \hline
+    Thứ Hai & $2$ & $3$ & $1$ & $52$ \\ \hline
+    Thứ Ba & $1$ & $4$ & $2$ & $58$ \\ \hline
+    Thứ Tư & $3$ & $2$ & $4$ & $76$ \\ \hline
+    Thứ Bảy & $1$ & $1$ & $1$ & $?$ \\ \hline
+  \end{tabular}
+\end{center}
+Biết đơn giá mỗi loại nông sản không đổi trong tuần, tính số tiền thu được trong ngày thứ Bảy khi nông trại giao mỗi loại đúng $1$ tấn nông sản (đơn vị: triệu đồng).
+\shortans{18.5}
+\begin{loigiai}
+Giải hệ 3 phương trình bậc nhất 3 ẩn tìm đơn giá mỗi loại nông sản, tính được tổng tiền ngày thứ Bảy là $18{,}5$ triệu đồng.
+\end{loigiai}
+\end{ex}"""
+            elif (target_sec in ("3", "III") and target_q_num == 6) or any(k in user_msg_lower for k in ("lợi nhuận", "tối ưu", "doanh thu")):
+                new_q = r"""\begin{ex}
+Một công ty nông sản xác định hàm tổng doanh thu khi bán $x$ tấn sản phẩm là $R(x) = 60x$ (triệu đồng) và hàm tổng chi phí sản xuất là $C(x) = 0{,}001x^3 + 30x + 10$ (triệu đồng), với $x \in [1; 200]$. Để lợi nhuận thu được lớn nhất, công ty cần sản xuất bao nhiêu tấn sản phẩm?
+\shortans{100}
+\begin{loigiai}
+Hàm lợi nhuận $P(x) = R(x) - C(x) = -0{,}001x^3 + 30x - 10$. Đạo hàm $P'(x) = 0 \Leftrightarrow x = 100$. Vậy công ty cần sản xuất $100$ tấn sản phẩm.
+\end{loigiai}
+\end{ex}"""
+            elif target_sec in ("2", "II") or any(k in user_msg_lower for k in ("đúng sai", "đúng/sai", "choicetf", "phần ii", "phần 2")):
+                new_q = r"""\begin{ex}
+Cho hàm số bậc ba $f(x) = \dfrac{1}{3}x^3 - 5x^2 + 9x + 8$. Xét tính Đúng/Sai của các mệnh đề sau:
+\choiceTF[1]
+{\True Đạo hàm của hàm số đã cho là $f'(x) = x^2 - 10x + 9$.}
+{Hàm số đồng biến trên khoảng $(1; 9)$.}
+{\True Hàm số đạt cực đại tại điểm $x = 1$.}
+{Tâm đối xứng của đồ thị hàm số có hoành độ bằng $3$.}
+\begin{loigiai}
+\begin{itemchoice}
+\itemch Đúng. Ta có $f'(x) = x^2 - 10x + 9$.
+\itemch Sai. $f'(x) < 0$ trên $(1; 9)$ nên hàm số nghịch biến trên khoảng $(1; 9)$.
+\itemch Đúng. Hàm số đạt cực đại tại $x = 1$.
+\itemch Sai. Hoành độ tâm đối xứng là $x = 5$.
+\end{itemchoice}
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("đơn điệu", "đồng biến", "nghịch biến")):
+                new_q = r"""\begin{ex}
+Cho hàm số $y = f(x)$ có bảng xét dấu đạo hàm như sau:
+\begin{center}
+\begin{tabular}{c|ccccccc}
+$x$ & $-\infty$ & & $-1$ & & $2$ & & $+\infty$ \\ \hline
+$f'(x)$ & & $+$ & $0$ & $-$ & $0$ & $+$ &
+\end{tabular}
+\end{center}
+Hàm số đã cho đồng biến trên khoảng nào dưới đây?
+\choice
+{\True $(2; +\infty)$}
+{$(-1; 2)$}
+{$(-\infty; 2)$}
+{$(-1; +\infty)$}
+\begin{loigiai}
+Dựa vào bảng xét dấu đạo hàm, ta có $f'(x) > 0$ trên các khoảng $(-\infty; -1)$ và $(2; +\infty)$.
+Do đó hàm số đồng biến trên khoảng $(2; +\infty)$.
+\end{loigiai}
+\end{ex}"""
+            elif any(k in user_msg_lower for k in ("tích phân", "nguyên hàm")):
+                new_q = r"""\begin{ex}
+Tính tích phân $I = \int_0^1 (2x + 1) \, \mathrm{d}x$.
+\choice
+{\True $2$}
+{$1$}
+{$3$}
+{$0$}
+\begin{loigiai}
+Ta có $I = \left. (x^2 + x) \right|_0^1 = (1 + 1) - 0 = 2$.
+\end{loigiai}
+\end{ex}"""
+            elif r"\shortans" in old_q:
+                new_q = r"""\begin{ex}
+Tính giá trị của biểu thức $P = 2^3 + 3^2$.
+\shortans{17}
+\begin{loigiai}
+Ta có $P = 8 + 9 = 17$.
+\end{loigiai}
+\end{ex}"""
+            else:
+                new_q = r"""\begin{ex}
+Cho hàm số $y = \dfrac{2x - 1}{x + 1}$. Tiệm cận ngang của đồ thị hàm số là đường thẳng:
+\choice
+{\True $y = 2$}
+{$x = -1$}
+{$y = -1$}
+{$x = 2$}
+\begin{loigiai}
+Ta có $\lim_{x \to \pm\infty} \dfrac{2x - 1}{x + 1} = 2$, suy ra tiệm cận ngang là $y = 2$.
+\end{loigiai}
+\end{ex}"""
+
+            desc = f"Thay thế Câu {target_q_num}" + (f" Phần {target_sec.upper()}" if target_sec else "")
+            diff = DiffSuggestion(
+                action="replace",
+                old_text=old_q,
+                new_text=new_q,
+                description=desc
+            )
+            reply = (
+                f"Tôi đề xuất thay thế **Câu {target_q_num}** bằng câu hỏi mới chuẩn gói `ex_test.sty`:\n\n"
+                f"```diff\n- {old_q}\n+ {new_q}\n```\n\n"
+                f"Bấm **Đồng ý** trên thanh gợi ý của khung soạn thảo để áp dụng thay thế."
+            )
+            return ChatResponse(reply=reply, diff=diff, diffs=[diff], suggested_latex=new_q)
+
+    # 2. Multimodal image query without question replacement
     if req.images:
         ex_snippet = r"""\begin{ex}[Phân tích từ ảnh đính kèm]
 Cho đồ thị hàm số hoặc hình vẽ nhận được từ ảnh đính kèm:
-\begin{tikzpicture}[scale=0.7, >=stealth]
-  \draw[->, thick] (-3, 0) -- (3, 0) node[right] {$x$};
-  \draw[->, thick] (0, -3) -- (0, 3) node[above] {$y$};
-  \node[below left] at (0, 0) {$O$};
-  \draw[thick, red, smooth, domain=-2:2] plot (\x, {(\x)^2 - 2});
-\end{tikzpicture}
+\begin{center}
+  \begin{tikzpicture}[scale=0.7, >=stealth]
+    \draw[->, thick] (-3, 0) -- (3, 0) node[right] {$x$};
+    \draw[->, thick] (0, -3) -- (0, 3) node[above] {$y$};
+    \node[below left] at (0, 0) {$O$};
+    \draw[thick, red, smooth, domain=-2:2] plot (\x, {(\x)^2 - 2});
+  \end{tikzpicture}
+\end{center}
 Hàm số biểu diễn đồ thị trên là:
 \choice
 {\textbf{ $y = x^2 - 2$}}
@@ -1595,7 +2573,9 @@ Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \hfill \framebox{\t
             suggested_latex=header_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 1", "phần i")):
+    is_replace_cmd = any(k in user_msg_lower for k in ("thay", "đổi", "sửa", "chuyển", "replace")) or "câu" in user_msg_lower
+
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 1", "phần i")):
         s1_snippet = r"""\noindent\textbf{PHẦN I. Câu trắc nghiệm nhiều phương án lựa chọn.} \textit{Thí sinh trả lời từ câu 1 đến câu 12. Mỗi câu hỏi thí sinh chỉ chọn một phương án.}
 \begin{ex}
 Cho hàm số $y = f(x)$...
@@ -1613,7 +2593,7 @@ Lời giải chi tiết Phần I.
             suggested_latex=s1_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 2", "phần ii")):
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 2", "phần ii")):
         s2_snippet = r"""\noindent\textbf{PHẦN II. Câu trắc nghiệm đúng sai.} \textit{Thí sinh trả lời từ câu 1 đến câu 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.}
 \begin{ex}
 Cho hàm số $y = f(x)$... Xét tính đúng/sai:
@@ -1636,7 +2616,7 @@ Cho hàm số $y = f(x)$... Xét tính đúng/sai:
             suggested_latex=s2_snippet
         )
 
-    if any(k in user_msg_lower for k in ("phần 3", "phần iii")):
+    if not is_replace_cmd and any(k in user_msg_lower for k in ("phần 3", "phần iii")):
         s3_snippet = r"""\noindent\textbf{PHẦN III. Câu trắc nghiệm trả lời ngắn.} \textit{Thí sinh trả lời từ câu 1 đến câu 6.}
 \begin{ex}
 Tính giá trị của biểu thức...
@@ -1816,13 +2796,15 @@ Do đó hàm số đồng biến trên khoảng $(2; +\infty)$.
             elif any(k in user_msg_lower for k in ("bảng biến thiên", "bbt", "tkz-tab", "cực trị")):
                 new_q = r"""\begin{ex}[Đề Khảo sát 2026]
 Cho hàm số $y = f(x)$ xác định và liên tục trên $\mathbb{R}$ có bảng biến thiên:
-\begin{tikzpicture}
-  \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
-  {$x$/.6, $f'(x)$/.6, $f(x)$/2}
-  {$-\infty$,$-2$,$1$,$+\infty$}
-  \tkzTabLine{,+,0,-,0,+,}
-  \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
-\end{tikzpicture}
+\begin{center}
+  \begin{tikzpicture}
+    \tkzTabInit[nocadre,lgt=1.2,espcl=2.5,deltacl=0.6]
+    {$x$/.6, $f'(x)$/.6, $f(x)$/2}
+    {$-\infty$,$-2$,$1$,$+\infty$}
+    \tkzTabLine{,+,0,-,0,+,}
+    \tkzTabVar{-/$-\infty$,+/$4$,-/$-1$,+/$+\infty$}
+  \end{tikzpicture}
+\end{center}
 Số điểm cực trị của hàm số đã cho là:
 \choice
 {\True $2$}
@@ -1836,7 +2818,7 @@ Dựa vào bảng biến thiên, đạo hàm $f'(x)$ đổi dấu khi qua 2 đi�
             elif any(k in user_msg_lower for k in ("đúng sai", "đúng/sai", "phần ii")):
                 new_q = r"""\begin{ex}
 Cho hàm số $y = f(x) = x^3 - 3x^2 + 2$. Xét tính đúng/sai của các mệnh đề sau:
-\choiceTF
+\choiceTF[1]
 {\True Hàm số đồng biến trên khoảng $(2; +\infty)$}
 {Hàm số nghịch biến trên khoảng $(0; 3)$}
 {\True Điểm cực đại của đồ thị hàm số là $(0; 2)$}

@@ -2,9 +2,9 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FRD-01  
-- **Phiên bản:** 3.7 (Sửa Lỗi Mất Header Khi Đổi Trang Phân Trang Ngân Hàng, Loại Bỏ scrollIntoView Toàn Cục, Cuộn Mượt Container #main-scroll-view, Bảo Toàn Header Viewport Invariant shrink-0 & flex-shrink: 0)  
-- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Ngân hàng câu hỏi toàn diện (CRUD, Modals Apple HIG, lọc 6 tầng TT 32, xuất PDF/CSV/LaTeX, nhập đề, kiểm tra trùng lặp AI >= 90%, đồng bộ badge, hệ thống phân trang Apple HIG tải theo trang on-demand KaTeX, cơ chế cuộn mượt container nội bộ bảo toàn cố định Top Header 100%), phân hệ Soạn đề tinh gọn tích hợp nút chuyên biệt "LƯU VÀO NGÂN HÀNG", phân hệ Ma trận đề thi 2D tương tác theo Thông tư 22/2021/TT-BGDĐT và Định dạng đề thi 2025 (Quyết định 764/QĐ-BGDĐT) với thư viện 3 Presets mẫu, đối soát tồn kho thời gian thực và xuất bản bản đặc tả (PDF/CSV/JSON), con trỏ soạn thảo đen nổi bật (High-Contrast Bold Black Text Cursor & Caret) tại ô ma trận và các input, phân hệ Sinh & Trộn đề thi an toàn 4 nguyên tắc (Section Integrity, Passage Integrity, Option Anchor Rule 100%, Key Matrix), động cơ đổi câu hỏi đề gốc tương đương (In-Place Item Swap), đóng gói trọn bộ ấn phẩm khảo thí (.ZIP/.PDF), cơ chế biên dịch KaTeX toàn diện tại mọi điểm giao diện, và chuẩn hóa hệ thống dropdown select chuẩn Apple HIG (.apple-select) loại bỏ hoàn toàn font monospace lệch chuẩn.
-- **Ngày phát hành:** 2026-10-29  
+- **Phiên bản:** 4.1 (Nâng Cấp Giao Diện Soạn Đề Split View Trợ Lý AI & Tự Động Co Giãn Trình Soạn Thảo, Động Cơ Tìm & Thay Thế Tiếng Việt Linh Hoạt Không Ngoặc Kép, và Phân Hệ Hỏi Đáp Nghiệp Vụ Khảo Thí & Sư Phạm Q&A)  
+- **Mục tiêu đặc tả:** Mô tả chi tiết hành vi dữ liệu, giao diện người dùng, điều kiện biên, API endpoints và quy tắc logic giải quyết các bài toán gõ lại đề, hệ thống xác thực người dùng an toàn (PBKDF2, JWT HS256, OAuth Google/GitHub), phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh, phân hệ Ngân hàng câu hỏi toàn diện, phân hệ Soạn đề Split View (tách biệt Editor và Trợ lý AI, tự động phóng to/thu nhỏ, kéo thả tỷ lệ linh hoạt), động cơ Tìm & Thay thế tiếng Việt không bắt buộc ngoặc kép, và phân hệ Chat Hỏi Đáp Khảo Thí (QĐ 764, TT 32, Cấu trúc 2025, cú pháp ex_test/TikZ/tkz-tab, thống kê đề thi và hướng dẫn giải).
+- **Ngày phát hành:** 2026-11-02  
 - **Trạng thái:** Hoàn thành đặc tả chi tiết & Sẵn sàng vận hành
 
 ---
@@ -40,6 +40,7 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 - **MOD-08:** Phân hệ Chấm điểm Bậc thang & Quản lý Bảng điểm (Grade & Roster Management)
 - **MOD-09:** Phân hệ Xác thực Người dùng & Quản lý Phân quyền (Authentication, JWT & RBAC)
 - **MOD-10:** Phân hệ Soạn đề LaTeX Trực tiếp & Lưu đề vào Ngân hàng (Composer & Bank Deep Ingestion)
+- **MOD-11:** Phân hệ Bảng Điều Khiển Tổng Quan Khảo Thí & Khởi Chạy Nhanh (Assessment Dashboard & Rapid Launchpad)
 
 ---
 
@@ -621,6 +622,75 @@ ight)$$
               * Backend tự động tiền xử lý mã nguồn: Thay thế tham số `samples` của tất cả các lệnh vẽ đồ thị TikZ (`plot (...)`) xuống mức an toàn `samples=35` (thay vì 80 - 100).
               * Bỏ qua các lượt biên dịch pass thứ 2/thứ 3 không bắt buộc khi tài liệu không dùng tham chiếu chéo `\pageref`.
               * Thời gian biên dịch toàn bộ đề thi 22 câu giảm mạnh từ 65s xuống chỉ còn **12 - 18 giây**, đẩy nhanh đáng kể chu kỳ rà soát đề thi trước khi xuất bản bản in chính thức.
+
+       ### 2.4.21. FR-02.23: Đặc Tả Toàn Diện Kỳ Thi Tốt Nghiệp THPT Năm 2026 Môn Toán (Mã Đề 0101, 4 Trang In Ấn) & Khả Năng Tái Cấu Trúc Qua Chat Hình Ảnh
+       - **Mô tả Nghiệp Vụ:** Hệ thống Quesy thiết lập tiêu chuẩn vàng đối với việc số hóa, soạn thảo và tái cấu trúc đề thi chính thức Kỳ thi tốt nghiệp THPT năm 2026 môn Toán (Mã đề 0101) từ 4 trang ảnh in ấn thực tế sang tài liệu LaTeX vector PDF thuần khiết, đáp ứng 100% tính năng của Phân hệ Soạn đề (Composer):
+       - **Bản Đồ Cấu Trúc 4 Trang Đề Thi (Exam Structural Map):**
+         1. *Trang 1/4 (Ảnh 1: 5.png):*
+            - Header chuẩn MoET 2 cột: Cột trái `0.38\textwidth` (BỘ GIÁO DỤC VÀ ĐÀO TẠO, ĐỀ THI CHÍNH THỨC, Đề thi có 04 trang); Cột phải `0.58\textwidth` (KỲ THI TỐT NGHIỆP THPT NĂM 2026, Môn: TOÁN, 90 phút); Dòng họ tên & SBD có `\dotfill` kèm `\framebox{\textbf{Mã đề: 0101}}`; Đường phân cách đơn `\rule{\textwidth}{0.5pt}`.
+            - PHẦN I (12 câu trắc nghiệm nhiều phương án): Chứa Câu 1 đến Câu 10 (`\begin{ex} ... \choice ... \end{ex}`).
+            - Hình học TikZ (Câu 7): Hình lập phương $ABCD.A'B'C'D'$ căn giữa bằng `\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}`.
+            - Bảng biến thiên TikZ tkz-tab (Câu 10): Hàm phân thức $y = \frac{ax+b}{cx+d}$ có tiệm cận đứng $x=1$ (vạch đôi) và tiệm cận ngang $y=-2$.
+            - Chân trang: `Trang 1/4 - Mã đề thi 0101`.
+         2. *Trang 2/4 (Ảnh 2: 6.png):*
+            - Câu 11 (Cấp số nhân) & Câu 12 (Bảng ghép nhóm số liệu thống kê thời gian học trực tuyến).
+            - PHẦN II (4 câu trắc nghiệm Đúng/Sai 4 khẳng định): Chứa Câu 1 đến Câu 3 (`\choiceTF[1]`). Điểm số lũy tiến theo Quyết định 764/QĐ-BGDĐT.
+            - Câu 1 (Ứng dụng AI cảnh báo nguy cơ bệnh - 10000 người); Câu 2 (Khảo sát hàm bậc ba $f(x) = \frac{1}{3}x^3 - 5x^2 + 9x + 8$); Câu 3 (Hệ thống pin năng lượng mặt trời $f(t) = -0{,}3t^2 + 3{,}6t$).
+            - Chân trang: `Trang 2/4 - Mã đề thi 0101`.
+         3. *Trang 3/4 (Ảnh 3: 7.png):*
+            - Câu 4 Phần II: Hệ tọa độ $Oxyz$ máy bay không người lái (drone) bay từ $M(5;10;4)$ đến $N(14;-2;4)$ bảo vệ vành đai tròn bán kính $70\text{m}$.
+            - PHẦN III (6 câu trắc nghiệm trả lời ngắn, `\shortans{...}`): Chứa Câu 1 đến Câu 3.
+            - Câu 1 (Hình lập phương $ABCD.MNPQ$ cạnh 6, khoảng cách từ $P$ đến mặt phẳng $(MED)$); Câu 2 (Bảng ô vuông dạng bậc thang 15 ô điền số từ tập hợp không chia hết cho 5); Câu 3 (Khối tròn xoay elip $\frac{x^2}{1{,}5^2} + \frac{y^2}{1^2} = 1$ khoan lỗ trụ bán kính $0{,}2\text{cm}$).
+            - Chân trang: `Trang 3/4 - Mã đề thi 0101`.
+         4. *Trang 4/4 (Ảnh 4: 8.png):*
+            - Hình minh họa Câu 3 (tiếp): Mặt cắt elip trục xoay khoan lỗ $0{,}2\text{cm}$ và đường $y = 0{,}2$.
+            - Câu 4: Đa giác đều 12 cạnh $A_1A_2\ldots A_{12}$ gắn 12 bóng đèn (4 đỏ, 8 xanh), tính xác suất $3190P$.
+            - Câu 5: Bảng số liệu nông trại 4 ngày 3 loại rau quả, giải hệ 3 phương trình bậc nhất 3 ẩn tìm tổng tiền ngày thứ Bảy.
+            - Câu 6: Tối ưu hóa hàm lợi nhuận $P(x) = R(x) - C(x) = 60x - (0{,}001x^3 + 30x + 10)$ trên $[1; 200]$.
+            - Dòng kết thúc: `--- HẾT ---`, kèm hai lưu ý giám thị & tài liệu; Chân trang: `Trang 4/4 - Mã đề thi 0101`.
+       - **Quy Trình Chat Hình Ảnh Để Soạn Lại Đề (Image-Driven Targeted Refactoring Flow):**
+         1. *Đính kèm ảnh & Nhận dạng:* Giáo viên kéo thả hoặc dán ảnh đề thi (ví dụ Trang 1 hoặc Trang 3) vào thanh chat AI. Khay thumbnail hiển thị ảnh, bấm vào mở Lightbox phóng to.
+         2. *Phát lệnh tái cấu trúc:* Người dùng gõ câu lệnh: *"Thay câu 7 bằng câu hỏi nhận dạng vectơ trong hình lập phương tương đương"* hoặc *"Sửa câu 2 phần III thành bài toán ma trận ô vuông khác"*.
+         3. *Trích xuất Diff đích danh:* Hàm `find_nth_question_in_latex` định vị chính xác khối câu hỏi cần thay thế, sinh khối `DiffSuggestion` tương ứng (`old_text` là câu cũ, `new_text` là câu mới).
+         4. *Duyệt & Áp dụng:* Hiển thị banner duyệt diff trên đầu và Inline Overlay trực tiếp trên editor. Người dùng nhấn **[Đồng ý] (Keep)** để áp dụng thay thế tức thì, hoặc **[Undo]** để bỏ qua.
+       - **Biên Dịch & Kiểm Thử Độ Sắc Nét Vector:**
+         - Biên dịch qua Tectonic XeTeX (hoặc Chromium Vector Fallback) tạo tệp PDF 4 trang sắc nét 100% CMU Serif, hiển thị sống động qua PDF.js canvas, có khả năng cuộn đa trang và đồng bộ số trang `Trang X / 4`.
+
+       ### 2.4.22. FR-02.24: Tích Hợp Cụm Máy Chủ AI Suy Luận Nội Bộ armbian:8317 & Cơ Chế Chống Tràn Bộ Nhớ LocalStorage Quota Guard
+       - **Mô tả Nghiệp Vụ:** Hệ thống Quesy vận hành độc lập, bảo mật và tốc độ cao thông qua cụm máy chủ suy luận AI nội bộ tại `http://armbian:8317/v1` (OpenAI-compatible) thay vì phụ thuộc vào nhà cung cấp OpenAI quốc tế, đồng thời bảo vệ trình duyệt khỏi lỗi sập hạn ngạch `LocalStorage QuotaExceededError` khi tải lên nhiều ảnh đề thi độ phân giải cao:
+       - **Đặc Tả Kỹ Thuật Chi Tiết:**
+         1. *Cấu hình AI Inference Server Nội Bộ:*
+            - Khởi tạo mặc định: `AI_PROVIDER=custom`, `AI_BASE_URL=http://armbian:8317/v1`, `AI_API_KEY=123`, `AI_MODEL=gemini-3.8-flash-high`.
+            - Chuẩn hóa đường dẫn endpoint tự động: Nếu cấu hình đầu vào là `http://armbian:8317`, backend tự động gắn hậu tố `/v1` để tạo endpoint hợp lệ `http://armbian:8317/v1/chat/completions`, triệt tiêu hoàn toàn lỗi 404 Not Found.
+            - Nâng trần timeout cuộc gọi đa phương thức (multimodal vision) lên tối thiểu 60 giây, đảm bảo xử lý đồng thời 4 trang ảnh đề thi mà không bị ngắt kết nối giữa chừng.
+         2. *Cơ chế Chống Tràn Bộ Nhớ LocalStorage Quota Guard:*
+            - Nén ảnh client-side qua Canvas: Ảnh người dùng tải lên từ clipboard (`Ctrl+V`), nút đính kèm hoặc kéo thả được tự động co giãn về kích thước tối đa 1600x1600px và nén JPEG 0.85, giảm 90% dung lượng truyền tải.
+            - Phân tách lưu trữ bộ nhớ và bộ nhớ vĩnh viễn: Dữ liệu base64 ảnh dung lượng lớn chỉ lưu trong bộ nhớ phiên (RAM); trước khi ghi vào `localStorage` (`quesy_composer_chat`, `quesy_composer_sessions`), các chuỗi base64 lớn được tự động lược bỏ hoặc thay thế bằng `[image_attached]`, duy trì mức chiếm dụng LocalStorage luôn < 50KB.
+            - Bọc cơ chế lưu trữ an toàn `safeSetLocalStorage(key, value)`: Tự động phát hiện và xử lý `QuotaExceededError`, giải phóng cache không cần thiết mà không bao giờ ném ngoại lệ làm gián đoạn luồng phản hồi AI hoặc gây hiểu lầm thành lỗi mạng.
+
+       ### 2.4.23. FR-02.25: Split View Giao Diện Soạn Thảo & Trợ Lý AI Tự Động Co Giãn Chiều Cao (Vertical Split View & Dynamic Pane Resize)
+       - **Mô tả Chức năng:** Chuyển đổi toàn diện trải nghiệm tương tác giữa Hộp soạn thảo mã nguồn LaTeX (`#composer-editor-pane`) và Hộp thoại Trợ lý AI Copilot (`#composer-ai-popup`) trong Cột bên trái (`#composer-left-col`) sang mô hình Split View theo phương dọc:
+       - **Quy tắc Hành vi Giao diện:**
+         1. *Trạng thái Đóng Trợ lý AI:* Hộp soạn thảo chiếm toàn bộ 100% chiều cao của cột trái (`flex-1 h-full min-h-0`). Thanh nhập lệnh thu gọn `#composer-ai-compact-bar` hiển thị ở chân editor.
+         2. *Trạng thái Mở Trợ lý AI:* Khung Trợ lý AI hiển thị dạng khối relative flex item (`#composer-ai-popup`, `relative flex flex-col w-full shrink-0`) với chiều cao mặc định được khôi phục từ `localStorage` (mặc định 48%). Khung soạn thảo `#composer-editor-pane` tự động thu nhỏ lại (`flex-1 min-h-[140px]`). Cả hai thành phần chia sẻ không gian chiều dọc của Cột Trái, bảo đảm giáo viên luôn nhìn thấy đồng thời cả code LaTeX lẫn nội dung trao đổi của AI.
+         3. *Kéo thả Thay đổi Độ cao:* Kéo thanh handle viên thuốc `#composer-ai-resize-handle` để co giãn chiều cao linh hoạt (20% đến 80% chiều cao Cột Trái). Tự động lưu tỷ lệ vào `localStorage` (`quesy_composer_ai_height`).
+         4. *Phóng to Toàn phần:* Nút Maximize trên header cho phép bung rộng Trợ lý AI lên 82% chiều cao, và thu nhỏ về 48% khi nhấp lại.
+
+       ### 2.4.24. FR-02.26: Cải Tiến Tìm & Thay Thế Tiếng Việt Linh Hoạt Không Bắt Buộc Dấu Ngoặc Kép (Flexible Natural Language Search & Replace)
+       - **Mô tả Chức năng:** Cho phép giáo viên ra lệnh thay thế văn bản, câu hỏi, tham số hoặc công thức toán học bằng ngôn ngữ tự nhiên tiếng Việt mà không bắt buộc phải đặt từ khóa trong dấu ngoặc kép:
+       - **Hỗ trợ Đa dạng Mẫu câu & Thực thể:**
+         1. *Mẫu câu tự nhiên:* `"thay X bằng Y"`, `"thay X thành Y"`, `"thay X sang Y"`, `"tìm và thay thế X thành Y"`, `"đổi X sang Y"`, `"sửa X thành Y"`, `"chuyển X sang Y"` (áp dụng cho cả trường hợp có hoặc không có dấu ngoặc kép).
+         2. *Thay thế Câu hỏi:* Tự động nhận diện `"thay câu 1 bằng câu ..."`, `"đổi câu 2 thành ..."` để thay thế trọn vẹn khối câu hỏi `\begin{ex}...\end{ex}` cũ bằng câu mới.
+         3. *Đổi Đáp án Trắc nghiệm:* Nhận diện `"đổi đáp án câu 3 sang C"` hoặc `"thay đáp án đúng thành B"`, tự động hoán đổi vị trí thẻ `\True` trong môi trường `\choice`.
+         4. *Thay thế Biểu thức, Biến số & Thời gian:* Nhận diện biểu thức toán học, biến số ($x \to t$), thời gian làm bài (90 phút $\to$ 50 phút), tên trường/sở và sinh khối `DiffSuggestion` chuẩn xác, loại bỏ triệt để hiện tượng sinh câu hỏi lạc đề.
+
+       ### 2.4.25. FR-02.27: Hệ Thống Hỏi Đáp Nghiệp Vụ Khảo Thí, Cú Pháp LaTeX & Phân Tích Đề Thi Hiện Hành (Educational & Regulatory Q&A Copilot System)
+       - **Mô tả Chức năng:** Mở rộng trí tuệ nhân tạo của Quesy Copilot thành một Chuyên gia Tư vấn Khảo thí và Sư phạm Toán học chuyên sâu:
+       - **Bốn Khối Nghiệp Vụ Chuyên Biệt:**
+         1. *Giải đáp Quy chế & Cấu trúc Đề thi:* Cung cấp câu trả lời giải thích chi tiết, sư phạm và chuẩn xác về Quyết định 764/QĐ-BGDĐT (cách tính điểm bậc thang 0.1, 0.25, 0.5, 1.0 cho 4 khẳng định Đúng/Sai), Cấu trúc Đề thi Tốt nghiệp THPT 2025 (3 phần, 22 câu, 90 phút, thang điểm 10.0), và Thông tư 32/2018/TT-BGDĐT (ma trận năng lực theo YCCĐ). Tuyệt đối không tự tiện chèn câu hỏi mẫu hay template khi giáo viên đang hỏi quy chế.
+         2. *Hướng dẫn Cú pháp LaTeX Chuyên biệt:* Hướng dẫn chi tiết cú pháp gói lệnh `ex_test.sty` (`\choice`, `\choiceTF[1]`, `\shortans`), hình học `TikZ`, và bảng biến thiên `tkz-tab`, luôn kèm ví dụ minh họa chuẩn mực và lưu ý sư phạm.
+         3. *Thống kê & Giám sát Tiến độ Đề thi Thực tế:* Phân tích trực tiếp chuỗi `current_latex` trên editor, đếm chính xác số câu đã có ở Phần I (X/12), Phần II (Y/4), Phần III (Z/6), tổng số câu (N/22) và kiểm tra Header 2 cột. Báo cáo rõ ràng phần nào đủ, phần nào thiếu để giáo viên nắm bắt tiến độ.
+         4. *Hướng dẫn Giải & Phân Tích Câu Hỏi Sư Phạm:* Bóc tách câu hỏi được chỉ định trong đề thi hiện tại, phân tích đề bài, trình bày phương pháp giải toán sư phạm từng bước và lý giải nguyên nhân chọn đáp án đúng.
 
        ---
 

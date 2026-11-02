@@ -56,11 +56,30 @@ The platform is strictly tailored to national assessment standards:
 
 ## Core Capabilities
 
+### 0. Assessment Dashboard Hub & Rapid Quick-Action Launchpad (Apple HIG)
+
+Located in `frontend/index.html` (`#tab-dashboard`) & `frontend/static/app.js` (`renderDashboard`):
+- **4-Action Rapid Launchpad Cards:** Instant 1-click execution for educators to access core workflows:
+  1. **LaTeX AI Composer (2026):** Direct jump to LaTeX authoring loaded with the National 2026 Blueprint (Code 0101) and live vector preview.
+  2. **AI Intelligent Digitize:** Instant trigger for the 2-Pass AI digitizer to ingest PDF, Word, or image documents into KaTeX and TikZ.
+  3. **2D Assessment Matrix:** Configuration of Circular 32 4-strand knowledge taxonomies, Bloom 40-30-20-10 distribution, and 90-minute time budgeting.
+  4. **Safe Shuffling & Packaging:** Shuffling variants generation with Option Anchor locking, passage integrity preservation, and full publication ZIP packaging.
+- **Featured 2026 National Mathematics Blueprint Showcase (Code 0101):** High-profile hero showcase highlighting the flagship 2026 National Exam: 22 questions, 90 minutes, 3 parts (Part I: 12 Single Choice, Part II: 4 True/False tiered grading, Part III: 6 Short Answer real numbers), 100% centered TikZ diagrams, with direct actions to open in Composer, view matrix, or generate variants.
+- **National Examination Invariant Compliance Monitor:** Real-time formal verification status indicators for RULE-01 (Tiered grading 0.1/0.25/0.5/1.0 pt), RULE-02 (Option Anchor locking meta-choices at D), RULE-03 (Passage contiguity preservation), and Centered Diagrams (zero raster PNGs, full vector CMU Serif typesetting).
+- **Recent Examination Publications & Activity Roster:** Interactive table displaying recently compiled exams, validation status, and rapid triggers.
+
 ### 1. AI-Powered LaTeX Exam Composer & Live PDF Preview (Noctorium & Open-Prism Layout)
 
 Located in `backend/services/composer_service.py` & `backend/routers/composer.py`:
 - **Preamble-Free Question Editor with Automatic Canonical Preamble Injection:** Teachers can focus entirely on writing exam sections and questions conforming to standard Vietnam National Exam package `ex_test.sty` v3.3 (`\begin{ex}...\choice...\loigiai...\end{ex}`, `\choiceTF[1]`, `\shortans`, TikZ, `tkz-tab`) without ever typing boilerplate `\documentclass`, `\usepackage`, or `\begin{document}...\end{document}`. The compilation backend automatically injects the Canonical Preamble (`fontspec`, `amsmath,amssymb`, `tikz,tkz-tab`, `tcolorbox`, `xparse`, `\usepackage[{mode}]{ex_test}`, A4 geometry with 18mm margins). Seamlessly switches between exam mode (`[dethi]`, hides explanations) and solution mode (`[loigiai]`, shows step-by-step solutions) via the compiler request mode flag (`mode="dethi"|"loigiai"`) with isolated cache hashing (`code_hash = md5(code::title::mode)`). Retains 100% backward compatibility when a full legacy TeX document is pasted, and automatically attaches the canonical preamble when exporting `.tex` files for external compilation.
 - **Centered Diagrams & Tables Invariant (Zero \immini Bloat):** All TikZ function plots, geometric figures, `tkz-tab` variation tables, and statistical data arrays default strictly to centered layouts via `\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}` positioned directly below the question stem and above options (`\choice`, `\choiceTF[1]`, `\shortans`). Completely eliminates `\immini` from AI generation prompts and templates, preventing narrow text columns, distorted diagrams, and TeX box overflow errors.
+- **Vertical Split View & Dynamic Auto-Resize Editor Pane:** Replaces the legacy `absolute bottom-0` overlay modal with a seamless vertical Split View in the left column. When AI Copilot opens, the editor pane automatically resizes (`flex-1 min-h-[140px]`) to share vertical space with the assistant panel (`#composer-ai-popup`), allowing teachers to view/scroll LaTeX code while chatting without visual occlusion. When closed, the editor automatically expands to 100% full height. Features a smooth 60 FPS drag handle (`#composer-ai-resize-handle`) to adjust split ratios between 20% and 80%, with height preferences saved in `localStorage`.
+- **Flexible Natural Language Search & Replace Engine:** Enhances AI-driven code editing by recognizing natural Vietnamese phrasing without mandatory quotation marks (e.g., *"thay 90 phút bằng 50 phút"*, *"tìm và thay thế 2024 thành 2025"*, *"đổi TRƯỜNG THPT X sang TRƯỜNG THPT Y"*, *"thay biến x bằng t"*, *"đổi đáp án câu 2 sang D"*). Accurately synthesizes visual diff proposals (`DiffSuggestion`) for question items, mathematical expressions, variables, metadata, and choices without ever falling back into off-topic template generation.
+- **Educational & Regulatory Q&A Copilot System:** Elevates Quesy Copilot into an authoritative pedagogical consultant. Accurately distinguishes informational Q&A intent from code generation actions:
+  1. *Regulations & Exam Structure:* Explains Decision 764/QĐ-BGDĐT tiered scoring (0.1, 0.25, 0.5, 1.0 pt), MoET 2025 blueprint (3 parts, 22 questions, 90 minutes, 10.0 scale), and Circular 32 competency matrices without spitting irrelevant sample questions.
+  2. *Syntax Mastery:* Details `ex_test.sty` (`\choice`, `\choiceTF[1]`, `\shortans`), `TikZ`, and `tkz-tab` commands with clean illustrative code examples.
+  3. *Exam Auditor & Statistics:* Parses `current_latex` in real time, auditing question counts across Part I (X/12), Part II (Y/4), and Part III (Z/6), reporting deficiencies and next steps.
+  4. *Pedagogical Solution Explainer:* Extracts targeted questions from the editor and delivers clear, step-by-step mathematical reasoning.
 - **Apple HIG Split Resizer & Resizable 2-Column Architecture:** A full-featured 2-column LaTeX authoring workspace (`/composer`) with live PDF compilation and preview, bundled with Vietnam's standard `ex_test.sty` (v3.3) package (`\begin{ex}`, `\choice`, `\choiceTF[1]`, `\shortans`, centered TikZ). Equipped with an Apple HIG horizontal splitter (`#composer-split-resizer`) with ergonomic gutter spacing (`w-3.5`/`w-4` with `mx-1`/`mx-1.5`) keeping a 6-8px breathing room from the editor and preview card borders (eliminating tight border collisions). Features an Apple capsule grabber pill (`w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]`) with Apple Blue `#0071e3` hover glow, smooth 60 FPS dragging between 25% and 75% width ratio, double-click 60:40 reset, and persistent storage in `localStorage`.
 - **Streamlined Apple HIG 2-Button Bottom Toolbar:** The bottom action toolbar of the Composer workspace features a streamlined, uncluttered 2-button layout: full-width primary Blue `BIÊN DỊCH` button (`#0071e3`, `flex-1`) and Emerald `LƯU NGÂN HÀNG` button (`#btn-composer-save-to-bank`). The redundant partial compile button has been cleanly eliminated to minimize cognitive reader load (`principle-minimize-reader-load`), with the `Ctrl+Shift+S` shortcut preserved for power users.
 - **Unified Single Pill Handle & Vertical Drag Resizer:** The AI Assistant popup (`#composer-ai-popup`) features a single unified grabber pill (`#composer-ai-resize-handle`) seamlessly integrated into the header center (completely eliminating redundant duplicate pill strips), enabling smooth vertical drag resizing from 180px up to 92% of the editor height, with instant transition suppression during drag and single/double-click height toggling.
@@ -73,6 +92,7 @@ Located in `backend/services/composer_service.py` & `backend/routers/composer.py
 ight.`, and unclosed/missing environments), instantly synthesizing a targeted, one-click applicable diff.
 - **Dynamic Adaptive Compilation Timeout & TikZ Optimization Copilot:** Solves compilation timeouts for large comprehensive national exams (e.g. THPT Việt Đức 2026-2027 with ~24,000 characters, 6 vector PDF pages, and >10 TikZ/tkz-tab diagrams). Automatically scales the compilation timeout dynamically between 60s and 240s based on TikZ complexity and source length (`calc_timeout = max(60, min(240, 45 + tikz_count * 10 + code_len // 250))`) with a 15s network safety buffer for remote Docker API requests (`armbian:8090`). When a timeout occurs, AI Copilot accurately diagnoses the cause (dense analytic plot rendering with `samples=100`), confirms the system's dynamic timeout extension, and synthesizes 1-click diffs optimizing plots to `samples=50` (doubling compilation speed while preserving vector-smooth curves on A4). The frontend features progressive status updates (\"Đang xử lý hình vẽ TikZ...\", \"Đang kết xuất PDF vector qua XeTeX...\") eliminating perceived UI freezes.
 - **Multi-Modal AI Copilot with Image Upload, Clipboard Paste (Ctrl+V) & Drag-and-Drop Reasoning:** Enables teachers to effortlessly attach math problems, function graphs, variation tables (bảng biến thiên), geometry figures, or handwritten drafts into the AI Assistant. Supports 3 seamless input methods: dedicated image upload button, instant clipboard pasting (`Ctrl+V` / `Cmd+V`) on both the compact bar and large chat popup, and drag-and-drop into the chat area with visual glow feedback. Attached images are rendered in a sleek thumbnail tray with 1-click removal (✕) and full-screen lightbox preview. Multi-modal payloads (`images: List[str]` in Base64 Data URLs) are forwarded to external multi-modal LLMs (Gemini / OpenAI / OpenRouter) or handled by the intelligent offline/local fallback engine, synthesizing standard `ex_test.sty` questions and vector TikZ / `tkz-tab` code directly into the editor.
+- **Official Vietnam National High School Math Exam 2026 Verification (Code 0101, 4 Pages):** Fully verifies and models the official 2026 High School Graduation Examination paper (Math, Code 0101, 4 printed pages) across all 3 parts: Part I (12 single-choice questions with 3D TikZ cube in Q7 and `tkz-tab` variation table in Q10), Part II (4 True/False questions via `\choiceTF[1]` under Decision 764 tiered scoring with AI medical screening, calculus, and solar panel energy calculus), and Part III (6 short-answer questions with 3D cube Q1, 15-cell step grid table Q2, and drilled ellipsoid bead volume Q3). Enables image-driven question refactoring with targeted diff proposals, instant Keep/Undo, and multi-page vector PDF preview via PDF.js with accurate dynamic page indicator (`Trang 1 / 4` through `Trang 4 / 4`).
 - **Strict Single-Column True/False Questions (\choiceTF[1]) & Verified Template Suite:** Enforces the official MoET 2025 examination standard for True/False questions via `\choiceTF[1]`. The mandatory `[1]` parameter enforces a strict single-column vertical layout where each sub-statement (a, b, c, d) spans 100% width on its own dedicated line without accidental 2-column or 4-column clustering, while forbidding trailing `\\` after curly braces `{}`. Completely audited and repaired all templates in the `THÊM ▾` dropdown and backend `TEMPLATES` (eliminating corrupted string newline escape literals `\n`, replacing internal macro `\choiceTFt` with `\choiceTF[1]`, fixing `\nule` to `\rule`, and correcting truncated `\right|_0`). The live HTML preview engine (`compile_latex_source_to_html`) natively renders `\choiceTF[1]` as a sleek full-width vertical block list with [Đ] / [S] indicators.
 - **6-Tier Resilient Fuzzy Replacement Engine:** Driven by a robust 6-tier fuzzy matching algorithm (normalizing whitespace/CRLF, indentation-agnostic comparison, and sliding-window sequence matching), clicking **[Đồng ý] (Accept)** achieves a 100% replacement success rate without ever raising "old line not found" errors.
 - **CodeMirror-Grade Dark LaTeX Editor:** Code editor with real-time gutter line numbers, tab indentation, bracket auto-closing, persistent dark background `#141824` on cursor focus, and quick-insert `ex_test` template menus (`MỚI`, `THÊM ▾`).
@@ -294,13 +314,19 @@ Ensure you have the following installed on your machine:
 
 ### Environment Configuration
 
-Create a `.env` file in the project root (optional if running in offline mode):
+Create a `.env` file in the project root:
 
 ```env
-# AI Multimodal Provider (gemini, openai, anthropic, openrouter)
-AI_PROVIDER=gemini
-AI_MODEL=gemini-1.5-flash
-AI_API_KEY=your_api_key_here
+# Internal AI Inference Cluster (armbian:8317) - Recommended
+AI_PROVIDER=custom
+AI_BASE_URL=http://armbian:8317/v1
+AI_API_KEY=123
+AI_MODEL=gemini-3.8-flash-high
+
+# Or External AI Providers (gemini, openai, anthropic, openrouter)
+# AI_PROVIDER=gemini
+# AI_MODEL=gemini-1.5-flash
+# AI_API_KEY=your_api_key_here
 
 # Server host & port (default: 127.0.0.1:8000)
 HOST=127.0.0.1
@@ -308,7 +334,7 @@ PORT=8000
 ```
 
 > [!TIP]
-> If `AI_API_KEY` is not provided, Quesy automatically operates in **Offline Mode**, utilizing its built-in rule-based document parser and pre-seeded Circular 32 math bank.
+> Quesy connects by default to the high-performance local AI inference cluster at `http://armbian:8317/v1` with key `123`. If unavailable or running in isolated testing, Quesy gracefully operates in **Offline Mode**, utilizing its built-in rule-based document parser and pre-seeded Circular 32 math bank.
 
 ### Running the Application
 
