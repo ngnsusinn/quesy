@@ -668,3 +668,15 @@
 - [x] 100% test suites E2E và giao diện vượt qua kiểm thử (`pytest tests/test_e2e_*.py`).
 **Verification:** `pytest tests/test_e2e_dashboard_launchpad.py tests/test_e2e_friendly_item_bank.py tests/test_e2e_matrix_and_shuffler_headers.py tests/test_e2e_workflow.py`
 **Dependencies:** None | **Files:** `frontend/index.html`, `frontend/static/app.js`, `frontend/manifest.json` | **Scope:** S (3 files)
+
+### Task DOC-01: [x] [DONE] Tái Thiết Toàn Diện Tài Liệu README.md
+**Description:** Xóa bỏ toàn bộ nội dung cũ và viết lại tài liệu README.md từ đầu theo nguyên tắc chuẩn mực kỹ thuật (karpathy-guidelines, doc-coauthoring, poteto-mode), cập nhật đầy đủ toàn bộ phân hệ (Dashboard Hub, LaTeX Composer, 2-Pass AI Digitizer, Ma trận đề, Trộn đề an toàn, Xuất bản thuần Vector PDF & ZIP, Ngân hàng câu hỏi phân trang Apple HIG, Bảo mật xác thực), thông số 289 test cases, 8028 trạng thái kiểm định hình thức Z3 SMT, và phần Tóm tắt điều hành tiếng Việt chuyên sâu cho giáo viên.
+**Acceptance criteria:**
+- [x] Viết lại README.md hoàn chỉnh, rõ ràng, không từ ngữ sáo rỗng.
+- [x] Bảng so sánh Problem & Architectural Solution Matrix trực quan.
+- [x] Hướng dẫn khởi chạy, môi trường và cấu hình chi tiết.
+- [x] Cập nhật số liệu kiểm thử thực tế 289/289 passing tests và 8028 formal invariants.
+- [x] Tóm tắt dự án tiếng Việt chi tiết cho công tác khảo thí và sư phạm.
+**Verification:** Kiểm tra cấu trúc Markdown và các liên kết trong README.md.
+**Dependencies:** None | **Files:** `README.md` | **Scope:** S (1 file)
+

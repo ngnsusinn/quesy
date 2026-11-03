@@ -1,440 +1,129 @@
-# Quesy: AI-Powered National Assessment & Mathematical Publishing Platform
+# Quesy — AI Exam Management & Mathematical Publishing Platform
 
-> **An enterprise-grade assessment platform, AI digitization pipeline, and high-fidelity mathematical publishing engine built strictly for Vietnam's Ministry of Education and Training (MoET) Circular 32/2018/TT-BGDĐT and Decision 764/QĐ-BGDĐT examination standards.**
+> **An enterprise-grade assessment platform, 2-Pass AI digitization pipeline, and high-fidelity mathematical publishing engine for modern examination standards.**
 
 [![CI Test Suite](https://github.com/ngnsusinn/quesy/actions/workflows/ci.yml/badge.svg)](https://github.com/ngnsusinn/quesy/actions)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10%20--%203.14-blue?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI%20%2B%20SQLAlchemy-009688?logo=fastapi&logoColor=white)
-![Node.js](https://img.shields.io/badge/Engine-Node.js%2020%20%2B%20MathJax%203-339933?logo=node.js&logoColor=white)
-![Frontend](https://img.shields.io/badge/Frontend-Apple%20HIG%20%2B%20TailwindCSS%20%2B%20KaTeX-000000?logo=apple&logoColor=white)
-![Pytest](https://img.shields.io/badge/Tests-125%2F125%20Passing-brightgreen?logo=pytest&logoColor=white)
-![Standard](https://img.shields.io/badge/Standard-Circular%2032%20%26%20Decision%20764-orange)
+![Frontend](https://img.shields.io/badge/Frontend-Vanilla%20SPA%20%2B%20Apple%20HIG-000000?logo=apple&logoColor=white)
+![Pytest](https://img.shields.io/badge/Tests-289%2F289%20Passing-brightgreen?logo=pytest&logoColor=white)
+![Formal Invariants](https://img.shields.io/badge/Invariants-8028%20Verified%20(Z3%20SMT)-blueviolet)
 
 ---
 
-> [!NOTE]
-> **Bilingual Documentation / Tài liệu Song ngữ:**  
-> This documentation is written primarily in **English** with comprehensive **Vietnamese summaries** for educators, assessment boards, and software engineers in Vietnam.  
-> *Tài liệu này được biên soạn với ngôn ngữ chính là Tiếng Anh, kèm theo các phần tóm tắt và chỉ dẫn Tiếng Việt phục vụ công tác giảng dạy, khảo thí và tích hợp hệ thống tại Việt Nam.*
+## What is Quesy?
 
----
+**Quesy** streamlines the entire examination lifecycle for educators: from digitizing paper tests and organizing question banks to designing test blueprints, shuffling variants safely, and publishing print-ready vector PDFs.
 
-## Table of Contents
-
-- [Overview](#overview)
-- [Why Quesy? Problem & Solution Matrix](#why-quesy-problem--solution-matrix)
-- [Core Capabilities](#core-capabilities)
-- [System Architecture](#system-architecture)
-- [Getting Started](#getting-started)
-- [Automated Verification & CI/CD Pipeline](#automated-verification--cicd-pipeline)
-- [Vietnamese Executive Summary (Tóm Tắt Dự Án)](#vietnamese-executive-summary-tóm-tắt-dự-án)
-
----
-
-## Overview
-
-**Quesy** is a high-performance assessment management, AI digitization, and mathematical publishing platform. It eliminates hours of manual exam retyping, automates question item classification, compiles mathematical diagrams into native vector graphics, and produces publication-ready examination papers in **pure LaTeX vector PDF** (via **Tectonic XeTeX Engine** and **ReportLab**).
-
-The platform is strictly tailored to national assessment standards:
-- **Circular 32/2018/TT-BGDĐT:** 6-tier competency-based knowledge taxonomy mapped to Learning Outcomes (Yêu cầu cần đạt - YCCĐ) and Problem Archetypes, strictly independent of commercial textbook series.
-- **Decision 764/QĐ-BGDĐT (Format 2025):** Automated progressive tiered scoring for multi-statement True/False items (0.1 pt for 1 correct, 0.25 pt for 2, 0.5 pt for 3, and 1.0 pt for all 4).
-
----
-
-## Why Quesy? Problem & Solution Matrix
-
-| # | Real-World Examination Pain Point | Quesy Architectural Solution |
-|:---:|:---|:---|
-| **1** | **Exhausting Manual Retyping:** Teachers spend 1.5–2 hours retyping an exam from scanned PDFs, photos, or legacy files; formulas lose formatting and special symbols corrupt during copy-pasting. | **Multimodal AI OCR & LaTeX Decoder:** Ingests scanned PDFs, smartphone photos, and files in seconds, directly converting mathematical equations into standardized KaTeX/LaTeX. |
-| **2** | **Corrupted or Downscaled Formulas:** Exporting exams often shrinks in-text fractions to illegible script sizes, drops brackets, or renders fuzzy raster PNG images that cannot be printed sharply. | **Pure Vector PDF Publishing Engine:** Generates print-ready vector PDFs with 100% full-size `\dfrac` typography via **Computer Modern Unicode (CMU Serif)** and high-fidelity XeTeX font metrics. |
-| **3** | **Rasterized & Blurred Geometry/Plots:** Standard OCR tools either skip coordinate plots entirely or insert low-res raster images with distorted asymptotes and blown-out aspect ratios. | **Vector TikZ/PGFPlots Engine:** Compiles geometry and function plots directly from LaTeX source code into vector SVGs with automatic bounding-box clipping (**zero raster PNGs** in PDF output). |
-| **4** | **Broken Question Logic during Shuffling:** Traditional exam shufflers blindly randomize choices, causing options like *"Both A and B are correct"* to appear at position A, or splitting reading passages from sub-questions. | **Safe Shuffling Engine:** Enforces **Option Anchoring** (keeps meta-choices fixed at choice D), **Passage Integrity**, **Section Integrity**, and generates cross-variant answer keys automatically. |
-| **5** | **Error-Prone Tiered Grading:** Hand-grading 4-statement True/False questions with progressive weights (0.1, 0.25, 0.5, 1.0) leads to frequent human error and grading disputes. | **Automated Grading & Classroom Roster:** Instantly scores submissions according to official decision logic, provides score distribution analytics, and supports UTF-8 BOM Excel/CSV rosters. |
-| **6** | **Black-Box Errors & Formatting Inconsistencies:** Complex tables and multi-column exams frequently suffer from overlapping lines and black blocks when printed. | **Native LaTeX 2-Column Typesetting:** Built-in two-column typesetting with `ex_test.sty` v3.3, automatic table borders, and zero-defect PDF vector rendering. |
+- **No Retyping:** Ingest scanned PDFs or smartphone photos; AI converts formulas to KaTeX/LaTeX and diagrams into native TikZ code.
+- **Preamble-Free LaTeX Authoring:** Edit questions using standard `ex_test.sty` syntax (`\begin{ex}`, `\choice`, `\choiceTF[1]`, `\shortans`). Canonical preambles, fonts, and packages are injected automatically.
+- **Mathematical Invariant Shuffling:** Guaranteed option anchoring (meta-choices stay at D), passage contiguity, and progressive tiered scoring (0.1, 0.25, 0.5, 1.0 pt).
+- **Pure Vector PDF Output:** 100% full-size `\dfrac` typography via Computer Modern Unicode (CMU Serif) and zero raster PNG degradation.
 
 ---
 
 ## Core Capabilities
 
-### 0. Assessment Dashboard Hub & Rapid Quick-Action Launchpad (Apple HIG)
-
-Located in `frontend/index.html` (`#tab-dashboard`) & `frontend/static/app.js` (`renderDashboard`):
-- **4-Action Rapid Launchpad Cards:** Instant 1-click execution for educators to access core workflows:
-  1. **LaTeX AI Composer (2026):** Direct jump to LaTeX authoring loaded with the National 2026 Blueprint (Code 0101) and live vector preview.
-  2. **AI Intelligent Digitize:** Instant trigger for the 2-Pass AI digitizer to ingest PDF, Word, or image documents into KaTeX and TikZ.
-  3. **2D Assessment Matrix:** Configuration of Circular 32 4-strand knowledge taxonomies, Bloom 40-30-20-10 distribution, and 90-minute time budgeting.
-  4. **Safe Shuffling & Packaging:** Shuffling variants generation with Option Anchor locking, passage integrity preservation, and full publication ZIP packaging.
-- **Featured 2026 National Mathematics Blueprint Showcase (Code 0101):** High-profile hero showcase highlighting the flagship 2026 National Exam: 22 questions, 90 minutes, 3 parts (Part I: 12 Single Choice, Part II: 4 True/False tiered grading, Part III: 6 Short Answer real numbers), 100% centered TikZ diagrams, with direct actions to open in Composer, view matrix, or generate variants.
-- **National Examination Invariant Compliance Monitor:** Real-time formal verification status indicators for RULE-01 (Tiered grading 0.1/0.25/0.5/1.0 pt), RULE-02 (Option Anchor locking meta-choices at D), RULE-03 (Passage contiguity preservation), and Centered Diagrams (zero raster PNGs, full vector CMU Serif typesetting).
-- **Recent Examination Publications & Activity Roster:** Interactive table displaying recently compiled exams, validation status, and rapid triggers.
-
-### 1. AI-Powered LaTeX Exam Composer & Live PDF Preview (Noctorium & Open-Prism Layout)
-
-Located in `backend/services/composer_service.py` & `backend/routers/composer.py`:
-- **Preamble-Free Question Editor with Automatic Canonical Preamble Injection:** Teachers can focus entirely on writing exam sections and questions conforming to standard Vietnam National Exam package `ex_test.sty` v3.3 (`\begin{ex}...\choice...\loigiai...\end{ex}`, `\choiceTF[1]`, `\shortans`, TikZ, `tkz-tab`) without ever typing boilerplate `\documentclass`, `\usepackage`, or `\begin{document}...\end{document}`. The compilation backend automatically injects the Canonical Preamble (`fontspec`, `amsmath,amssymb`, `tikz,tkz-tab`, `tcolorbox`, `xparse`, `\usepackage[{mode}]{ex_test}`, A4 geometry with 18mm margins). Seamlessly switches between exam mode (`[dethi]`, hides explanations) and solution mode (`[loigiai]`, shows step-by-step solutions) via the compiler request mode flag (`mode="dethi"|"loigiai"`) with isolated cache hashing (`code_hash = md5(code::title::mode)`). Retains 100% backward compatibility when a full legacy TeX document is pasted, and automatically attaches the canonical preamble when exporting `.tex` files for external compilation.
-- **Centered Diagrams & Tables Invariant (Zero \immini Bloat):** All TikZ function plots, geometric figures, `tkz-tab` variation tables, and statistical data arrays default strictly to centered layouts via `\begin{center}\begin{tikzpicture}...\end{tikzpicture}\end{center}` positioned directly below the question stem and above options (`\choice`, `\choiceTF[1]`, `\shortans`). Completely eliminates `\immini` from AI generation prompts and templates, preventing narrow text columns, distorted diagrams, and TeX box overflow errors.
-- **Vertical Split View & Dynamic Auto-Resize Editor Pane:** Replaces the legacy `absolute bottom-0` overlay modal with a seamless vertical Split View in the left column. When AI Copilot opens, the editor pane automatically resizes (`flex-1 min-h-[140px]`) to share vertical space with the assistant panel (`#composer-ai-popup`), allowing teachers to view/scroll LaTeX code while chatting without visual occlusion. When closed, the editor automatically expands to 100% full height. Features a smooth 60 FPS drag handle (`#composer-ai-resize-handle`) to adjust split ratios between 20% and 80%, with height preferences saved in `localStorage`.
-- **Flexible Natural Language Search & Replace Engine:** Enhances AI-driven code editing by recognizing natural Vietnamese phrasing without mandatory quotation marks (e.g., *"thay 90 phút bằng 50 phút"*, *"tìm và thay thế 2024 thành 2025"*, *"đổi TRƯỜNG THPT X sang TRƯỜNG THPT Y"*, *"thay biến x bằng t"*, *"đổi đáp án câu 2 sang D"*). Accurately synthesizes visual diff proposals (`DiffSuggestion`) for question items, mathematical expressions, variables, metadata, and choices without ever falling back into off-topic template generation.
-- **Educational & Regulatory Q&A Copilot System:** Elevates Quesy Copilot into an authoritative pedagogical consultant. Accurately distinguishes informational Q&A intent from code generation actions:
-  1. *Regulations & Exam Structure:* Explains Decision 764/QĐ-BGDĐT tiered scoring (0.1, 0.25, 0.5, 1.0 pt), MoET 2025 blueprint (3 parts, 22 questions, 90 minutes, 10.0 scale), and Circular 32 competency matrices without spitting irrelevant sample questions.
-  2. *Syntax Mastery:* Details `ex_test.sty` (`\choice`, `\choiceTF[1]`, `\shortans`), `TikZ`, and `tkz-tab` commands with clean illustrative code examples.
-  3. *Exam Auditor & Statistics:* Parses `current_latex` in real time, auditing question counts across Part I (X/12), Part II (Y/4), and Part III (Z/6), reporting deficiencies and next steps.
-  4. *Pedagogical Solution Explainer:* Extracts targeted questions from the editor and delivers clear, step-by-step mathematical reasoning.
-- **Apple HIG Split Resizer & Resizable 2-Column Architecture:** A full-featured 2-column LaTeX authoring workspace (`/composer`) with live PDF compilation and preview, bundled with Vietnam's standard `ex_test.sty` (v3.3) package (`\begin{ex}`, `\choice`, `\choiceTF[1]`, `\shortans`, centered TikZ). Equipped with an Apple HIG horizontal splitter (`#composer-split-resizer`) with ergonomic gutter spacing (`w-3.5`/`w-4` with `mx-1`/`mx-1.5`) keeping a 6-8px breathing room from the editor and preview card borders (eliminating tight border collisions). Features an Apple capsule grabber pill (`w-1 h-9 rounded-full bg-slate-300 dark:bg-[#34415e]`) with Apple Blue `#0071e3` hover glow, smooth 60 FPS dragging between 25% and 75% width ratio, double-click 60:40 reset, and persistent storage in `localStorage`.
-- **Streamlined Apple HIG 2-Button Bottom Toolbar:** The bottom action toolbar of the Composer workspace features a streamlined, uncluttered 2-button layout: full-width primary Blue `BIÊN DỊCH` button (`#0071e3`, `flex-1`) and Emerald `LƯU NGÂN HÀNG` button (`#btn-composer-save-to-bank`). The redundant partial compile button has been cleanly eliminated to minimize cognitive reader load (`principle-minimize-reader-load`), with the `Ctrl+Shift+S` shortcut preserved for power users.
-- **Unified Single Pill Handle & Vertical Drag Resizer:** The AI Assistant popup (`#composer-ai-popup`) features a single unified grabber pill (`#composer-ai-resize-handle`) seamlessly integrated into the header center (completely eliminating redundant duplicate pill strips), enabling smooth vertical drag resizing from 180px up to 92% of the editor height, with instant transition suppression during drag and single/double-click height toggling.
-- **Clean Session Lifecycle & Archived History Drawer:** Each new session opens with a clean workspace containing only the default Quesy Copilot greeting, without cluttering the chat with old conversation logs. Previous sessions are safely archived in `localStorage` (`quesy_composer_chat_sessions`) and viewable via the "Lịch sử" drawer button.
-- **Question Replacement Engine & Safe Chat Bubble Synchronization:** Enables natural language question replacement (e.g., *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*, *"Thay câu 2 bằng câu khác"*, *"Sửa câu 3"*). Features an intelligent question block parser (`find_question_block(current_latex, n)`) supporting both `ex_test.sty` (`\begin{ex} ... \end{ex}`) and classic numbering (`\textbf{Câu N.}`). Overcomes `SequenceMatcher` limitations when the replacement question topic differs completely from the original by automatically binding `old_text = question_n` and `new_text = new_question`. Enforces strict **Safe Chat Bubble Rendering**: only hides raw diffs and displays the *"Đã chuyển gợi ý sửa đổi tới ô soạn thảo mã nguồn"* badge when a diff is genuinely valid and dispatched to the editor; otherwise preserves the full code block in chat with interactive `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, and `[🔄 Áp dụng thay thế]` action buttons, preventing zero-code swallowing.
-- **Multi-Diff Review & Apply All Engine (Zero Bubble Chat Clutter):** When the AI proposes code changes, visual diff decorations (red `- old_line`, green `+ new_line`, and action buttons) are rendered exclusively on the LaTeX code editor (Inline Diff Overlay and Top Diff Banner), keeping chat bubbles clean. Fully supports multi-diff proposals (`diffs: List[DiffSuggestion]`) with a dynamic counter capsule (`1/N`), sequential stepper navigation (`[< Trước]` / `[Sau >]`), individual Keep/Undo, and a prominent **[Áp dụng tất cả] (Apply All)** button for 1-click batch application of all suggested changes.
-- **Compact Floating AI Prompt Bar with Full-Height Caret, :focus-within Apple Glow & Optimistic Reset:** A sleek glassmorphism pill bar anchored at the bottom of the editor (`#composer-ai-compact-bar`). Equipped with explicit typography tokens (`font-size: 13px; line-height: 20px; height: 24px; padding: 1px 0`) guaranteeing a crisp, 100% full-height blinking caret (`caret-color: #c084fc` Apple Purple or `#38bdf8` Sky Blue) with zero vertical clipping or swallowing. On focus/select, the bar immediately triggers `:focus-within` state with a vivid Apple purple neon border (`rgba(168, 85, 247, 0.75)`), radiating soft glow ring (`0 0 0 3.5px rgba(168, 85, 247, 0.28)`), illuminated sparkles icon, and micro-elevation. Clicking on the bar focuses the input for undisturbed typing without premature modal popups. Pressing `Enter` or clicking the round Send button triggers an instant optimistic dispatch with synchronous dual-input wipe ($\le 0\text{ms}$) preventing stale text retention.
-- **National Exam 2025 Centered Header (0.38/0.58), textbf/textit Sections & Dynamic Question Counter:** Built-in official Ministry of Education & Training (MoET) exam structure templates. Features a balanced 2-column `minipage` header (0.38\textwidth left column / 0.58\textwidth right column with `\centering` on both sides), student info metadata line with `\dotfill` and framed exam code `\framebox{\textbf{Mã đề: 0102}}` flanked exclusively by a single bottom rule `\rule{\textwidth}{0.5pt}` (top rule eliminated), alongside standardized sections styled with `\noindent\textbf{PHẦN ...}` and `\textit{...}` (Part I: Multiple choice; Part II: True/False under Decision 764; Part III: Short answer). Powered by an automated two-tier question synchronization engine (`sync_section_question_counts` in backend and `syncSectionQuestionCounts` in frontend) that dynamically counts questions (\begin{ex}, \begin{bt}, \textbf{Câu ...}) and updates instruction headers ("từ câu 1 đến câu {count}") in real time during typing, compiling, and exporting. Instantly insertable from categorized `THÊM ▾` toolbar menus, compact bar Quick Action popover shortcuts, or natural language prompts via AI Copilot. Compilation engine natively renders `minipage` (38%/58%), `\centering`, `\rule`, `\dotfill`, and `\framebox` in both Tectonic XeTeX and Chromium Vector engines.
-- **AI Copilot with Compile Error Forwarding, Line-Offset Diagnostics & Syntax Repair:** Automatically captures the latest XeTeX/Tectonic compiler error log (`compile_error`) whenever compilation fails and forwards it into the AI Copilot context upon sending \"fix lỗi\", \"sửa lỗi\", or clicking the [SỬA LỖI] quick action. Features a smart preamble line-offset mapping algorithm (`L_user = L_comp - 11` for preamble-free documents) that accurately pinpoints the exact offending line in the user's editor. Diagnoses 5 canonical TeX error categories (`There's no line here to end` caused by trailing `\\\\`, `Undefined control sequence` such as `\\ule` / `\\choiceTFt` / `\\night|`, `Missing $ inserted`, `Missing 
-ight.`, and unclosed/missing environments), instantly synthesizing a targeted, one-click applicable diff.
-- **Dynamic Adaptive Compilation Timeout & TikZ Optimization Copilot:** Solves compilation timeouts for large comprehensive national exams (e.g. THPT Việt Đức 2026-2027 with ~24,000 characters, 6 vector PDF pages, and >10 TikZ/tkz-tab diagrams). Automatically scales the compilation timeout dynamically between 60s and 240s based on TikZ complexity and source length (`calc_timeout = max(60, min(240, 45 + tikz_count * 10 + code_len // 250))`) with a 15s network safety buffer for remote Docker API requests (`armbian:8090`). When a timeout occurs, AI Copilot accurately diagnoses the cause (dense analytic plot rendering with `samples=100`), confirms the system's dynamic timeout extension, and synthesizes 1-click diffs optimizing plots to `samples=50` (doubling compilation speed while preserving vector-smooth curves on A4). The frontend features progressive status updates (\"Đang xử lý hình vẽ TikZ...\", \"Đang kết xuất PDF vector qua XeTeX...\") eliminating perceived UI freezes.
-- **Multi-Modal AI Copilot with Image Upload, Clipboard Paste (Ctrl+V) & Drag-and-Drop Reasoning:** Enables teachers to effortlessly attach math problems, function graphs, variation tables (bảng biến thiên), geometry figures, or handwritten drafts into the AI Assistant. Supports 3 seamless input methods: dedicated image upload button, instant clipboard pasting (`Ctrl+V` / `Cmd+V`) on both the compact bar and large chat popup, and drag-and-drop into the chat area with visual glow feedback. Attached images are rendered in a sleek thumbnail tray with 1-click removal (✕) and full-screen lightbox preview. Multi-modal payloads (`images: List[str]` in Base64 Data URLs) are forwarded to external multi-modal LLMs (Gemini / OpenAI / OpenRouter) or handled by the intelligent offline/local fallback engine, synthesizing standard `ex_test.sty` questions and vector TikZ / `tkz-tab` code directly into the editor.
-- **Official Vietnam National High School Math Exam 2026 Verification (Code 0101, 4 Pages):** Fully verifies and models the official 2026 High School Graduation Examination paper (Math, Code 0101, 4 printed pages) across all 3 parts: Part I (12 single-choice questions with 3D TikZ cube in Q7 and `tkz-tab` variation table in Q10), Part II (4 True/False questions via `\choiceTF[1]` under Decision 764 tiered scoring with AI medical screening, calculus, and solar panel energy calculus), and Part III (6 short-answer questions with 3D cube Q1, 15-cell step grid table Q2, and drilled ellipsoid bead volume Q3). Enables image-driven question refactoring with targeted diff proposals, instant Keep/Undo, and multi-page vector PDF preview via PDF.js with accurate dynamic page indicator (`Trang 1 / 4` through `Trang 4 / 4`).
-- **Strict Single-Column True/False Questions (\choiceTF[1]) & Verified Template Suite:** Enforces the official MoET 2025 examination standard for True/False questions via `\choiceTF[1]`. The mandatory `[1]` parameter enforces a strict single-column vertical layout where each sub-statement (a, b, c, d) spans 100% width on its own dedicated line without accidental 2-column or 4-column clustering, while forbidding trailing `\\` after curly braces `{}`. Completely audited and repaired all templates in the `THÊM ▾` dropdown and backend `TEMPLATES` (eliminating corrupted string newline escape literals `\n`, replacing internal macro `\choiceTFt` with `\choiceTF[1]`, fixing `\nule` to `\rule`, and correcting truncated `\right|_0`). The live HTML preview engine (`compile_latex_source_to_html`) natively renders `\choiceTF[1]` as a sleek full-width vertical block list with [Đ] / [S] indicators.
-- **6-Tier Resilient Fuzzy Replacement Engine:** Driven by a robust 6-tier fuzzy matching algorithm (normalizing whitespace/CRLF, indentation-agnostic comparison, and sliding-window sequence matching), clicking **[Đồng ý] (Accept)** achieves a 100% replacement success rate without ever raising "old line not found" errors.
-- **CodeMirror-Grade Dark LaTeX Editor:** Code editor with real-time gutter line numbers, tab indentation, bracket auto-closing, persistent dark background `#141824` on cursor focus, and quick-insert `ex_test` template menus (`MỚI`, `THÊM ▾`).
-- **Live PDF Preview, Auto Fit-to-Width & Smart Zoom-to-Point Engine:** Debounced instant compilation via remote Tectonic XeTeX engine (or local fallback), displaying vector-crisp 100% CMU Serif PDFs. Features dynamic auto fit-to-width (`fitToWidth`) on column resize/splitter drag, safe horizontal scrolling (`overflow-x-auto`) preventing right-margin truncation, and adaptive zoom-to-point (Cursor Anchor under mouse pointer and Viewport Center Anchor on button clicks), eliminating jarring jumps to (0, 0).
-- **Local Persistence & 1-Click Question Bank Export:** Automatically saves drafts, column split ratio, and assistant height to `localStorage` across page reloads (F5) and enables 1-click question extraction directly into the central Question Bank.
-
-### 2. Pure LaTeX Vector PDF Publishing
-
-Located in `backend/services/latex_pdf_exporter.py`:
-- **Authentic LaTeX Typography:** Adopts **Computer Modern Unicode (CMU Serif)** across the entire document, completely replacing office-style Times New Roman.
-- **100% Full-Size `\dfrac` Display Fractions:** Automatically promotes all fractions to `\dfrac` (`\displaystyle`), guaranteeing 100% font sizing (11pt) for numerators and denominators without in-line downscaling.
-- **Micro-Typography Spacing:** Employs persistent MathJax SVG rendering with tight horizontal padding (`padX = 15`) and auto-strips leading spaces before trailing punctuation (`.`, `,`, `;`, `:`, `!`, `?`), ensuring periods rest flush on the text baseline.
-- **Official Exam Header & Student Block:** Formats a clean 3-column student metadata table (`Name`, `Candidate ID`, `Exam Room`) on a single line, paired with standard Ministry exam banners and footers (`Page X - Exam Code Y`).
-
-### 3. Bundled Publication Package (.ZIP)
-
-Located in `backend/services/docx_exporter.py` & `backend/routers/exams.py`:
-- **Complete PDF Exam Bundle:** Packages all shuffled exam variants (`De_101.pdf`, `De_102.pdf`, etc.) with official Ministry 2-column styling, full headers, and crisp vector typography.
-- **Detailed Solution Keys:** Generates separate step-by-step solution documents (`LoiGiai_101.pdf`) including progressive Decision 764 grading criteria for True/False sections.
-- **Master Cross-Variant Answer Key:** Produces cross-variant permutation tables in both print-ready PDF and machine-readable CSV (`BangDapAn_TongHop.csv`).
-- **Standardized OMR Answer Sheet:** Automatically includes standard Vietnam MoET 2025 optical mark recognition bubble sheets (`Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`).
-
-### 4. Native TikZ/PGFPlots Vector Diagram Compilation
-
-Located in `backend/services/tikz_renderer.py`:
-- **Direct TeX-to-Vector Compilation:** Uses a dedicated `dvisvgm` pipeline to compile raw `\begin{tikzpicture}` source code into standalone vector SVGs.
-- **Zero Raster PNGs:** Diagrams are embedded as pure vector elements inside the PDF DOM, ensuring lines, asymptotes, coordinates, and labels remain crisp at 2000% zoom.
-- **Auto-Clipping for Rational Functions:** Detects extreme coordinate ranges in rational curves and injects bounding `\clip` rectangles to preserve balanced aspect ratios.
-
-### 5. Safe Shuffling Engine
-
-Located in `backend/services/shuffling_engine.py`:
-- **Option Anchoring (Rule 02):** Automatically identifies options with semantic dependencies (e.g., *"Both A and B are correct"*, *"All of the above"*, or `is_fixed = true`) and locks them strictly to Choice D across all generated variants.
-- **Passage Integrity (Rule 03):** Keeps multi-question reading stems and stimulus passages glued to their corresponding child questions.
-- **Section Integrity:** Shuffles items only within their respective format groups (Single Choice, Multi-Statement True/False, Short Answer).
-- **Master Mapping Key:** Produces an instant answer permutation matrix mapping every shuffled variant code (101, 102, 103, 104...) back to the Master Exam.
-
-### 6. National Curriculum Taxonomy & Progressive Grading
-
-- **Circular 32 Taxonomy:** 6-tier hierarchical classification:
-  $$\text{Grade} \longrightarrow \text{Subject} \longrightarrow \text{Strand} \longrightarrow \text{Topic} \longrightarrow \text{Lesson} \longrightarrow \text{YCCĐ Code} \longrightarrow \text{Problem Archetype}$$
-- **Decision 764 Progressive Scoring Logic:**
-  - 1 correct affirmation: **0.10 point**
-  - 2 correct affirmations: **0.25 point**
-  - 3 correct affirmations: **0.50 point**
-  - 4 correct affirmations: **1.00 point**
-
-### 7. Apple HIG Human-in-the-Loop Studio
-
-Located in `frontend/`:
-- **Single Page Application:** Fast client-side navigation with clean `/path` routing (`/composer`, `/bank`, `/matrix`, `/shuffler`, `/digitize`) registered on FastAPI to prevent 404s on browser reloads.
-- **Dual-Pane Side-by-Side Review:** Compares raw scanned exam pages (left pane) against parsed electronic questions (right pane) in real time.
-- **Tactile Micro-Interactions:** 0.97 active press scale feedback, clean typography, and zero clutter adhering to Apple Human Interface Guidelines.
-
-### 8. Comprehensive Question Item Bank & 6-Tier Cascade Taxonomy
-
-Located in `backend/routers/questions.py` & `frontend/static/app.js`:
-- **6-Tier Cascading Filter Bar:** Filter questions strictly according to Circular 32/2018/TT-BGDĐT: Grade $
-ightarrow$ Subject $
-ightarrow$ Strand $
-ightarrow$ Topic $
-ightarrow$ Lesson $
-ightarrow$ Learning Outcome (YCCĐ).
-- **Secondary Filters:** Filter by Problem Archetype, Cognitive Level (Recognition, Comprehension, Application, High Application), Item Format (Single Choice, True/False, Short Answer), and debounced keyword search.
-- **Full Production CRUD Operations:**
-  - **100% Persistent SQLite Storage & Zero Mock Overwrite:** Real exam questions are persistently stored in SQLite (`storage/quesy.db`, 230+ pre-seeded & user-authored items). On server restart and browser reloads (F5), the frontend directly loads full persistent data via `GET /api/v1/questions?limit=1000`. Mock data overrides on startup are eliminated, guaranteeing zero data loss.
-  - **Create Modal:** Add new questions manually supporting all 3 Decision 764 formats, live KaTeX preview, quick math symbol insertion, AI auto-tagging, and duplicate checking.
-  - **Detail View Modal:** Render equations, TikZ vector graphs, variation tables, progressive True/False barems, and item psychometrics ($p, D$).
-  - **Edit Modal:** In-place modification of stems, options, True/False statements, short answers, tolerances, and learning outcomes.
-  - **Delete Modal:** Safe deletion with cascade cleanup and immediate badge synchronization.
-- **Multi-Format Export & Ingestion:**
-  - **Export:** Export question bank to print-ready Vector PDF (A4), Excel-compatible UTF-8 BOM CSV, and standard `ex_test.sty` LaTeX source.
-  - **Import:** Batch import from LaTeX source files, JSON, or plain text with automated question parsing and AI taxonomy tagging.
-- **Real-Time Badge Sync:** Live synchronization of total question count on navigation badge (`#bank-count-badge`).
-- **Apple HIG Item Bank Pagination & On-Demand Math Rendering:** Implements slice-based pagination (`state.bankPagination = { currentPage: 1, pageSize: 12 }`) with 12/24/48 items per page, smart numeric page buttons with ellipsis, prev/next controls, and on-demand KaTeX rendering per page (<10ms). Eliminates monolithic DOM rendering freezes across 240+ questions, auto-resets to page 1 on filter changes, and smooth-scrolls to the top on page navigation.
-
-### 9. Secure User Authentication & Identity Management
-
-Located in `backend/routers/auth.py` & `backend/services/auth_service.py`:
-- **Zero-Dependency Safe Password Hashing:** PBKDF2-HMAC-SHA256 with 600,000 iterations and 32-byte salt using Python standard library (`hashlib`).
-- **Standard JWT HS256 Authentication:** 7-day token lifecycle, payload encoding user ID, email, full name, and role.
-- **Multi-Provider Social OAuth 2.0:** Integrated Google Identity and GitHub OAuth login flows.
-- **Role-Based Access Control (RBAC):** Strict permission scoping for `ADMIN`, `TEACHER`, and `STUDENT` roles.
-- **Apple HIG Auth Modal:** Segmented Login/Register modal with smooth animations, local storage token persistence (`quesy_auth_token`), and automatic Bearer authorization headers.
-
-### 10. Dedicated 1-Click Save to Bank from Exam Composer
-
-Located in `backend/routers/composer.py` (`POST /api/v1/composer/save-to-bank`):
-- **Prominent Dedicated Button:** Emerald/Blue accent `📥 LƯU VÀO NGÂN HÀNG` button positioned directly on the Composer toolbar.
-- **Multi-Format Extraction:** Automatically parses all questions from LaTeX exam code (`\begin{ex}` and `\textbf{Câu}`): Single Choice (`\choice`), True/False 4-claim (`\choiceTF[1]`), and Short Answer (`\shortans`).
-- **Diagram & Solution Preservation:** Retains TikZ geometry, `tkz-tab` variation tables, and detailed step-by-step solutions (`\begin{loigiai}`).
-- **AI Taxonomy Auto-Tagging:** Automatically detects subject, grade, and assigns official Circular 32 YCCĐ codes via `suggest_auto_tagging`.
-- **Granular Format Breakdown:** Returns total saved counts categorized by question format and immediately updates `#bank-count-badge`.
-
-### 11. Multi-Tier Hierarchical Matrix Grid, Live Inventory Checker & Sticky Footer Action Bar
-
-Located in `backend/routers/matrix.py`, `backend/services/matrix_solver.py` & `frontend/` (`/matrix`):
-- **Statutory Compliance (Circular 32, Circular 22 & Decision 764):** Configures test blueprints based on national competency standards and official 2025 examination formats.
-- **Hierarchical Column 1 (Chapter · Lesson · Problem Archetype):**
-  - Displays a clean 3-tier expandable tree structure (`Chương (Topic) -> Bài học (Lesson) -> Dạng bài tập (Problem Archetype / YCCĐ)`).
-  - **Ergonomic Tree Toolbar:** Includes **Expand All** (`Mở hết`) and **Collapse All** (`Đóng hết`) controls, **Live Archetype Search** (`Tìm kiếm dạng bài`), and **Checkbox "Dạng có câu"** (filters only archetypes with available question inventory in the bank).
-- **3 Major Column Groups &times; 4 Cognitive Tiers (NB - TH - VD - VDC):**
-  - **Part I: Single Choice 4 Options (`SINGLE_CHOICE`):** 0.25 pt / item across 4 cognitive sub-columns (`NB`, `TH`, `VD`, `VDC`).
-  - **Part II: True/False 4 Statements (`TRUE_FALSE_GROUP`):** 1.0 pt / item with progressive tiered scoring under Decision 764 across 4 cognitive sub-columns (`NB`, `TH`, `VD`, `VDC`).
-  - **Part III: Short Answer Numeric (`SHORT_ANSWER`):** 0.5 pt / item across 4 cognitive sub-columns (`NB`, `TH`, `VD`, `VDC`).
-  - **Outer Columns:** Real-time computed `Total Questions` and `Total Points` per archetype row, lesson subtotal, and chapter subtotal.
-- **Per-Cell Question Bank Inventory Checker:** Each interactive cell features an input counter paired with a live question bank stock badge (`Kho: {stock}`). Automatically toggles between green (`stock-ok`) and warning red (`stock-warn` when demand exceeds available inventory).
-- **Sticky Bottom Action Footer Bar:**
-  - Floats persistently at the bottom with backdrop-blur styling.
-  - Displays real-time breakdown of Part I, Part II, Part III item counts, grand total questions/points (balanced to 10.0 points), and a 4-color Bloom cognitive distribution bar (`NB %` - `TH %` - `VD %` - `VDC %`).
-  - Prominent **`🚀 Tạo Đề Thi Gốc & Sang Trộn Đề`** action button that immediately persists the blueprint, invokes the matrix solver, and transitions smoothly to the Shuffler tab (`/shuffler`).
-- **Multi-Format Blueprint Specification Exporter (`GET /api/v1/matrix/{id}/spec`):** Exports official test specification document in Vector PDF, Excel-compatible UTF-8 BOM CSV, and structured JSON.
-
-### 12. Safe Exam Shuffling, In-Place Item Swap & Bundled ZIP Publishing
-
-Located in `backend/routers/exams.py`, `backend/services/docx_exporter.py`, `backend/services/shuffling_engine.py` & `frontend/` (`/shuffler`):
-- **Step 1 - Master Exam, Matrix Import & In-Place Item Swap:**
-  - **Master Exam Source Toolbar:** Select existing Master Exams from the system or pick any Assessment Matrix and immediately assemble a new Master Exam via `⚡ Sinh Đề Gốc từ Ma Trận Này` or sync from current active matrix.
-  - **Full Support for All 3 Assessment Formats (Circular 32 & Decision 764):**
-    1. *Single Choice (4 choices):* Highlights correct answer, flags Option Anchor (`[Neo D]`) for fixed options.
-    2. *True/False Group (4 statements a, b, c, d):* Distinct `[ĐÚNG]` and `[SAI]` badges, displays statutory progressive grading barem (0.1đ - 0.25đ - 0.5đ - 1.0đ).
-    3. *Short Answer:* Distinct numeric answer box with Part III label.
-  - **Ergonomic In-Place Item Swap:** Replace any question with an equivalent question from the bank (same YCCĐ, cognitive tier, and format) supporting full multi-format previews.
-- **Step 2 - 4 Safe Shuffling Principles (Decision 764):**
-  1. *Section Integrity:* Shuffles items strictly within their respective format sections (Part I, Part II, Part III).
-  2. *Passage Integrity:* Preserves stimulus reading passages and dependent sub-questions as indivisible atomic blocks.
-  3. *Option Anchor Rule (100% Guaranteed):* Automatically detects position-dependent options (*\"All of the above\"*, *\"Both A and B\"*, *\"None of the above\"*) and locks them to choice D across all generated variants.
-  4. *Answer Key Matrix:* Generates a cross-variant permutation matrix comparing Master Exam and all shuffled codes (101, 102, 103, 104).
-- **Step 3 - Pure LaTeX Vector PDF & Publication Bundle (.ZIP):**
-  - **Authentic LaTeX Vector PDF Publishing via Tectonic XeTeX Engine:** Both standalone variant PDFs (`De_{code}.pdf`) and detailed step-by-step solution guides (`LoiGiai_{code}.pdf`) are compiled directly from national standard LaTeX (`ex_test.sty` v3.3, canonical 2-column minipage header 0.38/0.58, `\choice`, `\choiceTF[1]` with mandatory affirmation braces `{...}` preventing `Missing $ inserted` crashes, `\shortans`, automated `sanitize_latex_for_xetex` escaping text underscores `\_`, and `\begin{loigiai}`) via the Tectonic XeTeX Engine (`armbian:8090` / local binary with Chromium CMU Serif vector fallback) — producing 100% identical typographic quality to the Exam Composer and eliminating crude ReportLab fallbacks.
-  - Download standalone vector PDF for any variant code (`GET /api/v1/exams/{id}/export-pdf?variant_code=101`).
-  - Download bundled exam publication archive (`.ZIP`) containing `De_{code}.pdf`, `LoiGiai_{code}.pdf`, `BangDapAn_TongHop.pdf`, `BangDapAn_TongHop.csv` (UTF-8 BOM), and official `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
+| Subsystem | Key Capabilities |
+|---|---|
+| **LaTeX Exam Composer** | Preamble-free editor, Apple HIG split-view with live PDF preview, multimodal AI Copilot (clipboard image paste `Ctrl+V`, natural language search & replace, 1-click syntax repair, and diff review). |
+| **2-Pass AI Digitizer** | Pass 1: Layout segmentation, OpenCV CLAHE contrast enhancement, and WebP asset cropping.<br>Pass 2: Semantic extraction, KaTeX math normalization, native TikZ/`tkz-tab` compilation, and duplicate detection ($\ge 90\%$ cosine similarity blocked). |
+| **Assessment Matrix** | 3-tier taxonomy tree (Topic $\rightarrow$ Lesson $\rightarrow$ Archetype) $\times$ 3 exam parts $\times$ 4 Bloom cognitive tiers. Real-time question stock validation (`Kho: {stock}`). |
+| **Safe Shuffling Engine** | 4 mathematically verified rules: progressive scoring, Option Anchoring (locks dependent choices to D), passage contiguity, and automated cross-variant key matrix generation. |
+| **Vector PDF & ZIP Publishing** | Produces bundled `.ZIP` publications containing variant PDFs, step-by-step solution keys, master answer sheets (PDF & CSV UTF-8 BOM), and standard 2025 OMR bubble sheets. |
+| **Question Item Bank** | 6-tier cascading taxonomy filters, 100% persistent SQLite/PostgreSQL storage, Apple HIG pagination, on-demand KaTeX rendering (<10ms), and 1-click save from Composer. |
+| **Auth & Security** | PBKDF2-HMAC-SHA256 (600,000 iterations), JWT HS256 lifecycle, role-based access control (`ADMIN`, `TEACHER`, `STUDENT`), and Google/GitHub OAuth2. |
 
 ---
 
-## System Architecture
+## Architecture at a Glance
 
 ```
-quesy/
-├── backend/
-│   ├── config.py                  # Environment config (.env), AI tokens, paths
-│   ├── database.py                # SQLAlchemy engine & session factory
-│   ├── models.py                  # ORM Models (User, Taxonomy, Question, Exam, Matrix)
-│   ├── schemas.py                 # Strict Pydantic v2 validation contracts (Auth, Question, Composer)
-│   ├── seed_data.py               # Pre-populated Circular 32 Mathematics 12 bank & default users
-│   ├── main.py                    # FastAPI application, CORS, SPA routes
-│   ├── routers/
-│   │   ├── auth.py                # User Authentication (Register, Login, JWT, OAuth)
-│   │   ├── composer.py            # Exam Composer, Tectonic XeTeX, Save to Bank
-│   │   ├── taxonomy.py            # Circular 32 6-level taxonomy tree endpoints
-│   │   ├── questions.py           # Question Full CRUD, Export (PDF/CSV/LaTeX), Import
-│   │   ├── digitize.py            # AI Ingestion, OCR parsing & PDF export
-│   │   ├── matrix.py              # 2D Assessment blueprint specification
-│   │   └── exams.py               # MasterExam generation, shuffling & scoring
-│   └── services/
-│       ├── auth_service.py        # PBKDF2 password hashing & JWT HS256 lifecycle
-│       ├── composer_service.py    # Hybrid XeTeX compiler & LaTeX question extractor
-│       ├── ai_provider_service.py # Multimodal AI connector (Gemini, OpenAI, Claude)
-│       ├── ai_parser.py           # Document ingestion & OCR parsing pipeline
-│       ├── mathjax_service.py     # Persistent MathJax client, caching & baseline metrics
-│       ├── mathjax_worker.js      # Persistent Node.js worker (MathJax 3 + Resvg)
-│       ├── tikz_renderer.py       # TikZ/PGFPlots-to-SVG vector compiler
-│       ├── latex_converter.py     # MathType MTEF-to-LaTeX converter
-│       ├── latex_pdf_exporter.py  # Pure LaTeX PDF compiler (CMU Serif + MathJax SVG)
-│       ├── docx_exporter.py       # High-fidelity PDF & ZIP exam publishing engine
-│       ├── shuffling_engine.py    # Safe shuffling engine (Option Anchor & Integrity)
-│       └── excel_exporter.py      # UTF-8 BOM Excel/CSV score roster exporter
-├── frontend/
-│   ├── index.html                 # Apple HIG SPA UI (TailwindCSS, KaTeX, Lucide)
-│   ├── manifest.json              # Progressive Web App (PWA) manifest
-│   ├── sw.js                      # Network-first Service Worker
-│   └── static/
-│       ├── app.js                 # Frontend state machine & API client
-│       ├── style.css              # Apple HIG micro-interactions & responsive styles
-│       └── fonts/cmu-serif/       # Local Computer Modern Unicode TrueType fonts
-├── .github/
-│   └── workflows/
-│       └── ci.yml                 # Automated CI test pipeline (Python 3.13 + Node.js 20)
-├── storage/                       # Local filesystem storage
-│   ├── uploads/                   # Staged source documents & images
-│   ├── assets/                    # Cropped diagram assets (WebP)
-│   ├── tikz_cache/                # Compiled TikZ SVG cache
-│   └── exports/                   # Published PDF and ZIP exam packages
-├── tests/                         # Comprehensive Pytest test suite (56 cases)
-├── requirements.txt               # Locked Python dependencies
-├── package.json                   # Node.js dependencies for MathJax & Fonts
-└── start_server.py                # Smart server launcher with port auto-discovery
+[Browser SPA (Apple HIG)]
+        │  HTTP / JSON REST API
+        ▼
+[FastAPI Gateway (Port 8000)]
+  ├── /composer  ──► Tectonic XeTeX Service (armbian:8090) ──► Vector PDF
+  ├── /digitize  ──► OpenCV Preprocessing + Multimodal LLM  ──► KaTeX / TikZ
+  ├── /matrix    ──► Matrix Constraint Solver (Real-time stock validation)
+  ├── /exams     ──► Safe Shuffler (Option Anchor + Passage Contiguity)
+  └── /questions ──► SQLAlchemy ORM ──► SQLite / PostgreSQL (storage/quesy.db)
 ```
 
 ---
 
-## Getting Started
+## Quick Start
 
-### Prerequisites
+### 1. Prerequisites
+- **Python:** 3.10 – 3.14
+- **Node.js:** 18+ or 20+ (for MathJax vector rendering worker)
+- **Google Chrome / Chromium** (headless vector fallback)
 
-Ensure you have the following installed on your machine:
-- **Python:** Version 3.10 to 3.13
-- **Node.js:** Version 18.x or 20.x
-- **Google Chrome** or **Chromium Browser** (for headless PDF generation)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/ngnsusinn/quesy.git
-   cd quesy
-   ```
-
-2. **Install Python dependencies:**
-   ```bash
-   python -m pip install --upgrade pip
-   pip install -r requirements.txt
-   ```
-
-3. **Install Node.js dependencies:**
-   ```bash
-   npm install
-   ```
-
-### Environment Configuration
-
-Create a `.env` file in the project root:
-
-```env
-# Internal AI Inference Cluster (armbian:8317) - Recommended
-AI_PROVIDER=custom
-AI_BASE_URL=http://armbian:8317/v1
-AI_API_KEY=123
-AI_MODEL=gemini-3.8-flash-high
-
-# Or External AI Providers (gemini, openai, anthropic, openrouter)
-# AI_PROVIDER=gemini
-# AI_MODEL=gemini-1.5-flash
-# AI_API_KEY=your_api_key_here
-
-# Server host & port (default: 127.0.0.1:8000)
-HOST=127.0.0.1
-PORT=8000
-```
-
-> [!TIP]
-> Quesy connects by default to the high-performance local AI inference cluster at `http://armbian:8317/v1` with key `123`. If unavailable or running in isolated testing, Quesy gracefully operates in **Offline Mode**, utilizing its built-in rule-based document parser and pre-seeded Circular 32 math bank.
-
-### Running the Application
-
-Launch the application using the smart process runner:
-
+### 2. Setup
 ```bash
+# Clone repository
+git clone https://github.com/ngnsusinn/quesy.git
+cd quesy
+
+# Setup Python environment
+python -m venv venv
+# Windows: .\venv\Scripts\Activate.ps1 | Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+
+# Install Node.js dependencies
+npm install
+
+# Initialize environment configuration
+cp .env.example .env
+```
+
+### 3. Run Application
+```bash
+# Recommended: Smart launcher with automatic DB init, seed data, and port auto-recovery
 python start_server.py
-```
 
-The launcher automatically validates database tables, seeds Circular 32 taxonomy items, frees busy ports, and starts the API:
-- **Web Studio (Apple HIG UI):** [http://127.0.0.1:8000](http://127.0.0.1:8000)
-- **Interactive Swagger Docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **Health Check Endpoint:** [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+# Or directly with Uvicorn
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
-### Docker Deployment
-
-Deploy in production using Docker Compose:
-
-```bash
+# Or with Docker Compose
 docker-compose up --build -d
 ```
 
+- **Web Studio UI:** [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- **Swagger API Docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **Health Check:** [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+
 ---
 
-## Automated Verification & CI/CD Pipeline
+## Testing & Formal Verification
 
-Quesy maintains a strict test suite verifying business logic, API contracts, mathematical typography, and performance budgets:
+Quesy enforces strict 100% test pass rates across all modules:
 
 ```bash
-python -m pytest -v --durations=10
+# 1. Run full automated test suite (289/289 passing)
+pytest -v
+
+# 2. Run formal mathematical verification of exam invariants (Z3 SMT solver)
+python scripts/formal_verification_exam_invariants.py
+
+# 3. Run full end-to-end pipeline verification (creates genuine PDF & ZIP bundles)
+python scripts/verify_pipeline.py
 ```
-
-### Test Coverage Highlights (64/64 Tests Passing)
-
-- `test_digitize_2pass.py`: Verifies uniform page rasterization (PyMuPDF), OpenCV CLAHE contrast enhancement, precision layout diagram/table segmentation, option text sentence case normalization, parallel 2-pass AI figure stitching & safety fallback, and TikZ `tkz-tab` variation table vector compilation.
-- `test_rules_shuffling.py`: Verifies all 16 True/False permutations under progressive grading, ensures Choice D anchoring across 100 shuffling runs, and validates passage integrity.
-- `test_mathjax_service.py` & `test_math_format_export.py`: Validates MathJax vector SVG rendering, math expression cleaning, full-size `\dfrac` sizing, and baseline alignment.
-- `test_digitize_docx_export.py`: Tests digitized exam vector PDF export endpoints (`/api/v1/digitize/export-pdf`).
-- `test_performance_budgets.py`: Enforces execution latency budgets (< 200 ms for matrix solving and shuffle generation).
-
-### CI/CD Workflow & Governance (`.github/workflows/ci.yml`)
-
-Every pull request and commit to remote branches executes a multi-runtime GitHub Actions workflow on `ubuntu-latest`:
-1. Sets up Python 3.13 and Node.js 20.
-2. Installs system graphics dependencies and headless Chromium with `--no-sandbox` flags.
-3. Installs `npm` math packages and `pip` requirements.
-4. Executes the full test suite with mock AI adapters (`pytest`).
-
-> [!IMPORTANT]
-> **Quy Chuẩn CI/CD Nghiêm Ngặt & Cổng Kiểm Soát Pre-Commit (Mandatory CI Rules):**
-> 1. **Cổng Pre-Commit CI Gate (Bắt buộc Pass CI trước khi commit):** Trước khi thực hiện `git commit`, toàn bộ mã nguồn bắt buộc phải vượt qua toàn diện bài test trên môi trường CI (100% tests PASSED). Tuyệt đối cấm commit mã nguồn khi CI test chưa đạt.
-> 2. **Đồng Bộ CI Theo Mọi Thay Đổi Code (Continuous CI Synchronization):** Mỗi khi mã nguồn có cập nhật mới (dependencies mới trong `requirements.txt`/`package.json`, cấu hình font, biến môi trường, headless browser, cờ thực thi...), CI workflow bắt buộc phải được cập nhật theo ngay lập tức để triệt tiêu mọi nguy cơ gây lỗi trên môi trường runner.
-> 3. **Cô Lập CI Tuyệt Đối & Phân Định Vai Trò (Strict CI Isolation & Role Separation):**
->    - Sub-Agent đảm nhận làm CI hoàn toàn tách biệt với các sub-agents còn lại.
->    - **Mọi sub-agent khác tuyệt đối KHÔNG ĐƯỢC PHÉP truy cập và đọc CI** (`.github/workflows/`).
->    - Chỉ duy nhất Sub-Agent đảm nhận làm CI mới có quyền truy cập, đọc, viết, tối ưu hóa và chỉnh sửa cấu hình CI/CD.
->    - Sub-Agent CI có toàn quyền đọc và tiếp nhận thông tin từ các sub-agents khác (specs, code diffs, dependencies, test cases, bug reports) để chủ động đồng bộ hóa CI.
-> 4. **Vòng Lặp Sửa Lỗi CI (CI Fix-and-Test Loop):** Nếu CI test không pass:
->    `CI Fail` → `Sửa lỗi mã nguồn / Cập nhật test & CI` → `Chạy lại test CI` → `Lặp lại quy trình` cho đến khi **PASS 100% CI MỚI ĐƯỢC PHÉP COMMIT**.
-> 5. **Quy Tắc Quản Trị Git, Pull Request First & Continuous PR Description Sync:**
->    - **Quy tắc tạo PR trước khi commit (PR First Rule):** Khi bắt đầu triển khai hoặc có nhánh làm việc, BẮT BUỘC phải đảm bảo có Pull Request được mở trước trên GitHub (`gh pr create`). Tuyệt đối không commit khi chưa tồn tại Pull Request.
->    - **Quy tắc cập nhật mô tả PR liên tục (Continuous PR Description Sync):** Nếu đang tồn tại 1 Pull Request trước khi commit thì mỗi khi thực hiện `git commit` và `git push`, BẮT BUỘC phải cập nhật lại nội dung (description / body) của Pull Request đó (`gh pr edit <PR_NUM> --body "..."`) để phản ánh chính xác trạng thái kỹ thuật, các thay đổi mới nhất và kết quả kiểm thử.
 
 ---
 
-## Vietnamese Executive Summary (Tóm Tắt Dự Án)
+## Tóm Tắt Dự Án (Vietnamese Summary)
 
-### Quesy là gì?
-**Quesy** là hệ sinh thái phần mềm khảo thí chuyên sâu, số hóa đề thi và quản lý ngân hàng câu hỏi chuẩn quốc gia:
-- **Chuẩn hóa Thông tư 32/2018/TT-BGDĐT:** Cây kiến thức 6 tầng theo Yêu cầu cần đạt (YCCĐ) và Dạng câu hỏi, tuyệt đối không phân chia theo các bộ sách giáo khoa thương mại.
-- **Chuẩn hóa Quyết định 764/QĐ-BGDĐT (Form 2025):** Chấm điểm tự động bậc thang cho câu trắc nghiệm Đúng/Sai 4 khẳng định (0.1đ - 0.25đ - 0.5đ - 1.0đ).
-- **Xuất bản PDF chuẩn $\LaTeX$ thuần túy:** Toàn bộ đề thi in ấn sử dụng font chữ **Computer Modern Unicode (CMU Serif)**, 100% phân số hiển thị dạng **`\dfrac`** to rõ (11pt chuẩn đề thi), công thức toán vector sắc nét tuyệt đối, ôm sát chân dòng chữ.
-- **Biên dịch Đồ thị & Hình học TikZ Vector:** 100% hình vẽ hình học và đồ thị hàm số được biên dịch trực tiếp từ mã nguồn $\LaTeX$ sang Vector SVG nguyên bản (`dvisvgm`), tuyệt đối **không biến thành ảnh raster PNG** (0% ảnh mờ vỡ hạt khi in ấn hay phóng to).
-- **Xuất bản Thuần Vector PDF & Gói Ấn phẩm Khảo thí (.ZIP):** Đóng gói trọn bộ đề thi từng mã đề hoán vị và hướng dẫn giải chi tiết chuẩn LaTeX `ex_test.sty` v3.3 biên dịch qua Tectonic XeTeX Engine, kèm bảng ma trận đáp án tổng hợp (PDF & CSV UTF-8 BOM), phiếu trả lời trắc nghiệm chuẩn máy chấm OMR 2025. Loại bỏ hoàn toàn sự phụ thuộc vào Word (.docx) và MathType OLE binary formats để đảm bảo chất lượng in ấn vector tuyệt đối và tính di động trên mọi máy chủ Linux/Docker/ARM.
-- **Phân hệ Soạn đề Tinh gọn Không Preamble (Preamble-Free Question Editor & Canonical Preamble Injection):** Giáo viên chỉ cần viết trực tiếp nội dung đề thi và các câu hỏi chuẩn `ex_test.sty` (`\begin{ex}`), không cần viết `\documentclass` hay `\usepackage`. Hệ thống tự động nhúng ngầm toàn bộ gói lệnh chuẩn (`fontspec`, `amsmath,amssymb`, `tikz,tkz-tab`, `tcolorbox`, `xparse`, `ex_test` v3.3, khổ giấy A4 lề 18mm), tự động điều chỉnh chế độ `[dethi]` / `[loigiai]` qua cờ mode, tương thích ngược 100% nếu dán cả văn bản hoàn chỉnh và tự động đóng gói TeX khi xuất file.
-- **Trợ lý Soạn thảo AI Copilot, Động cơ Thay thế Câu hỏi Thông minh & Duyệt Đa Diff (Question Replacement Engine & Safe Sync):**
-  - Hỗ trợ câu lệnh ngôn ngữ tự nhiên thay thế câu hỏi chuyên sâu (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*, *"Thay câu 2 bằng câu khác"*, *"Sửa câu 3"*).
-  - Thuật toán bóc tách khối câu hỏi thứ N (`find_question_block(current_latex, n)`) nhận diện chính xác phạm vi câu hỏi theo chuẩn `ex_test.sty` (`\begin{ex}`) hoặc đánh số cổ điển (`\textbf{Câu N.}`).
-  - Cơ chế gắn kết thông minh (Smart Diff Binding) tự động gán `old_text = câu_N_cũ` và `new_text = câu_mới`, giải quyết dứt điểm hạn chế của `SequenceMatcher` khi chủ đề câu hỏi mới khác hoàn toàn câu cũ.
-  - Cơ chế hiển thị chat an toàn (Safe Chat Bubble Rendering): Chỉ ẩn code và gắn badge *"Đã chuyển gợi ý sửa đổi tới editor"* khi diff thực sự hợp lệ và tồn tại trên editor; nếu không có diff, giữ nguyên khối code trong chat với đầy đủ các nút `[📥 Chèn vào con trỏ]`, `[📋 Sao chép]`, và `[🔄 Áp dụng thay thế]`, triệt tiêu hoàn toàn lỗi nuốt mất code.
-  - Thanh nhập Prompt dạng viên thuốc thu gọn (Compact Pill Bar) ở chân editor: chữ màu trắng sáng `#f8fafc` và con trỏ `#38bdf8` tương phản hoàn hảo trên Dark mode. Cơ chế xóa sạch lạc quan (Optimistic Dual-Input Reset) triệt tiêu hoàn toàn lỗi text cũ còn kẹt trong ô nhập sau khi gửi.
-  - Duyệt đa khối diff với bộ đếm động 1/N, nút điều hướng tuần tự (`[< Trước]` / `[Sau >]`), duyệt chấp nhận/từ chối từng khối, và nút **`[Áp dụng tất cả] (Apply All)`** để hợp nhất toàn bộ các thay đổi vào mã nguồn chỉ với 1 cú click. Tái thiết kế thanh Split Resizer ngang `#composer-split-resizer` giữa 2 cột Editor / Preview chuẩn Apple HIG.
-  - **Trợ lý AI Đa Phương Tiện (Multi-Modal Image Input & Visual Reasoning):** Hỗ trợ đính kèm ảnh (Image picker), dán trực tiếp từ clipboard (`Ctrl+V` / `Cmd+V`) trên cả compact bar và chat popup với cơ chế Event Isolation (`e.stopPropagation()`) & Debounce 500ms chống nhân đôi ảnh dán. Khay thumbnail trực quan kèm nút xóa (✕) và Lightbox xem ảnh to. AI tự động phân tích ảnh đề bài, nhận diện đồ thị/bảng biến thiên, sinh mã TikZ vector nét đen và câu hỏi chuẩn `ex_test.sty`.
-- **Chuẩn Hóa Khảo Thí Quốc Gia 2025 & Typography Đề Thi:**
-  - Tự động reset số thứ tự câu hỏi về 1 ở mỗi phần bằng lệnh chuẩn `\setcounter{ex}{0}` (Phần I: Câu 1-12; Phần II Đúng/Sai: Câu 1-4; Phần III Trả lời ngắn: Câu 1-6 theo đúng Quyết định 764/QĐ-BGDĐT).
-  - Tự động bóc tách và loại bỏ triệt để thẻ `\large`, `\Large` ở tiêu đề phần, chuẩn hóa typography 12pt in đậm `\noindent\textbf{PHẦN ...}` `\textit{...}` theo quy chuẩn in ấn Bộ GD&ĐT.
-- **Kiến Trúc Biên Dịch Nhanh Đa Tầng (Multi-tier Fast & Incremental Compilation):**
-  - **Xem trước Tức thì (Instant Live Preview - 0.2s):** Kết xuất tức thì qua HTML/MathJax với bộ nhớ đệm TikZ SVG Disk Cache theo mã băm MD5 (0.01s cho hình không đổi).
-  - **Biên dịch Nhanh Câu Đang Sửa (Focus / Partial Quick Compile - 1.5s):** Cho phép biên dịch riêng câu hỏi tại con trỏ hoặc đoạn mã bôi đen sang PDF vector chỉ trong 1-2 giây qua nút `⚡ BIÊN DỊCH CÂU NÀY` hoặc phím tắt `Ctrl+Shift+S`.
-  - **Chế độ Nháp (Draft Mode - 15s):** Tự động hạ `samples=35` cho toàn bộ đồ thị TikZ, cắt giảm 70% thời gian biên dịch đề thi lớn từ 65s xuống 15s.
-- **Trộn đề thông minh & an toàn:** Khóa cố định các đáp án phụ thuộc (*"Cả A và B đều đúng"*) tại vị trí D, giữ nguyên bài đọc chung và sinh ma trận hoán vị đáp án tự động.
-- **Biên Dịch KaTeX Toàn Diện & Chuẩn Hóa Giao Diện Apple Select (.apple-select):**
-  - Khắc phục triệt để lỗi hiển thị công thức toán thô `$ ... $` trên các thẻ câu hỏi Ngân hàng, bảng Ma trận đề 2D và các Modal xem chi tiết/soạn thảo/đổi câu, đảm bảo $100\%$ công thức toán học được biên dịch KaTeX sắc nét tức thì.
-  - Xây dựng thành phần UI dropdown box độc quyền chuẩn Apple HIG `.apple-select` với icon chevron SVG slate-500, bo góc 12px, hiệu ứng focus viền xanh Apple `#0071e3`, loại bỏ hoàn toàn font monospace tại `#bank-filter-yccd` và chuẩn hóa kích thước ô thời gian làm bài `#matrix-param-time`.
-  - Khắc phục triệt để lỗi icon search đè text placeholder (`padding-left: 2.25rem !important;`), loại bỏ 100% spin buttons mặc định, hỗ trợ click-to-focus toàn ô.
-- **Con Trỏ Soạn Thảo Đen Nổi Bật (High-Contrast Bold Black Text Cursor & Caret):**
-  - Xây dựng con trỏ chuột dạng SVG I-beam nét đen 2.8px viền trắng 1.0px tương phản cao (`cursor: url(...) 12 12, text !important;`) áp dụng trên toàn bộ các ô ma trận `.matrix-input-cell`, input text, number, search, email, password và textarea.
-  - Thiết lập `caret-color: #000000 !important;` cho các input sáng màu và ô ma trận; vi tương tác hover trên `.matrix-input-cell` nổi bật tức thì với nền xanh nhạt `rgba(0, 113, 227, 0.08)`, viền input xanh Apple `#0071e3` và bóng đổ vi mô.
-- **Hệ Thống Phân Trang Ngân Hàng Câu Hỏi Chuẩn Apple HIG & Bảo Toàn Top Header:**
-  - Chia nhỏ danh sách câu hỏi theo trang (12, 24, 48 câu/trang), chỉ render KaTeX theo trang on-demand (<10ms), giải quyết triệt để tình trạng đơ lag DOM khi hiển thị 240+ câu hỏi cùng lúc.
-  - Thanh phân trang `#bank-pagination-controls` hiển thị dải số câu hỏi, dải nút số trang thông minh với trang active xanh Apple `#0071e3`, dropdown chọn số câu `.apple-select`, tự động reset trang 1 khi lọc.
-  - Cơ chế cuộn mượt nội bộ container `#main-scroll-view` lên đỉnh (`top: 0`) và neo `window.scrollY === 0`, triệt tiêu hoàn toàn hiện tượng mất Top Header khi đổi trang; gia cố `shrink-0` và `flex-shrink: 0;` bảo toàn vị trí cố định của Apple Header trên mọi độ phân giải màn hình.
-- **Giao diện Apple HIG:** Trải nghiệm đối chiếu song song mượt mà, phản hồi xúc giác tinh tế, chạy mượt trên cả Web và thiết bị di động (PWA Offline).
+**Quesy** là hệ thống quản lý khảo thí, soạn thảo $\LaTeX$ thông minh và số hóa đề thi chuyên sâu dành cho giáo viên và tổ chuyên môn:
+
+1. **Soạn đề không Preamble:** Giáo viên chỉ cần viết nội dung câu hỏi chuẩn `ex_test.sty` (`\begin{ex}`, `\choice`, `\choiceTF[1]`, `\shortans`). Hệ thống tự động nhúng gói lệnh chuẩn, font CMU Serif và xuất PDF tức thì.
+2. **Trợ lý AI Copilot:** Dán ảnh đề bài trực tiếp (`Ctrl+V`), AI tự dựng hình TikZ/bảng biến thiên vector; tìm & thay thế bằng tiếng Việt tự nhiên; tự động phân tích và sửa lỗi biên dịch $\LaTeX$.
+3. **Số hóa AI 2-Pass:** Bóc tách đề thi từ file scan/ảnh/PDF, lọc nhiễu ảnh OpenCV CLAHE, trích xuất công thức KaTeX và kiểm tra chống trùng câu hỏi.
+4. **Ma trận & Trộn đề an toàn:** Thiết lập ma trận đề 3 phần $\times$ 4 mức độ nhận thức kèm kiểm tra số dư kho câu hỏi thực tế; khóa cứng đáp án phụ thuộc vào phương án D và giữ nguyên vẹn bài đọc chùm.
+5. **Xuất bản thuần Vector PDF:** Đóng gói trọn bộ tệp `.ZIP` gồm các mã đề thi hoán vị, hướng dẫn giải chi tiết, bảng ma trận đáp án (PDF & CSV UTF-8 BOM) và phiếu trả lời trắc nghiệm OMR.
+
+---
+
+## License
+
+Distributed under the MIT License. Developed and maintained by [@ngnsusinn](https://github.com/ngnsusinn).
