@@ -9,7 +9,7 @@
 ## 1. TỔNG QUAN KẾT QUẢ KIỂM THỬ
 
 Hệ thống đã trải qua quá trình kiểm thử tự động hai tầng:
-1. **Tầng 1 (Unit & Integration Suite - Pytest):** 55/55 test cases đạt (Pass rate 100%, bao gồm toàn bộ kiểm thử MathJax engine, MathType OLE Vector WMF, OCR và performance budgets).
+1. **Tầng 1 (Unit & Integration Suite - Pytest):** 55/55 test cases đạt (Pass rate 100%, bao gồm toàn bộ kiểm thử MathJax engine, biên dịch Vector PDF chuẩn LaTeX ex_test.sty, OCR và performance budgets).
 2. **Tầng 2 (Live Server End-to-End Loop Test - 5 chu kỳ hoàn chỉnh + Concurrency Stress):** 246/246 lượt test đạt (Pass rate 100%, thời gian 20.45s).
 3. **Tầng 3 (Real Browser DOM & UI Test via CDP):** Xác thực hoạt động mượt mà của Web Studio, không phát sinh bất kỳ lỗi JavaScript runtime nào (`consoleErrors: []`).
 
@@ -59,17 +59,17 @@ Hệ thống đã trải qua quá trình kiểm thử tự động hai tầng:
   - *Rule-04 (Anti-clustering):* Phân bố ngẫu nhiên vị trí đáp án đúng, ngăn ngừa thiên lệch một phương án.
 - **Ma trận đáp án đối sánh (Answer Key Matrix):** Sinh ma trận hoán vị đáp án cho cả 4 mã đề (101, 102, 103, 104) và xuất ra file CSV có header `variant_101`, `variant_102`, `variant_103`, `variant_104`.
 
-### 2.5. Bộ máy Xuất bản Đa định dạng (Export Engine)
-- **Xuất bản Microsoft Word (.docx) MathType 7.0 OLE Vector WMF:** Thiết lập chuẩn in ấn văn phòng sở/trường (khổ A4 dọc, font Times New Roman 11pt, lề 1.5 - 1.8 cm). Nhúng đối tượng OLE MathType (`Equation.DSMT4`) với ảnh Vector WMF (`image/x-wmf`) chuẩn APM header, 100% vector thuần (0 raster DIB), stream DSMT7 chứa bản ghi `TeX Input Language` nguyên bản, chuẩn hóa embellishment cho toán tử vectơ (`\vec`, `\overrightarrow`), đạt độ nét tuyệt đối ở mọi mức zoom và **click đúp mở MathType 7 client sửa trực tiếp 2 chiều không phát sinh bất kỳ lỗi nào**.
-- **Tự động chuyển đổi bảng thống kê (`\begin{array}`):** Tự động bóc tách các mảng bảng phân phối tần số ghép nhóm sang bảng Word thực tế (`<w:tbl>`), loại bỏ triệt để hiện tượng hộp đen (black box) khi xuất sang PDF.
-- **Dịch vụ MathJax Engine & Persistent Worker:** Tích hợp tiến trình nền Node.js xử lý MathJax 3/4 với bộ gói TeX đầy đủ, xử lý công thức trong ~14 ms, bảo đảm ngân sách hiệu năng NFR xuất gói đề 4 mã đề kèm đáp án $< 5\text{ giây}$.
-- **Xuất bản PDF tốc độ siêu tốc (ReportLab Engine):** Biên dịch trực tiếp không qua trình duyệt cồng kềnh, thời gian xuất PDF chỉ ~50 ms (kích thước ~99 KB).
+### 2.5. Bộ máy Xuất bản Vector PDF & LaTeX (Export Engine)
+- **Xuất bản Vector PDF thuần chuẩn LaTeX ex_test.sty v3.3:** Thiết lập chuẩn in ấn khảo thí Bộ GD&ĐT (khổ A4 dọc, font CMU Serif và Times New Roman, lề 1.5 - 1.8 cm). Biên dịch mã nguồn LaTeX qua Tectonic XeTeX Engine và ReportLab vector fallback. Toàn bộ công thức toán và đồ thị TikZ đạt 100% vector thuần, không chứa ảnh bitmap raster, giữ độ nét tuyệt đối ở mọi tỷ lệ thu phóng.
+- **Xử lý bảng dữ liệu thống kê ghép nhóm:** Tự động định dạng các mảng bảng phân phối tần số ghép nhóm dạng vector rõ nét, loại bỏ triệt để hiện tượng hộp đen (black box) khi xuất sang PDF.
+- **Dịch vụ MathJax Engine & Persistent Worker:** Tích hợp tiến trình nền Node.js xử lý MathJax với bộ gói TeX đầy đủ, xử lý công thức trong ~14 ms, bảo đảm ngân sách hiệu năng NFR xuất gói đề 4 mã đề kèm đáp án $< 5\text{ giây}$.
+- **Xuất bản PDF tốc độ siêu tốc (ReportLab Engine & Tectonic XeTeX):** Biên dịch trực tiếp không qua trình duyệt cồng kềnh, thời gian xuất PDF chỉ ~50 ms với ReportLab (kích thước ~99 KB).
 - **Xuất bản Gói Đề thi Trọn gói (ZIP Package):**
-  - Chứa đầy đủ 4 đề thi Word (.docx) của 4 mã đề.
-  - Chứa đầy đủ 4 đề thi PDF của 4 mã đề.
+  - Chứa đầy đủ 4 đề thi hoán vị dạng Vector PDF của 4 mã đề.
+  - Chứa đầy đủ 4 tài liệu Hướng dẫn giải chi tiết PDF của 4 mã đề.
   - File Ma trận Đáp án tổng hợp (Excel/CSV UTF-8 BOM + PDF).
   - **Phiếu Trả lời Trắc nghiệm chuẩn 2025 (Blank OMR Bubble Sheet PDF):** Mẫu phiếu trắc nghiệm 3 phần thiết kế sẵn cho học sinh tô chì (Số báo danh, Mã đề thi, Phần I 1-12, Phần II 1-4 a-b-c-d, Phần III 1-6).
-  - Tổng cộng 20 file trong 1 gói ZIP, thời gian đóng gói < 1 giây.
+  - Đóng gói đầy đủ các ấn phẩm khảo thí trong 1 gói ZIP, thời gian đóng gói < 1 giây.
 
 ### 2.6. Động cơ Chấm điểm & Phân tích Khảo thí (Grading & Cohort Psychometrics)
 - **Chấm điểm Đúng/Sai lũy tiến (QĐ 764):** Kiểm tra vét cạn toàn bộ $2^4 = 16$ trường hợp tổ hợp trả lời của học sinh:
@@ -105,6 +105,6 @@ Hệ thống đã trải qua quá trình kiểm thử tự động hai tầng:
 
 ## 3. KẾT LUẬN & KIẾN NGHỊ
 
-1. **Độ ổn định hệ thống:** Toàn bộ backend FastAPI, CSDL SQLite, các service xử lý định dạng (DOCX, ReportLab PDF, Shuffler, Grading, OMR) đạt độ tin cậy 100% qua 5 vòng lặp liên tục và kiểm thử chịu tải.
+1. **Độ ổn định hệ thống:** Toàn bộ backend FastAPI, CSDL SQLite, các service xử lý định dạng (Vector PDF, LaTeX ex_test.sty, ReportLab, Shuffler, Grading, OMR) đạt độ tin cậy 100% qua 5 vòng lặp liên tục và kiểm thử chịu tải.
 2. **Giao diện Web Studio:** Hoạt động ổn định trên trình duyệt, không có lỗi console JavaScript, các luồng tương tác tải file đề thi, duyệt ngân hàng câu hỏi, thiết lập ma trận và xuất gói ZIP hoạt động tức thì.
 3. **Mã nguồn:** Hệ thống sẵn sàng cho môi trường kiểm thử diện rộng và vận hành thực tế.

@@ -37,10 +37,9 @@ def test_mathjax_vector_equation():
 
 
 def test_mathjax_omml_conversion():
-    """Verifies conversion of LaTeX formula to Word native OMML (<m:oMath>)."""
+    """Verifies that OMML conversion is safely disabled in pure LaTeX/Vector PDF mode."""
     omml = convert_latex_to_omml_mathjax(r"G(x) = 0{,}035x^2(15 - x)")
-    assert omml is not None
-    assert "oMath" in omml.tag
+    assert omml is None
 
 
 def test_mathjax_batch_rendering():

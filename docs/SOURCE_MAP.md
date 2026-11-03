@@ -17,11 +17,11 @@ Quesy được xây dựng theo kiến trúc **Module-based Monolith** kết h�
    - *Tổng quan Khảo thí & Khởi chạy Nhanh (Dashboard Hub):* Giao diện điều khiển trung tâm Apple HIG, liên kết trực tiếp Soạn đề Quốc gia 2026, Số hóa AI 2-Pass, Thiết lập Ma trận 2D và Sinh & Trộn đề hoán vị. Đồng bộ số liệu động thời gian thực từ Ngân hàng câu hỏi.
    - *Soạn đề & Biên dịch Hybrid:* `composer_service.py` kết nối Remote Tectonic XeTeX Engine Docker (host `armbian:8090`), gói lệnh chuẩn quốc gia `ex_test.sty` (v3.3.6), động cơ Canonical Preamble Injection (tự động nhúng ngầm fontspec, amsmath, tikz, tkz-tab, tcolorbox, xparse, ex_test v3.3, geometry A4), hỗ trợ ô soạn thảo tinh gọn Preamble-Free Question Editor, và AI Inline Diff Replacer.
    - *Số hóa 2-Pass AI Decoupled:* Tiền xử lý ảnh OpenCV/Pillow, phân đoạn layout, Pass 1 trích xuất văn bản/đáp án, Pass 2 dựng mã TikZ/Array song song.
-   - *Xuất bản MathType OLE Word & CMU Serif PDF:* Dựng luồng nhị phân CFB MTEF v5 + ảnh vector WMF (APM header chuẩn) sửa 2 chiều trong Microsoft Word; chuyển đổi bảng biến thiên sang `<w:tbl>` native.
+   - *Xuất bản Thuần Vector PDF & Gói Ấn phẩm Khảo thí (.ZIP):* Đóng gói trọn bộ đề thi hoán vị và hướng dẫn giải chi tiết chuẩn LaTeX `ex_test.sty` v3.3 biên dịch qua Tectonic XeTeX Engine kèm ReportLab vector fallback. Tạo bảng ma trận đáp án tổng hợp (PDF và CSV UTF-8 BOM) cùng phiếu trả lời trắc nghiệm OMR 2025. Loại bỏ hoàn toàn Word (.docx) và MathType OLE.
    - *Ma trận & Trộn đề An toàn:* Bảng ma trận phân cấp đa tầng (Chương · Bài · Dạng x 3 Phần x 4 Mức độ NB-TH-VD-VDC), kiểm tra tồn kho thời gian thực, sticky footer, giải bài toán ma trận rút đề gốc, hoán vị mã đề an toàn, tính điểm Đúng/Sai lũy tiến theo QĐ 764.
 4. **Data Persistence & Storage Layer:**
    - Cơ sở dữ liệu: SQLite / PostgreSQL quản trị qua SQLAlchemy ORM (19 thực thể chuẩn hóa).
-   - Hệ thống đĩa đệm (Storage): `storage/uploads/` (tệp đề thi), `storage/assets/` (hình ảnh trích xuất WebP), `storage/cache/mathjax/` (đệm WMF/SVG), `storage/cache/composer/` (đệm PDF biên dịch).
+   - Hệ thống đĩa đệm (Storage): `storage/uploads/` (tệp đề thi), `storage/assets/` (hình ảnh trích xuất WebP), `storage/cache/mathjax/` (đệm SVG vector), `storage/cache/composer/` (đệm PDF biên dịch).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -48,11 +48,11 @@ Quesy được xây dựng theo kiến trúc **Module-based Monolith** kết h�
 └──────┬──────────────────┬─────────────────┬─────────────────┬──────────────────┬───────┘
        │                  │                 │                 │                  │
 ┌──────▼───────┐   ┌──────▼───────┐  ┌──────▼───────┐  ┌──────▼───────┐   ┌──────▼───────┐
-│ COMPOSER     │   │ 2-PASS AI    │  │ DOCX EXPORT  │  │ LATEX PDF    │   │ MATRIX &     │
-│ ENGINE       │   │ DIGITIZER    │  │ MATHTYPE OLE │  │ EXPORTER     │   │ SHUFFLER     │
-│ - ex_test.sty│   │ - OpenCV     │  │ - CFB MTEF v5│  │ - CMU Serif  │   │ - QĐ 764     │
-│ - Tectonic   │   │ - Crop WebP  │  │ - APM WMF    │  │ - Full dfrac │   │ - Anchoring  │
-│ - Diff Repl. │   │ - Pass 1 & 2 │  │ - <w:tbl>    │  │ - Tight Pad  │   │ - Key Matrix │
+│ COMPOSER     │   │ 2-PASS AI    │  │ VECTOR PDF   │  │ LATEX PDF    │   │ MATRIX &     │
+│ ENGINE       │   │ DIGITIZER    │  │ & ZIP ENGINE │  │ EXPORTER     │   │ SHUFFLER     │
+│ - ex_test.sty│   │ - OpenCV     │  │ - Tectonic   │  │ - CMU Serif  │   │ - QĐ 764     │
+│ - Tectonic   │   │ - Crop WebP  │  │ - ReportLab  │  │ - Full dfrac │   │ - Anchoring  │
+│ - Diff Repl. │   │ - Pass 1 & 2 │  │ - OMR 2025   │  │ - Tight Pad  │   │ - Key Matrix │
 └──────┬───────┘   └──────────────┘  └──────┬───────┘  └──────┬───────┘   └──────────────┘
        │                                    │                 │
        │                               ┌────▼─────────────────▼────┐
@@ -109,8 +109,7 @@ quesy/
 │   │   ├── composer_service.py        # Dịch vụ biên dịch LaTeX Hybrid 3 tầng, Dynamic Adaptive Timeout & bóc tách ex_test/câu hỏi đa dạng
 │   │   ├── crop_service.py            # Dịch vụ cắt và trích xuất ảnh đồ thị/bảng WebP (399 dòng)
 │   │   ├── deduplication.py           # Dịch vụ kiểm soát trùng lặp câu hỏi qua Vector Similarity (97 dòng)
-│   │   ├── docx_exporter.py           # Engine xuất bản đề thi hoán vị thuần Vector PDF LaTeX (Tectonic XeTeX & ex_test v3.3, generate_variant_latex chuẩn hóa Header 2 cột canonical 0.38/0.58, bảo toàn ngoặc {...} cho \choiceTF[1], loại bỏ ReportLab fallback, hỗ trợ sinh lời giải chi tiết vector PDF qua mode="loigiai"), Word MathType 7.0 OLE Vector WMF & gói ZIP ấn phẩm (3,030 dòng)
-│   │   ├── docx_export.py             # Dịch vụ tạo tài liệu Word bổ trợ (220 dòng)
+│   │   ├── docx_exporter.py           # Engine xuất bản đề thi hoán vị thuần Vector PDF LaTeX (Tectonic XeTeX & ex_test v3.3, ReportLab vector fallback), ma trận đáp án PDF/CSV, phiếu OMR 2025 và gói ZIP ấn phẩm (1,091 dòng)
 │   │   ├── excel_exporter.py          # Xuất bản danh sách thí sinh và bảng điểm Excel (121 dòng)
 │   │   ├── grading.py                 # Hàm tính điểm Đúng/Sai lũy tiến theo QĐ 764 (15 dòng)
 │   │   ├── image_enhancer.py          # Tiền xử lý ảnh: Deskew OpenCV, CLAHE, Binarization (324 dòng)
@@ -118,7 +117,7 @@ quesy/
 │   │   ├── latex_pdf_exporter.py      # Xuất bản PDF chuẩn LaTeX 100% CMU Serif & dfrac đầy đủ (750 dòng)
 │   │   ├── layout_segmenter.py        # Phân đoạn bố cục đề thi, nhận diện bảng và vùng hình ảnh (365 dòng)
 │   │   ├── mathjax_service.py         # Client giao tiếp với persistent Node.js MathJax worker (249 dòng)
-│   │   ├── mathjax_worker.js          # Persistent worker Node.js biên dịch TeX sang SVG/MTEF (192 dòng)
+│   │   ├── mathjax_worker.js          # Persistent worker Node.js biên dịch TeX sang SVG vector (192 dòng)
 │   │   ├── matrix_solver.py           # Thuật toán thỏa mãn ràng buộc ma trận sinh đề (272 dòng)
 │   │   ├── shuffling.py               # Quy tắc hoán vị câu hỏi an toàn (212 dòng)
 │   │   ├── shuffling_engine.py        # Động cơ trộn mã đề hoàn chỉnh, neo đáp án, xuất ma trận key (296 dòng)
@@ -160,11 +159,11 @@ quesy/
 │   ├── test_composer.py               # Kiểm thử Soạn đề, Tectonic compile, AI Inline Diff, Chat API Contract, Save-to-Bank 3 thể thức
 │   ├── test_deduplication.py          # Kiểm thử lọc trùng câu hỏi (84 dòng)
 │   ├── test_digitize_2pass.py         # Kiểm thử pipeline 2-Pass số hóa (273 dòng)
-│   ├── test_digitize_docx_export.py   # Kiểm thử xuất Word từ dữ liệu số hóa (91 dòng)
-│   ├── test_docx_export.py            # Kiểm thử xuất bản Word chuẩn MathType OLE (112 dòng)
+│   ├── test_digitize_docx_export.py   # Kiểm thử API xuất bản PDF từ dữ liệu số hóa (57 dòng)
+│   ├── test_docx_export.py            # Kiểm thử xuất bản Vector PDF và chuẩn hóa LaTeX mã đề (506 dòng)
 │   ├── test_e2e_workflow.py           # Kiểm thử luồng khép kín End-to-End từ đề thi đến chấm điểm (251 dòng)
 │   ├── test_excel_roster_import_export.py # Kiểm thử nạp/xuất danh sách thí sinh Excel (54 dòng)
-│   ├── test_math_format_export.py     # Kiểm thử định dạng toán học OMML/MathType (85 dòng)
+│   ├── test_math_format_export.py     # Kiểm thử làm sạch biểu thức toán và xuất Vector PDF (46 dòng)
 │   ├── test_mathjax_service.py        # Kiểm thử persistent worker MathJax (86 dòng)
 │   ├── test_performance_budgets.py    # Kiểm nghiệm ngân sách thời gian xử lý < 10s (112 dòng)
 │   ├── test_rules_shuffling.py        # Kiểm thử quy tắc hoán vị mã đề an toàn (187 dòng)

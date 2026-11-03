@@ -18,7 +18,7 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 2. Kiểm tra bộ 4 quy tắc chuẩn hóa toán học (ngoặc `\left`/`\right`, số thập phân `{,}` trong đề và số sạch trong đáp án, phân số `\dfrac`, vectơ `\overrightarrow`).
 3. Xác minh thể thức câu hỏi hiện đại: **Trắc nghiệm Đúng/Sai 4 khẳng định tính điểm bậc thang** và **Trắc nghiệm Trả lời ngắn**.
 4. Thuật toán **Trộn đề An toàn (Safe Shuffling)**: Đảm bảo không tách rời câu hỏi chùm và luôn khóa cố định phương án *"Cả A và B đều đúng"* tại vị trí cuối cùng (D).
-5. Chất lượng xuất bản file Word 2 cột với công thức native OMML và bảng điểm Excel UTF-8 BOM.
+5. Chất lượng xuất bản file Vector PDF chuẩn LaTeX ex_test.sty v3.3 và bảng điểm Excel UTF-8 BOM.
 6. Xác minh toàn diện phân hệ Soạn đề (Composer): Cấu trúc 3 phần chuẩn Đề thi Tốt nghiệp THPT 2026 Môn Toán (Mã đề 0101), xử lý ảnh đa phương tiện (Multimodal Image Copilot), chat tái cấu trúc câu hỏi (Targeted Diff Replacement), và biên dịch PDF đa trang hiển thị trên PDF.js canvas.
 7. Xác minh phân hệ Trang chính (Dashboard Hub): Trung tâm khởi chạy nhanh 4 thao tác (Composer, Digitize, Matrix, Shuffler), Tiêu điểm Đề thi 2026 Mã 0101, Bảng kiểm soát bất biến RULE-01/02/03/Centered Diagrams, và đồng bộ số liệu động thời gian thực.
 
@@ -39,7 +39,7 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 | **TS-04** | Ngân hàng Câu hỏi & Định dạng 2025 (Count, Export BOM, Import, Cascade) | BR-02.4, FR-04, SRS-FEAT-04,05 | 11 | P0 / P1 |
 | **TS-05** | Ma trận Đề thi theo YCCĐ & Sinh Đề | BR-03, BR-04.1, FR-05, FR-06.1 | 4 | P0 (Must Have) |
 | **TS-06** | Động cơ Trộn Đề Hoán vị An toàn | BR-04.2, FR-06.2, SRS-FEAT-08 | 5 | P0 (Critical) |
-| **TS-07** | Xuất bản File Word 2 Cột & In ấn | BR-05.1, FR-07, SRS-FEAT-09 | 4 | P0 (Must Have) |
+| **TS-07** | Xuất bản Vector PDF & LaTeX In ấn | BR-05.1, FR-07, SRS-FEAT-09 | 4 | P0 (Must Have) |
 | **TS-08** | Bảo mật, RBAC & Khảo thí Thống kê | BR-05.2, BR-06, FR-08 | 3 | P1 / P2 |
 | **TS-09** | Soạn đề LaTeX AI, Live PDF & Save-to-Bank 3 Thể Thức | FR-02.1, FR-02.2, NFR-COMP-02 | 118 | P0 (Must Have) |
 | **TS-10** | Quản trị CI/CD & Cổng Pre-Commit Gate | NFR-DEV-01..06, TC-DEV-01..02 | 2 | P0 (Critical) |
@@ -269,43 +269,44 @@ Xác minh toàn bộ tính năng của hệ thống Quesy đáp ứng chính xá
 
 ---
 
-### TEST SUITE 07: XUẤT BẢN FILE WORD 2 CỘT & IN ẤN
+### TEST SUITE 07: XUẤT BẢN VECTOR PDF & LATEX IN ẤN
 
-#### TC-EXP-01: Kiểm tra Bố cục và Định dạng Công thức OMML trong file Word
-- **Mô tả:** Đảm bảo file Word `.docx` xuất ra đạt chuẩn quy cách in ấn của Bộ GD&ĐT với công thức OMML.
+#### TC-EXP-01: Kiểm tra Biên dịch Đề thi Vector PDF Chuẩn LaTeX ex_test.sty v3.3
+- **Mô tả:** Đảm bảo đề thi xuất bản trực tiếp sang Vector PDF qua LaTeX `ex_test.sty` v3.3 bằng Tectonic XeTeX Engine và ReportLab vector fallback đạt chuẩn quy cách in ấn của Bộ GD&ĐT.
 - **Các bước thực hiện:**
-  1. Chọn mã đề 101, chọn math_format="omml", bấm "Xuất bản file Word (.docx)".
-  2. Mở file tải về trên Microsoft Word 2016 / 365.
+  1. Chọn mã đề 101, gửi yêu cầu `GET /api/v1/exams/{master_id}/export-pdf?variant_code=101`.
+  2. Kiểm tra file PDF tải về trên trình đọc PDF hoặc công cụ phân tích cấu trúc PDF.
 - **Kết quả kỳ vọng:**
-  - Tiêu đề trường, mã đề, bảng phách căn chỉnh lề chuẩn xác khổ A4 Portrait.
-  - Công thức Toán học hiển thị dưới dạng **Word Equation native (OMML `<m:oMath>`)**, có thể click chuột vào chỉnh sửa trực tiếp, chữ nét vector, không bị vỡ hạt như hình ảnh bitmap.
+  - Header tiêu đề trường, mã đề và bảng phách căn chỉnh lề chuẩn xác khổ A4 Portrait.
+  - Toàn bộ nội dung đề thi tuân thủ môi trường `\begin{ex} ... \end{ex}` và các macro `\choice`, `\choiceTF`, `\shortans`.
+  - Công thức toán học và đồ thị TikZ hiển thị sắc nét dưới dạng vector thuần, không bị vỡ hạt như hình ảnh bitmap raster.
+  - Header file trả về mang magic bytes `%PDF` và mã HTTP 200.
 
-#### TC-EXP-02: Kiểm tra Xuất bản MathType 7.0 OLE Object Vector WMF & Bảo toàn Chỉnh sửa 2 Chiều
-- **Mô tả:** Đảm bảo 100% công thức toán nhúng đối tượng OLE chuẩn MathType 7.0 DSMT7, đạt độ nét vector tuyệt đối (loại bỏ hoàn toàn raster DIB) và mở sửa được 2 chiều trong MathType client không gặp lỗi OLE activation hay popup cảnh báo thiếu ứng dụng server.
+#### TC-EXP-02: Kiểm tra Đóng gói Bundle ZIP Toàn diện (Variants, Solutions, Matrix, OMR)
+- **Mô tả:** Đảm bảo xuất bản trọn gói khảo thí đóng gói ZIP chứa đầy đủ các tệp Vector PDF hoán vị, hướng dẫn giải, ma trận đáp án và phiếu trắc nghiệm OMR 2025.
 - **Các bước thực hiện:**
-  1. Xuất file Word với tham số `math_format="mathtype"`.
-  2. Dùng automation PowerShell Word COM kiểm tra thuộc tính các shape:
-     `$doc.InlineShapes.Item(1).OLEFormat.ProgID` và thực thi `$shape.OLEFormat.Open()`.
+  1. Gửi yêu cầu `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.
+  2. Giải nén file ZIP tải về và kiểm tra danh mục tệp bên trong.
 - **Kết quả kỳ vọng:**
-  - `InlineShape.Type = 1` (wdInlineShapeEmbeddedOLEObject).
-  - `OLEFormat.ProgID = "Equation.DSMT4"`, `ClassType = "Equation.DSMT4"`.
-  - Hình ảnh đại diện mang định dạng Vector WMF (`image/x-wmf`) chuẩn APM header, 100% vector thuần (0 file chứa bản ghi raster DIB `0x0b41`).
-  - Stream `Equation Native` chứa MTEF v5 định dạng DSMT7 với bản ghi `TeX Input Language` lưu chuỗi LaTeX gốc, chuẩn hóa embellishment toán tử vectơ, và sử dụng typeface `0x82` bảo toàn đầy đủ các dấu ngoặc `[`, `]`, `(`, `)`, `{`, `}` khi mở MathType.
-  - Lệnh `OLEFormat.Open()` thực thi thành công, cửa sổ MathType 7 mở ra hiển thị công thức chính xác đồng bộ với nội dung LaTeX trên Web (ví dụ $A = [5; 8)$ hiển thị đầy đủ cả dấu ngoặc `[` và `)` trong MathType), không xuất hiện popup lỗi server application hay hiển thị chữ "A" cô lập.
+  - HTTP 200 kèm Content-Type `application/zip`.
+  - Gói ZIP chứa đầy đủ 4 đề thi hoán vị dạng Vector PDF `De_{code}.pdf`.
+  - Gói ZIP chứa đầy đủ tài liệu Hướng dẫn giải chi tiết `LoiGiai_{code}.pdf` cho từng mã đề.
+  - Gói ZIP chứa bảng ma trận đáp án tổng hợp `BangDapAn_TongHop.pdf` và `BangDapAn_TongHop.csv` chuẩn UTF-8 BOM.
+  - Gói ZIP chứa mẫu phiếu trả lời trắc nghiệm chuẩn 2025 `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
 
-#### TC-EXP-03: Tự động chuyển đổi bảng dữ liệu thống kê LaTeX sang Word Table
-- **Mô tả:** Đảm bảo mảng bảng thống kê `\begin{array}` được chuyển thành bảng Word native `<w:tbl>`, không phát sinh lỗi ô đen (black box) khi xuất sang PDF.
+#### TC-EXP-03: Kiểm tra Bảng Thống kê và Đồ thị Vector TikZ trong PDF
+- **Mô tả:** Đảm bảo mảng bảng dữ liệu thống kê ghép nhóm và hình vẽ TikZ biên dịch chuẩn xác sang Vector PDF, không phát sinh lỗi tràn lề và không bị che khuất bởi khối đen.
 - **Các bước thực hiện:**
-  1. Đề thi chứa câu hỏi thống kê với bảng ghép nhóm (như Câu 2 đề Nghệ An).
-  2. Xuất sang Word và convert sang PDF qua Word COM / máy in ảo.
+  1. Chọn đề thi chứa câu hỏi thống kê bảng ghép nhóm và đồ thị hình học không gian TikZ.
+  2. Xuất bản sang Vector PDF qua Tectonic XeTeX Engine hoặc ReportLab vector fallback.
 - **Kết quả kỳ vọng:**
-  - Bảng hiển thị dạng bảng Word thực tế căn giữa, có viền nét mảnh (`border sz="4"`).
-  - Xuất sang PDF hiển thị nền trắng chữ đen sắc nét, hoàn toàn không có ô chữ nhật đen che khuất.
+  - Bảng thống kê hiển thị căn giữa sắc nét trên nền trắng chữ đen với viền nét mảnh.
+  - Đồ thị TikZ và hình vẽ hình học giữ nguyên tỷ lệ, căn giữa trang in và hoàn toàn không có ô chữ nhật đen che khuất.
 
 #### TC-EXP-04: Kiểm thử Hiệu năng & Ổn định Dịch vụ MathJax Engine
 - **Mô tả:** Đo kiểm tốc độ sinh công thức và bộ nhớ đệm qua Persistent Worker Node.js.
 - **Các bước thực hiện:**
-  1. Chạy test suite `test_performance_budgets.py::test_perf_budget_docx_and_zip_export`.
+  1. Chạy test suite `test_performance_budgets.py::test_perf_budget_pdf_and_zip_export`.
   2. Kiểm tra bộ nhớ đệm đĩa cứng `storage/cache/mathjax/` và RAM LRU.
 - **Kết quả kỳ vọng:**
   - Thời gian xử lý trung bình $< 20\text{ ms}$/công thức.
@@ -891,4 +892,4 @@ Dự án chỉ được nghiệm thu bàn giao khi:
 3. **Không còn bất kỳ Bug nào ở mức độ Blocker hoặc Critical** (đặc biệt là các lỗi về hoán vị mã đề, tính điểm Đúng/Sai lũy tiến, hoặc sai lệch công thức toán).
 4. **Không còn lỗi Frontend & Giao diện:** Giao diện đồng nhất màu sắc chuẩn thương hiệu (nút BIÊN DỊCH `#0071e3`), textarea cuộn mượt mà không kẹt, bảo toàn nền tối `#141824` khi focus.
 5. **Không còn lỗi Console & Mạng:** Bảng điều khiển DevTools `console.error` sạch sẽ, không có lỗi 404 tài nguyên mạng (font, ảnh, icon).
-6. File Word `.docx` in thử thực tế trên máy in laser đạt độ rõ nét sư phạm.
+6. File Vector PDF in thử thực tế trên máy in laser đạt độ rõ nét sư phạm.

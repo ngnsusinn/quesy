@@ -36,7 +36,7 @@ Tài liệu Đặc tả Chức năng (FRD) mô tả chi tiết luồng xử lý 
 - **MOD-04:** Phân hệ Ngân hàng Câu hỏi & Vòng đời Toàn diện (Item Bank Management & Full CRUD)
 - **MOD-05:** Phân hệ Ma trận Đề thi & Rút đề theo Ràng buộc (Exam Matrix & Solver)
 - **MOD-06:** Phân hệ Động cơ Trộn Mã đề An toàn (Safe Shuffling Engine)
-- **MOD-07:** Phân hệ Xuất bản Đề thi Word OMML & In ấn (Publishing & Export Service)
+- **MOD-07:** Phân hệ Xuất bản Đề thi Thuần Vector PDF & Gói Ấn phẩm Khảo thí (.ZIP) (Vector PDF Publishing & Assessment Package Service)
 - **MOD-08:** Phân hệ Chấm điểm Bậc thang & Quản lý Bảng điểm (Grade & Roster Management)
 - **MOD-09:** Phân hệ Xác thực Người dùng & Quản lý Phân quyền (Authentication, JWT & RBAC)
 - **MOD-10:** Phân hệ Soạn đề LaTeX Trực tiếp & Lưu đề vào Ngân hàng (Composer & Bank Deep Ingestion)
@@ -1086,7 +1086,7 @@ Hệ thống cung cấp trọn vẹn 4 thao tác CRUD trên giao diện web `/ba
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│ MOD-07: XUẤT BẢN ĐỀ THI ĐA ĐỊNH DẠNG & ĐÓNG GÓI (.ZIP)                │
+│ MOD-07: XUẤT BẢN ĐỀ THI THUẦN VECTOR PDF & GÓI ẤN PHẨM KHẢO THÍ (.ZIP) │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1118,16 +1118,13 @@ ule{\textwidth}{0.5pt}`.
 - **Định dạng in ấn & Khổ giấy:**
   - Khổ chuẩn quốc gia: **A4 Portrait (210 x 297 mm)**, lề trang 1.5 cm - 1.8 cm, font Times New Roman / CMU Serif 11pt, giãn dòng 1.15.
   - Header chuẩn: Tên trường/sở, môn thi, mã đề thi, bảng điền số báo danh và phách.
-- **Công thức Toán đa định dạng (`math_format`):**
-  - **`mathtype` (Mặc định):** Nhúng đối tượng **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `Equation Native` chứa MTEF v5 DSMT7 và bản ghi `TeX Input Language`). Căn thẳng hàng chân dòng (baseline alignment qua `w:position` khớp chuẩn xác theo `depth_pt` của WMF), tự động nâng cấp phân số sang `\dfrac` (cỡ chữ 11pt đầy đủ cho cả tử và mẫu), chuẩn hóa khoảng cách ký tự (kerning/spacing chuẩn MathType: giãn cách toán tử `=`, `+`, `-`, đệm giữa các nhân tử kề nhau, hỗ trợ ký hiệu đạo hàm `f'(x)` chuẩn Symbol `0xa2`), bảo toàn và dựng vector đa giác cho các dấu ngoặc co giãn (`\left`, `
-ight` ngoặc đơn, ngoặc vuông, ngoặc nhọn), đệm kerning chữ nghiêng tránh dính dấu ngoặc (`f(x)` -> `f\,(x)`), chuẩn hóa tập số `\mathbb{R}, \mathbb{Q}, \mathbb{Z}` sang Times New Roman Bold đứng chuẩn xác, tắt gạch chân đỏ kiểm tra chính tả của Word (`w:hideSpellingErrors`, `w:noProof`), chuẩn hóa typographic style (tên hàm `\sin`, `\cos`, `\tan`, `\cot` thẳng đứng Upright, biến số in nghiêng Italic), chuẩn hóa embellishment vectơ (`\vec`, `\overrightarrow`), áp dụng typeface `0x82` bảo toàn toàn bộ dấu ngoặc `[`, `]`, `(`, `)`, `{`, `}` trong MathType, đạt độ nét vector tuyệt đối 100% không bị fallback DIB mờ hay lỗi dấu `?` ở mọi mức zoom, **cho phép click đúp mở MathType 7 client để chỉnh sửa trực tiếp 2 chiều đồng bộ tuyệt đối với Web**.
-  - **`omml`:** Phương trình bản địa Microsoft Word (`<m:oMath>`) chuyển đổi từ TeX qua MathJax MathML và XSLT.
-  - **`latex`:** Giữ nguyên mã nguồn LaTeX bọc trong cặp `${...}$`.
-- **Tự động chuyển đổi bảng dữ liệu thống kê (`\begin{array}`):**
-  - Tự động nhận diện mảng bảng phân phối tần số ghép nhóm hoặc bảng biến thiên trong đề thi.
-  - Dựng thành bảng Microsoft Word thực tế (`<w:tbl>`) căn giữa, có viền nét mảnh (`border sz="4"`), loại bỏ triệt để hiện tượng hộp đen (black box) khi xuất sang PDF.
+- **Động cơ Xuất bản Thuần Vector PDF & Chuẩn hóa Toán học LaTeX:**
+  - **Chuẩn hóa LaTeX:** Toàn bộ công thức toán học lưu trữ và xuất bản theo chuẩn LaTeX (`$...$` inline và `$$...$$` block). Tự động chuẩn hóa phân số sang `\dfrac` 11pt giúp công thức hiển thị rõ ràng. Căn thẳng hàng chân dòng chữ. Font chữ Computer Modern Unicode (CMU Serif) hoặc Times.
+  - **Đồ thị và Hình học Vector:** Toàn bộ hình vẽ hình học và đồ thị hàm số được giữ nguyên mã nguồn TikZ hoặc vector SVG nguyên bản. Không sử dụng ảnh raster mờ hạt.
+  - **Bảng dữ liệu thống kê và bảng biến thiên:** Dựng bằng các môi trường LaTeX chuẩn (`tabular`, `array`, `tkz-tab`) căn giữa trong văn bản. Loại bỏ hoàn toàn định dạng Word `<w:tbl>` và triệt tiêu lỗi hộp đen.
+  - **Loại bỏ Word và MathType OLE:** Toàn bộ mã nguồn xuất bản Word (.docx), MathType OLE binary formats, và OMML (`<m:oMath>`) đã được loại bỏ. Hệ thống tập trung hoàn toàn vào chuẩn Vector PDF qua Tectonic XeTeX Engine và ReportLab vector fallback.
 - **Dịch vụ MathJax Persistent Worker:**
-  - Chạy tiến trình nền Node.js xử lý MathJax 3/4 với bộ gói TeX đầy đủ (`input/tex-full`), thời gian sinh ~14 ms/công thức.
+  - Chạy tiến trình nền Node.js xử lý MathJax với bộ gói TeX đầy đủ (`input/tex-full`), thời gian sinh ~14 ms/công thức phục vụ render vector SVG cho giao diện và xem trước.
 
 ---
 

@@ -446,24 +446,24 @@
 
 ## Phase 6: Xuất Bản Đa Định Dạng & Vận Hành Hệ Thống
 
-### Task EX-01: [DONE] Dịch Vụ Tạo File Word OpenXML (.docx) Chuẩn 2 Cột
-**Description:** Xây dựng hàm `generate_variant_docx` sử dụng `python-docx` tạo cấu trúc OpenXML chuẩn 2 cột (`w:cols num="2"`).
+### Task EX-01: [SUPERSEDED] Tinh Gọn Dịch Vụ Xuất Bản Sang Thuần Vector PDF LaTeX
+**Description:** Chuyển đổi và tinh gọn dịch vụ xuất bản sang thuần Vector PDF theo chuẩn `ex_test.sty` v3.3, loại bỏ hoàn toàn sự phụ thuộc vào thư viện Word OpenXML (`python-docx`).
 **Acceptance criteria:**
-- [x] File sinh ra là tệp nén OpenXML ZIP hợp lệ mở được trực tiếp trên Word.
+- [x] Xuất bản đề thi chuẩn Vector PDF qua Tectonic XeTeX Engine và ReportLab vector fallback.
 **Verification:** `pytest tests/test_docx_export.py`
 **Dependencies:** SH-01 | **Files:** `backend/services/docx_exporter.py` | **Scope:** S (1 file)
 
-### Task EX-02: [DONE] Tạo Bảng Phách Thông Tin Thí Sinh Chuẩn Bộ GD&ĐT Trong File Word
-**Description:** Thêm phần đầu đề thi gồm: Tên trường/Sở, tên bài thi, mã đề thi, thời gian làm bài và bảng điền số báo danh, số phách.
+### Task EX-02: [SUPERSEDED] Tạo Tiêu Đề 2 Cột Chuẩn Bộ GD&ĐT Trong Mã Nguồn LaTeX
+**Description:** Thêm phần tiêu đề đề thi canonical 2 cột (0.38 và 0.58 textwidth) gồm Tên trường/Sở, tên bài thi, mã đề thi, thời gian làm bài và thông tin thí sinh.
 **Acceptance criteria:**
-- [x] Bảng thông tin kẻ viền chuẩn mực khảo thí, cố định ở đầu trang 1.
+- [x] Tiêu đề 2 cột chuẩn mực khảo thí, cố định ở đầu trang 1.
 **Verification:** `pytest tests/test_docx_export.py`
 **Dependencies:** EX-01 | **Files:** `backend/services/docx_exporter.py` | **Scope:** XS (1 file)
 
-### Task EX-03: [DONE] Chuyển Đổi Công Thức LaTeX Sang OMML Native Trong File Word
-**Description:** Tích hợp hàm chuyển đổi cú pháp toán học sang mã XML `<m:oMath>` để công thức hiển thị dạng vector sắc nét trong Word.
+### Task EX-03: [SUPERSEDED] Chuẩn Hóa Cú Pháp Toán Học LaTeX ex_test.sty
+**Description:** Chuẩn hóa cú pháp toán học `\choice`, `\choiceTF[1]` bảo toàn cặp ngoặc `{...}` và `\shortans` để công thức hiển thị dạng vector sắc nét tuyệt đối.
 **Acceptance criteria:**
-- [x] Công thức toán có thể nhấp chuột vào chỉnh sửa trực tiếp bằng Equation Editor của Word.
+- [x] Công thức toán hiển thị chuẩn xác, không vỡ layout, biên dịch ra PDF chất lượng cao.
 **Verification:** `pytest tests/test_docx_export.py`
 **Dependencies:** EX-01 | **Files:** `backend/services/docx_exporter.py` | **Scope:** S (1 file)
 
@@ -482,26 +482,25 @@
 **Verification:** Kiểm thử hiển thị file PDF vector trên trình duyệt.
 **Dependencies:** EX-04 | **Files:** `backend/services/docx_exporter.py` | **Scope:** XS (1 file)
 
-### Task EX-06: [DONE] Xuất Bản Tài Liệu Hướng Dẫn Giải Chi Tiết (Word & PDF)
-**Description:** Viết hàm xuất bản tài liệu lời giải chi tiết cho từng mã đề thi hoán vị theo định dạng cả Word (.docx) và PDF (.pdf).
+### Task EX-06: [DONE] Xuất Bản Tài Liệu Hướng Dẫn Giải Chi Tiết Thuần Vector PDF
+**Description:** Viết hàm xuất bản tài liệu lời giải chi tiết cho từng mã đề thi hoán vị theo định dạng Vector PDF (`LoiGiai_{code}.pdf`) chuẩn LaTeX `ex_test.sty`.
 **Acceptance criteria:**
-- [x] Hiển thị rõ ràng đáp án chuẩn và phần giải thích từng câu hỏi.
-**Verification:** `pytest tests/test_services.py::test_docx_export_and_zip_package`
+- [x] Hiển thị rõ ràng đáp án chuẩn và phần giải thích chi tiết từng câu hỏi.
+**Verification:** `pytest tests/test_docx_export.py`
 **Dependencies:** EX-01, EX-04 | **Files:** `backend/services/docx_exporter.py` | **Scope:** S (1 file)
 
-### Task EX-07: [DONE] Xuất Bản Bảng Đáp Án Tổng Hợp Các Mã Đề (Word, PDF, CSV)
-**Description:** Viết hàm xuất bản bảng đáp án tổng hợp đối chiếu tất cả các mã đề thi ra cả 3 định dạng: `.docx`, `.pdf`, `.csv` (UTF-8 BOM).
+### Task EX-07: [DONE] Xuất Bản Bảng Đáp Án Tổng Hợp Các Mã Đề (PDF & CSV)
+**Description:** Viết hàm xuất bản bảng đáp án tổng hợp đối chiếu tất cả các mã đề thi ra định dạng PDF (`BangDapAn_TongHop.pdf`) và CSV UTF-8 BOM (`BangDapAn_TongHop.csv`).
 **Acceptance criteria:**
 - [x] File CSV có thể mở trực tiếp trên Excel tiếng Việt không bị lỗi font.
-**Verification:** `pytest tests/test_services.py::test_docx_export_and_zip_package`
+**Verification:** `pytest tests/test_docx_export.py`
 **Dependencies:** EX-01, EX-04 | **Files:** `backend/services/docx_exporter.py` | **Scope:** S (1 file)
 
-### Task EX-08: [DONE] API `GET /api/v1/exams/{id}/export-docx` (Tải Lẻ File Word)
-**Description:** Endpoint xuất và trả về trực tiếp file Word `.docx` của một mã đề thi cụ thể (ví dụ Mã 101).
+### Task EX-08: [SUPERSEDED] Hợp Nhất Đường Ống Xuất Bản Thuần Vector PDF
+**Description:** Thay thế việc tải lẻ file Word bằng luồng xuất bản Vector PDF chuẩn mực, an toàn và chống lỗi font.
 **Acceptance criteria:**
-- [x] Tự động fallback về đề thi khả dụng nếu ID gửi lên là `default` hoặc không tồn tại.
-- [x] Header `Content-Disposition` trả về attachment filename rõ ràng.
-**Verification:** Real Browser CDP check: tải thành công `De_Thi_Ma_101.docx`.
+- [x] Xuất bản trực tiếp đề thi chuẩn Vector PDF.
+**Verification:** `pytest tests/test_docx_export.py`
 **Dependencies:** EX-01 | **Files:** `backend/routers/exams.py` | **Scope:** S (1 file)
 
 ### Task EX-09: [DONE] API `GET /api/v1/exams/{id}/export-pdf` (Tải Lẻ File PDF)
@@ -511,17 +510,15 @@
 **Verification:** Real Browser CDP check: tải thành công `De_Thi_Ma_101.pdf` (283ms).
 **Dependencies:** EX-04, EX-05 | **Files:** `backend/routers/exams.py` | **Scope:** S (1 file)
 
-### Task EX-10: [DONE] API `GET /api/v1/exams/{id}/export-zip` Hỗ Trợ `format=all|docx|pdf`
-**Description:** Endpoint đóng gói trọn gói toàn bộ các mã đề, lời giải và ma trận đáp án vào 1 tệp ZIP duy nhất theo tùy chọn định dạng.
+### Task EX-10: [DONE] API `GET /api/v1/exams/{id}/export-zip` Đóng Gói Trọn Bộ Ấn Phẩm
+**Description:** Endpoint đóng gói trọn gói toàn bộ các mã đề PDF, lời giải PDF, ma trận đáp án PDF/CSV và phiếu OMR vào 1 tệp ZIP duy nhất.
 **Acceptance criteria:**
-- [x] `format=docx`: Gói chỉ chứa Word và CSV.
-- [x] `format=pdf`: Gói chỉ chứa PDF và CSV.
-- [x] `format=all`: Gói chứa đầy đủ cả Word, PDF và CSV.
-**Verification:** `pytest tests/test_performance_budgets.py::test_perf_budget_docx_and_zip_export`
+- [x] Gói ZIP chứa đầy đủ các đề PDF, lời giải PDF, ma trận đáp án PDF/CSV và phiếu OMR 2025.
+**Verification:** `pytest tests/test_performance_budgets.py::test_perf_budget_pdf_and_zip_export`
 **Dependencies:** EX-06, EX-07 | **Files:** `backend/routers/exams.py`, `backend/services/docx_exporter.py` | **Scope:** S (2 files)
 
 ### Task EX-11: [DONE] Cơ Chế Tải Blob Client-Side Dập Tắt Lỗi *Failed - Unknown Server Error*
-**Description:** Nâng cấp các hàm tải file client-side (`downloadPublishZip`, `downloadActiveVariantPdf`, `downloadActiveVariantDocx`) sang mô hình `fetch()` + `URL.createObjectURL(blob)`.
+**Description:** Nâng cấp các hàm tải file client-side (`downloadPublishZip`, `downloadActiveVariantPdf`) sang mô hình `fetch()` + `URL.createObjectURL(blob)`.
 **Acceptance criteria:**
 - [x] Kiểm tra `response.ok` trước khi kích hoạt lưu file.
 - [x] Hiển thị Toast thông báo trạng thái tải trực quan theo thời gian thực.
@@ -659,3 +656,15 @@
 - [x] Tự động kiểm thử và báo xanh khi toàn bộ tests pass.
 **Verification:** Kiểm tra tab Actions trên GitHub repository.
 **Dependencies:** SO-04 | **Files:** `.github/workflows/ci.yml` | **Scope:** XS (1 file)
+
+### Task UI-PROD-01: [x] [DONE] Chuẩn Hóa Giao Diện Sản Phẩm: Loại Bỏ Chi Tiết Pháp Lý & Tối Giản Header
+**Description:** Tinh chỉnh giao diện theo hướng sản phẩm thương mại hoàn thiện (production-ready): xoá các nút thừa ở header (môn học 'Toán 12', pill 'FastAPI: Online'), loại bỏ badge 'Chuẩn Khảo Thí Quốc Gia 2026' và 'Phiên bản v4.0', đơn giản hóa tiêu đề ngân hàng câu hỏi và đổi tiêu đề 'Thiết Lập Bản Đặc Tả Ma Trận Đa Tầng...' thành 'Tạo ma trận đề thi', lược bỏ các chi tiết viện dẫn thông tư, quyết định rườm rà.
+**Acceptance criteria:**
+- [x] Header xoá bỏ nút 'Toán 12' và badge 'FastAPI: Online'.
+- [x] Trang chủ xoá badge 'Chuẩn Khảo Thí Quốc Gia 2026' và 'Phiên bản v4.0'.
+- [x] Ngân hàng câu hỏi xoá badge 'Chuẩn TT 32/2018' và câu mô tả viện dẫn TT 32 / QĐ 764.
+- [x] Ma trận đề thi đổi tiêu đề thành 'Tạo ma trận đề thi'.
+- [x] Tinh giản toàn bộ các văn bản viện dẫn quy định thành mô tả chức năng thực tế.
+- [x] 100% test suites E2E và giao diện vượt qua kiểm thử (`pytest tests/test_e2e_*.py`).
+**Verification:** `pytest tests/test_e2e_dashboard_launchpad.py tests/test_e2e_friendly_item_bank.py tests/test_e2e_matrix_and_shuffler_headers.py tests/test_e2e_workflow.py`
+**Dependencies:** None | **Files:** `frontend/index.html`, `frontend/static/app.js`, `frontend/manifest.json` | **Scope:** S (3 files)

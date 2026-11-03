@@ -3,9 +3,9 @@
 **Dự án:** Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học  
 **Tên mã dự án (Project Code):** QUESY  
 **Mục tiêu cốt lõi:** Giải quyết triệt để các rào cản và nút thắt cổ chai trong quy trình số hóa đề thi, tự động tái tạo đồ thị vector, chuẩn hóa công thức toán học, trộn đề an toàn chống vỡ logic và xuất bản ấn phẩm khảo thí in ấn chuyên nghiệp.  
-- **Phiên bản (Version):** 4.0 (Hoàn Thiện Giao Diện Trang Chính Tổng Quan Khảo Thí Apple HIG, Trung Tâm Khởi Chạy Nhanh 4 Thao Tác, Tiêu Điểm Đề Thi Minh Họa 2026 Mã 0101, Bảng Giám Sát Bất Biến Khảo Thí Quốc Gia & Lịch Sử Đề Thi)  
+- **Phiên bản (Version):** 4.2 (Chuyển Đổi Xuất Bản Thuần Vector PDF LaTeX ex_test.sty v3.3, Gói Ấn Phẩm ZIP Khảo Thí & Loại Bỏ Xuất Bản Word)  
 - **Trạng thái (Status):** Đã phê duyệt triển khai (Approved for Implementation)  
-- **Ngày phát hành:** 2026-11-02
+- **Ngày phát hành:** 2026-11-03
 
 ---
 
@@ -15,9 +15,9 @@
 |:---|:---|:---|:---|:---|
 | 1.0 | 2026-10-14 | BA Team | Khởi tạo tài liệu BRD ban đầu | PM |
 | 2.0 | 2026-10-15 | BA Team | Tích hợp cấu trúc đa dạng câu hỏi và cây phân loại năng lực | PM |
-| 2.5 | 2026-10-18 | BA Team & Tech Lead | Tái cơ cấu toàn diện tài liệu theo định hướng Giải pháp & Giá trị thực tế: Tích hợp bộ dựng đồ thị vector SVG TikZ/PGFPlots tự động có Auto-clipping, 4 quy tắc toán học KaTeX, động cơ Safe Shuffling (Option Anchor), chấm điểm bậc thang và xuất bản Word OMML native. | Ban Giám đốc & PM |
-| 2.6 | 2026-10-21 | BA Team & Tech Lead | Tích hợp chuẩn xuất bản MathType 7.0 OLE Vector WMF (double-click editable), dịch vụ MathJax Persistent Worker Engine (~14ms/công thức), và chuyển đổi bảng thống kê `\begin{array}` thành Word Table `<w:tbl>` chống lỗi đen PDF. | Ban Giám đốc & PM |
-| 2.7 | 2026-10-21 | BA Team & Tech Lead | Chuẩn hóa nhị phân DSMT7 Native Preamble, bản ghi TeX Input Language, bổ sung embellishment vectơ (`\vec`, `\overrightarrow`), đạt $100\%$ Vector WMF tuyệt đối, giải quyết triệt để lỗi OLE activation trong Microsoft Word. | Ban Giám đốc & PM |
+| 2.5 | 2026-10-18 | BA Team & Tech Lead | Tái cơ cấu toàn diện tài liệu theo định hướng Giải pháp & Giá trị thực tế: Tích hợp bộ dựng đồ thị vector SVG TikZ/PGFPlots tự động có Auto-clipping, 4 quy tắc toán học KaTeX, động cơ Safe Shuffling (Option Anchor), chấm điểm bậc thang và xuất bản ấn phẩm khảo thí chuẩn hóa. | Ban Giám đốc & PM |
+| 2.6 | 2026-10-21 | BA Team & Tech Lead | Tích hợp dịch vụ MathJax Persistent Worker Engine (~14ms/công thức), chuẩn hóa xử lý bảng biểu thống kê `\begin{array}` và tối ưu hóa thời gian sinh ấn phẩm. | Ban Giám đốc & PM |
+| 2.7 | 2026-10-21 | BA Team & Tech Lead | Bổ sung chuẩn hóa ký hiệu toán tử vectơ (`\vec`, `\overrightarrow`) và nâng cao độ chính xác hiển thị công thức toán học. | Ban Giám đốc & PM |
 | 3.0 | 2026-10-24 | BA Team & Tech Lead | Tích hợp Động cơ Thay thế Câu hỏi Thông minh (Question Replacement Engine), Cơ chế bảo toàn khối mã Chat Bubble (Safe Chat Sync). | Ban Giám đốc & PM |
 | 3.3 | 2026-10-25 | BA Team & Tech Lead | Hoàn thiện Toàn diện Ngân hàng Câu hỏi CRUD & Import/Export, Hệ thống Xác thực Auth JWT/OAuth & Lưu Đề từ Soạn thảo vào Ngân hàng. | Ban Giám đốc & PM |
 | 3.4 | 2026-10-27 | BA Team & Lead Architect | Hoàn thiện Toàn diện Phân hệ Ma trận Đề thi 2D (TT 22 & QĐ 764), 3 Ma trận mẫu Presets, Đối soát Tồn kho Thời gian thực, Xuất bản Bản đặc tả (PDF/CSV/JSON), Động cơ Sinh Đề Gốc kèm Đổi câu hỏi tương đương, Động cơ Trộn Đề An Toàn 4 Nguyên Tắc (Option Anchor 100%), và Đóng gói Ấn phẩm Khảo thí (.ZIP/.PDF). | Ban Giám đốc & PM |
@@ -28,6 +28,7 @@
 | 3.9 | 2026-11-01 | BA Team & Lead Architect | Kiểm nghiệm Toàn diện Chức năng Soạn Đề, Số Hóa Từ Ảnh & Chat Tái Cấu Trúc Đề Thi Tốt Nghiệp THPT 2026 Môn Toán (Mã Đề 0101): Mô hình hóa trọn vẹn 4 trang in ấn chuẩn MoET (12 câu Phần I, 4 câu Phần II \choiceTF[1], 6 câu Phần III \shortans), kiểm chứng năng lực Multimodal Copilot (nhận diện ảnh, thumbnail tray, lightbox), chat tái cấu trúc câu hỏi có diff trực quan, và biên dịch Vector PDF XeTeX đa trang sống động trên PDF.js canvas. | Ban Giám đốc & PM |
 | **4.0** | 2026-11-02 | BA Team & Lead UX | **Hoàn thiện Giao diện Trang Chính Tổng Quan Khảo Thí Apple HIG: Nâng cấp Bảng Điều Khiển Trung Tâm với Trung tâm Khởi chạy Nhanh 4 Thao tác (Soạn đề 2026, Số hóa AI, Ma trận 2D, Sinh & Trộn đề ZIP), Tiêu điểm Đề thi Tham khảo Tốt nghiệp THPT 2026 Môn Toán (Mã 0101), Bảng Giám sát Bất biến Khảo thí Quốc gia (RULE-01/02/03/Centered Diagrams) và Lịch sử Ấn phẩm Khảo thí Gần đây.** | Ban Giám đốc & PM |
 | **4.1** | 2026-11-02 | BA Team & Lead Architect | **Nâng cấp Phân hệ Soạn đề Split View Trợ lý AI & Tự động Co giãn Editor Pane, Động cơ Tìm & Thay thế Tiếng Việt Linh hoạt Không Cần Dấu Ngoặc Kép, và Phân hệ Chat Hỏi Đáp Nghiệp vụ Khảo thí & Sư phạm Q&A (QĐ 764, TT 32, Cấu trúc 2025, ex_test, TikZ, tkz-tab, thống kê đề và hướng dẫn giải).** | Ban Giám đốc & PM |
+| **4.2** | 2026-11-03 | BA Team & Lead Architect | **Hoàn tất chuyển đổi kiến trúc xuất bản thuần Vector PDF LaTeX ex_test.sty v3.3 qua Tectonic XeTeX Engine và ReportLab vector fallback. Loại bỏ toàn bộ xuất bản Word docx, MathType OLE và OMML. Đóng gói trọn bộ ZIP gồm đề thi, lời giải, ma trận đáp án PDF/CSV và phiếu OMR 2025.** | Ban Giám đốc & PM |
 
 ---
 
@@ -41,14 +42,14 @@ Trong hoạt động giảng dạy, kiểm tra và khảo thí tại các trư�
 3. **Lỗi hiển thị công thức toán học (KaTeX Parse Errors):** Các hệ thống học tập trực tuyến thường xuyên gặp lỗi vỡ giao diện do công thức toán thiếu dấu ngoặc kích thước động, dấu phẩy số thập phân bị hở khoảng cách, hoặc dấu gạch chéo tập hợp bị lỗi escape hiển thị chuỗi chữ đỏ thô.
 4. **Trộn đề thi làm đảo lộn logic câu hỏi:** Các phần mềm trộn đề cổ điển thực hiện hoán vị ngẫu nhiên làm các phương án chứa từ ngữ phụ thuộc vị trí (*"Cả A và B đều đúng"*, *"Tất cả các ý trên"*) bị đảo lên đầu (A, B); các câu hỏi chung ngữ liệu đọc hiểu bị xé lẻ sang các trang khác nhau.
 5. **Chấm điểm câu hỏi đa khẳng định phức tạp:** Dạng câu hỏi Đúng/Sai 4 khẳng định có cơ chế tính điểm bậc thang phi tuyến tính (0.1đ - 0.25đ - 0.5đ - 1.0đ) khiến công tác chấm thi thủ công rất dễ xảy ra nhầm lẫn và sai sót điểm số.
-6. **Mất nhiều thời gian dàn trang in ấn:** Sau khi biên soạn, giáo viên phải mất nhiều công sức căn chỉnh lề 2 cột trên Word, chuyển đổi lại công thức sang Microsoft Word Equation bản địa để in ấn cho học sinh.
+6. **Mất nhiều thời gian dàn trang in ấn:** Sau khi biên soạn, giáo viên phải mất nhiều công sức căn chỉnh lề hai cột thủ công và căn chỉnh lại công thức toán phức tạp để in ấn đề thi cho học sinh.
 
 ### 1.2. Tầm nhìn & Mục tiêu Sản phẩm (Product Vision)
 Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh toàn diện, tích hợp Trí tuệ Nhân tạo Đa phương thức (Multimodal Vision AI) và Đồ họa Vector Tự động nhằm:
 - **Tự động hóa 100% quá trình số hóa đề thi:** Biến tài liệu giấy, PDF scan và Word cũ thành ngân hàng câu hỏi điện tử chuẩn KaTeX và đồ họa vector SVG chỉ trong vài giây.
 - **Tái tạo đồ thị chuẩn xác tuyệt đối:** Dựng lại hoàn hảo đồ thị hàm bậc ba, hàm phân thức, hàm trùng phương và hình học không gian có cơ chế Auto-clipping khống chế tỷ lệ khung hình, hiển thị cả ở đề bài lẫn 4 phương án trắc nghiệm A, B, C, D.
 - **Bảo toàn logic đề thi khi hoán vị:** Động cơ Safe Shuffling Engine giữ nguyên bài đọc chung, khóa cố định phương án phụ thuộc vị trí ở đáp án D và sinh ma trận đối chiếu đáp án tự động.
-- **Xuất bản ấn phẩm chuyên nghiệp 1-click:** Xuất file Word A4 Portrait với công thức **MathType 7.0 OLE Vector WMF** (nét căng, click đúp mở MathType sửa được ngay) hoặc **Word OMML native**, xuất PDF in ấn và phiếu soi đáp án trắc nghiệm OMR.
+- **Xuất bản ấn phẩm chuyên nghiệp 1-click:** Xuất bản tài liệu thuần Vector PDF chuẩn gói LaTeX ex_test.sty v3.3 chất lượng cao qua Tectonic XeTeX Engine và ReportLab vector fallback. Đóng gói trọn gói tệp ZIP gồm các mã đề thi, lời giải chi tiết, ma trận đối chiếu đáp án PDF và CSV UTF-8 BOM, cùng phiếu trả lời trắc nghiệm OMR 2025.
 
 ---
 
@@ -71,7 +72,7 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 | Thẩm định & Phê duyệt câu hỏi vào Bank | I | **A/R** | C | **R** | I |
 | Thiết lập Ma trận & Bản đặc tả Đề thi | I | **A/R** | C | C | I |
 | Sinh Đề thi Gốc & Hoán vị Mã đề An toàn | I | A | **R** | C | I |
-| Xuất bản gói in ấn Word 2 cột & Phiếu OMR | I | I | **A/R** | I | I |
+| Xuất bản gói in ấn thuần Vector PDF LaTeX & Phiếu OMR | I | I | **A/R** | I | I |
 | Phân tích Chỉ số Khảo thí (p, D) sau kỳ thi | I | **A/R** | R | C | I |
 
 ---
@@ -190,12 +191,11 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 ---
 
 ### BR-06: XUẤT BẢN ẤN PHẨM KHẢO THÍ & CHẤM ĐIỂM HỌC SINH
-- **BR-06.1 Xuất bản Microsoft Word (.docx) chuẩn in ấn & MathType OLE:**
-  - Khổ chuẩn A4 Portrait (210 x 297 mm), lề trang chuẩn 1.5 cm - 1.8 cm, font Times New Roman 11pt, giãn dòng 1.15.
-  - Hỗ trợ công thức **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `Equation Native` chứa MTEF v5 DSMT7 và bản ghi `TeX Input Language`), **cho phép click đúp mở MathType 7 để chỉnh sửa trực tiếp 2 chiều đồng bộ với Web**. Chuẩn hóa typeface `0x82` bảo toàn toàn bộ dấu ngoặc `[`, `]`, `(`, `)`, `{`, `}`, đạt 100% Vector WMF thuần không dùng ảnh raster DIB mờ hạt và triệt tiêu lỗi dấu `?`.
-  - Hỗ trợ định dạng **Microsoft Word OMML native**, chữ vector sắc nét, chỉnh sửa trực tiếp trên Word.
-  - Tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word `<w:tbl>`, loại bỏ lỗi hộp đen khi xuất PDF.
-  - Gói xuất bản ZIP: $N$ file đề thi Word, file Lời giải chi tiết, file Bảng đáp án tổng hợp (Excel/CSV UTF-8 BOM + PDF), file Phiếu trả lời trắc nghiệm (chuẩn máy chấm OMR).
+- **BR-06.1 Xuất bản tài liệu thuần Vector PDF LaTeX & Đóng gói ấn phẩm ZIP:**
+  - Định dạng chuẩn khổ giấy A4 Portrait (210 x 297 mm), lề trang 1.5 cm đến 1.8 cm, bố cục 2 cột chuyên nghiệp tuân thủ gói lệnh quốc gia LaTeX `ex_test.sty` v3.3.
+  - Biên dịch Vector PDF chất lượng in ấn sắc nét thông qua Tectonic XeTeX Engine, tích hợp cơ chế ReportLab vector fallback dự phòng cho tốc độ xuất bản tức thì.
+  - Tự động dựng đồ thị hàm số TikZ PGFPlots và bảng biến thiên `tkz-tab` dạng vector sắc nét, hoàn toàn loại bỏ hiện tượng vỡ nét hoặc méo hình.
+  - Gói xuất bản ZIP trọn gói bao gồm các tệp đề thi theo từng mã đề (`De_{code}.pdf`), tệp Lời giải chi tiết (`LoiGiai_{code}.pdf`), tệp Bảng đáp án tổng hợp (`BangDapAn_TongHop.pdf` và CSV UTF-8 BOM tương thích Excel), cùng tệp Phiếu trả lời trắc nghiệm chuẩn máy chấm OMR 2025.
 - **BR-06.2 Chấm điểm bậc thang & Quản lý bảng điểm:**
   - Tự động tính điểm dạng câu hỏi Đúng/Sai 4 khẳng định theo thang điểm bậc thang: Đúng 1 ý: 0.1đ; Đúng 2 ý: 0.25đ; Đúng 3 ý: 0.5đ; Đúng cả 4 ý: 1.0đ.
   - Quản lý danh sách lớp học và học sinh, xuất/nhập bảng điểm định dạng CSV/Excel UTF-8 BOM chuẩn tiếng Việt.
@@ -239,7 +239,7 @@ Xây dựng nền tảng **Quesy** - Hệ sinh thái khảo thí thông minh to�
 | **BR-03** | Ngân hàng Câu hỏi Chuẩn hóa, CRUD, Phân trang HIG & Header Invariant | Taxonomy & Item Bank | P0 | Quản lý vòng đời đầy đủ, lọc 6 tầng TT 32, phân trang chống tràn DOM, tải KaTeX on-demand <10ms, bảo toàn cố định Top Header 100% |
 | **BR-04** | Ma trận Đề thi Phân cấp Đa tầng & Con trỏ Tương phản cao | Matrix Blueprint Builder | P0 | Tự động hóa tạo đề thi cân đối TT 22 & QĐ 764, tồn kho thời gian thực, con trỏ text đen đậm công thái học cao |
 | **BR-05** | Động cơ Sinh & Trộn Đề An Toàn 4 Nguyên Tắc | Safe Shuffling Engine & Master Exam | P0 | Chống lỗi logic đáp án neo, bảo toàn bài đọc, đổi câu hỏi linh hoạt, sinh ma trận đáp án |
-| **BR-06** | Xuất bản Vector PDF, Word OMML & Gói ZIP | Export Service & Publishing Pipeline | P0 | Xuất bản in ấn 1-click, đóng gói trọn gói ZIP đề thi, lời giải, barem bậc thang và phiếu OMR |
+| **BR-06** | Xuất bản Thuần Vector PDF LaTeX & Gói ZIP | Export Service & Publishing Pipeline | P0 | Xuất bản in ấn 1-click, đóng gói trọn gói ZIP đề thi, lời giải, barem bậc thang và phiếu OMR 2025 |
 | **BR-07** | Trợ lý Soạn thảo AI Toàn diện (Split View, Tìm & Thay thế Linh hoạt & Q&A Khảo thí) | Composer Copilot & Pedagogical Engine | P0 | Trải nghiệm Split View không che khuất, thay thế tự nhiên không ngoặc kép, giải đáp quy chế QĐ 764/TT 32 và thống kê đề thi |
 | **BR-08** | Xác thực Người dùng & Phân quyền Khảo thí | Auth Service & User Management | P0 | Bảo mật kho đề thi, hỗ trợ OAuth Google/GitHub, JWT và phân quyền RBAC Giáo viên / Học sinh |
 | **BR-09** | Lưu Đề từ Soạn Thảo vào Ngân Hàng | Composer & Item Bank Ingestion | P0 | Khép kín chu trình biên soạn, tích lũy tự động kho câu hỏi chuẩn quốc gia chỉ với 1 click |

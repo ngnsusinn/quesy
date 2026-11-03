@@ -25,7 +25,7 @@
    - [4.5. Phân hệ Quản lý Ngân hàng Câu hỏi & Chống Trùng lặp AI (Item Bank & Deduplication)](#45-phân-hệ-quản-lý-ngân-hàng-câu-hỏi--chống-trùng-lặp-ai-item-bank--deduplication)
    - [4.6. Phân hệ Ma trận Đề thi & Rút Đề theo Ràng buộc (Exam Matrix & Solver)](#46-phân-hệ-ma-trận-đề-thi--rút-đề-theo-ràng-buộc-exam-matrix--solver)
    - [4.7. Phân hệ Động cơ Trộn Đề An Toàn (Safe Shuffling Engine)](#47-phân-hệ-động-cơ-trộn-đề-an-toàn-safe-shuffling-engine)
-   - [4.8. Phân hệ Xuất bản Đề thi Word OMML 2 Cột & In ấn (Publishing & Export Service)](#48-phân-hệ-xuất-bản-đề-thi-word-omml-2-cột--in-ấn-publishing--export-service)
+   - [4.8. Phân hệ Xuất bản Thuần Vector PDF LaTeX & Gói Ấn phẩm ZIP (Publishing & Export Service)](#48-phân-hệ-xuất-bản-thuần-vector-pdf-latex--gói-ấn-phẩm-zip-publishing--export-service)
    - [4.9. Phân hệ Chấm điểm Bậc thang & Quản lý Bảng điểm Lớp học (Grade & Roster Management)](#49-phân-hệ-chấm-điểm-bậc-thang--quản-lý-bảng-điểm-lớp-học-grade--roster-management)
    - [4.10. Phân hệ Soạn đề LaTeX Trực tiếp & Trợ lý AI Copilot (Composer & Smart Diff)](#410-phân-hệ-soạn-đề-latex-trực-tiếp--trợ-lý-ai-copilot-composer--smart-diff)
 5. [Yêu cầu Phi chức năng & Trải nghiệm Người dùng (NFR & UX)](#5-yêu-cầu-phi-chức-năng--trải-nghiệm-người-dùng-nfr--ux)
@@ -47,12 +47,12 @@ Trong công tác biên soạn đề kiểm tra định kỳ và quản lý ngân
 
 | STT | Khó khăn / Nỗi đau thực tế | Giải pháp công nghệ đột phá của Quesy |
 |:---:|:---|:---|
-| **1** | **Gõ lại đề thi thủ công tốn hàng giờ:** Giáo viên mất 1.5 – 3 giờ để gõ lại một đề thi từ file PDF scan, ảnh chụp điện thoại hoặc file Word cũ; công thức MathType cũ bị lỗi thời, vỡ font khi sao chép. | **AI Ingestion & OCR Đa phương thức:** Tự động số hóa đề thi từ PDF scan, DOCX, ảnh chụp; giải mã trực tiếp dòng nhị phân MathType MTEF sang mã LaTeX chuẩn trong vài giây. |
+| **1** | **Gõ lại đề thi thủ công tốn hàng giờ:** Giáo viên mất 1.5 đến 3 giờ để gõ lại một đề thi từ file PDF scan, ảnh chụp điện thoại hoặc file Word cũ; công thức MathType cũ bị lỗi thời, vỡ font khi sao chép. | **AI Ingestion & OCR Đa phương thức:** Tự động số hóa đề thi từ PDF scan, DOCX, ảnh chụp; giải mã trực tiếp dòng nhị phân MathType MTEF sang mã LaTeX chuẩn trong vài giây. |
 | **2** | **Đồ thị và hình vẽ bị bỏ quên hoặc méo tỷ lệ:** OCR thông thường chỉ nhận diện văn bản thô, bỏ qua hình vẽ; hoặc khi vẽ đồ thị hàm phân thức có tiệm cận, tọa độ vọt lên vô cực làm khung hình bị co kéo méo mó. | **TikZ Engine & Auto-clipping Vector SVG:** Tự động biên dịch mã TikZ sang đồ họa vector SVG sắc nét qua Kroki; thuật toán Auto-clipping khống chế khung hình cân đối, hỗ trợ đồ thị trong đề bài và từng phương án A, B, C, D. |
 | **3** | **Lỗi hiển thị công thức toán học (KaTeX Crashes):** Dấu ngoặc đơn/vuông bị lệch cỡ khi bọc phân số, số thập phân bị hở khoảng cách vô lý (`15 , 25`), vectơ dùng ký hiệu `\vec` bị ngắn cụt đầu. | **Bộ Chuẩn Hóa Toán Học Tự Động:** Chuẩn hóa toàn diện 4 yếu tố: dấu ngoặc kích thước động `\left`/`\right`, số thập phân chuẩn `{,}`, phân số `\dfrac`, ký hiệu vectơ `\overrightarrow`, vá lỗi môi trường `tabular` sang KaTeX `array`. |
 | **4** | **Trộn đề làm vỡ logic câu hỏi:** Phần mềm trộn đề cổ điển đảo đáp án ngẫu nhiên khiến câu *"Cả A và B đều đúng"* nhảy lên vị trí A; bài đọc hiểu chung bị tách rời khỏi câu hỏi con; câu trắc nghiệm bị đảo lẫn vào phần tự luận. | **Động Cơ Trộn Đề An Toàn (Safe Shuffling Engine):** Khóa neo phương án phụ thuộc vị trí (**Option Anchor** - luôn neo ở D), bảo toàn ngữ cảnh bài đọc chung (**Passage Integrity**), bảo toàn phân vùng phần thi (**Section Integrity**) và tự động sinh bảng đối chiếu đáp án. |
-| **5** | **Chấm điểm Đúng/Sai 4 ý phức tạp:** Dạng trắc nghiệm Đúng/Sai 4 khẳng định theo cấu trúc thi 2025 có cơ chế điểm bậc thang (0.1đ – 0.25đ – 0.5đ – 1.0đ), rất dễ tính nhầm khi chấm tay. | **Hệ Thống Chấm Điểm Bậc Thang & Quản Lý Lớp Học:** Tự động chấm điểm theo đúng công thức bậc thang, quản lý danh sách học sinh theo SBD/Mã học sinh, xuất/nhập bảng điểm Excel UTF-8 BOM chống lỗi font tiếng Việt. |
-| **6** | **Dàn trang in ấn Word mất công:** Giáo viên phải tự kẻ bảng phách, chia 2 cột thủ công, công thức toán xuất ra không tương thích với trình soạn thảo Microsoft Word bản quyền. | **Xuất Bản 1-Click Chuẩn Khảo Thí:** Xuất file Word `.docx` 2 cột chuẩn phom Bộ GD&ĐT với công thức **Microsoft Word OMML native (`<m:oMath>`)**, xuất PDF in ấn, phiếu soi đáp án trắc nghiệm OMR đóng gói trong file ZIP. |
+| **5** | **Chấm điểm Đúng/Sai 4 ý phức tạp:** Dạng trắc nghiệm Đúng/Sai 4 khẳng định theo cấu trúc thi 2025 có cơ chế điểm bậc thang (0.1đ, 0.25đ, 0.5đ, 1.0đ), rất dễ tính nhầm khi chấm tay. | **Hệ Thống Chấm Điểm Bậc Thang & Quản Lý Lớp Học:** Tự động chấm điểm theo đúng công thức bậc thang, quản lý danh sách học sinh theo SBD/Mã học sinh, xuất/nhập bảng điểm Excel UTF-8 BOM chống lỗi font tiếng Việt. |
+| **6** | **Dàn trang in ấn đề thi mất công:** Giáo viên phải tự kẻ bảng phách, chia 2 cột thủ công, căn chỉnh công thức toán phức tạp khi in ấn đề thi cho học sinh. | **Xuất Bản 1-Click Chuẩn Khảo Thí:** Xuất bản tài liệu thuần Vector PDF chuẩn gói LaTeX ex_test.sty v3.3 chất lượng in ấn sắc nét qua Tectonic XeTeX Engine và ReportLab vector fallback, đóng gói trọn bộ ZIP gồm các mã đề thi, lời giải chi tiết, ma trận đối chiếu đáp án PDF/CSV UTF-8 BOM và phiếu OMR 2025. |
 
 ---
 
@@ -101,10 +101,10 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
    - Constraint solver        - Full lifecycle audit         - Strict no-textbook rule
           │
           ▼
-  [7. Safe Shuffling] ──────► [8. OMML Word Export] ──────► [9. Grade & Roster Mgmt]
-   - Option Anchor (Rule D)  - 2-Column native OMML          - Decision 764 progressive
+  [7. Safe Shuffling] ──────► [8. Vector PDF & ZIP] ──────► [9. Grade & Roster Mgmt]
+   - Option Anchor (Rule D)  - Pure Vector PDF LaTeX         - Decision 764 progressive
    - Passage Integrity       - Full ZIP package              - Excel UTF-8 BOM
-   - Section Integrity       - Vector PDF print-ready        - Item psychometrics (p, D)
+   - Section Integrity       - ex_test.sty v3.3 Tectonic     - Item psychometrics (p, D)
 ```
 
 ---
@@ -242,39 +242,34 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
   5. **Thanh Nguồn Đề Gốc & Nhập Trực Tiếp từ Ma Trận Khảo Thí:**
      - Cho phép chọn đề thi gốc đã lưu trong hệ thống hoặc chọn trực tiếp ma trận đề thi để sinh đề gốc (`⚡ Sinh Đề Gốc từ Ma Trận Này`) ngay trong phân hệ Trộn Đề.
   6. **Xuất Bản Thuần Vector PDF LaTeX Chuẩn Quốc Gia (Tectonic XeTeX Engine):**
-     - Từng mã đề (`De_{code}.pdf`) và Hướng dẫn giải chi tiết (`LoiGiai_{code}.pdf`) được biên dịch trực tiếp từ mã nguồn LaTeX chuẩn Quốc gia (`ex_test.sty` v3.3, 2 cột minipage, `\choice`, `\choiceTF[1]`, `\shortans`) qua Tectonic XeTeX Engine — chất lượng in ấn sắc nét đồng nhất 100% với phân hệ Soạn đề.
+     - Từng mã đề (`De_{code}.pdf`) và Hướng dẫn giải chi tiết (`LoiGiai_{code}.pdf`) được biên dịch trực tiếp từ mã nguồn LaTeX chuẩn Quốc gia (`ex_test.sty` v3.3, 2 cột minipage, `\choice`, `\choiceTF[1]`, `\shortans`) qua Tectonic XeTeX Engine. Chất lượng in ấn sắc nét đồng nhất 100% với phân hệ Soạn đề.
 
 
 ---
 
-### 4.8. Phân hệ Xuất bản Đề thi Word MathType OLE, OMML & In ấn (Publishing & Export Service)
+### 4.8. Phân hệ Xuất bản Thuần Vector PDF LaTeX & Gói Ấn phẩm ZIP (Publishing & Export Service)
 
 * **Mã phân hệ:** `MOD-08`
-* **Mục tiêu:** Xuất bản tài liệu đề thi và hướng dẫn giải chuẩn in ấn chỉ bằng 1 cú nhấp chuột, công thức toán nét căng tuyệt đối và hỗ trợ chỉnh sửa trực tiếp qua MathType 7.
+* **Mục tiêu:** Xuất bản tài liệu đề thi và hướng dẫn giải chuẩn in ấn quốc gia thuần Vector PDF chỉ bằng 1 cú nhấp chuột.
 * **Các chức năng chi tiết:**
-  1. **Định dạng Microsoft Word (.docx) Chuẩn Khảo Thí Quốc Gia:**
-     - Thiết lập chuẩn khổ giấy **A4 Portrait (210 x 297 mm)**, lề trang chuẩn $1.5\text{ cm} - 1.8\text{ cm}$, font **Times New Roman** kích cỡ $11\text{ pt}$, giãn dòng $1.15$.
-     - Tự động bố cục bảng phách rọc, số báo danh, mã đề thi và tiêu đề chuẩn hóa Sở/Phòng GD&ĐT.
-  2. **Công thức Toán MathType 7.0 OLE Object Vector WMF (`math_format="mathtype"`):**
-     - Thay vì xuất ảnh bitmap/PNG gây mờ và vỡ hạt khi in ấn, hệ thống sinh trực tiếp **Vector Windows Metafile (WMF)** chuẩn APM (`magic: 0x9AC6CDD7`, base resolution 1440 DPI, scale 32 units/pt). Đạt tỷ lệ $100\%$ vector thuần không có bất kỳ file raster DIB nào.
-     - Nhúng luồng OLE Compound File (CFB) với root CLSID `{0002CE03-0000-0000-C000-000000000046}`, stream `\x01CompObj` mang định danh `MathType 7.0 Equation`, và stream `Equation Native` chứa mã MTEF v5 định dạng chuẩn DSMT7 kèm bản ghi `TeX Input Language` bảo toàn chuỗi LaTeX gốc và chuẩn hóa embellishment cho toán tử vectơ (`\vec`, `\overrightarrow`).
-     - **Tính năng độc quyền:** Cho phép giáo viên click đúp vào bất kỳ công thức nào trong Word để **mở thẳng phần mềm MathType 7 chỉnh sửa công thức 2 chiều mượt mà, không gặp lỗi OLE activation hay popup cảnh báo thiếu ứng dụng server**.
-  3. **Công thức Toán Microsoft Word OMML Native (`<m:oMath>` - `math_format="omml"`):**
-     - Chuyển đổi mã TeX sang MathML chuẩn thông qua MathJax, sau đó biên dịch sang định dạng phương trình bản địa Word qua stylesheet `MML2OMML.XSL`.
-     - Có cơ chế Fallback tự động tổng hợp OMML thuần Python, bảo đảm chạy ổn định trên mọi môi trường máy chủ Linux/Docker/CI không có bộ Office cài sẵn.
-  4. **Tự động Chuyển đổi Bảng Thống kê LaTeX (`\begin{array}`) thành Native Word Table:**
-     - Tự động quét và nhận diện các mảng bảng phân phối tần số ghép nhóm hoặc bảng biến thiên trong đề thi.
-     - Dựng thành bảng Microsoft Word thực tế (`<w:tbl>`) căn giữa, có viền nét mảnh (`border sz="4"`), loại bỏ triệt để hiện tượng hộp đen (black box) khi xuất sang PDF.
-  5. **Dịch vụ MathJax Engine & Persistent Worker:**
-     - Tích hợp daemon nền Node.js xử lý MathJax 3/4 với bộ gói TeX đầy đủ (`input/tex-full`).
-     - Thời gian sinh công thức siêu tốc: trung bình **~14 ms/công thức**, kèm bộ nhớ đệm 2 tầng (in-memory LRU + disk SHA-256 cache).
-     - Tự động bổ sung đệm an toàn (+160 units) chống xén nét mũi tên vectơ $\overrightarrow{AB}$ và tính toán độ hạ dòng `w:position` chính xác cho Word.
-  6. **Đóng gói Gói Ấn phẩm Khảo thí Trọn bộ (ZIP Package):** Tự động đóng gói và tải về một tệp ZIP chứa đầy đủ:
-     - Các tệp đề thi Word cho từng mã đề (`De_101.docx`, `De_102.docx`...).
-     - Các tệp Hướng dẫn giải chi tiết cho từng mã đề (`LoiGiai_101.docx`...).
-     - Tệp Bảng đáp án tổng hợp tất cả các mã đề (Excel/CSV UTF-8 BOM + PDF).
-     - Phiếu trả lời trắc nghiệm chuẩn máy quét chấm thi OMR.
-  7. **Xuất bản PDF Vector In ấn Tức thì:** Tích hợp bộ render PDF nội bộ (sử dụng ReportLab đăng ký font TrueType tiếng Việt Unicode), xuất file PDF in ấn chuẩn trong thời gian $< 100$ms mà không phụ thuộc vào tiến trình Word COM ngoài.
+  1. **Định dạng Thuần Vector PDF LaTeX Chuẩn Khảo Thí Quốc Gia:**
+     - Thiết lập chuẩn khổ giấy **A4 Portrait (210 x 297 mm)**. Bố cục 2 cột chuyên nghiệp tuân thủ gói lệnh quốc gia LaTeX `ex_test.sty` v3.3.
+     - Tự động cấu trúc phần đầu đề thi với bảng phách rọc, số báo danh, mã đề thi và tiêu đề chuẩn hóa Sở hoặc Phòng GD&ĐT.
+  2. **Động cơ Biên dịch Vector PDF Tectonic XeTeX Engine:**
+     - Sử dụng động cơ Tectonic biên dịch trực tiếp mã nguồn LaTeX sang tệp PDF dạng vector thuần túy.
+     - Toàn bộ công thức toán học, ký hiệu và bảng biểu hiển thị sắc nét tuyệt đối ở mọi tỷ lệ thu phóng, sẵn sàng cho công tác in ấn khảo thí hàng loạt.
+  3. **Cơ chế ReportLab Vector Fallback Siêu Tốc:**
+     - Tích hợp bộ dựng PDF nội bộ sử dụng ReportLab đăng ký font TrueType tiếng Việt Unicode.
+     - Đóng vai trò là phương án dự phòng vector tức thì với thời gian sinh ấn phẩm dưới 100ms.
+  4. **Bảo Toàn Đồ Thị TikZ & Bảng Biến Thiên Vector:**
+     - Tự động biên dịch đồ thị hàm số TikZ PGFPlots và bảng biến thiên `tkz-tab` thành vector sắc nét.
+     - Áp dụng cơ chế auto-clipping khống chế khung hình cân đối, hoàn toàn loại bỏ hiện tượng co méo hoặc vỡ nét.
+  5. **Đóng gói Gói Ấn phẩm Khảo thí Trọn bộ (ZIP Package):** Tự động đóng gói và tải về một tệp ZIP chứa đầy đủ:
+     - Các tệp đề thi theo từng mã đề hoán vị (`De_101.pdf`, `De_102.pdf`, `De_103.pdf`, `De_104.pdf`).
+     - Các tệp Hướng dẫn giải chi tiết cho từng mã đề (`LoiGiai_101.pdf`, `LoiGiai_102.pdf`...).
+     - Tệp Bảng đáp án tổng hợp tất cả các mã đề dạng `BangDapAn_TongHop.pdf` và `BangDapAn_TongHop.csv` UTF-8 BOM tương thích Microsoft Excel.
+     - Tệp Phiếu trả lời trắc nghiệm `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf` chuẩn máy quét chấm thi OMR 2025.
+  6. **Tải Lẻ Đề Thi Vector PDF Tức Thì:** Hỗ trợ API `GET /api/v1/exams/{id}/export-pdf?variant_code={code}` giúp giáo viên xem trước và tải lẻ từng mã đề thi mà không cần giải nén tệp ZIP.
 
 ---
 
@@ -365,7 +360,7 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
    - Thời gian bóc tách AI đề thi 50 câu: $< 180$ giây.
    - Thời gian render đồ thị TikZ đã lưu đệm: $\approx 0$ms.
    - Thời gian rút đề và hoán vị 4 mã đề: $< 1.5$ giây.
-   - Thời gian tạo gói ấn phẩm Word OMML: $< 3.0$ giây.
+   - Thời gian tạo gói ấn phẩm thuần Vector PDF và ZIP: $< 3.0$ giây.
 4. **An toàn & Toàn vẹn Dữ liệu:**
    - Cơ chế bảo toàn khóa ngoại `CASCADE` trong CSDL quan hệ.
    - Chống xung đột cổng mạng trên máy chủ Windows (`start_server.py` tự động phát hiện và chuyển cổng linh hoạt, chống lỗi `[WinError 10048]`).
@@ -383,7 +378,7 @@ Hệ thống Quesy bao gồm **9 phân hệ chức năng cốt lõi**, phối h�
 | **MOD-05** | `FEAT-05` | Ngân hàng 5 dạng câu hỏi, kiểm tra trùng lặp AI Cosine Similarity $\ge 0.90$ | Test tự động `test_deduplication.py`: Chặn lưu thành công và cảnh báo khi câu trùng $\ge 90\%$. |
 | **MOD-06** | `FEAT-06` | Thiết lập ma trận 2D, kiểm tra tồn kho ngân hàng, rút câu hỏi thỏa mãn ràng buộc | Test tự động `test_api_endpoints.py`: Rút đề đúng tỷ lệ điểm và mức độ nhận thức. |
 | **MOD-07** | `FEAT-07` | Trộn đề an toàn: Option Anchor (Khóa D), Passage Integrity, Section Integrity | Test tự động `test_rules_shuffling.py`: 1.000 lần sinh mã đề, $0\%$ câu neo bị đảo, $0\%$ bài đọc bị tách rời. |
-| **MOD-08** | `FEAT-08` | Xuất file Word 2 cột OMML native, PDF vector in ấn, đóng gói trọn bộ ZIP | Test tự động `test_docx_export.py`: Mở file Word trên MS Word công thức chuẩn OMML `<m:oMath>`, không vỡ cột. |
+| **MOD-08** | `FEAT-08` | Xuất bản thuần Vector PDF LaTeX ex_test.sty v3.3 và đóng gói trọn bộ ZIP | Test tự động `test_math_format_export.py`: Biên dịch PDF chuẩn vector sắc nét, đầy đủ đề thi, lời giải, ma trận đáp án và phiếu OMR. |
 | **MOD-09** | `FEAT-09` | Chấm điểm Đúng/Sai bậc thang (0.1 - 0.25 - 0.5 - 1.0), xuất Excel UTF-8 BOM | Test tự động `test_excel_roster_import_export.py`: Điểm số chính xác, file CSV không lỗi font tiếng Việt. |
 | **MOD-10** | `FEAT-10` | Soạn đề LaTeX, Compact Prompt Bar (click để gõ, Enter mở popup), AI Inline Diff [Đồng ý]/[Từ chối] | Test tự động `test_composer.py`: Bóc tách diff `DiffSuggestion` chuẩn xác, thay thế đúng dòng và recompile thành công. |
 

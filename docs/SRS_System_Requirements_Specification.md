@@ -19,7 +19,7 @@ Tài liệu này đặc tả chi tiết toàn bộ các yêu cầu kỹ thuật,
 - **BẮT BUỘC (SHALL / MUST):** Yêu cầu kỹ thuật tiên quyết phải đáp ứng (Priority P0).
 - **NÊN CÓ (SHOULD):** Yêu cầu quan trọng cần có trong giai đoạn hiện tại (Priority P1).
 - **CÓ THỂ (MAY):** Tính năng mở rộng nâng cao (Priority P2).
-- Mọi công thức Toán/Khoa học được lưu trữ và truyền nhận dưới dạng chuỗi **LaTeX chuẩn**; render trên giao diện bằng **KaTeX**; xuất bản sang Word bằng **MathType 7.0 OLE Vector WMF** (hỗ trợ double-click edit), mã **OMML native**, hoặc **LaTeX raw**; đồ thị và hình học được biên dịch sang **Vector SVG** sắc nét.
+- Mọi công thức Toán/Khoa học được lưu trữ và truyền nhận dưới dạng chuỗi **LaTeX chuẩn**; render trên giao diện bằng **KaTeX**; xuất bản thuần túy sang **Vector PDF** qua động cơ LaTeX `ex_test.sty` v3.3 (Tectonic XeTeX Engine và ReportLab vector fallback); đồ thị và hình học được biên dịch sang **Vector SVG** sắc nét.
 
 ### 1.3. Khách thể Sử dụng (Audience)
 - **Product Owner & Quản trị Dự án:** Đánh giá phạm vi hệ thống.
@@ -51,7 +51,7 @@ Hệ thống phần mềm dịch vụ Web ứng dụng Trí tuệ Nhân tạo Đ
 2. **Giải quyết bài toán dựng đồ thị hàm số & hình học:** Tự động phát hiện mã nguồn hình học và biên dịch sang vector SVG sắc nét; có cơ chế Auto-clipping khống chế tỷ lệ khung hình hàm phân thức có tiệm cận, hỗ trợ đồ thị trong cả đề bài và 4 phương án trắc nghiệm A, B, C, D.
 3. **Giải quyết bài toán vỡ logic khi trộn đề:** Động cơ Safe Shuffling Engine khóa cố định phương án phụ thuộc vị trí ("Cả A và B") ở đáp án D, bảo toàn bài đọc chung ngữ cảnh và các câu hỏi con đi liền kề nhau.
 4. **Giải quyết bài toán chấm điểm phức tạp:** Tự động chấm điểm dạng câu hỏi Đúng/Sai 4 khẳng định theo thang điểm bậc thang (0.1đ - 0.25đ - 0.5đ - 1.0đ) và quản lý bảng điểm Excel UTF-8 BOM.
-5. **Giải quyết bài toán dàn trang in ấn & độ nét công thức:** Xuất bản đề thi Microsoft Word (.docx) chuẩn khổ A4 Portrait với công thức **MathType 7.0 OLE Vector WMF** (nét căng, click đúp mở MathType chỉnh sửa được ngay), **OMML native**, tự động chuyển đổi bảng thống kê `\begin{array}` thành bảng Word `<w:tbl>` chống lỗi đen, xuất PDF in ấn, phiếu soi đáp án OMR và đóng gói ZIP 1-click.
+5. **Giải quyết bài toán dàn trang in ấn và độ nét công thức:** Xuất bản đề thi thuần túy dạng **Vector PDF** chuẩn khổ A4 Portrait theo gói lệnh `ex_test.sty` v3.3 qua Tectonic XeTeX Engine và ReportLab vector fallback. Đóng gói trọn bộ tệp ZIP ấn phẩm gồm từng mã đề hoán vị, hướng dẫn giải chi tiết, bảng ma trận đáp án tổng hợp (PDF và CSV UTF-8 BOM), và phiếu trả lời trắc nghiệm chuẩn máy chấm OMR 2025.
 
 ---
 
@@ -105,17 +105,17 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
 ### 3.1. Giao diện Người dùng (User Interfaces)
 - **UI-01 - Dashboard Khảo thí:** Tổng quan số lượng câu hỏi theo Mạch nội dung, YCCĐ và Dạng câu hỏi; tiến độ các job AI bóc tách.
 - **UI-02 - AI Digitization Studio (HITL):** Giao diện chia 2 cột đối xứng:
-  - Cột trái: PDF / Word Document Viewer có tính năng **Synchronized Scrolling**.
+  - Cột trái: Document Viewer xem tài liệu nguồn (PDF, DOCX, ảnh) có tính năng **Synchronized Scrolling**.
   - Cột phải: Danh sách câu hỏi bóc tách render KaTeX realtime, inline-editor sửa text/LaTeX, gán đáp án và phân loại nhanh theo cây YCCĐ.
 - **UI-03 - Cây Kiến thức & Yêu cầu cần đạt (Taxonomy Explorer):** Quản lý cấu trúc 6 tầng theo TT 32.
 - **UI-04 - Exam Matrix & Blueprint Builder:** Thiết lập ma trận 2 chiều theo YCCĐ, Dạng bài và Mức độ nhận thức.
-- **UI-05 - Exam Paper Previewer:** Xem trước đề thi dạng 2 cột trước khi xuất file Word.
+- **UI-05 - Exam Paper Previewer:** Xem trước đề thi dạng 2 cột trước khi xuất bản Vector PDF và đóng gói ZIP.
 
 ### 3.2. Giao diện Phần mềm & Dịch vụ Ngoài
 - **Storage Service Interface:** S3-compatible API (MinIO / AWS S3) lưu trữ tài liệu gốc và ảnh cắt WebP.
 - **AI Vision LLM Interface:** Kết nối qua RESTful/gRPC với Gemini 1.5 Flash/Pro, GPT-4o hoặc local Qwen2-VL.
 - **Vector Search Engine:** `pgvector` thực hiện tìm kiếm tương đồng câu hỏi qua Cosine Similarity.
-- **Export Converter Service:** Microservice Python (`python-docx`, `backend/services/mathjax_service.py`) xuất file Word MathType 7.0 OLE Vector WMF, OMML native và PDF in ấn.
+- **Export Converter Service:** Dịch vụ Python (`backend/services/docx_exporter.py`, `backend/services/latex_pdf_exporter.py`) xuất bản đề thi thuần Vector PDF chuẩn LaTeX `ex_test.sty` v3.3 (Tectonic XeTeX và ReportLab vector fallback), bảng ma trận đáp án PDF/CSV, phiếu OMR 2025 và đóng gói tệp ZIP.
 
 ---
 
@@ -178,7 +178,7 @@ Quesy là một hệ thống SaaS/On-premise độc lập, tương tác với Ob
   - Sử dụng toàn diện font **Computer Modern Unicode (CMU Serif)**, loại bỏ hoàn toàn font Times New Roman văn phòng.
   - Công thức toán học render vector SVG trực tiếp qua persistent MathJax TeX daemon, ôm sát chân dòng (baseline) chuẩn xác, loại bỏ khoảng cách thừa trước dấu chấm/phẩy kết thúc câu.
 - **Quy chuẩn in ấn:** Khổ giấy A4 Portrait (210 x 297 mm), lề trang 1.6 cm, dàn trang 1 cột với bảng đáp án thích ứng (4 cột / 2 cột / 1 cột), bảng thông tin thí sinh 3 cột chống rớt dòng, chân trang `Trang X - Mã đề thi Y`.
-- **Tạm thời ẩn xuất Word:** Trên giao diện tab số hóa AI (HITL Studio), tạm thời ẩn các nút xuất file Word (.docx) để tập trung hoàn thiện và vận hành luồng xuất bản PDF chất lượng cao.
+- **Chuẩn hóa luồng xuất bản Vector PDF:** Toàn bộ luồng xuất bản đề thi số hóa được chuẩn hóa sang Vector PDF độ nét cao, loại bỏ hoàn toàn xuất bản Word (.docx).
 
 #### SRS-FEAT-04d: Phân hệ Soạn đề LaTeX Trực tiếp Tích hợp AI & Live PDF Preview (Noctorium & ex_test Architecture)
 - **Mô tả:** Thay thế hoàn toàn phân hệ số hóa ảnh/OCR cũ bằng phân hệ **Soạn đề** (LaTeX Exam Writing Workspace) mô phỏng thiết kế của `Noctorium` kết hợp gói lệnh khảo thí quốc gia `ex_test.sty` (v3.3). Cung cấp không gian làm việc 2 cột tích hợp có khả năng kéo thả điều chỉnh kích thước linh hoạt (Resizable Split View Workspace):
@@ -680,7 +680,7 @@ ight)$$
 #### SRS-FEAT-04ab: Tích Hợp Cụm Máy Chủ AI Suy Luận Nội Bộ armbian:8317 & Cơ Chế Chống Tràn Bộ Nhớ LocalStorage Quota Guard
 - **Bối cảnh & Vấn đề Kỹ thuật:**
   1. *Sự cố phân giải AI Provider ngoại vi:* Trước đây hệ thống mặc định chọn nhà cung cấp `openai` với `https://api.openai.com/v1`. Khi không có kết nối internet quốc tế hoặc không có API key hợp lệ, cuộc gọi AI thất bại và bị khối `try...except` nuốt lỗi, rơi xuống bộ sinh giả lập cục bộ (`req.images` trả về mẫu cố định "Tôi đã phân tích hình ảnh đính kèm và nhận dạng cấu trúc toán học... Cho đồ thị hàm số hoặc hình vẽ nhận được từ ảnh đính kèm..."), tạo cảm giác hệ thống "tự OCR" thay vì gửi ảnh lên AI.
-  2. *Lỗi tràn hạn ngạch LocalStorage (`QuotaExceededError`):* Khi người dùng đính kèm nhiều ảnh đề thi chất lượng cao (4 ảnh base64 ~10–20MB), `app.js` đẩy toàn bộ chuỗi base64 khổng lồ vào `this.chatHistory`. Việc gọi `localStorage.setItem('quesy_composer_chat', ...)` và `localStorage.setItem('quesy_composer_sessions', ...)` vượt quá trần 5MB của trình duyệt, gây ngoại lệ `QuotaExceededError`. Ngoại lệ này bị khối `catch` trong hàm `sendPrompt` bắt lấy và hiển thị nhầm thành thông báo bóng chat: *"Lỗi kết nối: Failed to execute 'setItem' on 'Storage': Setting the value of 'quesy_composer_chat' exceeded the quota."*
+  2. *Lỗi tràn hạn ngạch LocalStorage (`QuotaExceededError`):* Khi người dùng đính kèm nhiều ảnh đề thi chất lượng cao (4 ảnh base64 ~10-20MB), `app.js` đẩy toàn bộ chuỗi base64 khổng lồ vào `this.chatHistory`. Việc gọi `localStorage.setItem('quesy_composer_chat', ...)` và `localStorage.setItem('quesy_composer_sessions', ...)` vượt quá trần 5MB của trình duyệt, gây ngoại lệ `QuotaExceededError`. Ngoại lệ này bị khối `catch` trong hàm `sendPrompt` bắt lấy và hiển thị nhầm thành thông báo bóng chat: *"Lỗi kết nối: Failed to execute 'setItem' on 'Storage': Setting the value of 'quesy_composer_chat' exceeded the quota."*
 - **Đặc tả Kỹ thuật & Giải pháp Đa tầng:**
   1. *Tích Hợp Cụm AI Suy Luận Nội Bộ `armbian:8317`:*
      - Hệ thống cấu hình mặc định kết nối đến cụm máy chủ nội bộ tốc độ cao: `AI_PROVIDER=custom`, `AI_BASE_URL=http://armbian:8317/v1`, `AI_API_KEY=123`, `AI_MODEL=gemini-3.8-flash-high`.
@@ -835,7 +835,7 @@ ight)$$
   - Tab xem trước từng mã đề (Mã 101, 102, 103, 104) với huy hiệu xác minh Option Anchor Rule đạt 100%.
   - Bảng ma trận đáp án tổng hợp (Answer Key Matrix Table).
   - **Xuất Bản Thuần Vector PDF LaTeX Chuẩn Quốc Gia (Tectonic XeTeX Engine):**
-    * Loại bỏ hoàn toàn engine PDF đơn giản/ReportLab gây lỗi font tiếng Việt và công thức text thô, thay thế 100% bằng kiến trúc biên dịch LaTeX thuần túy chuẩn Quốc gia (`ex_test.sty` v3.3) qua Tectonic XeTeX Engine (kết hợp Chromium CMU Serif vector fallback) — đồng nhất tuyệt đối với phân hệ Soạn đề (`/composer`).
+    * Loại bỏ hoàn toàn engine PDF đơn giản/ReportLab gây lỗi font tiếng Việt và công thức text thô, thay thế 100% bằng kiến trúc biên dịch LaTeX thuần túy chuẩn Quốc gia (`ex_test.sty` v3.3) qua Tectonic XeTeX Engine (kết hợp Chromium CMU Serif vector fallback), đồng nhất tuyệt đối với phân hệ Soạn đề (`/composer`).
     * Mã nguồn LaTeX được tổng hợp tự động (`generate_variant_latex`):
       - Header 2 cột canonical cân đối: `\noindent`, `\begin{minipage}[t]{0.38\textwidth}\centering ... \end{minipage}`, `\hfill`, `\begin{minipage}[t]{0.58\textwidth}\centering ... \end{minipage}` (tuyệt đối không bọc ngoài bằng `\begin{center}`).
       - Dòng thông tin thí sinh `Họ và tên thí sinh: \dotfill\ Số báo danh: \dotfill\ \framebox{\textbf{Mã đề: ...}}` và đường kẻ đơn duy nhất `\noindent
@@ -851,14 +851,17 @@ ule{\textwidth}{0.5pt}`.
 
 ### 4.4. Phân hệ Xuất bản & Đánh giá Khảo thí (Publisher & Analytics)
 
-#### SRS-FEAT-09: Xuất bản Đề thi Word (.docx) Chuẩn Mẫu In & MathType OLE
-- **Mô tả:** Tạo file Word chuẩn A4 dọc (210 x 297 mm, lề 1.5 - 1.8 cm) chuẩn quy cách Bộ GD&ĐT.
+#### SRS-FEAT-09: Xuất bản Đề thi Thuần Vector PDF & Gói Ấn phẩm Khảo thí (.ZIP)
+- **Mô tả:** Tạo trọn bộ ấn phẩm khảo thí chuẩn Vector PDF theo khổ A4 Portrait (210 x 297 mm, lề 1.5 - 1.8 cm) chuẩn quy cách Bộ GD&ĐT.
 - **Yêu cầu kỹ thuật:**
-  - Header chuẩn trường/kỳ thi/mã đề/bảng phách.
-  - Công thức Toán được nhúng dạng **MathType 7.0 OLE Object Vector WMF** (`image/x-wmf` với APM header, CLSID `{0002CE03-0000-0000-C000-000000000046}`, ProgID `Equation.DSMT4`, stream `Equation Native` chứa MTEF v5 DSMT7 và bản ghi `TeX Input Language`). Lọc sạch các ký tự vô hình MathML (`\u2061` ApplyFunction...), chuẩn hóa embellishment vectơ (`\vec`, `\overrightarrow`), áp dụng typeface `0x82` bảo toàn toàn bộ dấu ngoặc `[`, `]`, `(`, `)`, `{`, `}` khi mở MathType, căn thẳng hàng chân dòng (baseline alignment qua `w:position` khớp chuẩn xác theo `depth_pt` của WMF), tự động nâng cấp phân số sang `\dfrac` (cỡ chữ 11pt đầy đủ cho tử và mẫu), chuẩn hóa khoảng cách ký tự (kerning/spacing chuẩn MathType: giãn cách toán tử `=`, `+`, `-`, đệm giữa các nhân tử kề nhau, hỗ trợ ký hiệu đạo hàm `f'(x)` chuẩn Symbol `0xa2`), bảo toàn và dựng vector đa giác cho các dấu ngoặc co giãn (`\left`, `\right` ngoặc đơn, ngoặc vuông, ngoặc nhọn), đệm kerning chữ nghiêng tránh dính dấu ngoặc (`f(x)` -> `f\,(x)`), chuẩn hóa tập số `\mathbb{R}, \mathbb{Q}, \mathbb{Z}` sang Times New Roman Bold đứng, tắt gạch chân đỏ kiểm tra chính tả của Word (`w:hideSpellingErrors`, `w:noProof`), **cho phép click đúp mở MathType 7 để chỉnh sửa trực tiếp 2 chiều không lỗi**, hoặc định dạng **OMML native (`<m:oMath>`)**.
-  - **100% Vector WMF:** Toàn bộ công thức toán học được chuẩn hóa tiền xử lý qua MathTextParser (chế độ toán `$..$` ưu tiên, quy chuẩn tên hàm `\sin`, `\cos`, `\tan`, `\cot` thẳng đứng Upright và biến số in nghiêng Italic, xử lý `\setminus`, `\mid`, `\mathbb` thành glyphs chuẩn), loại bỏ 100% fallback raster DIB mờ hạt và triệt tiêu lỗi hiển thị dấu `?`.
-  - Tự động phát hiện và chuyển đổi mảng bảng số liệu ghép nhóm `\begin{array}` sang bảng Microsoft Word `<w:tbl>`, loại bỏ hiện tượng ô đen khi xuất sang PDF.
-  - Đi kèm file hướng dẫn giải chi tiết và phiếu soi đáp án OMR.
+  - Header 2 cột canonical cân đối (minipage 0.38/0.58), thông tin thí sinh, khung mã đề.
+  - Phân vùng 3 phần theo định dạng đề thi 2025 gồm Phần I (Trắc nghiệm 4 phương án `\choice`), Phần II (Đúng/Sai bậc thang QĐ 764 `\choiceTF[1]`), và Phần III (Trả lời ngắn `\shortans`).
+  - Toàn bộ công thức Toán học xuất bản chuẩn LaTeX, hiển thị font Computer Modern Unicode (CMU Serif) hoặc Times, 100% phân số hiển thị `\dfrac` 11pt đầy đủ, ôm sát chân dòng.
+  - Hình học và đồ thị hàm số biên dịch Vector TikZ nguyên bản hoặc SVG sắc nét, không bị vỡ hạt.
+  - Đóng gói tệp nén ZIP 1-click gồm các mã đề hoán vị `De_{code}.pdf`, hướng dẫn giải chi tiết `LoiGiai_{code}.pdf` kèm barem chấm bậc thang QĐ 764, bảng ma trận đáp án tổng hợp `BangDapAn_TongHop.pdf` và `BangDapAn_TongHop.csv` (UTF-8 BOM), và phiếu trả lời trắc nghiệm chuẩn máy chấm OMR 2025 `Phieu_Tra_Loi_Trac_Nghiem_2025.pdf`.
+  - Động cơ biên dịch chính vận hành qua Tectonic XeTeX Engine trên Docker container ARM kết hợp ReportLab vector fallback khi mất kết nối mạng.
+  - Tích hợp hàm `sanitize_latex_for_xetex` tự động escape ký tự gạch dưới `_` ngoài chế độ toán học để tránh lỗi `Missing $ inserted`.
+  - Loại bỏ hoàn toàn sự phụ thuộc vào Word (.docx) và MathType OLE binary formats để đảm bảo chất lượng in ấn vector tuyệt đối và tính di động trên mọi nền tảng máy chủ Linux/Docker/ARM.
 
 #### SRS-FEAT-10: Thống kê Khảo thí Hậu kiểm (Item Psychometrics)
 - **Mô tả:** Tự động tính toán các chỉ số chất lượng câu hỏi khi có điểm thi:
@@ -1084,7 +1087,7 @@ ight`, và đồ thị TikZ vector SVG).
 | **SRS-FEAT-04v** | Test tự động + Đo kiểm | Tính toán timeout động $\text{calc\_timeout} \in [60, 240]$ dựa trên TikZ count và code length; socket timeout $\text{calc\_timeout} + 15$s; biên dịch trọn vẹn đề thi THPT Việt Đức 2026-2027 (~24k ký tự, 11 TikZ, 6 trang PDF) thành công không bị timeout 504; AI Copilot chẩn đoán lỗi timeout và gợi ý diff `samples=50` chính xác. |
 | **SRS-FEAT-05** | Test tích hợp | Câu hỏi có cosine similarity $\ge 0.90$ phải kích hoạt chặn lưu và hiển thị modal cảnh báo trùng lặp. |
 | **SRS-FEAT-08** | Unit Test thuật toán | Chạy 1.000 lần sinh mã đề hoán vị: $0\%$ câu hỏi chùm bị tách rời; $0\%$ phương án có cờ `is_fixed` bị đảo khỏi vị trí cố định. |
-| **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file `.docx` trên Microsoft Word: công thức hiển thị dạng MathType 7.0 OLE Vector WMF nét căng tuyệt đối, click đúp mở MathType 7 sửa được trực tiếp; bảng số liệu dạng native table không bị lỗi đen khi xuất PDF; khổ A4 dọc chuẩn. |
+| **SRS-FEAT-09** | Thẩm định file đầu ra | Mở file Vector PDF biên dịch từ Tectonic XeTeX hoặc ReportLab. Công thức toán học sắc nét tuyệt đối, đồ thị TikZ vector nguyên bản, bảng ma trận đáp án và phiếu OMR 2025 chuẩn kích thước in ấn A4 dọc. Tệp ZIP giải nén đầy đủ ấn phẩm. |
 | **SRS-FEAT-11** | Test tự động + UI Test | Đăng ký, đăng nhập tài khoản mật khẩu (PBKDF2/SHA256 băm an toàn); cấp JWT HS256 chuẩn; hỗ trợ OAuth Google/GitHub; phân quyền RBAC (`TEACHER`, `ADMIN`, `STUDENT`); lưu token `quesy_auth_token` và đồng bộ header Authorization. |
 | **SRS-FEAT-12** | Test chức năng + UI Test | Thực thi đầy đủ CRUD câu hỏi; mở Modal Thêm mới, Modal Chi tiết, Modal Sửa, Xóa câu hỏi; lọc 6 tầng TT 32 cascading chuẩn; xuất danh sách ra PDF vector / CSV UTF-8 BOM / LaTeX; nhập câu hỏi; cập nhật ngay số lượng badge `#bank-count-badge`. |
 | **SRS-FEAT-13** | Test tích hợp + E2E | Nút chuyên biệt `📥 LƯU VÀO NGÂN HÀNG` trên toolbar Composer trích xuất trọn vẹn câu hỏi trắc nghiệm đơn, đúng/sai QĐ 764, trả lời ngắn, TikZ, BBT, lời giải chi tiết; tự động gắn tag YCCĐ AI; trả về chi tiết số lượng câu theo từng thể thức và cập nhật tức thì `#bank-count-badge`. |

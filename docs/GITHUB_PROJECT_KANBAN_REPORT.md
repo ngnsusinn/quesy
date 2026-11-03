@@ -85,19 +85,19 @@ Bảng phân rã chi tiết từng chức năng nhỏ (Atomic Single Responsibil
 | **55** | `AN-02` | `[ANALYTICS] Thuật toán tính độ khó cổ điển p = R/N` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend, algorithm, ctt` | XS |
 | **56** | `AN-03` | `[ANALYTICS] Thuật toán tính độ phân biệt D = P_H - P_L (nhóm 27%)` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend, algorithm, ctt` | S |
 | **57** | `AN-04` | `[ANALYTICS] Tự động gắn cờ cảnh báo câu hỏi lỗi khi D < 0.20` | **Done [x]** | `Phase 5: Shuffling & Psychometrics` | `backend, qa, flagging` | XS |
-| **58** | `EX-01` | `[EXPORT-DOCX] Dịch vụ tạo file Word OpenXML (.docx) chuẩn 2 cột` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, export, docx` | S |
-| **59** | `EX-02` | `[EXPORT-DOCX] Tạo bảng phách thông tin thí sinh chuẩn Bộ GD&ĐT` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, docx, layout` | XS |
-| **60** | `EX-03` | `[EXPORT-DOCX] Chuyển đổi công thức LaTeX sang OMML native trong Word` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, omml, math` | S |
-| **61** | `EX-04` | `[EXPORT-PDF] Động cơ sinh PDF vector siêu tốc thuần Python (<100ms)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, reportlab, pdf` | S |
-| **62** | `EX-05` | `[EXPORT-PDF] Nạp font Times New Roman Unicode Windows cho ReportLab` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, unicode, fonts` | XS |
-| **63** | `EX-06` | `[EXPORT-DOCX] MathType 7.0 DSMT7 Native Stream, 100% Vector WMF & Double-Click Edit` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, mathtype, wmf` | M |
-| **64** | `EX-07` | `[EXPORT-DOCX] Dịch vụ MathJax Persistent Worker Engine (~14ms/công thức)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, mathjax, node` | M |
-| **65** | `EX-08` | `[EXPORT-DOCX] Tự động chuyển đổi bảng thống kê \begin{array} sang <w:tbl>` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, table, docx` | S |
-| **66** | `EX-09` | `[EXPORT-DOCX] Xuất bản tài liệu Hướng dẫn giải chi tiết (Word & PDF)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, solution, export` | S |
-| **67** | `EX-10` | `[EXPORT-CSV] Xuất bản Bảng đáp án tổng hợp (Word, PDF, CSV UTF-8 BOM)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, csv, matrix` | S |
-| **68** | `EX-11` | `[EXPORT-DOCX] API GET /api/v1/exams/{id}/export-docx tải lẻ file Word` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, docx` | S |
-| **69** | `EX-12` | `[EXPORT-PDF] API GET /api/v1/exams/{id}/export-pdf tải lẻ file PDF` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, pdf` | S |
-| **70** | `EX-13` | `[EXPORT-ZIP] API GET /api/v1/exams/{id}/export-zip hỗ trợ all/docx/pdf` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, zip` | S |
+| **58** | `EX-01` | `[EXPORT-DOCX] Dịch vụ tạo file Word OpenXML (.docx) chuẩn 2 cột` | **Superseded [x]** (Thay thế bởi Pure Vector PDF LaTeX EX-04, EX-12, EX-13) | `Phase 6: Publishing & Operations` | `migrated, docx, superseded` | S |
+| **59** | `EX-02` | `[EXPORT-DOCX] Tạo bảng phách thông tin thí sinh chuẩn Bộ GD&ĐT` | **Superseded [x]** (Thay thế bởi Pure Vector PDF LaTeX EX-04, EX-12, EX-13) | `Phase 6: Publishing & Operations` | `migrated, layout, superseded` | XS |
+| **60** | `EX-03` | `[EXPORT-DOCX] Chuyển đổi công thức LaTeX sang OMML native trong Word` | **Superseded [x]** (Thay thế bởi Pure Vector PDF LaTeX EX-04, EX-12, EX-13) | `Phase 6: Publishing & Operations` | `migrated, omml, superseded` | S |
+| **61** | `EX-04` | `[EXPORT-PDF] Động cơ sinh PDF vector siêu tốc thuần Python và Tectonic XeTeX Engine` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, reportlab, tectonic, pdf` | S |
+| **62** | `EX-05` | `[EXPORT-PDF] Nạp font Times New Roman và CMU Serif Unicode cho ReportLab` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, unicode, fonts` | XS |
+| **63** | `EX-06` | `[EXPORT-DOCX] MathType 7.0 DSMT7 Native Stream & WMF` | **Superseded [x]** (Thay thế bởi Pure Vector PDF LaTeX EX-04, EX-12, EX-13) | `Phase 6: Publishing & Operations` | `migrated, mathtype, superseded` | M |
+| **64** | `EX-07` | `[EXPORT-ENGINE] Dịch vụ MathJax Persistent Worker Engine (~14ms/công thức)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, mathjax, node` | M |
+| **65** | `EX-08` | `[EXPORT-DOCX] Tự động chuyển đổi bảng thống kê \begin{array} sang <w:tbl>` | **Superseded [x]** (Thay thế bởi Pure Vector PDF LaTeX EX-04, EX-12, EX-13) | `Phase 6: Publishing & Operations` | `migrated, table, superseded` | S |
+| **66** | `EX-09` | `[EXPORT-DOCX] Xuất bản tài liệu Hướng dẫn giải chi tiết (Word)` | **Superseded [x]** (Thay thế bởi Pure Vector PDF LaTeX EX-04, EX-12, EX-13) | `Phase 6: Publishing & Operations` | `migrated, solution, superseded` | S |
+| **67** | `EX-10` | `[EXPORT-CSV] Xuất bản Bảng đáp án tổng hợp (Vector PDF, CSV UTF-8 BOM)` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, csv, matrix` | S |
+| **68** | `EX-11` | `[EXPORT-DOCX] API GET /api/v1/exams/{id}/export-docx tải lẻ file Word` | **Superseded [x]** (Thay thế bởi Pure Vector PDF LaTeX EX-04, EX-12, EX-13) | `Phase 6: Publishing & Operations` | `migrated, api, superseded` | S |
+| **69** | `EX-12` | `[EXPORT-PDF] API GET /api/v1/exams/{id}/export-pdf tải lẻ file Vector PDF` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, pdf` | S |
+| **70** | `EX-13` | `[EXPORT-ZIP] API GET /api/v1/exams/{id}/export-zip hỗ trợ trọn bộ Vector PDF và bảng đáp án` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, api, zip` | S |
 | **71** | `EX-14` | `[FRONTEND] Cơ chế tải Blob Client-side dập tắt lỗi Unknown Server Error` | **Done [x]** | `Phase 6: Publishing & Operations` | `frontend, blob, download` | S |
 | **72** | `EX-15` | `[EXPORT-OMR] Xuất bản Mẫu Phiếu trả lời trắc nghiệm OMR trắng 2025` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, omr, export` | S |
 | **73** | `SO-01` | `[SERVER] Script start_server.py tự động giải phóng socket cổng 8000` | **Done [x]** | `Phase 6: Publishing & Operations` | `backend, socket, devops` | S |
@@ -122,7 +122,7 @@ gh milestone create --title "Phase 2: Item Bank & Dedup" --description "Ngân h�
 gh milestone create --title "Phase 3: AI Digitize & HITL" --description "Pipeline số hóa & Studio hậu kiểm đối chiếu song song"
 gh milestone create --title "Phase 4: Matrix & Assembly" --description "Ma trận đề thi & Động cơ sinh đề gốc có trọng số"
 gh milestone create --title "Phase 5: Shuffling & Psychometrics" --description "Động cơ trộn đề 4 nguyên tắc & Trắc lượng học CTT"
-gh milestone create --title "Phase 6: Publishing & Operations" --description "Xuất bản in ấn đa định dạng Word/PDF & Vận hành"
+gh milestone create --title "Phase 6: Publishing & Operations" --description "Xuất bản in ấn Vector PDF & LaTeX ex_test.sty & Vận hành"
 gh milestone create --title "Phase 7: Teacher Grading & Roadmap" --description "Chấm thi OMR, Quản lý lớp, Excel & Trợ lý OCR"
 
 # 2. Tạo nhanh các Issue cốt lõi đã hoàn thành (Done)

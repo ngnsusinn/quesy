@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0071e3">
   <link rel="manifest" href="/manifest.json">
-  <title>Quesy | Hệ Thống Quản Lý Đề Thi & Ngân Hàng Câu Hỏi AI (Thông tư 32/2018/TT-BGDĐT)</title>
+  <title>Quesy | Hệ Thống Quản Lý Đề Thi & Ngân Hàng Câu Hỏi AI</title>
   
   <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -112,19 +112,8 @@
 
         <!-- Right: Status & Teacher Profile -->
         <div class="flex items-center space-x-2.5">
-          <div class="hidden xl:flex items-center space-x-1.5 px-2.5 py-1 bg-black/[0.04] rounded-lg text-xs font-medium text-slate-600">
-            <i data-lucide="book-open" class="w-3 h-3 text-brand-600"></i>
-            <span>Toán 12</span>
-          </div>
-
-          <!-- Backend Live Status Badge -->
-          <div id="backend-status-pill" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="backend-status-text" class="hidden sm:inline">Online</span>
-          </div>
-
           <!-- Auth Header Container -->
-          <div id="auth-header-container" class="flex items-center space-x-2 pl-1 border-l border-black/[0.06]">
+          <div id="auth-header-container" class="flex items-center space-x-2">
             <!-- Unauthenticated: [Đăng nhập] [Đăng ký] -->
             <div id="auth-guest-controls" class="flex items-center space-x-2">
               <button onclick="app.auth.openAuthModal('login')" class="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-brand-600 transition-all">Đăng nhập</button>
@@ -161,12 +150,8 @@
         <!-- Apple HIG Page Header (Large Title + Actions) -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
           <div>
-            <div class="flex items-center space-x-2">
-              <span class="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-md bg-brand-50 text-brand-700 border border-brand-200">Chuẩn Khảo Thí Quốc Gia 2026</span>
-              <span class="text-xs text-slate-400 font-medium">Phiên bản v4.0</span>
-            </div>
             <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">Tổng quan Khảo thí</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Hệ thống quản lý, soạn thảo & số hóa đề thi Quốc gia theo Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT</p>
+            <p class="text-xs text-slate-500 mt-0.5">Hệ thống quản lý, soạn thảo & số hóa đề thi thông minh</p>
           </div>
           <div class="flex items-center space-x-2">
             <button onclick="app.openQuickAction('composer')" class="btn-apple-primary">
@@ -240,7 +225,7 @@
               <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center transition-transform group-hover:scale-105">
                 <i data-lucide="shuffle" class="w-5 h-5"></i>
               </div>
-              <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">QĐ 764</span>
+              <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">Hoán vị</span>
             </div>
             <h3 class="font-bold text-sm text-slate-900 group-hover:text-amber-600 transition-colors">Sinh & Trộn Đề Hoán Vị</h3>
             <p class="mt-1 text-xs text-slate-500 leading-relaxed">Tự động hoán vị mã đề an toàn, khóa Option Anchor, bảo đảm tính liên tục câu hỏi và xuất trọn bộ ZIP.</p>
@@ -265,7 +250,7 @@
                 <span class="px-2 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700 rounded-md">Toán 12 • 90 Phút</span>
               </div>
               <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">Đề Thi Tốt Nghiệp THPT Năm 2026 - Môn Toán (Mã đề 0101)</h2>
-              <p class="text-xs text-slate-600 leading-relaxed max-w-3xl">Đầy đủ 22 câu hỏi chuẩn quy cách Bộ Giáo dục & Đào tạo. Tiêu đề 2 cột chuẩn mực, 100% hình học không gian TikZ & bảng biến thiên tkz-tab căn giữa trang in, tính điểm lũy tiến Đúng/Sai theo Quyết định 764/QĐ-BGDĐT.</p>
+              <p class="text-xs text-slate-600 leading-relaxed max-w-3xl">Đầy đủ 22 câu hỏi chuẩn quy cách. Tiêu đề 2 cột chuẩn mực, 100% hình học không gian TikZ & bảng biến thiên tkz-tab căn giữa trang in, tính điểm lũy tiến cho phần Đúng/Sai.</p>
 
               <!-- 3 Parts Spec Chips -->
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
@@ -276,7 +261,7 @@
                 </div>
                 <div class="p-2.5 rounded-xl bg-white/80 border border-black/[0.06] shadow-2xs">
                   <span class="text-[10px] font-bold text-emerald-600 uppercase">Phần II (4 câu)</span>
-                  <div class="font-bold text-xs text-slate-800">Đúng/Sai bậc thang QĐ 764</div>
+                  <div class="font-bold text-xs text-slate-800">Đúng/Sai bậc thang</div>
                   <div class="text-[11px] text-slate-500">4.0 Điểm • 0.1 - 0.25 - 0.5 - 1.0đ</div>
                 </div>
                 <div class="p-2.5 rounded-xl bg-white/80 border border-black/[0.06] shadow-2xs">
@@ -319,7 +304,7 @@
               <span id="dash-metric-total" class="text-2xl sm:text-3xl font-extrabold text-slate-900">1,480</span>
               <span class="text-xs font-semibold text-emerald-600">+12 câu</span>
             </div>
-            <p class="mt-1 text-xs text-slate-400">Chuẩn hóa 100% YCCĐ TT 32</p>
+            <p class="mt-1 text-xs text-slate-400">Chuẩn hóa theo yêu cầu cần đạt</p>
           </div>
 
           <!-- Metric 2 -->
@@ -376,7 +361,7 @@
                 <i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i>
                 <span>Bảo Đảm Bất Biến Khảo Thí & Chuẩn In Ấn Quốc Gia (Formal Invariants)</span>
               </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Tự động kiểm định và thực thi theo Quyết định 764/QĐ-BGDĐT và chuẩn xuất bản Vector PDF</p>
+              <p class="text-xs text-slate-500 mt-0.5">Tự động kiểm định bất biến đề thi và chuẩn xuất bản Vector PDF</p>
             </div>
             <span class="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-full border border-emerald-200 flex items-center space-x-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -414,18 +399,18 @@
                 <span class="text-[11px] font-bold text-slate-800">Centered Diagrams</span>
                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
               </div>
-              <p class="text-[11px] text-slate-500">100% đồ thị hàm số và hình học không gian TikZ được căn giữa trang in 2 cột, không xén nét, chuẩn CMU Serif.</p>
+              <p class="text-[11px] text-slate-500">Căn giữa hoàn hảo mọi hình vẽ TikZ và bảng biến thiên tkz-tab giữa 2 cột in ấn chuẩn ex_test.sty.</p>
             </div>
           </div>
         </div>
 
-        <!-- Circular 32 Strands Distribution (Mạch nội dung CT GDPT 2018) -->
-        <div class="apple-card p-6 space-y-5">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/[0.06] pb-4">
+        <!-- ================= STRANDS BREAKDOWN (MẠCH NỘI DUNG) ================= -->
+        <div class="space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
                 <i data-lucide="pie-chart" class="w-5 h-5 text-brand-600"></i>
-                <span>Phân Bố 4 Mạch Nội Dung Cốt Lõi (Thông tư 32/2018/TT-BGDĐT)</span>
+                <span>Phân Bố 4 Mạch Nội Dung Cốt Lõi</span>
               </h2>
               <p class="text-xs text-slate-500 mt-0.5">Môn Toán học - Khung chương trình giáo dục phổ thông mới toàn quốc (Không phụ thuộc SGK)</p>
             </div>
@@ -570,9 +555,9 @@
           <div class="apple-card p-6 space-y-4">
             <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
               <i data-lucide="check-square" class="w-4 h-4 text-emerald-600"></i>
-              <span>Cấu Trúc Đề Thi 3 Phần Mới (Quyết định 764/QĐ-BGDĐT)</span>
+              <span>Cấu Trúc Đề Thi 3 Phần Mới</span>
             </h3>
-            <p class="text-xs text-slate-500">Định dạng thi tốt nghiệp THPT từ năm 2025 hỗ trợ tự động trên Quesy</p>
+            <p class="text-xs text-slate-500">Định dạng đề thi trắc nghiệm và tự luận hỗ trợ tự động trên Quesy</p>
 
             <div class="space-y-3 pt-1">
               <div class="p-3.5 rounded-xl bg-slate-50 border border-black/[0.06] flex items-center justify-between">
@@ -646,7 +631,7 @@
                     <span class="text-[10px] text-slate-400">Khối 12 • Toán học</span>
                   </td>
                   <td class="py-3 px-3">
-                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">TT 32 &amp; QĐ 764</span>
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">Chuẩn hóa</span>
                   </td>
                   <td class="py-3 px-3">
                     <span class="inline-flex items-center space-x-1 text-emerald-600 font-semibold text-[11px]">
@@ -1017,7 +1002,7 @@
                         <span class="text-purple-400 font-bold">◆</span>
                         <span>Tạo Phần I (12 câu Trắc nghiệm)</span>
                       </button>
-                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo Phần II gồm 4 câu Đúng/Sai theo QĐ 764')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                      <button type="button" onclick="app.composer.applyQuickPrompt('Tạo Phần II gồm 4 câu Đúng/Sai')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
                         <span class="text-purple-400 font-bold">◆</span>
                         <span>Tạo Phần II (4 câu Đúng/Sai)</span>
                       </button>
@@ -1140,9 +1125,9 @@
                               <span class="text-blue-400 font-bold">●</span>
                               <span>Trắc nghiệm 4 lựa chọn</span>
                             </button>
-                            <button type="button" onclick="app.composer.applyQuickPrompt('Tạo câu hỏi Đúng/Sai 4 ý theo Quyết định 764')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
+                            <button type="button" onclick="app.composer.applyQuickPrompt('Tạo câu hỏi Đúng/Sai 4 ý')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
                               <span class="text-emerald-400 font-bold">●</span>
-                              <span>Đúng/Sai 4 ý QĐ 764</span>
+                              <span>Đúng/Sai 4 ý</span>
                             </button>
                             <button type="button" onclick="app.composer.applyQuickPrompt('Vẽ bảng biến thiên hàm bậc 3 bằng tkz-tab')" class="w-full text-left px-3 py-1.5 hover:bg-white/10 hover:text-white flex items-center space-x-2 text-slate-200">
                               <span class="text-amber-400 font-bold">●</span>
@@ -1294,9 +1279,7 @@
             <div>
               <div class="font-bold text-slate-900 text-sm flex items-center space-x-2">
                 <span>Ngân hàng Câu hỏi Khảo thí</span>
-                <span class="text-[10px] bg-rose-50 text-rose-600 font-semibold px-2 py-0.5 rounded-full border border-rose-200">Chuẩn TT 32/2018</span>
               </div>
-              <p class="text-[11px] text-slate-500">Kho học liệu số hóa phân loại theo Yêu cầu cần đạt (YCCĐ) & Barem Quyết định 764/QĐ-BGDĐT</p>
             </div>
           </div>
 
@@ -1409,12 +1392,12 @@
             <option value="HIGH_APPLICATION">Vận dụng cao</option>
           </select>
 
-          <!-- Collapsible 6-Tier Cascading Taxonomy Drawer (Circular 32/2018/TT-BGDĐT) -->
+          <!-- Collapsible 6-Tier Cascading Taxonomy Drawer -->
           <div id="bank-taxonomy-drawer" class="hidden pt-3 border-t border-slate-100 space-y-3 transition-all">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
                 <i data-lucide="layers" class="w-4 h-4 text-[#0071e3]"></i>
-                <h3 class="text-xs font-bold text-slate-800">Phân loại Cây kiến thức 6 tầng theo Chuẩn Thông tư 32/2018</h3>
+                <h3 class="text-xs font-bold text-slate-800">Phân loại Cây kiến thức 6 tầng</h3>
               </div>
               <button type="button" onclick="app.toggleTaxonomyDrawer()" class="text-[11px] text-slate-500 hover:text-slate-700 font-semibold cursor-pointer">
                 ✕ Đóng ngăn lọc
@@ -1443,9 +1426,9 @@
                 </select>
               </div>
 
-              <!-- Tier 3: Strand (Mạch nội dung TT 32) -->
+              <!-- Tier 3: Strand -->
               <div>
-                <label class="block text-[11px] font-bold text-slate-600 mb-1">3. Mạch nội dung (Thông tư 32)</label>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">3. Mạch nội dung</label>
                 <select id="bank-filter-strand" onchange="app.handleTaxonomyFilterChange('strand')" class="apple-select w-full text-xs">
                   <option value="all">Tất cả các Mạch</option>
                   <option value="giai-tich">Mạch 1: Số, Đại số & Giải tích</option>
@@ -1489,7 +1472,7 @@
                 </select>
               </div>
               <div class="text-[11px] text-slate-400 self-end">
-                * Chuẩn cây kiến thức phân loại theo Thông tư 32/2018/TT-BGDĐT, không lệ thuộc bộ SGK thương mại.
+                * Cây kiến thức phân loại chuẩn hóa theo chương trình môn học.
               </div>
             </div>
           </div>
@@ -1568,9 +1551,8 @@
             <div>
               <h2 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
                 <i data-lucide="grid" class="w-4 h-4 text-brand-600"></i>
-                <span>Thiết Lập Bản Đặc Tả Ma Trận Đa Tầng (Chương · Bài · Dạng &times; 3 Phần &times; 4 Cấp độ)</span>
+                <span>Tạo ma trận đề thi</span>
               </h2>
-              <p class="text-xs text-slate-500">Căn cứ Thông tư 32/2018/TT-BGDĐT và Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025)</p>
             </div>
             <div class="flex items-center space-x-2">
               <button onclick="app.saveMatrixConfig()" class="btn-apple-secondary py-1.5 px-3 text-xs font-semibold flex items-center space-x-1">
@@ -1831,7 +1813,7 @@
             <span>Môn: <strong>Toán học 12</strong></span>
             <span>Thời lượng: <strong>90 phút</strong></span>
             <span>Số câu: <strong id="shuffler-meta-total">0</strong> câu</span>
-            <span>Thang điểm: <strong>10.0đ</strong> (Barem QĐ 764)</span>
+            <span>Thang điểm: <strong>10.0đ</strong></span>
           </div>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -2184,7 +2166,7 @@
           </div>
           <div>
             <h3 id="q-modal-title" class="font-bold text-slate-900 text-sm">Chỉnh Sửa Câu Hỏi (HITL Review)</h3>
-            <p id="q-modal-subtitle" class="text-xs text-slate-500">Chuẩn hóa Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT</p>
+            <p id="q-modal-subtitle" class="text-xs text-slate-500">Chỉnh sửa định dạng và nội dung câu hỏi</p>
           </div>
         </div>
         <button type="button" onclick="app.closeQuestionEditorModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg">
@@ -2197,7 +2179,7 @@
         <!-- Question Format & Cognitive Level & YCCD Row -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-xl border border-black/[0.06]">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">1. Định dạng câu hỏi (QĐ 764)</label>
+            <label class="block font-bold text-slate-700 mb-1">1. Định dạng câu hỏi</label>
             <select id="q-edit-format" onchange="app.handleQuestionFormatChangeInModal()" class="apple-select text-xs font-semibold w-full">
               <option value="SINGLE_CHOICE">PHẦN I: Trắc nghiệm 4 lựa chọn (Chọn 1)</option>
               <option value="TRUE_FALSE_GROUP">PHẦN II: Trắc nghiệm Đúng/Sai (4 ý a,b,c,d)</option>
@@ -2449,7 +2431,7 @@
           </div>
           <div>
             <h3 id="q-detail-title" class="font-bold text-slate-900 text-sm">Chi Tiết Câu Hỏi Khảo Thí</h3>
-            <p id="q-detail-subtitle" class="text-xs text-slate-500">Chuẩn hóa Thông tư 32/2018/TT-BGDĐT & Barem QĐ 764/QĐ-BGDĐT</p>
+            <p id="q-detail-subtitle" class="text-xs text-slate-500">Xem và quản lý thông tin câu hỏi</p>
           </div>
         </div>
         <button type="button" onclick="document.getElementById('question-detail-modal').classList.add('hidden')" class="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
@@ -2489,7 +2471,7 @@
           </div>
           <div>
             <h3 class="font-bold text-slate-900 text-sm">Thêm Dòng YCCĐ vào Ma Trận</h3>
-            <p class="text-xs text-slate-500">Chọn Mạch nội dung & Yêu cầu cần đạt chuẩn TT 32/2018</p>
+            <p class="text-xs text-slate-500">Chọn mạch nội dung & yêu cầu cần đạt</p>
           </div>
         </div>
         <button type="button" onclick="app.closeAddMatrixRowModal()" class="w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
