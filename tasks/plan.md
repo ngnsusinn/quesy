@@ -110,6 +110,7 @@
 - [x] **SO-02:** Route `/favicon.ico` trả về HTTP 204 chống lỗi console
 - [x] **SO-03:** Bổ sung cache-buster `?v=...` chống lưu cache script cũ trên trình duyệt
 - [x] **SO-04:** Bộ test suite tự động 39 test cases bao phủ toàn diện hệ thống
+- [x] **DOC-02:** Lập bản đồ tính năng toàn diện docs/FEATURE_MAP.md & 21 ảnh chụp màn hình kiểm định toàn bộ phân hệ và 74 REST API endpoints
 
 ### Phase 7: Phân Hệ Chấm Thi Giáo Viên & Mở Rộng Trợ Lý OCR (Roadmap / Backlog)
 - [x] **GM-01:** ORM Model `Classroom` & `StudentRoster` (Quản lý danh sách lớp của giáo viên)
