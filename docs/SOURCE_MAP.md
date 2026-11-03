@@ -78,7 +78,6 @@ Tổng số dòng mã nguồn (Lines of Code - LOC): **~26,000 dòng**.
 quesy/
 ├── .gitignore                         # Quy cách loại trừ tệp tin git tiêu chuẩn (FastAPI, TeX, Storage, Test Evidence)
 ├── AGENTS.md                          # Quy chuẩn & standing rules dành cho Agent (37 dòng)
-├── FEATURE_MAP.md                     # Bản đồ chi tiết tính năng, từng màn hình, từng nút và 74 REST API endpoints
 ├── README.md                          # Tài liệu giới thiệu & năng lực cốt lõi hệ thống tinh gọn, chuẩn mực (129 dòng)
 ├── requirements.txt                   # Danh mục thư viện Python dependencies (23 dòng)
 ├── package.json                       # Cấu hình MathJax Node.js daemon (9 dòng)
@@ -138,6 +137,8 @@ quesy/
 │       └── fonts/                     # Thư mục font chữ dự án
 │
 ├── docs/                              # Toàn bộ tài liệu chuẩn hóa kỹ thuật dự án
+│   ├── FEATURE_MAP.md                 # Bản đồ chi tiết tính năng, từng màn hình, 206 phần tử tương tác và 74 REST API endpoints (600 dòng)
+│   ├── screenshots/                   # Thư mục 21 ảnh chụp màn hình kiểm định toàn bộ phân hệ và modal
 │   ├── SRS_System_Requirements_Specification.md     # Đặc tả Yêu cầu Hệ thống Phần mềm (270 dòng)
 │   ├── FRD_Functional_Requirements_Document.md      # Tài liệu Đặc tả Yêu cầu Chức năng (282 dòng)
 │   ├── BRD_Exam_Management_AI_Digitization.md       # Tài liệu Yêu cầu Nghiệp vụ (167 dòng)
