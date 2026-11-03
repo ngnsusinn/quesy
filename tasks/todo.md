@@ -680,3 +680,14 @@
 **Verification:** Kiểm tra cấu trúc Markdown và các liên kết trong README.md.
 **Dependencies:** None | **Files:** `README.md` | **Scope:** S (1 file)
 
+### Task DOC-02: [x] [DONE] Lập Bản Đồ Tính Năng FEATURE_MAP.md & Kiểm Thử Điểm Cuối Giao Diện
+**Description:** Chụp ảnh màn hình toàn bộ các phân hệ và modal giao diện, kiểm tra chi tiết từng nút bấm, bộ chọn, trường nhập liệu, và lập bản đồ tính năng toàn diện `FEATURE_MAP.md` ánh xạ 74 REST API endpoints cùng 206 phần tử tương tác giao diện.
+**Acceptance criteria:**
+- [x] Chụp và lưu trữ 21 tệp ảnh chụp màn hình độ phân giải cao tại `docs/screenshots/`.
+- [x] Kiểm tra toàn bộ 206 nút bấm và phần tử tương tác trên các phân hệ và 9 modals.
+- [x] Lập bản đồ chi tiết 74 REST API endpoints với phương thức, đường dẫn và tệp xử lý.
+- [x] Bảng ma trận ánh xạ nguồn gốc (Traceability Matrix) giữa nghiệp vụ, giao diện và API.
+- [x] Hoàn thiện tài liệu `FEATURE_MAP.md` đạt chuẩn kỹ thuật.
+**Verification:** Kiểm tra liên kết ảnh và tính toàn vẹn tài liệu `FEATURE_MAP.md`.
+**Dependencies:** DOC-01 | **Files:** `FEATURE_MAP.md`, `docs/screenshots/` | **Scope:** M (1 file + 21 images)
+
