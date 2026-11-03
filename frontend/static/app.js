@@ -1639,7 +1639,7 @@
             ${truncateFilename(state.digitizeJob.filename || 'Tài liệu đề thi', 36)}
           </h3>
           <p class="text-xs text-slate-500 max-w-md leading-relaxed">
-            Thầy/cô vui lòng kiểm tra bản xem trước và sắp xếp thứ tự các trang ở cột trái. Sau khi hoàn tất, nhấn nút bên dưới để AI bắt đầu gõ lại đề và bóc tách câu hỏi theo chuẩn Thông tư 32 & QĐ 764.
+            Thầy/cô vui lòng kiểm tra bản xem trước và sắp xếp thứ tự các trang ở cột trái. Sau khi hoàn tất, nhấn nút bên dưới để AI bắt đầu gõ lại đề và bóc tách câu hỏi.
           </p>
           <div class="pt-2">
             <button onclick="app.startAIDigitize()" class="btn-apple-primary py-2.5 px-6">
@@ -1696,7 +1696,7 @@
           </div>
           <h4 class="text-sm font-bold text-slate-800 mb-1">Chưa Có Danh Sách Câu Hỏi</h4>
           <p class="text-xs text-slate-500 max-w-sm leading-relaxed">
-            Danh sách các câu hỏi được AI bóc tách (công thức Toán KaTeX, đáp án và phân loại chuẩn TT 32 & QĐ 764) sẽ hiển thị tại đây sau khi tiến hành gõ lại đề.
+            Danh sách các câu hỏi được AI bóc tách (công thức Toán KaTeX, đáp án và phân loại) sẽ hiển thị tại đây sau khi tiến hành gõ lại đề.
           </p>
         </div>
       `;
@@ -1846,7 +1846,7 @@
         html += `
           <div class="space-y-2 mb-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
             <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 border-b border-slate-200 pb-1">
-              <span>Ý khẳng định con (QĐ 764)</span>
+              <span>Ý khẳng định con</span>
               <span>Điểm bậc thang: 1 ý = 0.1đ | 2 ý = 0.25đ | 3 ý = 0.5đ | 4 ý = 1.0đ</span>
             </div>
         `;
@@ -2688,7 +2688,7 @@
       html += `
         <div>
           <div class="flex items-center justify-between mb-2">
-            <label class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">4 Ý khẳng định con (Quyết định 764/QĐ-BGDĐT)</label>
+            <label class="font-bold text-slate-800 uppercase tracking-wider text-[11px]">4 Ý khẳng định con</label>
             <span class="text-[10px] text-slate-500">Điểm bậc thang: 1 ý = 0.1đ | 2 ý = 0.25đ | 3 ý = 0.5đ | 4 ý = 1.0đ</span>
           </div>
           <div class="space-y-2.5">
@@ -2985,7 +2985,7 @@
       state.digitizeJob.totalPages = 2;
       renderDigitizeStudio();
     } else if (type === 'true_false_group') {
-      showToast('Đang nạp đề mẫu trắc nghiệm Đúng/Sai 4 ý (QĐ 764)...', 'info');
+      showToast('Đang nạp đề mẫu trắc nghiệm Đúng/Sai 4 ý...', 'info');
       state.digitizeJob.filename = 'De_Mau_Dung_Sai_4_Y_QD764.docx';
       state.digitizeJob.fileType = 'sample_tf';
       const tfQuestions = state.itemBank.filter((q) => q.item_format === 'TRUE_FALSE_GROUP');
@@ -5650,7 +5650,7 @@
 
     const formatBadges = {
       SINGLE_CHOICE: 'Phần I: Trắc nghiệm 4 lựa chọn',
-      TRUE_FALSE_GROUP: 'Phần II: Đúng / Sai 4 ý (QĐ 764)',
+      TRUE_FALSE_GROUP: 'Phần II: Đúng / Sai 4 ý',
       SHORT_ANSWER: 'Phần III: Trả lời ngắn'
     };
 
@@ -5665,7 +5665,7 @@
       <!-- 6-Tier Classification & Metadata -->
       <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
         <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-          <span>Phân loại 6 tầng Thông tư 32/2018/TT-BGDĐT</span>
+          <span>Phân loại cấu trúc kiến thức</span>
           <span class="text-brand-600 font-mono font-bold">${q.learning_outcome_id || 'TOAN12.GT.01'}</span>
         </div>
         <div class="flex flex-wrap gap-1.5 text-[11px]">
@@ -5713,7 +5713,7 @@
         <div class="space-y-1.5">
           <div class="flex items-center justify-between">
             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Các ý khẳng định Đúng / Sai</span>
-            <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">Barem QĐ 764: 1 ý = 0.1đ | 2 ý = 0.25đ | 3 ý = 0.5đ | 4 ý = 1.0đ</span>
+            <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">Thang điểm bậc thang: 1 ý = 0.1đ | 2 ý = 0.25đ | 3 ý = 0.5đ | 4 ý = 1.0đ</span>
           </div>
           <div class="space-y-1.5">
             ${q.sub_statements.map(sub => `
@@ -6462,7 +6462,7 @@ Dựa vào đồ thị, hàm số đồng biến trên các khoảng $(-\\infty;
 
       const prompts = {
         'tracnghiem': 'Tạo 1 câu trắc nghiệm 4 lựa chọn theo chuẩn gói ex_test (\\begin{ex} ... \\choice ... \\loigiai)',
-        'dungsai': 'Tạo 1 câu hỏi Đúng/Sai 4 khẳng định theo chuẩn Quyết định 764 dùng \\choiceTF và itemchoice',
+        'dungsai': 'Tạo 1 câu hỏi Đúng/Sai 4 khẳng định dùng \\choiceTF và itemchoice',
         'traloingan': 'Tạo 1 câu hỏi Trả lời ngắn theo chuẩn \\shortans',
         'tkz_tab': 'Tạo 1 bảng biến thiên hàm số bằng gói tkz-tab',
         'tikz': 'Vẽ 1 đồ thị toạ độ hoặc hình học không gian bằng TikZ',

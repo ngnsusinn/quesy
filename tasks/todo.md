@@ -656,3 +656,15 @@
 - [x] Tự động kiểm thử và báo xanh khi toàn bộ tests pass.
 **Verification:** Kiểm tra tab Actions trên GitHub repository.
 **Dependencies:** SO-04 | **Files:** `.github/workflows/ci.yml` | **Scope:** XS (1 file)
+
+### Task UI-PROD-01: [x] [DONE] Chuẩn Hóa Giao Diện Sản Phẩm: Loại Bỏ Chi Tiết Pháp Lý & Tối Giản Header
+**Description:** Tinh chỉnh giao diện theo hướng sản phẩm thương mại hoàn thiện (production-ready): xoá các nút thừa ở header (môn học 'Toán 12', pill 'FastAPI: Online'), loại bỏ badge 'Chuẩn Khảo Thí Quốc Gia 2026' và 'Phiên bản v4.0', đơn giản hóa tiêu đề ngân hàng câu hỏi và đổi tiêu đề 'Thiết Lập Bản Đặc Tả Ma Trận Đa Tầng...' thành 'Tạo ma trận đề thi', lược bỏ các chi tiết viện dẫn thông tư, quyết định rườm rà.
+**Acceptance criteria:**
+- [x] Header xoá bỏ nút 'Toán 12' và badge 'FastAPI: Online'.
+- [x] Trang chủ xoá badge 'Chuẩn Khảo Thí Quốc Gia 2026' và 'Phiên bản v4.0'.
+- [x] Ngân hàng câu hỏi xoá badge 'Chuẩn TT 32/2018' và câu mô tả viện dẫn TT 32 / QĐ 764.
+- [x] Ma trận đề thi đổi tiêu đề thành 'Tạo ma trận đề thi'.
+- [x] Tinh giản toàn bộ các văn bản viện dẫn quy định thành mô tả chức năng thực tế.
+- [x] 100% test suites E2E và giao diện vượt qua kiểm thử (`pytest tests/test_e2e_*.py`).
+**Verification:** `pytest tests/test_e2e_dashboard_launchpad.py tests/test_e2e_friendly_item_bank.py tests/test_e2e_matrix_and_shuffler_headers.py tests/test_e2e_workflow.py`
+**Dependencies:** None | **Files:** `frontend/index.html`, `frontend/static/app.js`, `frontend/manifest.json` | **Scope:** S (3 files)

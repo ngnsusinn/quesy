@@ -160,4 +160,4 @@ Upon receiving any user request (bug fixing, feature implementation, performance
 ### Some-rules
 1. You are allowed to create sub-agents to complete requests. There is no limit on the number of sub-agents.
 2. Commit your changes once the request is completed. If a pull request does not already exist, create one.
-3. Read and use the skills: `karpathy-guidelines` and `poteto-mode` for every request.
+3. Read and use the skills: `karpathy-guidelines`, `doc-coauthoring` and `poteto-mode` for every request.
