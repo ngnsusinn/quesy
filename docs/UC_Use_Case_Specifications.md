@@ -44,7 +44,7 @@
           ├───────────────► (UC-08: Trộn Đề & Hoán vị An toàn)
           │                                  │
           │                                  ▼
-          ├───────────────► (UC-09: Xuất bản Gói Đề thi Word 2 cột)
+          ├───────────────► (UC-09: Xuất bản Gói Đề thi Thuần Vector PDF LaTeX & ZIP)
           │
           ├───────────────► (UC-10: Phân tích Khảo thí Hậu kiểm: p, D)
           │
@@ -259,16 +259,16 @@
 
 ---
 
-### UC-09: XUẤT BẢN ĐỀ THI ĐƠN LẺ & ĐÓNG GÓI ẤN PHẨM KHẢO THÍ (.ZIP) THUẦN VECTOR PDF LATEX
+### UC-09: XUẤT BẢN GÓI ĐỀ THI THUẦN VECTOR PDF LATEX & ZIP
 - **Mã Use Case:** `UC-09`
-- **Tên Use Case:** Xuất bản Đề thi Đơn lẻ (PDF) & Đóng gói Ấn phẩm Khảo thí (.ZIP) Thuần Vector PDF LaTeX (Tectonic XeTeX Engine)
+- **Tên Use Case:** Xuất bản Gói Đề thi Thuần Vector PDF LaTeX & ZIP (Tectonic XeTeX Engine và ReportLab Vector Fallback)
 - **Tác nhân chính:** Giáo viên, Cán bộ in sao đề
 
 #### Luồng sự kiện chính:
-1. Người dùng có thể nhấn nút **"Tải PDF Mã {code}"** để tải trực tiếp file đề thi đơn lẻ dạng PDF Vector 2 cột chuẩn Bộ GD&ĐT qua `GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`. Hệ thống chuyển đổi mã đề sang LaTeX chuẩn Quốc gia (`ex_test.sty` v3.3) và biên dịch qua Tectonic XeTeX Engine.
+1. Người dùng có thể nhấn nút **"Tải PDF Mã {code}"** để tải trực tiếp file đề thi đơn lẻ dạng PDF Vector 2 cột chuẩn Bộ GD&ĐT qua `GET /api/v1/exams/{master_id}/export-pdf?variant_code={code}`. Hệ thống chuyển đổi mã đề sang LaTeX chuẩn Quốc gia (`ex_test.sty` v3.3) và biên dịch qua Tectonic XeTeX Engine hoặc ReportLab vector fallback.
 2. Người dùng nhấn nút **"TẢI TRỌN GÓI ĐỀ THI PDF (.ZIP)"** qua `GET /api/v1/exams/{master_id}/export-zip?format=pdf`.
 3. Hệ thống tạo và đóng gói tự động các file sau vào tệp ZIP:
-   - `De_101.pdf`, `De_102.pdf`, `De_103.pdf`, `De_104.pdf`: Đề thi 4 mã đề hoán vị A4 Portrait 2 cột biên dịch từ LaTeX XeTeX chuẩn mực.
+   - `De_101.pdf`, `De_102.pdf`, `De_103.pdf`, `De_104.pdf`: Đề thi 4 mã đề hoán vị A4 Portrait 2 cột biên dịch từ LaTeX XeTeX chuẩn mực (`ex_test.sty` v3.3).
    - `LoiGiai_101.pdf`, `LoiGiai_102.pdf`, `LoiGiai_103.pdf`, `LoiGiai_104.pdf`: Hướng dẫn giải chi tiết kèm barem điểm bậc thang QĐ 764 biên dịch từ LaTeX XeTeX chuẩn mực.
    - `BangDapAn_TongHop.pdf`: Bảng ma trận đối chiếu đáp án tổng hợp in ấn dạng PDF.
    - `BangDapAn_TongHop.csv`: Bảng ma trận đối chiếu đáp án định dạng CSV có ký tự UTF-8 BOM (`\ufeff`) tương thích 100% Microsoft Excel tiếng Việt.

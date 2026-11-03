@@ -2,8 +2,8 @@
 **Dự án: Hệ thống Quản lý Đề thi, Ngân hàng Câu hỏi & Số hoá AI Toán học (QUESY)**
 
 - **Mã tài liệu:** QUESY-FSR-01  
-- **Phiên bản:** 2.5 (Tập trung giải pháp tự động hóa & Phân tích ROI thực tế)  
-- **Mục tiêu nghiên cứu:** Đánh giá tính khả thi kỹ thuật, hiệu quả kinh tế và giá trị thực tiễn của giải pháp số hóa đề thi tự động, dựng đồ thị vector SVG, trộn đề an toàn và xuất bản in ấn.  
+- **Phiên bản:** 2.6 (Tập trung xuất bản thuần Vector PDF LaTeX ex_test.sty v3.3 & Gói ZIP)  
+- **Mục tiêu nghiên cứu:** Đánh giá tính khả thi kỹ thuật, hiệu quả kinh tế và giá trị thực tiễn của giải pháp số hóa đề thi tự động, dựng đồ thị vector SVG, trộn đề an toàn và xuất bản thuần Vector PDF LaTeX.  
 - **Ngày lập:** 2026-10-18  
 - **Người thực hiện:** Ban Nghiên cứu Giải pháp & Đánh giá Dự án  
 - **Kết luận:** **KHẢ THI CAO - KHUYẾN NGHỊ TRIỂN KHAI RỘNG RÃI (GO DECISION)**  
@@ -13,7 +13,7 @@
 ## 1. TỔNG QUAN BÁO CÁO (EXECUTIVE SUMMARY)
 
 Báo cáo này đánh giá tính khả thi toàn diện của dự án **Quesy** trên 5 khía cạnh trọng yếu nhằm giải quyết các bài toán cấp bách trong công tác khảo thí:
-1. **Khả thi về Kỹ thuật (Technical Feasibility):** Năng lực AI bóc tách công thức Toán LaTeX, công nghệ biên dịch đồ thị vector SVG (TikZ) tự động có Auto-clipping, và thuật toán trộn đề an toàn (Option Anchor).
+1. **Khả thi về Kỹ thuật (Technical Feasibility):** Năng lực AI bóc tách công thức Toán LaTeX, công nghệ biên dịch đồ thị vector SVG (TikZ) tự động có Auto-clipping, kiến trúc xuất bản thuần Vector PDF LaTeX qua Tectonic XeTeX Engine và ReportLab vector fallback, cùng thuật toán trộn đề an toàn (Option Anchor).
 2. **Khả thi về Vận hành (Operational Feasibility):** Trải nghiệm người dùng tinh giản theo Apple HIG, giúp giáo viên làm chủ hệ thống trong 15 phút mà không cần đào tạo phức tạp.
 3. **Khả thi về Kinh tế (Economic Feasibility):** Tiết kiệm 85-90% thời gian biên soạn đề thi, chi phí vận hành API tối ưu nhờ bộ nhớ đệm (Cache) và giải mã cục bộ.
 4. **Khả thi về Pháp lý & Bảo mật (Legal & Security Feasibility):** Đảm bảo an toàn cơ mật đề thi, sở hữu trí tuệ học liệu và bảo vệ dữ liệu học sinh.
@@ -117,7 +117,7 @@ Tuần 1 - 4:   [Thiết kế Kiến trúc, CSDL PostgreSQL theo YCCĐ TT 32, UI
 Tuần 5 - 10:  [R&D AI Pipeline: Bóc tách DOCX/PDF, LaTeX, Auto Image Crop, Auto-tagging]
 Tuần 11 - 14: [Studio Hậu kiểm HITL Synchronized Scrolling & Quản lý Cây YCCĐ]
 Tuần 15 - 18: [Ma trận Đề thi theo YCCĐ & Thuật toán Trộn Đề Hoán vị An toàn]
-Tuần 19 - 21: [Xuất bản Word 2 cột OMML & Thống kê Khảo thí p, D]
+Tuần 19 - 21: [Xuất bản Thuần Vector PDF LaTeX & Thống kê Khảo thí p, D]
 Tuần 22 - 24: [Kiểm thử Tích hợp, Bảo mật, Chạy thử nghiệm Pilot & Bàn giao]
 ```
 

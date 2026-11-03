@@ -371,8 +371,8 @@ python -m pytest -v --durations=10
 
 - `test_digitize_2pass.py`: Verifies uniform page rasterization (PyMuPDF), OpenCV CLAHE contrast enhancement, precision layout diagram/table segmentation, option text sentence case normalization, parallel 2-pass AI figure stitching & safety fallback, and TikZ `tkz-tab` variation table vector compilation.
 - `test_rules_shuffling.py`: Verifies all 16 True/False permutations under progressive grading, ensures Choice D anchoring across 100 shuffling runs, and validates passage integrity.
-- `test_mathjax_service.py` & `test_math_format_export.py`: Validates MTEF binary decoding, vector WMF APM generation, full-size `\dfrac` sizing, and baseline alignment.
-- `test_digitize_docx_export.py`: Tests print-quality PDF export and genuine MathType 7.0 Word generation.
+- `test_mathjax_service.py` & `test_math_format_export.py`: Validates MathJax vector SVG rendering, math expression cleaning, full-size `\dfrac` sizing, and baseline alignment.
+- `test_digitize_docx_export.py`: Tests digitized exam vector PDF export endpoints (`/api/v1/digitize/export-pdf`).
 - `test_performance_budgets.py`: Enforces execution latency budgets (< 200 ms for matrix solving and shuffle generation).
 
 ### CI/CD Workflow & Governance (`.github/workflows/ci.yml`)
@@ -408,7 +408,7 @@ Every pull request and commit to remote branches executes a multi-runtime GitHub
 - **Chuẩn hóa Quyết định 764/QĐ-BGDĐT (Form 2025):** Chấm điểm tự động bậc thang cho câu trắc nghiệm Đúng/Sai 4 khẳng định (0.1đ - 0.25đ - 0.5đ - 1.0đ).
 - **Xuất bản PDF chuẩn $\LaTeX$ thuần túy:** Toàn bộ đề thi in ấn sử dụng font chữ **Computer Modern Unicode (CMU Serif)**, 100% phân số hiển thị dạng **`\dfrac`** to rõ (11pt chuẩn đề thi), công thức toán vector sắc nét tuyệt đối, ôm sát chân dòng chữ.
 - **Biên dịch Đồ thị & Hình học TikZ Vector:** 100% hình vẽ hình học và đồ thị hàm số được biên dịch trực tiếp từ mã nguồn $\LaTeX$ sang Vector SVG nguyên bản (`dvisvgm`), tuyệt đối **không biến thành ảnh raster PNG** (0% ảnh mờ vỡ hạt khi in ấn hay phóng to).
-- **Xuất bản Word MathType 7.0 OLE Vector WMF:** Xuất file `.docx` nhúng OLE Equation Native binary, giáo viên nhấp đúp chuột trong Microsoft Word sẽ mở thẳng MathType 7 để chỉnh sửa 2 chiều bình thường.
+- **Xuất bản Thuần Vector PDF & Gói Ấn phẩm Khảo thí (.ZIP):** Đóng gói trọn bộ đề thi từng mã đề hoán vị và hướng dẫn giải chi tiết chuẩn LaTeX `ex_test.sty` v3.3 biên dịch qua Tectonic XeTeX Engine, kèm bảng ma trận đáp án tổng hợp (PDF & CSV UTF-8 BOM), phiếu trả lời trắc nghiệm chuẩn máy chấm OMR 2025. Loại bỏ hoàn toàn sự phụ thuộc vào Word (.docx) và MathType OLE binary formats để đảm bảo chất lượng in ấn vector tuyệt đối và tính di động trên mọi máy chủ Linux/Docker/ARM.
 - **Phân hệ Soạn đề Tinh gọn Không Preamble (Preamble-Free Question Editor & Canonical Preamble Injection):** Giáo viên chỉ cần viết trực tiếp nội dung đề thi và các câu hỏi chuẩn `ex_test.sty` (`\begin{ex}`), không cần viết `\documentclass` hay `\usepackage`. Hệ thống tự động nhúng ngầm toàn bộ gói lệnh chuẩn (`fontspec`, `amsmath,amssymb`, `tikz,tkz-tab`, `tcolorbox`, `xparse`, `ex_test` v3.3, khổ giấy A4 lề 18mm), tự động điều chỉnh chế độ `[dethi]` / `[loigiai]` qua cờ mode, tương thích ngược 100% nếu dán cả văn bản hoàn chỉnh và tự động đóng gói TeX khi xuất file.
 - **Trợ lý Soạn thảo AI Copilot, Động cơ Thay thế Câu hỏi Thông minh & Duyệt Đa Diff (Question Replacement Engine & Safe Sync):**
   - Hỗ trợ câu lệnh ngôn ngữ tự nhiên thay thế câu hỏi chuyên sâu (ví dụ: *"Soạn 1 câu đơn điệu hàm số mức dễ thay thế câu 1 đi"*, *"Thay câu 2 bằng câu khác"*, *"Sửa câu 3"*).

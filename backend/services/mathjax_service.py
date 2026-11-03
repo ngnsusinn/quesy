@@ -45,11 +45,8 @@ _worker_lock = threading.Lock()
 
 
 def _get_transformer():
-    global _xslt_transformer
-    if _xslt_transformer is None:
-        from backend.services.docx_exporter import _get_xslt_transformer
-        _xslt_transformer = _get_xslt_transformer()
-    return _xslt_transformer
+    """Deprecated: Word OMML XSLT transformation is retired."""
+    return None
 
 
 def _get_or_create_worker() -> subprocess.Popen:

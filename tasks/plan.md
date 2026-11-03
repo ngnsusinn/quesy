@@ -9,7 +9,7 @@
 - **4 Trọng tâm nghiệp vụ cốt lõi:**
   1. **Ngân hàng câu hỏi & Cây kiến thức chuẩn:** Cây năng lực 6 tầng Thông tư 32 (không phân chia theo bộ sách) và 3 phần thi theo Quyết định 764/QĐ-BGDĐT.
   2. **Số hóa AI & OCR đề thi (HITL Studio):** Tự động bóc tách từ Word/PDF/Ảnh, trích xuất công thức KaTeX, cắt ảnh đồ thị WebP, đối chiếu song song và sửa nhanh công thức.
-  3. **Tạo đề thi, Trộn đề & Xuất bản in ấn:** Ma trận đề thi bám sát YCCĐ, động cơ trộn đề an toàn 4 nguyên tắc (giữ nguyên câu chùm, khóa đáp án neo vào vị trí D, ma trận đáp án), xuất bản Word OpenXML (.docx) 2 cột OMML native và PDF vector siêu tốc ReportLab (<100ms).
+  3. **Tạo đề thi, Trộn đề & Xuất bản in ấn:** Ma trận đề thi bám sát YCCĐ, động cơ trộn đề an toàn 4 nguyên tắc (giữ nguyên câu chùm, khóa đáp án neo vào vị trí D, ma trận đáp án), xuất bản thuần Vector PDF chuẩn LaTeX `ex_test.sty` v3.3 qua Tectonic XeTeX Engine và ReportLab vector fallback, đóng gói trọn bộ ZIP ấn phẩm khảo thí.
   4. **Chấm thi & Thống kê điểm số giáo viên:** Chấm tự động qua ảnh chụp / webcam phiếu trả lời trắc nghiệm OMR 2025, nhập điểm nhanh theo danh sách lớp, phân tích trắc lượng học cổ điển (CTT: độ khó p, độ phân biệt D) và thống kê phổ điểm.
 
 ---
@@ -19,7 +19,7 @@
 - **AD-02 (2025 Assessment Standards):** Hỗ trợ đầy đủ 3 phần định dạng mới: Phần I (Trắc nghiệm 4 lựa chọn), Phần II (Đúng/Sai 4 ý chấm điểm lũy tiến 0.1 - 0.25 - 0.5 - 1.0 theo RULE-01), Phần III (Trả lời ngắn).
 - **AD-03 (Single-User Teacher Studio):** Toàn bộ giao diện Web Studio được thiết kế tối ưu cho 1 giáo viên thao tác: không cần đăng nhập phức tạp, quản lý kho đề cá nhân nhanh chóng.
 - **AD-04 (Safe Shuffling Engine):** Trộn đề đảm bảo 4 nguyên tắc khảo thí: Section Integrity, Passage Integrity, Option Anchor Lock (cố định đáp án neo vào vị trí D), và tự động sinh Ma trận Ánh xạ Đáp án.
-- **AD-05 (Resilient Document Publishing):** Xuất bản Word chuẩn OpenXML (.docx) 2 cột kèm công thức OMML native; xuất bản PDF vector siêu tốc thuần Python qua ReportLab (<100ms) nạp font Times New Roman Unicode từ Windows.
+- **AD-05 (Pure Vector PDF & LaTeX Publishing):** Xuất bản thuần Vector PDF chuẩn LaTeX `ex_test.sty` v3.3, biên dịch qua Tectonic XeTeX Engine và ReportLab vector fallback; đóng gói tệp ZIP hoàn chỉnh gồm đề thi, lời giải, bảng đáp án PDF/CSV, và phiếu OMR 2025. Loại bỏ hoàn toàn sự phụ thuộc vào Word (.docx) và MathType OLE.
 - **AD-06 (Automated OMR Grading & Psychometrics):** Tích hợp thị giác máy tính OpenCV chấm tự động phiếu trắc nghiệm từ camera máy tính của giáo viên và tính toán chỉ số CTT (p, D).
 
 ---
@@ -94,16 +94,16 @@
 - [x] **AN-04:** Tự động gắn cờ cảnh báo câu hỏi lỗi khi D < 0.20
 
 ### Phase 6: Xuất Bản Đa Định Dạng & Vận Hành Hệ Thống (Hoàn thành)
-- [x] **EX-01:** Dịch vụ tạo file Word OpenXML (.docx) chuẩn 2 cột
-- [x] **EX-02:** Tạo bảng phách thông tin thí sinh chuẩn Bộ GD&ĐT trong file Word
-- [x] **EX-03:** Chuyển đổi công thức LaTeX sang OMML native trong Word
-- [x] **EX-04:** Động cơ sinh PDF vector siêu tốc thuần Python bằng ReportLab (<100ms)
-- [x] **EX-05:** Nạp font Times New Roman Unicode Windows (`times.ttf`) cho ReportLab
-- [x] **EX-06:** Xuất bản tài liệu Hướng dẫn giải chi tiết (Word & PDF)
-- [x] **EX-07:** Xuất bản Bảng đáp án tổng hợp các mã đề (Word, PDF, CSV)
-- [x] **EX-08:** API `GET /api/v1/exams/{id}/export-docx` (Tải lẻ file Word)
-- [x] **EX-09:** API `GET /api/v1/exams/{id}/export-pdf` (Tải lẻ file PDF)
-- [x] **EX-10:** API `GET /api/v1/exams/{id}/export-zip` hỗ trợ `format=all|docx|pdf`
+- [x] **EX-01:** Chuyển đổi và tinh gọn dịch vụ xuất bản sang thuần Vector PDF LaTeX (`ex_test.sty` v3.3)
+- [x] **EX-02:** Tạo tiêu đề 2 cột canonical 0.38/0.58 và khung thông tin thí sinh chuẩn Bộ GD&ĐT
+- [x] **EX-03:** Bộ sinh mã LaTeX `generate_variant_latex` bảo toàn ngoặc `\choiceTF[1]` và `\shortans`
+- [x] **EX-04:** Động cơ sinh PDF vector siêu tốc thuần Python bằng ReportLab (<100ms) và Tectonic XeTeX
+- [x] **EX-05:** Nạp font Times New Roman Unicode Windows (`times.ttf`) và CMU Serif
+- [x] **EX-06:** Xuất bản tài liệu Hướng dẫn giải chi tiết Vector PDF (`LoiGiai_{code}.pdf`)
+- [x] **EX-07:** Xuất bản Bảng đáp án tổng hợp các mã đề (PDF in ấn & CSV UTF-8 BOM)
+- [x] **EX-08:** Thu hồi API export-docx cũ, hợp nhất thành luồng xuất bản Vector PDF an toàn
+- [x] **EX-09:** API `GET /api/v1/exams/{id}/export-pdf` (Tải lẻ file PDF vector theo mã đề)
+- [x] **EX-10:** API `GET /api/v1/exams/{id}/export-zip` đóng gói trọn bộ ấn phẩm khảo thí 1-click
 - [x] **EX-11:** Cơ chế tải Blob Client-side dập tắt lỗi *Failed - Unknown server error*
 - [x] **EX-12:** Xuất bản Mẫu Phiếu trả lời trắc nghiệm OMR 2025 trắng (.pdf) đính kèm trong gói ZIP
 - [x] **SO-01:** Script `start_server.py` tự động phát hiện và giải phóng socket cổng 8000
