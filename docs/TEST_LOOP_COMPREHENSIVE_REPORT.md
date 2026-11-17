@@ -108,3 +108,13 @@ Hệ thống đã trải qua quá trình kiểm thử tự động hai tầng:
 1. **Độ ổn định hệ thống:** Toàn bộ backend FastAPI, CSDL SQLite, các service xử lý định dạng (Vector PDF, LaTeX ex_test.sty, ReportLab, Shuffler, Grading, OMR) đạt độ tin cậy 100% qua 5 vòng lặp liên tục và kiểm thử chịu tải.
 2. **Giao diện Web Studio:** Hoạt động ổn định trên trình duyệt, không có lỗi console JavaScript, các luồng tương tác tải file đề thi, duyệt ngân hàng câu hỏi, thiết lập ma trận và xuất gói ZIP hoạt động tức thì.
 3. **Mã nguồn:** Hệ thống sẵn sàng cho môi trường kiểm thử diện rộng và vận hành thực tế.
+
+## Bổ sung 17/11/2026 — Điều tra CI PR #14
+
+Lần CI cũ `43988824542`, job `133723854792`: 288 passed, 1 failed ở `test_tkz_tab_variation_table_compilation`. SVG mới chứa prime U+E010 và cmap/glyph hợp lệ trong font nhúng, thay vì Unicode prime mà test cũ đòi hỏi. Đã xem SVG hiển thị bằng Chrome headless và giữ nguyên mã nguồn render.
+
+Đã sửa kiểm tra theo vị trí nhãn và glyph/font, thêm ba ca âm phát hiện thiếu glyph/font/dấu, ca prime cũ, fixture SVG thực và kiểm tra cache không gọi lại HTTP. Test không còn gọi dịch vụ Kroki thật trong CI cho ca bảng biến thiên. Kết quả local: `pytest tests/test_digitize_2pass.py tests/test_ai_pipeline.py tests/test_cloud_vision_adapter.py -q` đạt **23 passed**; kiểm tra cấu trúc bộ tài liệu đạt **886/886**.
+
+Xung đột `tasks/todo.md` với main đã được giải quyết, giữ cả hai nhóm công việc tài liệu. Các báo cáo kiểm thử lịch sử phía trên không thay cho kết quả CI của commit cập nhật này.
+
+Kiểm tra bổ sung local: `pytest tests/test_performance_budgets.py -q -rs` đạt **4 passed**; `python scripts/verify_pipeline.py` hoàn tất **ALL VERIFICATIONS PASSED SUCCESSFULLY**. Lần chạy pipeline dùng luồng PDF dự phòng khi Tectonic báo lỗi ký tự `#` trong dữ liệu mẫu; không coi đây là kiểm chứng biên dịch Tectonic thành công. Không chạy lặp các suite đã đạt khi không có thay đổi mới.

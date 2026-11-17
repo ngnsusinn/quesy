@@ -893,3 +893,16 @@ Dự án chỉ được nghiệm thu bàn giao khi:
 4. **Không còn lỗi Frontend & Giao diện:** Giao diện đồng nhất màu sắc chuẩn thương hiệu (nút BIÊN DỊCH `#0071e3`), textarea cuộn mượt mà không kẹt, bảo toàn nền tối `#141824` khi focus.
 5. **Không còn lỗi Console & Mạng:** Bảng điều khiển DevTools `console.error` sạch sẽ, không có lỗi 404 tài nguyên mạng (font, ảnh, icon).
 6. File Vector PDF in thử thực tế trên máy in laser đạt độ rõ nét sư phạm.
+
+## Bổ sung 17/11/2026 — Hồi quy bảng biến thiên SVG (PR #14)
+
+| Ca | Điều kiện | Kỳ vọng |
+|---|---|---|
+| TKZ-FONT-01 | Render bảng biến thiên với phản hồi fixture dvisvgm 3.6 và cache rỗng | Gửi tài liệu đã chuẩn hóa/đóng gói đúng; dấu đạo hàm nằm giữa f và dấu mở ngoặc, có glyph không rỗng trong font nhúng; font toán nghiêng được giữ |
+| TKZ-FONT-02 | Render lại cùng mã sau lần đầu | Đọc cache, không gọi HTTP lần hai; nhãn đạo hàm vẫn hợp lệ |
+| TKZ-FONT-03 | Thay mã glyph prime bằng mã không có trong cmap | Kiểm tra hồi quy phải phát hiện thiếu glyph |
+| TKZ-FONT-04 | Xóa font nhúng của prime | Kiểm tra hồi quy phải phát hiện thiếu font |
+| TKZ-FONT-05 | Xóa nút text prime trong nhãn | Kiểm tra hồi quy phải phát hiện mất dấu |
+| TKZ-FONT-06 | SVG cũ dùng U+E030 | Bộ hậu xử lý hiện có vẫn chuyển sang Unicode prime và giữ nhãn |
+
+Fixture: `tests/fixtures/tkz_tab_dvisvgm_3_6.svg`, biên dịch từ đoạn mẫu của `test_tkz_tab_variation_table_compilation`. Mã private-use không tự mô tả ngữ nghĩa; font và glyph quyết định hình dạng hiển thị, nên không khẳng định mọi phiên bản dvisvgm phải dùng cùng một mã. Tham khảo cơ chế nhúng font tại [tài liệu dvisvgm](https://dvisvgm.de/Manpage/). Không đổi hành vi bộ render để làm thỏa một mã ký tự cố định trong test.

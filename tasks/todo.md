@@ -681,3 +681,36 @@
 - [x] Kiểm tra tài liệu: kết xuất PlantUML cục bộ, đối chiếu liên kết/anchor và độ phủ mã; kết quả tại `docs/phan_tich_he_thong/12_TRUY_VET_VA_NGHIEM_THU.md`.
 
 Kiểm tra chỉ áp dụng cho tài liệu. Không chạy lại pytest, performance budget hoặc pipeline ứng dụng vì không sửa mã nguồn/chức năng; các ca nghiệm thu sản phẩm trong bộ mới chưa được coi là đã chạy. Ba skill được yêu cầu (`karpathy-guidelines`, `doc-coauthoring`, `poteto-mode`) không tìm thấy tại máy; đã sử dụng skill PDF có sẵn để trích xuất và đối chiếu nguồn. Chưa coi các đề xuất SL/AS là kế hoạch triển khai đã được duyệt.
+
+### Task DOC-01: [x] [DONE] Tái Thiết Toàn Diện Tài Liệu README.md
+**Description:** Xóa bỏ toàn bộ nội dung cũ và viết lại tài liệu README.md từ đầu theo nguyên tắc chuẩn mực kỹ thuật (karpathy-guidelines, doc-coauthoring, poteto-mode), cập nhật đầy đủ toàn bộ phân hệ (Dashboard Hub, LaTeX Composer, 2-Pass AI Digitizer, Ma trận đề, Trộn đề an toàn, Xuất bản thuần Vector PDF & ZIP, Ngân hàng câu hỏi phân trang Apple HIG, Bảo mật xác thực), thông số 289 test cases, 8028 trạng thái kiểm định hình thức Z3 SMT, và phần Tóm tắt điều hành tiếng Việt chuyên sâu cho giáo viên.
+**Acceptance criteria:**
+- [x] Viết lại README.md hoàn chỉnh, rõ ràng, không từ ngữ sáo rỗng.
+- [x] Bảng so sánh Problem & Architectural Solution Matrix trực quan.
+- [x] Hướng dẫn khởi chạy, môi trường và cấu hình chi tiết.
+- [x] Cập nhật số liệu kiểm thử thực tế 289/289 passing tests và 8028 formal invariants.
+- [x] Tóm tắt dự án tiếng Việt chi tiết cho công tác khảo thí và sư phạm.
+**Verification:** Kiểm tra cấu trúc Markdown và các liên kết trong README.md.
+**Dependencies:** None | **Files:** `README.md` | **Scope:** S (1 file)
+
+### Task DOC-02: [x] [DONE] Lập Bản Đồ Tính Năng docs/FEATURE_MAP.md & Kiểm Thử Điểm Cuối Giao Diện
+**Description:** Chụp ảnh màn hình toàn bộ các phân hệ và modal giao diện, kiểm tra chi tiết từng nút bấm, bộ chọn, trường nhập liệu, và lập bản đồ tính năng toàn diện `docs/FEATURE_MAP.md` ánh xạ 74 REST API endpoints cùng 206 phần tử tương tác giao diện.
+**Acceptance criteria:**
+- [x] Chụp và lưu trữ 21 tệp ảnh chụp màn hình độ phân giải cao tại `docs/screenshots/`.
+- [x] Kiểm tra toàn bộ 206 nút bấm và phần tử tương tác trên các phân hệ và 9 modals.
+- [x] Lập bản đồ chi tiết 74 REST API endpoints với phương thức, đường dẫn và tệp xử lý.
+- [x] Bảng ma trận ánh xạ nguồn gốc (Traceability Matrix) giữa nghiệp vụ, giao diện và API.
+- [x] Hoàn thiện tài liệu `docs/FEATURE_MAP.md` đạt chuẩn kỹ thuật.
+**Verification:** Kiểm tra liên kết ảnh và tính toàn vẹn tài liệu `docs/FEATURE_MAP.md`.
+**Dependencies:** DOC-01 | **Files:** `docs/FEATURE_MAP.md`, `docs/screenshots/` | **Scope:** M (1 file + 21 images)
+
+## CI-2026-11-17 — PR #14: đồng bộ main và sửa kiểm tra TikZ
+
+- [x] Đọc log job 133723854792: 288 test đạt, một test bảng biến thiên thất bại vì chỉ chấp nhận Unicode prime cố định.
+- [x] Đồng bộ `origin/main`; giải quyết xung đột `tasks/todo.md` bằng cách giữ cả các task DOC-01/DOC-02 và bộ phân tích ngày 17/11.
+- [x] Xác minh SVG dvisvgm 3.6 chứa dấu đạo hàm dưới dạng glyph U+E010 trong font WOFF nhúng; xem bản hiển thị bằng Chrome headless.
+- [x] Sửa test kiểm tra vị trí dấu trong nhãn f'(x), cmap và hình dạng glyph không rỗng; giữ kiểm tra chuẩn hóa prime cũ U+E030.
+- [x] Lưu fixture SVG và cô lập cache/HTTP để test ổn định; thêm ba ca âm cho mất glyph, mất font và mất dấu. Khai báo fonttools cho kiểm tra font.
+- [x] Kiểm thử ba suite số hóa/AI/Cloud Vision: 23 passed; performance budget: 4 passed; `scripts/verify_pipeline.py` hoàn tất PASS; kiểm tra lại bộ tài liệu: 886/886 điều kiện đạt.
+
+Không thay bộ render, API, nội dung nghiệp vụ hay cấu hình chạy GitHub Actions. Kết quả CI sau cập nhật được theo dõi trên PR #14; kết quả chạy bổ sung được ghi trong báo cáo kiểm thử.

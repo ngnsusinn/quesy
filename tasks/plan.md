@@ -110,6 +110,7 @@
 - [x] **SO-02:** Route `/favicon.ico` trả về HTTP 204 chống lỗi console
 - [x] **SO-03:** Bổ sung cache-buster `?v=...` chống lưu cache script cũ trên trình duyệt
 - [x] **SO-04:** Bộ test suite tự động 39 test cases bao phủ toàn diện hệ thống
+- [x] **DOC-02:** Lập bản đồ tính năng toàn diện docs/FEATURE_MAP.md & 21 ảnh chụp màn hình kiểm định toàn bộ phân hệ và 74 REST API endpoints
 
 ### Phase 7: Phân Hệ Chấm Thi Giáo Viên & Mở Rộng Trợ Lý OCR (Roadmap / Backlog)
 - [x] **GM-01:** ORM Model `Classroom` & `StudentRoster` (Quản lý danh sách lớp của giáo viên)
@@ -138,3 +139,14 @@
 - [x] Kiểm tra tài liệu: kết xuất PlantUML cục bộ, đối chiếu liên kết/anchor và độ phủ mã; kết quả tại `docs/phan_tich_he_thong/12_TRUY_VET_VA_NGHIEM_THU.md`.
 
 Kiểm tra chỉ áp dụng cho tài liệu. Không chạy lại pytest, performance budget hoặc pipeline ứng dụng vì không sửa mã nguồn/chức năng; các ca nghiệm thu sản phẩm trong bộ mới chưa được coi là đã chạy. Ba skill được yêu cầu (`karpathy-guidelines`, `doc-coauthoring`, `poteto-mode`) không tìm thấy tại máy; đã sử dụng skill PDF có sẵn để trích xuất và đối chiếu nguồn. Chưa coi các đề xuất SL/AS là kế hoạch triển khai đã được duyệt.
+
+## CI-2026-11-17 — PR #14: đồng bộ main và sửa kiểm tra TikZ
+
+- [x] Đọc log job 133723854792: 288 test đạt, một test bảng biến thiên thất bại vì chỉ chấp nhận Unicode prime cố định.
+- [x] Đồng bộ `origin/main`; giải quyết xung đột `tasks/todo.md` bằng cách giữ cả các task DOC-01/DOC-02 và bộ phân tích ngày 17/11.
+- [x] Xác minh SVG dvisvgm 3.6 chứa dấu đạo hàm dưới dạng glyph U+E010 trong font WOFF nhúng; xem bản hiển thị bằng Chrome headless.
+- [x] Sửa test kiểm tra vị trí dấu trong nhãn f'(x), cmap và hình dạng glyph không rỗng; giữ kiểm tra chuẩn hóa prime cũ U+E030.
+- [x] Lưu fixture SVG và cô lập cache/HTTP để test ổn định; thêm ba ca âm cho mất glyph, mất font và mất dấu. Khai báo fonttools cho kiểm tra font.
+- [x] Kiểm thử ba suite số hóa/AI/Cloud Vision: 23 passed; performance budget: 4 passed; `scripts/verify_pipeline.py` hoàn tất PASS; kiểm tra lại bộ tài liệu: 886/886 điều kiện đạt.
+
+Không thay bộ render, API, nội dung nghiệp vụ hay cấu hình chạy GitHub Actions. Kết quả CI sau cập nhật được theo dõi trên PR #14; kết quả chạy bổ sung được ghi trong báo cáo kiểm thử.
