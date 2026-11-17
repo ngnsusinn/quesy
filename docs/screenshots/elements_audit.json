@@ -1,0 +1,4497 @@
+{
+  "header": [
+    {
+      "index": 1,
+      "tag": "div",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "flex items-center space-x-2.5 cursor-pointer",
+      "text": "Quesy 2026",
+      "onclick": "app.navigateTo('/')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 14,
+        "left": 32,
+        "width": 144,
+        "height": 36
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "button",
+      "id": "nav-btn-dashboard",
+      "name": null,
+      "type": null,
+      "className": "tab-nav-btn active",
+      "text": "Tổng quan",
+      "onclick": "app.navigateTo('/dashboard')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 16,
+        "left": 289,
+        "width": 114,
+        "height": 32
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": "nav-btn-composer",
+      "name": null,
+      "type": null,
+      "className": "tab-nav-btn",
+      "text": "Soạn đề",
+      "onclick": "app.navigateTo('/composer')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 16,
+        "left": 406,
+        "width": 98,
+        "height": 32
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "button",
+      "id": "nav-btn-itembank",
+      "name": null,
+      "type": null,
+      "className": "tab-nav-btn",
+      "text": "Ngân hàng câu hỏi 12",
+      "onclick": "app.navigateTo('/bank')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 16,
+        "left": 505,
+        "width": 195,
+        "height": 32
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "button",
+      "id": "nav-btn-matrix",
+      "name": null,
+      "type": null,
+      "className": "tab-nav-btn",
+      "text": "Ma trận đề",
+      "onclick": "app.navigateTo('/matrix')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 16,
+        "left": 702,
+        "width": 113,
+        "height": 32
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "button",
+      "id": "nav-btn-shuffler",
+      "name": null,
+      "type": null,
+      "className": "tab-nav-btn",
+      "text": "Sinh & Trộn đề",
+      "onclick": "app.navigateTo('/shuffler')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 16,
+        "left": 818,
+        "width": 137,
+        "height": 32
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "px-3 py-1.5 text-xs font-semibold",
+      "text": "Đăng nhập",
+      "onclick": "app.auth.openAuthModal('login')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 18,
+        "left": 1068,
+        "width": 85,
+        "height": 28
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "px-3 py-1.5 text-xs font-semibold",
+      "text": "Đăng ký",
+      "onclick": "app.auth.openAuthModal('register')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 18,
+        "left": 1161,
+        "width": 71,
+        "height": 28
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "div",
+      "id": "auth-user-profile",
+      "name": null,
+      "type": null,
+      "className": "hidden relative flex items-center",
+      "text": "TH Thầy Hưng Giáo viên teacher@quesy.vn Đăng xuất",
+      "onclick": "app.auth.toggleDropdown()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": false
+    },
+    {
+      "index": 10,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "w-full text-left px-3 py-2",
+      "text": "Đăng xuất",
+      "onclick": "app.auth.logout()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "dashboard": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-primary",
+      "text": "Soạn đề LaTeX (AI)",
+      "onclick": "app.openQuickAction('composer')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 101,
+        "left": 759,
+        "width": 168,
+        "height": 34
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary",
+      "text": "Số hóa Đề thi",
+      "onclick": "app.openQuickAction('digitize')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 100,
+        "left": 935,
+        "width": 133,
+        "height": 36
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary",
+      "text": "Xuất bản Đề thi",
+      "onclick": "app.openQuickAction('shuffler')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 100,
+        "left": 1076,
+        "width": 146,
+        "height": 36
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "div",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "apple-quick-card p-5 group cursor-pointer",
+      "text": "MÃ ĐỀ 0101 Soạn Đề LaTeX AI (2026) Mở ngay đề thi chuẩn 22 câu (Mã 0101), xem tr",
+      "onclick": "app.openQuickAction('composer')",
+      "title": "Mở trực tiếp trình soạn thảo đề thi Quốc gia 2026",
+      "placeholder": null,
+      "bbox": {
+        "top": 179,
+        "left": 32,
+        "width": 286,
+        "height": 216
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "div",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "apple-quick-card p-5 group cursor-pointer",
+      "text": "2-PASS AI Số Hóa Đề Thi AI Bóc tách đề thi từ PDF, ảnh chụp hoặc Word sang mã Ka",
+      "onclick": "app.openQuickAction('digitize')",
+      "title": "Nạp tệp đề thi PDF/Word/Ảnh để AI bóc tách",
+      "placeholder": null,
+      "bbox": {
+        "top": 179,
+        "left": 334,
+        "width": 286,
+        "height": 216
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "div",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "apple-quick-card p-5 group cursor-pointer",
+      "text": "THÔNG TƯ 32 Thiết Lập Ma Trận 2D Cấu hình phân bổ 4 mạch nội dung, cân đối tỷ lệ",
+      "onclick": "app.openQuickAction('matrix')",
+      "title": "Cấu hình ma trận phân bổ Bloom và YCCĐ",
+      "placeholder": null,
+      "bbox": {
+        "top": 179,
+        "left": 635,
+        "width": 286,
+        "height": 216
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "div",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "apple-quick-card p-5 group cursor-pointer",
+      "text": "Hoán vị Sinh & Trộn Đề Hoán Vị Tự động hoán vị mã đề an toàn, khóa Option Anchor",
+      "onclick": "app.openQuickAction('shuffler')",
+      "title": "Hoán vị các mã đề và xuất trọn bộ gói ấn phẩm ZIP",
+      "placeholder": null,
+      "bbox": {
+        "top": 179,
+        "left": 937,
+        "width": 286,
+        "height": 216
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "py-2.5 px-4 bg-[#0071e3] hover:bg-[#0077ed]",
+      "text": "Mở trong Trình Soạn Đề",
+      "onclick": "app.loadStandard2026Blueprint()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 485,
+        "left": 990,
+        "width": 207,
+        "height": 36
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "py-2.5 px-4 bg-white hover:bg-slate-50",
+      "text": "Trộn sang các mã đề khác",
+      "onclick": "app.openQuickAction('shuffler')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 529,
+        "left": 990,
+        "width": 207,
+        "height": 38
+      },
+      "visible": true
+    },
+    {
+      "index": 10,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "py-2.5 px-4 bg-white hover:bg-slate-50",
+      "text": "Xem ma trận đề",
+      "onclick": "app.openQuickAction('matrix')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 575,
+        "left": 990,
+        "width": 207,
+        "height": 38
+      },
+      "visible": true
+    },
+    {
+      "index": 11,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-secondary text-xs",
+      "text": "Xem tất cả mã đề",
+      "onclick": "app.openQuickAction('shuffler')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 1747,
+        "left": 1049,
+        "width": 148,
+        "height": 32
+      },
+      "visible": true
+    },
+    {
+      "index": 12,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2.5 py-1 text-xs font-semibold",
+      "text": "Mở soạn thảo",
+      "onclick": "app.loadStandard2026Blueprint()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 1866,
+        "left": 1072,
+        "width": 113,
+        "height": 24
+      },
+      "visible": true
+    },
+    {
+      "index": 13,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2.5 py-1 text-xs font-semibold",
+      "text": "Trộn đề",
+      "onclick": "app.openQuickAction('shuffler')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 1923,
+        "left": 1105,
+        "width": 80,
+        "height": 24
+      },
+      "visible": true
+    },
+    {
+      "index": 14,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2.5 py-1 text-xs font-semibold",
+      "text": "Xem chi tiết",
+      "onclick": "app.openQuickAction('composer')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 1980,
+        "left": 1082,
+        "width": 103,
+        "height": 24
+      },
+      "visible": true
+    }
+  ],
+  "composer": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2.5 py-1 bg-[#272f42] hover:bg-[#343e56]",
+      "text": "MỚI",
+      "onclick": "app.composer.newDocument()",
+      "title": "Tạo tài liệu mới",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "button",
+      "id": "btn-dropdown-them",
+      "name": null,
+      "type": "button",
+      "className": "px-2.5 py-1 bg-[#272f42] hover:bg-[#343e56]",
+      "text": "THÊM",
+      "onclick": "app.composer.toggleDropdown('them')",
+      "title": "Chèn nhanh mẫu câu hỏi",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "◆ Tiêu đề 2 Cột & Mã đề",
+      "onclick": "app.composer.insertTemplate('header_quocgia')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "◆ Phần I (12 câu Trắc nghiệm)",
+      "onclick": "app.composer.insertTemplate('section_phan1')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "◆ Phần II (4 câu Đúng/Sai)",
+      "onclick": "app.composer.insertTemplate('section_phan2')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "◆ Phần III (6 câu Trả lời ngắn)",
+      "onclick": "app.composer.insertTemplate('section_phan3')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "★ Trọn bộ Đề thi Quốc Gia",
+      "onclick": "app.composer.insertTemplate('dethi_quocgia_full')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "1. TRẮC NGHIỆM",
+      "onclick": "app.composer.insertTemplate('tracnghiem')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "2. ĐÚNG / SAI",
+      "onclick": "app.composer.insertTemplate('dungsai')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 10,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "3. TRẢ LỜI NGẮN",
+      "onclick": "app.composer.insertTemplate('traloingan')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 11,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "4. TỰ LUẬN",
+      "onclick": "app.composer.insertTemplate('tuluan')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 12,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "5. HÌNH TIKZ",
+      "onclick": "app.composer.insertTemplate('hinhtikz')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 13,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "6. HÌNH CẠNH CHỮ",
+      "onclick": "app.composer.insertTemplate('hinhcanhchu')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 14,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "7. LỜI GIẢI",
+      "onclick": "app.composer.insertTemplate('loigiai')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 15,
+      "tag": "div",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "flex items-center space-x-1.5 cursor-pointer",
+      "text": "LỜI GIẢI",
+      "onclick": "app.composer.toggleSolution()",
+      "title": "Bật/Tắt chế độ hiển thị lời giải chi tiết ([dethi] <-> [loigiai])",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 16,
+      "tag": "button",
+      "id": "btn-dropdown-export",
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-[#272f42] hover:bg-[#343e56]",
+      "text": "XUẤT FILE",
+      "onclick": "app.composer.toggleDropdown('export')",
+      "title": "Xuất tài liệu đề thi",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 17,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "Tải tệp PDF (Chuẩn in ấn)",
+      "onclick": "app.composer.downloadPdf()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 18,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "Tải mã nguồn LaTeX (.tex)",
+      "onclick": "app.composer.downloadTex()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 19,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "Lưu vào Ngân hàng Câu hỏi",
+      "onclick": "app.composer.saveToBank()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 20,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 hover:bg-[#272f42] rounded text-slate-300",
+      "text": "",
+      "onclick": "app.composer.undo()",
+      "title": "Hoàn tác (Undo - Ctrl+Z)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 21,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 hover:bg-[#272f42] rounded text-slate-300",
+      "text": "",
+      "onclick": "app.composer.redo()",
+      "title": "Làm lại (Redo - Ctrl+Y)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 22,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 hover:bg-[#272f42] hover:text-rose-400 rounded",
+      "text": "",
+      "onclick": "app.composer.clearEditor()",
+      "title": "Xóa toàn bộ mã nguồn",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 23,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 hover:bg-[#272f42] rounded text-slate-300",
+      "text": "",
+      "onclick": "app.composer.copyAll()",
+      "title": "Sao chép toàn bộ mã nguồn",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 24,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-0.5 hover:bg-white/10 rounded text-slate-300",
+      "text": "",
+      "onclick": "app.composer.prevDiff()",
+      "title": "Gợi ý trước [<]",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 25,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-0.5 hover:bg-white/10 rounded text-slate-300",
+      "text": "",
+      "onclick": "app.composer.nextDiff()",
+      "title": "Gợi ý kế tiếp [>]",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 26,
+      "tag": "button",
+      "id": "composer-apply-all-btn",
+      "name": null,
+      "type": "button",
+      "className": "px-2.5 py-1 bg-gradient-to-r from-purple-600",
+      "text": "Áp dụng tất cả",
+      "onclick": "app.composer.applyAllPendingDiffs()",
+      "title": "Áp dụng tất cả các gợi ý sửa đổi vào mã nguồn",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 27,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-3 py-1 bg-blue-600 hover:bg-blue-500",
+      "text": "Keep / Đồng ý",
+      "onclick": "app.composer.applyCurrentDiff()",
+      "title": "Áp dụng thay đổi vào đúng dòng này (Keep / Đồng ý)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 28,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2.5 py-1 bg-[#283247] hover:bg-[#35425c]",
+      "text": "Undo / Từ chối",
+      "onclick": "app.composer.skipCurrentDiff()",
+      "title": "Hủy bỏ / Bỏ qua gợi ý này",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 29,
+      "tag": "textarea",
+      "id": "composer-editor-input",
+      "name": null,
+      "type": null,
+      "className": "flex-1 h-full min-h-0 p-2.5",
+      "text": "",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 30,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-0.5 hover:bg-white/10 rounded cursor-pointer",
+      "text": "",
+      "onclick": "app.composer.prevDiff()",
+      "title": "Trước [<]",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 31,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-0.5 hover:bg-white/10 rounded cursor-pointer",
+      "text": "",
+      "onclick": "app.composer.nextDiff()",
+      "title": "Tiếp [>]",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 32,
+      "tag": "button",
+      "id": "composer-inline-apply-all-btn",
+      "name": null,
+      "type": "button",
+      "className": "hidden px-2.5 py-1 bg-gradient-to-r",
+      "text": "Áp dụng tất cả",
+      "onclick": "app.composer.applyAllPendingDiffs()",
+      "title": "Áp dụng tất cả thay đổi",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": false
+    },
+    {
+      "index": 33,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500",
+      "text": "Keep",
+      "onclick": "app.composer.applyCurrentDiff()",
+      "title": "Đồng ý thay đổi (Keep)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 34,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2.5 py-1 bg-slate-700 hover:bg-slate-600",
+      "text": "Undo",
+      "onclick": "app.composer.skipCurrentDiff()",
+      "title": "Từ chối / Bỏ qua thay đổi này (Undo)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 35,
+      "tag": "div",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "flex items-center space-x-2 flex-1",
+      "text": "",
+      "onclick": "document.getElementById('composer-compact-input')?.focus()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 36,
+      "tag": "input",
+      "id": "composer-compact-input",
+      "name": null,
+      "type": "text",
+      "className": "composer-chat-input w-full bg-transparent text-[13.5px]",
+      "text": "Yêu cầu AI sửa đổi, thêm câu hỏi, vẽ TikZ... (Nhấn Enter để gửi)",
+      "onclick": null,
+      "title": null,
+      "placeholder": "Yêu cầu AI sửa đổi, thêm câu hỏi, vẽ TikZ... (Nhấn Enter để gửi)",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 37,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 rounded-full hover:bg-white/10 text-slate-300",
+      "text": "",
+      "onclick": "document.getElementById('composer-compact-image-input').click()",
+      "title": "Đính kèm ảnh",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 38,
+      "tag": "input",
+      "id": "composer-compact-image-input",
+      "name": null,
+      "type": "file",
+      "className": "hidden",
+      "text": "",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": false
+    },
+    {
+      "index": 39,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 rounded-full hover:bg-white/10 text-slate-300",
+      "text": "",
+      "onclick": "app.composer.toggleCompactQuickMenu(event)",
+      "title": "Mẫu câu lệnh nhanh",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 40,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "◆ Tạo Header tiêu đề 2 cột",
+      "onclick": "app.composer.applyQuickPrompt('Tạo tiêu đề đề thi 2 cột và mã đề chuẩn')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 41,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "◆ Tạo Phần I (12 câu Trắc nghiệm)",
+      "onclick": "app.composer.applyQuickPrompt('Tạo Phần I gồm 12 câu trắc nghiệm 4 lựa chọn')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 42,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "◆ Tạo Phần II (4 câu Đúng/Sai)",
+      "onclick": "app.composer.applyQuickPrompt('Tạo Phần II gồm 4 câu Đúng/Sai')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 43,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "◆ Tạo Phần III (6 câu Trả lời ngắn)",
+      "onclick": "app.composer.applyQuickPrompt('Tạo Phần III gồm 6 câu Trả lời ngắn')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 44,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "● Đổi cỡ chữ sang 12pt",
+      "onclick": "app.composer.applyQuickPrompt('Đổi cỡ chữ toàn tài liệu sang 12pt')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 45,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "● Bảng biến thiên tkz-tab",
+      "onclick": "app.composer.applyQuickPrompt('Vẽ bảng biến thiên hàm bậc 3 bằng tkz-tab')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 46,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "● Sửa lỗi cú pháp LaTeX",
+      "onclick": "app.composer.applyQuickPrompt('Kiểm tra và sửa lỗi cú pháp LaTeX toàn bộ đề thi')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 47,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-7 h-7 rounded-full bg-white",
+      "text": "",
+      "onclick": "app.composer.submitFromCompact()",
+      "title": "Gửi yêu cầu",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 48,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 hover:bg-white/10 rounded-lg text-slate-400",
+      "text": "Trợ lý soạn thảo",
+      "onclick": "app.composer.closeAIPopup()",
+      "title": "Thu nhỏ / Ẩn trợ lý",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 49,
+      "tag": "div",
+      "id": "composer-ai-resize-handle",
+      "name": null,
+      "type": null,
+      "className": "composer-ai-pill-handle composer-v-resizer cursor-row-resize w-16",
+      "text": "",
+      "onclick": "app.composer.toggleAIPopupHeight()",
+      "title": "Kéo để chỉnh độ cao hộp trợ lý (Bấm để đổi kích thước)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 50,
+      "tag": "button",
+      "id": "composer-ai-history-btn",
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-0.5 hover:bg-white/10 rounded",
+      "text": "Lịch sử",
+      "onclick": "app.composer.toggleHistoryView()",
+      "title": "Xem lịch sử phiên",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 51,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 hover:bg-white/10 rounded-lg text-slate-400",
+      "text": "",
+      "onclick": "app.composer.newChat()",
+      "title": "Bắt đầu hội thoại mới",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 52,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 hover:bg-white/10 rounded-lg text-slate-400",
+      "text": "",
+      "onclick": "app.composer.clearChat()",
+      "title": "Xóa toàn bộ lịch sử",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 53,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 hover:bg-white/10 rounded-lg text-slate-400",
+      "text": "",
+      "onclick": "app.composer.toggleAIPopupFullscreen()",
+      "title": "Phóng to / Thu nhỏ",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 54,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "text-rose-400 hover:text-rose-300 text-[11px] px-1.5",
+      "text": "Xóa tất cả",
+      "onclick": "app.composer.clearAllSessions()",
+      "title": "Xóa toàn bộ lịch sử các phiên",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 55,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "hover:text-white text-xs cursor-pointer px-1",
+      "text": "✕ Đóng",
+      "onclick": "app.composer.toggleHistoryView()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 56,
+      "tag": "textarea",
+      "id": "composer-chat-input",
+      "name": null,
+      "type": null,
+      "className": "composer-chat-input w-full text-xs bg-transparent",
+      "text": "Yêu cầu AI sinh câu hỏi, vẽ hình TikZ, sửa lỗi LaTeX...",
+      "onclick": null,
+      "title": null,
+      "placeholder": "Yêu cầu AI sinh câu hỏi, vẽ hình TikZ, sửa lỗi LaTeX...",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 57,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 rounded-full hover:bg-white/10 text-slate-300",
+      "text": "",
+      "onclick": "app.composer.toggleQuickPromptMenu(event)",
+      "title": "Chèn nhanh mẫu yêu cầu",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 58,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "● Đổi cỡ chữ sang 12pt",
+      "onclick": "app.composer.applyQuickPrompt('Đổi cỡ chữ toàn tài liệu sang 12pt')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 59,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "● Trắc nghiệm 4 lựa chọn",
+      "onclick": "app.composer.applyQuickPrompt('Tạo một câu hỏi trắc nghiệm 4 lựa chọn về hàm số')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 60,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "● Đúng/Sai 4 ý",
+      "onclick": "app.composer.applyQuickPrompt('Tạo câu hỏi Đúng/Sai 4 ý')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 61,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "● Bảng biến thiên tkz-tab",
+      "onclick": "app.composer.applyQuickPrompt('Vẽ bảng biến thiên hàm bậc 3 bằng tkz-tab')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 62,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-full text-left px-3 py-1.5",
+      "text": "● Sửa lỗi cú pháp LaTeX",
+      "onclick": "app.composer.applyQuickPrompt('Kiểm tra và sửa lỗi cú pháp LaTeX toàn bộ đề thi')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 63,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-1 rounded-full hover:bg-white/10 text-slate-300",
+      "text": "",
+      "onclick": "document.getElementById('composer-chat-image-input').click()",
+      "title": "Đính kèm ảnh",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 64,
+      "tag": "input",
+      "id": "composer-chat-image-input",
+      "name": null,
+      "type": "file",
+      "className": "hidden",
+      "text": "",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": false
+    },
+    {
+      "index": 65,
+      "tag": "button",
+      "id": "composer-send-btn",
+      "name": null,
+      "type": "button",
+      "className": "w-7 h-7 rounded-full bg-white",
+      "text": "",
+      "onclick": "app.composer.submitChat()",
+      "title": "Gửi yêu cầu (Enter)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 66,
+      "tag": "div",
+      "id": "composer-image-lightbox",
+      "name": null,
+      "type": null,
+      "className": "hidden fixed inset-0 z-50",
+      "text": "✕",
+      "onclick": "app.composer.closeLightbox(event)",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": false
+    },
+    {
+      "index": 67,
+      "tag": "div",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "relative max-w-5xl max-h-[90vh] flex",
+      "text": "✕",
+      "onclick": "event.stopPropagation()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 68,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "absolute -top-10 right-0 w-8",
+      "text": "✕",
+      "onclick": "app.composer.closeLightbox()",
+      "title": "Đóng (Esc)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 69,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-0.5 hover:bg-slate-700 rounded text-slate-300",
+      "text": "",
+      "onclick": "app.composer.prevPage()",
+      "title": "Trang trước",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 70,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-0.5 hover:bg-slate-700 rounded text-slate-300",
+      "text": "",
+      "onclick": "app.composer.nextPage()",
+      "title": "Trang sau",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 71,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-5 h-5 flex items-center",
+      "text": "-",
+      "onclick": "app.composer.zoomPreview(-0.1)",
+      "title": "Thu nhỏ",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 72,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-5 h-5 flex items-center",
+      "text": "+",
+      "onclick": "app.composer.zoomPreview(0.1)",
+      "title": "Phóng to",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 73,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1 py-0.5 hover:bg-slate-700 rounded",
+      "text": "1:1",
+      "onclick": "app.composer.resetZoom()",
+      "title": "Về 100%",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 74,
+      "tag": "button",
+      "id": "composer-zoom-fit-btn",
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 hover:bg-slate-700 rounded",
+      "text": "Vừa khung",
+      "onclick": "app.composer.fitToWidth()",
+      "title": "Vừa chiều ngang khung (Fit Width)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 75,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "p-0.5 hover:bg-slate-700 rounded text-slate-300",
+      "text": "",
+      "onclick": "app.composer.compile(true)",
+      "title": "Biên dịch lại",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 76,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "text-rose-400 hover:text-white text-sm",
+      "text": "✕",
+      "onclick": "document.getElementById('composer-error-drawer').classList.add('hidden')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 77,
+      "tag": "button",
+      "id": "composer-compile-btn",
+      "name": null,
+      "type": "button",
+      "className": "flex-1 py-2.5 px-4 bg-[#0071e3]",
+      "text": "BIÊN DỊCH",
+      "onclick": "app.composer.compile(true)",
+      "title": "Bấm để biên dịch (Ctrl+S / Cmd+S)",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 78,
+      "tag": "button",
+      "id": "btn-composer-save-to-bank",
+      "name": null,
+      "type": "button",
+      "className": "py-2.5 px-3 bg-gradient-to-r from-emerald-600",
+      "text": "LƯU NGÂN HÀNG",
+      "onclick": "app.composer.saveToBank()",
+      "title": "Lưu tất cả câu hỏi từ đề soạn thảo vào Ngân hàng câu hỏi",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "itembank": [
+    {
+      "index": 1,
+      "tag": "input",
+      "id": "bank-search-input",
+      "name": null,
+      "type": "text",
+      "className": "w-full text-xs rounded-xl border",
+      "text": "Tìm kiếm nhanh nội dung câu hỏi, mã câu (Q-), mã YCCĐ, từ khóa công thức...",
+      "onclick": null,
+      "title": null,
+      "placeholder": "Tìm kiếm nhanh nội dung câu hỏi, mã câu (Q-), mã YCCĐ, từ khóa công thức...",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "button",
+      "id": "bank-search-clear-btn",
+      "name": null,
+      "type": null,
+      "className": "hidden absolute right-2.5 top-2.5",
+      "text": "✕",
+      "onclick": "app.clearBankSearch()",
+      "title": "Xóa tìm kiếm",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": false
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": "btn-toggle-taxonomy-drawer",
+      "name": null,
+      "type": null,
+      "className": "px-3.5 py-2 rounded-xl border",
+      "text": "Cây kiến thức 6 tầng 0",
+      "onclick": "app.toggleTaxonomyDrawer()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "button",
+      "id": "btn-reset-bank-filters",
+      "name": null,
+      "type": null,
+      "className": "hidden px-3 py-2 rounded-xl",
+      "text": "Đặt lại",
+      "onclick": "app.resetAllBankFilters()",
+      "title": "Xóa tất cả các bộ lọc",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": false
+    },
+    {
+      "index": 5,
+      "tag": "button",
+      "id": "pill-format-all",
+      "name": null,
+      "type": "button",
+      "className": "bank-filter-pill active",
+      "text": "Tất cả",
+      "onclick": "app.setQuickFilterFormat('all')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "button",
+      "id": "pill-format-SINGLE_CHOICE",
+      "name": null,
+      "type": "button",
+      "className": "bank-filter-pill",
+      "text": "Trắc nghiệm (Part I)",
+      "onclick": "app.setQuickFilterFormat('SINGLE_CHOICE')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "button",
+      "id": "pill-format-TRUE_FALSE_GROUP",
+      "name": null,
+      "type": "button",
+      "className": "bank-filter-pill",
+      "text": "Đúng/Sai (Part II)",
+      "onclick": "app.setQuickFilterFormat('TRUE_FALSE_GROUP')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "button",
+      "id": "pill-format-SHORT_ANSWER",
+      "name": null,
+      "type": "button",
+      "className": "bank-filter-pill",
+      "text": "Trả lời ngắn (Part III)",
+      "onclick": "app.setQuickFilterFormat('SHORT_ANSWER')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "button",
+      "id": "pill-cog-all",
+      "name": null,
+      "type": "button",
+      "className": "bank-filter-pill active",
+      "text": "Tất cả",
+      "onclick": "app.setQuickFilterCognitive('all')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 10,
+      "tag": "button",
+      "id": "pill-cog-RECOGNITION",
+      "name": null,
+      "type": "button",
+      "className": "bank-filter-pill",
+      "text": "Nhận biết",
+      "onclick": "app.setQuickFilterCognitive('RECOGNITION')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 11,
+      "tag": "button",
+      "id": "pill-cog-COMPREHENSION",
+      "name": null,
+      "type": "button",
+      "className": "bank-filter-pill",
+      "text": "Thông hiểu",
+      "onclick": "app.setQuickFilterCognitive('COMPREHENSION')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 12,
+      "tag": "button",
+      "id": "pill-cog-APPLICATION",
+      "name": null,
+      "type": "button",
+      "className": "bank-filter-pill",
+      "text": "Vận dụng",
+      "onclick": "app.setQuickFilterCognitive('APPLICATION')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 13,
+      "tag": "button",
+      "id": "pill-cog-HIGH_APPLICATION",
+      "name": null,
+      "type": "button",
+      "className": "bank-filter-pill",
+      "text": "VDC",
+      "onclick": "app.setQuickFilterCognitive('HIGH_APPLICATION')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 14,
+      "tag": "select",
+      "id": "bank-filter-format",
+      "name": null,
+      "type": null,
+      "className": "apple-select hidden",
+      "text": "Tất cả Thể thức Trắc nghiệm đơn (4 lựa chọn) Đúng / Sai 4 ý Trả lời ngắn",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": false
+    },
+    {
+      "index": 15,
+      "tag": "select",
+      "id": "bank-filter-cognitive",
+      "name": null,
+      "type": null,
+      "className": "apple-select hidden",
+      "text": "Tất cả Mức độ Nhận biết Thông hiểu Vận dụng Vận dụng cao",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": false
+    },
+    {
+      "index": 16,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "text-[11px] text-slate-500 hover:text-slate-700 font-semibold",
+      "text": "✕ Đóng ngăn lọc",
+      "onclick": "app.toggleTaxonomyDrawer()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 17,
+      "tag": "select",
+      "id": "bank-filter-grade",
+      "name": null,
+      "type": null,
+      "className": "apple-select w-full text-xs",
+      "text": "Lớp 12 (Cấp THPT) Lớp 11 (Cấp THPT) Lớp 10 (Cấp THPT)",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 18,
+      "tag": "select",
+      "id": "bank-filter-subject",
+      "name": null,
+      "type": null,
+      "className": "apple-select w-full text-xs",
+      "text": "Toán học Vật lí Hóa học Sinh học",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 19,
+      "tag": "select",
+      "id": "bank-filter-strand",
+      "name": null,
+      "type": null,
+      "className": "apple-select w-full text-xs",
+      "text": "Tất cả các Mạch Mạch 1: Số, Đại số & Giải tích Mạch 2: Hình học & Đo lường Mạch ",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 20,
+      "tag": "select",
+      "id": "bank-filter-topic",
+      "name": null,
+      "type": null,
+      "className": "apple-select w-full text-xs",
+      "text": "Tất cả Chủ đề",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 21,
+      "tag": "select",
+      "id": "bank-filter-lesson",
+      "name": null,
+      "type": null,
+      "className": "apple-select w-full text-xs",
+      "text": "Tất cả Bài học",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 22,
+      "tag": "select",
+      "id": "bank-filter-yccd",
+      "name": null,
+      "type": null,
+      "className": "apple-select w-full text-xs",
+      "text": "Tất cả Mã YCCĐ",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 23,
+      "tag": "select",
+      "id": "bank-filter-archetype",
+      "name": null,
+      "type": null,
+      "className": "apple-select w-full text-xs",
+      "text": "Tất cả Dạng bài",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 24,
+      "tag": "button",
+      "id": "bank-view-detailed",
+      "name": null,
+      "type": null,
+      "className": "bank-view-btn active",
+      "text": "Thẻ chi tiết",
+      "onclick": "app.setBankViewMode('detailed')",
+      "title": "Hiển thị dạng thẻ chi tiết",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 25,
+      "tag": "button",
+      "id": "bank-view-compact",
+      "name": null,
+      "type": null,
+      "className": "bank-view-btn",
+      "text": "Danh sách gọn",
+      "onclick": "app.setBankViewMode('compact')",
+      "title": "Hiển thị dạng danh sách gọn",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 26,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "px-3 py-1.5 bg-[#0071e3] hover:bg-[#0077ed]",
+      "text": "Thêm câu hỏi",
+      "onclick": "app.openCreateQuestionModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 27,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "px-3 py-1.5 bg-slate-200 hover:bg-slate-300",
+      "text": "Nhập câu hỏi",
+      "onclick": "app.openImportQuestionModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 28,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "px-3 py-1.5 bg-slate-200 hover:bg-slate-300",
+      "text": "Xuất ngân hàng",
+      "onclick": "app.exportQuestionsDropdown()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 29,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-danger py-1.5 px-3 text-xs",
+      "text": "Test Trùng lặp AI",
+      "onclick": "app.triggerDuplicateCheckDemo()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 30,
+      "tag": "select",
+      "id": "bank-page-size-select",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs py-1 px-2",
+      "text": "12 câu/trang 24 câu/trang 48 câu/trang",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "matrix": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary py-1.5 px-3 text-xs",
+      "text": "Lưu Bản Thảo",
+      "onclick": "app.saveMatrixConfig()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "input",
+      "id": "matrix-param-name",
+      "name": null,
+      "type": "text",
+      "className": "w-full text-xs",
+      "text": "Đề Khảo sát Toán 12 - THPT 2025",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "input",
+      "id": null,
+      "name": null,
+      "type": "text",
+      "className": "w-full bg-black/[0.04] text-slate-600 text-xs",
+      "text": "Toán học - Lớp 12",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "select",
+      "id": "matrix-param-time",
+      "name": null,
+      "type": null,
+      "className": "apple-select w-full text-xs",
+      "text": "90 phút 50 phút 45 phút",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "input",
+      "id": null,
+      "name": null,
+      "type": "number",
+      "className": "w-full bg-black/[0.04] text-slate-600 text-xs",
+      "text": "10.0",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary py-1.5 px-3 text-xs",
+      "text": "Tải PDF (A4)",
+      "onclick": "app.exportMatrixSpec('pdf')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary py-1.5 px-3 text-xs",
+      "text": "Tải CSV (UTF-8 BOM)",
+      "onclick": "app.exportMatrixSpec('csv')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary py-1.5 px-3 text-xs",
+      "text": "Tải JSON",
+      "onclick": "app.exportMatrixSpec('json')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "input",
+      "id": "matrix-search-archetype",
+      "name": null,
+      "type": "text",
+      "className": "apple-input pl-8 pr-3 py-1.5",
+      "text": "Tìm kiếm dạng bài, bài học...",
+      "onclick": null,
+      "title": null,
+      "placeholder": "Tìm kiếm dạng bài, bài học...",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 10,
+      "tag": "input",
+      "id": "matrix-filter-has-stock",
+      "name": null,
+      "type": "checkbox",
+      "className": "rounded text-brand-600 focus:ring-brand-500 w-3.5",
+      "text": "on",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 11,
+      "tag": "button",
+      "id": "btn-matrix-expand-all",
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary py-1 px-2.5 text-xs",
+      "text": "Mở hết",
+      "onclick": "app.expandAllMatrixTree()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 12,
+      "tag": "button",
+      "id": "btn-matrix-collapse-all",
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary py-1 px-2.5 text-xs",
+      "text": "Đóng hết",
+      "onclick": "app.collapseAllMatrixTree()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 13,
+      "tag": "select",
+      "id": "matrix-select-preset",
+      "name": null,
+      "type": null,
+      "className": "apple-select py-1 px-2 text-xs",
+      "text": "-- Chọn Mẫu Preset Khảo Thí -- Preset THPT 2025 (22 câu - 10.0đ) Preset Định kỳ ",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 14,
+      "tag": "button",
+      "id": "btn-matrix-reset",
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary py-1 px-2.5 text-xs",
+      "text": "Đặt lại",
+      "onclick": "app.resetMatrixSelections()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 15,
+      "tag": "button",
+      "id": "btn-matrix-generate-master",
+      "name": null,
+      "type": null,
+      "className": "btn-apple-primary py-2.5 px-6 text-xs",
+      "text": "Khởi Tạo Đề Thi Gốc & Sang Trộn Đề",
+      "onclick": "app.generateMasterExamFromHierarchicalMatrix()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "shuffler": [
+    {
+      "index": 1,
+      "tag": "select",
+      "id": "shuffler-select-master-exam",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs font-medium",
+      "text": "-- Chọn đề gốc đã lưu --",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "select",
+      "id": "shuffler-select-matrix",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs font-medium",
+      "text": "-- Chọn ma trận --",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": "btn-shuffler-gen-matrix",
+      "name": null,
+      "type": null,
+      "className": "px-3 py-1.5 bg-brand-600 text-white",
+      "text": "⚡ Sinh Đề Gốc",
+      "onclick": "app.generateMasterExamFromSelectedMatrix()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "button",
+      "id": "btn-shuffler-sync-matrix",
+      "name": null,
+      "type": null,
+      "className": "px-3 py-1.5 bg-white border",
+      "text": "🔄 Đồng bộ từ Ma trận hiện tại",
+      "onclick": "app.syncFromCurrentMatrix()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "input",
+      "id": "shuffler-exclude-30d",
+      "name": null,
+      "type": "checkbox",
+      "className": "rounded border-slate-300 text-brand-600 focus:ring-brand-500",
+      "text": "on",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-primary w-full justify-center py-2.5",
+      "text": "Kích Hoạt Trộn Đề An Toàn (4 Mã Đề)",
+      "onclick": "app.executeSafeShuffling()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "button",
+      "id": "btn-var-101",
+      "name": null,
+      "type": null,
+      "className": "tab-nav-btn active",
+      "text": "Mã 101",
+      "onclick": "app.viewVariant('101')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "button",
+      "id": "btn-var-102",
+      "name": null,
+      "type": null,
+      "className": "tab-nav-btn",
+      "text": "Mã 102",
+      "onclick": "app.viewVariant('102')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "button",
+      "id": "btn-var-103",
+      "name": null,
+      "type": null,
+      "className": "tab-nav-btn",
+      "text": "Mã 103",
+      "onclick": "app.viewVariant('103')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 10,
+      "tag": "button",
+      "id": "btn-var-104",
+      "name": null,
+      "type": null,
+      "className": "tab-nav-btn",
+      "text": "Mã 104",
+      "onclick": "app.viewVariant('104')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 11,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-secondary text-rose-600 border-rose-200 hover:bg-rose-50",
+      "text": "Tải PDF Mã 101",
+      "onclick": "app.downloadActiveVariantPdf()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 12,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "btn-apple-primary font-semibold py-2 px-4",
+      "text": "TẢI TRỌN GÓI ĐỀ THI PDF (.ZIP)",
+      "onclick": "app.downloadPublishZip('pdf')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "auth_modal": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "w-7 h-7 rounded-full bg-slate-200",
+      "text": "✕",
+      "onclick": "app.auth.closeAuthModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "button",
+      "id": "auth-tab-login",
+      "name": null,
+      "type": null,
+      "className": "pb-2 text-xs font-bold text-brand-600",
+      "text": "Đăng nhập",
+      "onclick": "app.auth.switchTab('login')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": "auth-tab-register",
+      "name": null,
+      "type": null,
+      "className": "pb-2 text-xs font-bold text-slate-500",
+      "text": "Đăng ký tài khoản",
+      "onclick": "app.auth.switchTab('register')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "input",
+      "id": "auth-input-fullname",
+      "name": null,
+      "type": "text",
+      "className": "w-full text-xs rounded-xl border",
+      "text": "Thầy Nguyễn Văn Hưng",
+      "onclick": null,
+      "title": null,
+      "placeholder": "Thầy Nguyễn Văn Hưng",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "input",
+      "id": "auth-input-email",
+      "name": null,
+      "type": "email",
+      "className": "w-full text-xs rounded-xl border",
+      "text": "teacher@quesy.vn",
+      "onclick": null,
+      "title": null,
+      "placeholder": "teacher@quesy.vn",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "input",
+      "id": "auth-input-password",
+      "name": null,
+      "type": "password",
+      "className": "w-full text-xs rounded-xl border",
+      "text": "••••••••",
+      "onclick": null,
+      "title": null,
+      "placeholder": "••••••••",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "button",
+      "id": "auth-submit-btn",
+      "name": null,
+      "type": "submit",
+      "className": "w-full py-2.5 bg-brand-600 hover:bg-brand-700",
+      "text": "Đăng nhập",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "py-2 px-3 bg-slate-100 hover:bg-slate-200",
+      "text": "👨‍🏫 Giáo viên mẫu",
+      "onclick": "app.auth.quickLogin('teacher@quesy.vn', 'quesy123456')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "py-2 px-3 bg-slate-100 hover:bg-slate-200",
+      "text": "🛡️ Quản trị viên",
+      "onclick": "app.auth.quickLogin('admin@quesy.vn', 'admin123456')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 10,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "py-2 px-3 bg-rose-50 hover:bg-rose-100",
+      "text": "🌐 Google OAuth",
+      "onclick": "app.auth.oauthLogin('google')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 11,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "py-2 px-3 bg-slate-900 hover:bg-black",
+      "text": "🐙 GitHub OAuth",
+      "onclick": "app.auth.oauthLogin('github')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "import_modal": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "w-7 h-7 rounded-full bg-slate-200",
+      "text": "✕",
+      "onclick": "document.getElementById('question-import-modal').classList.add('hidden')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "textarea",
+      "id": "import-latex-textarea",
+      "name": null,
+      "type": null,
+      "className": "w-full text-xs rounded-xl border",
+      "text": "\\begin{ex}\\nCho hàm số...\\n\\choice\\n{\\True A}\\n{B}\\n{C}\\n{D}\\n\\end{ex}",
+      "onclick": null,
+      "title": null,
+      "placeholder": "\\begin{ex}\\nCho hàm số...\\n\\choice\\n{\\True A}\\n{B}\\n{C}\\n{D}\\n\\end{ex}",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-secondary",
+      "text": "Hủy",
+      "onclick": "document.getElementById('question-import-modal').classList.add('hidden')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-primary",
+      "text": "Tiến hành Nhập vào Ngân hàng",
+      "onclick": "app.submitImportQuestions()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "create_modal": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "w-7 h-7 rounded-full bg-slate-200",
+      "text": "✕",
+      "onclick": "document.getElementById('question-create-modal').classList.add('hidden')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "select",
+      "id": "q-create-format",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs w-full",
+      "text": "Trắc nghiệm 4 lựa chọn (Phần I) Đúng / Sai 4 ý (Phần II) Trả lời ngắn (Phần III)",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "select",
+      "id": "q-create-cognitive",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs w-full",
+      "text": "Nhận biết Thông hiểu Vận dụng Vận dụng cao",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "textarea",
+      "id": "q-create-stem",
+      "name": null,
+      "type": null,
+      "className": "w-full rounded-xl border border-slate-300",
+      "text": "Cho hàm số $y = x^3 - 3x + 1$...",
+      "onclick": null,
+      "title": null,
+      "placeholder": "Cho hàm số $y = x^3 - 3x + 1$...",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "textarea",
+      "id": "q-create-explanation",
+      "name": null,
+      "type": null,
+      "className": "w-full rounded-xl border border-slate-300",
+      "text": "Lời giải...",
+      "onclick": null,
+      "title": null,
+      "placeholder": "Lời giải...",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-secondary",
+      "text": "Hủy",
+      "onclick": "document.getElementById('question-create-modal').classList.add('hidden')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-primary",
+      "text": "Lưu câu hỏi vào Bank",
+      "onclick": "app.submitCreateQuestion()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "detail_modal": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-7 h-7 rounded-full bg-slate-200",
+      "text": "✕",
+      "onclick": "document.getElementById('question-detail-modal').classList.add('hidden')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "button",
+      "id": "q-detail-btn-delete",
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-danger py-1.5 px-3 text-xs",
+      "text": "Xóa câu hỏi",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": "q-detail-btn-edit",
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-secondary py-1.5 px-3 text-xs",
+      "text": "Chỉnh sửa",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-primary py-1.5 px-4 text-xs",
+      "text": "Đóng",
+      "onclick": "document.getElementById('question-detail-modal').classList.add('hidden')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "editor_modal": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "text-slate-400 hover:text-slate-600 p-1.5 rounded-lg",
+      "text": "",
+      "onclick": "app.closeQuestionEditorModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "select",
+      "id": "q-edit-format",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs font-semibold w-full",
+      "text": "PHẦN I: Trắc nghiệm 4 lựa chọn (Chọn 1) PHẦN II: Trắc nghiệm Đúng/Sai (4 ý a,b,c",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "select",
+      "id": "q-edit-cognitive",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs font-semibold w-full",
+      "text": "1. Nhận biết 2. Thông hiểu 3. Vận dụng 4. Vận dụng cao",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "select",
+      "id": "q-edit-yccd",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs w-full",
+      "text": "TOAN12.GT.01: Cực trị hàm số TOAN12.GT.02: Đường tiệm cận TOAN12.GT.03: Khái niệ",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\dfrac{a}{b}$",
+      "onclick": "app.insertStemSymbol('\\\\dfrac{a}{b}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\sqrt{x}$",
+      "onclick": "app.insertStemSymbol('\\\\sqrt{x}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\overrightarrow{u}$",
+      "onclick": "app.insertStemSymbol('\\\\overrightarrow{u}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\in \\mathbb{R}$",
+      "onclick": "app.insertStemSymbol('\\\\in \\\\mathbb{R}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\ge$",
+      "onclick": "app.insertStemSymbol('\\\\ge')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 10,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\le$",
+      "onclick": "app.insertStemSymbol('\\\\le')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 11,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-brand-50 hover:bg-brand-100",
+      "text": "+ Đồ thị Tiệm cận",
+      "onclick": "app.insertStemTikzDiagram('rational')",
+      "title": "Chèn đồ thị tiệm cận TikZ",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 12,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-brand-50 hover:bg-brand-100",
+      "text": "+ Đồ thị Bậc 3",
+      "onclick": "app.insertStemTikzDiagram('cubic')",
+      "title": "Chèn đồ thị hàm bậc 3 TikZ",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 13,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-brand-50 hover:bg-brand-100",
+      "text": "+ BBT tkz-tab",
+      "onclick": "app.insertStemTikzDiagram('variation_table')",
+      "title": "Chèn bảng biến thiên TikZ tkz-tab",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 14,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-brand-50 hover:bg-brand-100",
+      "text": "+ BBT Tiệm cận",
+      "onclick": "app.insertStemTikzDiagram('variation_table_asymptote')",
+      "title": "Chèn bảng biến thiên có tiệm cận đứng",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 15,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100",
+      "text": "⚡ Đổi sang BBT TikZ",
+      "onclick": "app.standardizeModalStemToTkz()",
+      "title": "Chuyển đổi bảng biến thiên legacy sang TikZ tkz-tab",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 16,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200",
+      "text": "+ Bảng Số liệu",
+      "onclick": "app.insertStemTikzDiagram('table')",
+      "title": "Chèn bảng dữ liệu",
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 17,
+      "tag": "textarea",
+      "id": "q-edit-stem",
+      "name": null,
+      "type": null,
+      "className": "w-full text-xs font-mono rounded-xl",
+      "text": "",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 18,
+      "tag": "textarea",
+      "id": "q-edit-explanation",
+      "name": null,
+      "type": null,
+      "className": "w-full text-xs rounded-xl border",
+      "text": "",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 19,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-secondary",
+      "text": "Hủy bỏ",
+      "onclick": "app.closeQuestionEditorModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 20,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-primary",
+      "text": "Lưu thay đổi câu hỏi",
+      "onclick": "app.saveQuestionEdit()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "swap_modal": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "text-slate-400 hover:text-slate-600 p-1 rounded-lg",
+      "text": "",
+      "onclick": "app.closeSwapQuestionModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-secondary text-xs",
+      "text": "Đóng",
+      "onclick": "app.closeSwapQuestionModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "latex_modal": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "text-slate-400 hover:text-slate-600 p-1 rounded-lg",
+      "text": "",
+      "onclick": "app.closeFormulaEditorModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\dfrac{a}{b}$",
+      "onclick": "app.insertLatexSymbol('\\\\dfrac{a}{b}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\sqrt{x}$",
+      "onclick": "app.insertLatexSymbol('\\\\sqrt{x}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$x^2$",
+      "onclick": "app.insertLatexSymbol('x^2')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\int_a^b$",
+      "onclick": "app.insertLatexSymbol('\\\\int_{a}^{b}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\lim$",
+      "onclick": "app.insertLatexSymbol('\\\\lim_{x \\\\to 0}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\mathbb{R}$",
+      "onclick": "app.insertLatexSymbol('\\\\mathbb{R}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\in$",
+      "onclick": "app.insertLatexSymbol('\\\\in')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\overrightarrow{u}$",
+      "onclick": "app.insertLatexSymbol('\\\\overrightarrow{u}')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 10,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\pm$",
+      "onclick": "app.insertLatexSymbol('\\\\pm')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 11,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\le$",
+      "onclick": "app.insertLatexSymbol('\\\\le')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 12,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-2 py-1 bg-black/[0.04] hover:bg-black/[0.08]",
+      "text": "$\\ge$",
+      "onclick": "app.insertLatexSymbol('\\\\ge')",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 13,
+      "tag": "textarea",
+      "id": "modal-latex-input",
+      "name": null,
+      "type": null,
+      "className": "w-full text-xs font-mono rounded-xl",
+      "text": "Nhập mã LaTeX, ví dụ: $y = x^3 - 3x^2 + 4$ hoặc $$...$$",
+      "onclick": null,
+      "title": null,
+      "placeholder": "Nhập mã LaTeX, ví dụ: $y = x^3 - 3x^2 + 4$ hoặc $$...$$",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 14,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-secondary",
+      "text": "Hủy bỏ",
+      "onclick": "app.closeFormulaEditorModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 15,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-primary",
+      "text": "Cập nhật công thức",
+      "onclick": "app.saveFormulaEditorResult()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "duplicate_modal": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": null,
+      "className": "text-rose-400 hover:text-rose-600 p-1 rounded-lg",
+      "text": "",
+      "onclick": "app.closeDuplicateModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-secondary",
+      "text": "Hủy bỏ lưu (Không nạp câu này)",
+      "onclick": "app.closeDuplicateModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "px-4 py-2 bg-amber-600 hover:bg-amber-500",
+      "text": "Vẫn lưu (Xác nhận là Câu hỏi biến thể)",
+      "onclick": "app.confirmSaveAsVariant()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ],
+  "matrix_row_modal": [
+    {
+      "index": 1,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "w-7 h-7 rounded-full bg-slate-200",
+      "text": "✕",
+      "onclick": "app.closeAddMatrixRowModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 2,
+      "tag": "select",
+      "id": "modal-matrix-strand",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs font-semibold w-full",
+      "text": "Số, Đại số & Giải tích Hình học & Đo lường Thống kê & Xác suất Thực hành & Trải ",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 3,
+      "tag": "input",
+      "id": "modal-matrix-yccd",
+      "name": null,
+      "type": "text",
+      "className": "w-full rounded-lg border border-black/[0.12]",
+      "text": "TOAN12.GT.05",
+      "onclick": null,
+      "title": null,
+      "placeholder": "Ví dụ: TOAN12.GT.05",
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 4,
+      "tag": "input",
+      "id": "modal-matrix-archetype",
+      "name": null,
+      "type": "text",
+      "className": "w-full rounded-lg border border-black/[0.12]",
+      "text": "Khảo sát sự biến thiên và vẽ đồ thị hàm số",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 5,
+      "tag": "select",
+      "id": "modal-matrix-format",
+      "name": null,
+      "type": null,
+      "className": "apple-select text-xs font-semibold w-full",
+      "text": "Trắc nghiệm 4 lựa chọn (0.25đ) Đúng / Sai 4 ý (1.0đ) Trả lời ngắn (0.5đ) Tự luận",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 6,
+      "tag": "input",
+      "id": "modal-matrix-biet",
+      "name": null,
+      "type": "number",
+      "className": "w-full rounded-lg border border-black/[0.12]",
+      "text": "2",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 7,
+      "tag": "input",
+      "id": "modal-matrix-hieu",
+      "name": null,
+      "type": "number",
+      "className": "w-full rounded-lg border border-black/[0.12]",
+      "text": "2",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 8,
+      "tag": "input",
+      "id": "modal-matrix-vandung",
+      "name": null,
+      "type": "number",
+      "className": "w-full rounded-lg border border-black/[0.12]",
+      "text": "1",
+      "onclick": null,
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 9,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-secondary py-1.5 px-4 text-xs",
+      "text": "Hủy bỏ",
+      "onclick": "app.closeAddMatrixRowModal()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    },
+    {
+      "index": 10,
+      "tag": "button",
+      "id": null,
+      "name": null,
+      "type": "button",
+      "className": "btn-apple-primary py-1.5 px-4 text-xs",
+      "text": "Thêm vào ma trận",
+      "onclick": "app.confirmAddMatrixRow()",
+      "title": null,
+      "placeholder": null,
+      "bbox": {
+        "top": 0,
+        "left": 0,
+        "width": 0,
+        "height": 0
+      },
+      "visible": true
+    }
+  ]
+}

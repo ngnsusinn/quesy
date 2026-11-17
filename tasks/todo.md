@@ -668,3 +668,26 @@
 - [x] 100% test suites E2E và giao diện vượt qua kiểm thử (`pytest tests/test_e2e_*.py`).
 **Verification:** `pytest tests/test_e2e_dashboard_launchpad.py tests/test_e2e_friendly_item_bank.py tests/test_e2e_matrix_and_shuffler_headers.py tests/test_e2e_workflow.py`
 **Dependencies:** None | **Files:** `frontend/index.html`, `frontend/static/app.js`, `frontend/manifest.json` | **Scope:** S (3 files)
+
+### Task DOC-01: [x] [DONE] Tái Thiết Toàn Diện Tài Liệu README.md
+**Description:** Xóa bỏ toàn bộ nội dung cũ và viết lại tài liệu README.md từ đầu theo nguyên tắc chuẩn mực kỹ thuật (karpathy-guidelines, doc-coauthoring, poteto-mode), cập nhật đầy đủ toàn bộ phân hệ (Dashboard Hub, LaTeX Composer, 2-Pass AI Digitizer, Ma trận đề, Trộn đề an toàn, Xuất bản thuần Vector PDF & ZIP, Ngân hàng câu hỏi phân trang Apple HIG, Bảo mật xác thực), thông số 289 test cases, 8028 trạng thái kiểm định hình thức Z3 SMT, và phần Tóm tắt điều hành tiếng Việt chuyên sâu cho giáo viên.
+**Acceptance criteria:**
+- [x] Viết lại README.md hoàn chỉnh, rõ ràng, không từ ngữ sáo rỗng.
+- [x] Bảng so sánh Problem & Architectural Solution Matrix trực quan.
+- [x] Hướng dẫn khởi chạy, môi trường và cấu hình chi tiết.
+- [x] Cập nhật số liệu kiểm thử thực tế 289/289 passing tests và 8028 formal invariants.
+- [x] Tóm tắt dự án tiếng Việt chi tiết cho công tác khảo thí và sư phạm.
+**Verification:** Kiểm tra cấu trúc Markdown và các liên kết trong README.md.
+**Dependencies:** None | **Files:** `README.md` | **Scope:** S (1 file)
+
+### Task DOC-02: [x] [DONE] Lập Bản Đồ Tính Năng docs/FEATURE_MAP.md & Kiểm Thử Điểm Cuối Giao Diện
+**Description:** Chụp ảnh màn hình toàn bộ các phân hệ và modal giao diện, kiểm tra chi tiết từng nút bấm, bộ chọn, trường nhập liệu, và lập bản đồ tính năng toàn diện `docs/FEATURE_MAP.md` ánh xạ 74 REST API endpoints cùng 206 phần tử tương tác giao diện.
+**Acceptance criteria:**
+- [x] Chụp và lưu trữ 21 tệp ảnh chụp màn hình độ phân giải cao tại `docs/screenshots/`.
+- [x] Kiểm tra toàn bộ 206 nút bấm và phần tử tương tác trên các phân hệ và 9 modals.
+- [x] Lập bản đồ chi tiết 74 REST API endpoints với phương thức, đường dẫn và tệp xử lý.
+- [x] Bảng ma trận ánh xạ nguồn gốc (Traceability Matrix) giữa nghiệp vụ, giao diện và API.
+- [x] Hoàn thiện tài liệu `docs/FEATURE_MAP.md` đạt chuẩn kỹ thuật.
+**Verification:** Kiểm tra liên kết ảnh và tính toàn vẹn tài liệu `docs/FEATURE_MAP.md`.
+**Dependencies:** DOC-01 | **Files:** `docs/FEATURE_MAP.md`, `docs/screenshots/` | **Scope:** M (1 file + 21 images)
+

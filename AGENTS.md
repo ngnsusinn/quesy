@@ -15,8 +15,8 @@ Quesy is a comprehensive platform for Question Bank Management, Hierarchical Exa
 4. **Hierarchical Specification Matrix & Shuffling Engine:** Designs multi-dimensional matrix grids, automatically samples questions satisfying defined constraints, and generates permuted exam variants while strictly preserving mathematical invariants.
 5. **Format Publishing:** Exports and compiles standard PDFs using the ex_test.sty package and TikZ.
 
-### Source Map
-Before making any changes, the Agent must cross-reference docs/SOURCE_MAP.md to understand the project architecture and the purpose of each file, and run tree /f /a to verify the repository structure.
+### Source Map & Feature Map
+Before making any changes, the Agent must cross-reference `docs/SOURCE_MAP.md` to understand the project architecture and the purpose of each file, and run `tree /f /a` to verify the repository structure. To look up features, UI controls, modals, or API endpoints, the Agent must first check `docs/FEATURE_MAP.md` for rapid discovery; only read the source code directly if not found in `docs/FEATURE_MAP.md`.
 
 ### Environment Setup & Operations
 1. Development Environment Setup
@@ -133,7 +133,8 @@ The Composer UI and backend APIs must support:
 Upon receiving any user request (bug fixing, feature implementation, performance optimization), the Agent must sequentially execute the following four steps:
 
 1. **Step 1 — Analyze & Plan**:
-* Inspect `tasks/plan.md`, `tasks/todo.md`, and `docs/SOURCE_MAP.md`.
+* Inspect `tasks/plan.md`, `tasks/todo.md`, `docs/SOURCE_MAP.md`, and `docs/FEATURE_MAP.md`.
+* For any feature, UI element, or API endpoint lookup, always consult `docs/FEATURE_MAP.md` first; inspect source code only if not found in `docs/FEATURE_MAP.md`.
 * Review all specification documents directly related to the request within the `docs/` directory (e.g., `SRS_System_Requirements_Specification.md`, `FRD_Functional_Requirements_Document.md`, `NFR_Non_Functional_Requirements.md`, `UC_Use_Case_Specifications.md`).
 
 
@@ -161,3 +162,4 @@ Upon receiving any user request (bug fixing, feature implementation, performance
 1. You are allowed to create sub-agents to complete requests. There is no limit on the number of sub-agents.
 2. Commit your changes once the request is completed. If a pull request does not already exist, create one.
 3. Read and use the skills: `karpathy-guidelines`, `doc-coauthoring` and `poteto-mode` for every request.
+4. Tra cứu tính năng và mã nguồn: Khi cần tìm kiếm hoặc định vị bất kỳ chức năng nào trong hệ thống, Agent luôn phải truy cập vào `docs/FEATURE_MAP.md` trước để tra cứu nhanh (giao diện, nút bấm, modal, API endpoint, luồng xử lý). Chỉ khi đã tra cứu trong `docs/FEATURE_MAP.md` mà không tìm thấy thông tin cần thiết thì mới tiến hành đọc mã nguồn (source code).
