@@ -541,3 +541,26 @@ Mỗi lệnh yêu cầu về tính năng mới, nâng cấp hoặc sửa đổi 
   4. Thực hiện `git push` lên remote repository (`origin <branch>`).
 
 - **Dọn dẹp tiến trình:** Bắt buộc diệt sạch các tiến trình nền (uvicorn cổng 8000, Node.js persistent worker, subprocess) sau khi kết thúc lượt phản hồi.
+
+
+## Bổ sung bộ phân tích nghiệp vụ từ PDF — 17/11/2026
+
+Bộ mới tại `docs/phan_tich_he_thong/` gồm 13 tệp Markdown. Đây là phân tích nghiệp vụ đề xuất, không suy từ mã nguồn và không xác nhận các mô tả trạng thái triển khai ở phần lịch sử của bản đồ này. Phạm vi được xác nhận: giáo viên tự quản kho riêng; quản trị viên quản tài khoản, cấu hình và vận hành kỹ thuật.
+
+| Tệp | Vai trò |
+|---|---|
+| [phan_tich_he_thong/00_MUC_LUC_VA_CO_SO_PHAN_TICH.md](phan_tich_he_thong/00_MUC_LUC_VA_CO_SO_PHAN_TICH.md) | Mục lục và cơ sở phân tích |
+| [phan_tich_he_thong/01_YEU_CAU_HE_THONG.md](phan_tich_he_thong/01_YEU_CAU_HE_THONG.md) | Yêu cầu hệ thống và bài toán nghiệp vụ |
+| [phan_tich_he_thong/02_YEU_CAU_CHUC_NANG.md](phan_tich_he_thong/02_YEU_CAU_CHUC_NANG.md) | Yêu cầu chức năng |
+| [phan_tich_he_thong/03_YEU_CAU_PHI_CHUC_NANG.md](phan_tich_he_thong/03_YEU_CAU_PHI_CHUC_NANG.md) | Yêu cầu phi chức năng |
+| [phan_tich_he_thong/04_CAC_TAC_NHAN.md](phan_tich_he_thong/04_CAC_TAC_NHAN.md) | Các tác nhân của hệ thống |
+| [phan_tich_he_thong/05_USE_CASE_NGUOI_DUNG.md](phan_tich_he_thong/05_USE_CASE_NGUOI_DUNG.md) | Use Case người dùng |
+| [phan_tich_he_thong/06_USE_CASE_QUAN_TRI_VIEN.md](phan_tich_he_thong/06_USE_CASE_QUAN_TRI_VIEN.md) | Use Case quản trị viên |
+| [phan_tich_he_thong/07_SO_DO_USE_CASE.md](phan_tich_he_thong/07_SO_DO_USE_CASE.md) | Sơ đồ Use Case chi tiết |
+| [phan_tich_he_thong/08_MO_TA_USE_CASE.md](phan_tich_he_thong/08_MO_TA_USE_CASE.md) | Mô tả Use Case từng chức năng |
+| [phan_tich_he_thong/09_SO_DO_HOAT_DONG.md](phan_tich_he_thong/09_SO_DO_HOAT_DONG.md) | Sơ đồ hoạt động từng chức năng |
+| [phan_tich_he_thong/10_SO_DO_LOP.md](phan_tich_he_thong/10_SO_DO_LOP.md) | Sơ đồ lớp phân tích |
+| [phan_tich_he_thong/11_SO_DO_TUAN_TU.md](phan_tich_he_thong/11_SO_DO_TUAN_TU.md) | Sơ đồ tuần tự từng chức năng |
+| [phan_tich_he_thong/12_TRUY_VET_VA_NGHIEM_THU.md](phan_tich_he_thong/12_TRUY_VET_VA_NGHIEM_THU.md) | Truy vết và tiêu chí nghiệm thu tài liệu |
+
+`docs/README.md` là cổng vào tài liệu. `docs/pdf/` giữ nguyên 5 PDF nguồn phương pháp (38 trang); mã kiểm tra ở tài liệu 12. Các đặc tả cũ có ghi chú lịch sử để tránh áp dụng nhầm phạm vi. Không đổi tên/xóa mô-đun phần mềm; không kiểm tra tính đúng của mô tả mã nguồn cũ trong lần biên soạn này.

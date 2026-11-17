@@ -668,3 +668,16 @@
 - [x] 100% test suites E2E và giao diện vượt qua kiểm thử (`pytest tests/test_e2e_*.py`).
 **Verification:** `pytest tests/test_e2e_dashboard_launchpad.py tests/test_e2e_friendly_item_bank.py tests/test_e2e_matrix_and_shuffler_headers.py tests/test_e2e_workflow.py`
 **Dependencies:** None | **Files:** `frontend/index.html`, `frontend/static/app.js`, `frontend/manifest.json` | **Scope:** S (3 files)
+
+
+## DOC-2026-11-17 — Phân tích nghiệp vụ Quesy từ PDF
+
+- [x] Kiểm tra cấu trúc bằng `tree /f /a`; đọc kế hoạch, công việc và SOURCE_MAP; không đọc mã nguồn để phân tích yêu cầu.
+- [x] Đọc 5 PDF/38 trang về quy trình, hiện trạng/NFR, DFD, Use Case và thành phần/triển khai; phân biệt nguồn phương pháp với yêu cầu Quesy.
+- [x] Xác nhận trực tiếp với người dùng: giáo viên tự quản kho riêng; quản trị viên phụ trách tài khoản, cấu hình và vận hành kỹ thuật; không có cổng học sinh thi trực tuyến.
+- [x] Soạn `docs/phan_tich_he_thong/` gồm 13 Markdown, 30 FR/Use Case, 16 NFR, 30 Activity, 30 Sequence, 30 sơ đồ Use Case chi tiết và các sơ đồ tổng quan/lớp.
+- [x] Giữ PDF nguyên bản; ghi nguồn/trang/mã kiểm tra, nhãn căn cứ và giả định; các ngưỡng số chưa khảo sát được đánh dấu đề xuất.
+- [x] Đồng bộ chỉ mục docs, SOURCE_MAP và ghi chú lịch sử ở đặc tả cũ; không thay phần mềm, API hoặc dữ liệu vận hành.
+- [x] Kiểm tra tài liệu: kết xuất PlantUML cục bộ, đối chiếu liên kết/anchor và độ phủ mã; kết quả tại `docs/phan_tich_he_thong/12_TRUY_VET_VA_NGHIEM_THU.md`.
+
+Kiểm tra chỉ áp dụng cho tài liệu. Không chạy lại pytest, performance budget hoặc pipeline ứng dụng vì không sửa mã nguồn/chức năng; các ca nghiệm thu sản phẩm trong bộ mới chưa được coi là đã chạy. Ba skill được yêu cầu (`karpathy-guidelines`, `doc-coauthoring`, `poteto-mode`) không tìm thấy tại máy; đã sử dụng skill PDF có sẵn để trích xuất và đối chiếu nguồn. Chưa coi các đề xuất SL/AS là kế hoạch triển khai đã được duyệt.

@@ -1,3 +1,5 @@
+> **Ghi chú phiên bản 17/11/2026:** Tài liệu này được giữ để tham khảo lịch sử. Bản phân tích nghiệp vụ mới nằm tại [Bộ tài liệu Quesy](phan_tich_he_thong/00_MUC_LUC_VA_CO_SO_PHAN_TICH.md), với phạm vi giáo viên cá nhân và quản trị viên kỹ thuật đã được người dùng xác nhận. Các vai trò, ngưỡng chất lượng và tuyên bố triển khai trong bản cũ không tự trở thành yêu cầu đã chốt của bản mới.
+
 # BÁO CÁO CHI TIẾT YÊU CẦU VÀ CÁC CHỨC NĂNG CHÍNH CỦA PHẦN MỀM QUESY
 
 ---
