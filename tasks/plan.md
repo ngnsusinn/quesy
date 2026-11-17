@@ -126,3 +126,27 @@
 - [x] **PK-01:** Hỗ trợ chế độ Web Ngoại tuyến (Offline PWA / Service Worker) trên trình duyệt
 - [x] **PK-02:** Viết Multi-stage Dockerfile & docker-compose cho máy tính giáo viên
 - [x] **PK-03:** Thiết lập pipeline GitHub Actions CI tự động chạy kiểm thử khi PR/Push
+
+
+## DOC-2026-11-17 — Phân tích nghiệp vụ Quesy từ PDF
+
+- [x] Kiểm tra cấu trúc bằng `tree /f /a`; đọc kế hoạch, công việc và SOURCE_MAP; không đọc mã nguồn để phân tích yêu cầu.
+- [x] Đọc 5 PDF/38 trang về quy trình, hiện trạng/NFR, DFD, Use Case và thành phần/triển khai; phân biệt nguồn phương pháp với yêu cầu Quesy.
+- [x] Xác nhận trực tiếp với người dùng: giáo viên tự quản kho riêng; quản trị viên phụ trách tài khoản, cấu hình và vận hành kỹ thuật; không có cổng học sinh thi trực tuyến.
+- [x] Soạn `docs/phan_tich_he_thong/` gồm 13 Markdown, 30 FR/Use Case, 16 NFR, 30 Activity, 30 Sequence, 30 sơ đồ Use Case chi tiết và các sơ đồ tổng quan/lớp.
+- [x] Giữ PDF nguyên bản; ghi nguồn/trang/mã kiểm tra, nhãn căn cứ và giả định; các ngưỡng số chưa khảo sát được đánh dấu đề xuất.
+- [x] Đồng bộ chỉ mục docs, SOURCE_MAP và ghi chú lịch sử ở đặc tả cũ; không thay phần mềm, API hoặc dữ liệu vận hành.
+- [x] Kiểm tra tài liệu: kết xuất PlantUML cục bộ, đối chiếu liên kết/anchor và độ phủ mã; kết quả tại `docs/phan_tich_he_thong/12_TRUY_VET_VA_NGHIEM_THU.md`.
+
+Kiểm tra chỉ áp dụng cho tài liệu. Không chạy lại pytest, performance budget hoặc pipeline ứng dụng vì không sửa mã nguồn/chức năng; các ca nghiệm thu sản phẩm trong bộ mới chưa được coi là đã chạy. Ba skill được yêu cầu (`karpathy-guidelines`, `doc-coauthoring`, `poteto-mode`) không tìm thấy tại máy; đã sử dụng skill PDF có sẵn để trích xuất và đối chiếu nguồn. Chưa coi các đề xuất SL/AS là kế hoạch triển khai đã được duyệt.
+
+## CI-2026-11-17 — PR #14: đồng bộ main và sửa kiểm tra TikZ
+
+- [x] Đọc log job 133723854792: 288 test đạt, một test bảng biến thiên thất bại vì chỉ chấp nhận Unicode prime cố định.
+- [x] Đồng bộ `origin/main`; giải quyết xung đột `tasks/todo.md` bằng cách giữ cả các task DOC-01/DOC-02 và bộ phân tích ngày 17/11.
+- [x] Xác minh SVG dvisvgm 3.6 chứa dấu đạo hàm dưới dạng glyph U+E010 trong font WOFF nhúng; xem bản hiển thị bằng Chrome headless.
+- [x] Sửa test kiểm tra vị trí dấu trong nhãn f'(x), cmap và hình dạng glyph không rỗng; giữ kiểm tra chuẩn hóa prime cũ U+E030.
+- [x] Lưu fixture SVG và cô lập cache/HTTP để test ổn định; thêm ba ca âm cho mất glyph, mất font và mất dấu. Khai báo fonttools cho kiểm tra font.
+- [x] Kiểm thử ba suite số hóa/AI/Cloud Vision: 23 passed; performance budget: 4 passed; `scripts/verify_pipeline.py` hoàn tất PASS; kiểm tra lại bộ tài liệu: 886/886 điều kiện đạt.
+
+Không thay bộ render, API, nội dung nghiệp vụ hay cấu hình chạy GitHub Actions. Kết quả CI sau cập nhật được theo dõi trên PR #14; kết quả chạy bổ sung được ghi trong báo cáo kiểm thử.

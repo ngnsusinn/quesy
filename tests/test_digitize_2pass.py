@@ -9,6 +9,9 @@ Verifies:
 """
 
 import io
+import base64
+import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
@@ -216,7 +219,51 @@ def test_normalize_option_text():
     assert normalize_option_text("x = 2") == "x = 2"
 
 
-def test_tkz_tab_variation_table_compilation():
+def _assert_derivative_prime_is_renderable(svg: str) -> None:
+    """Check the derivative label, including dvisvgm's embedded-font encoding."""
+    from fontTools.ttLib import TTFont
+
+    root = ET.fromstring(svg)
+    texts = list(root.iter("{http://www.w3.org/2000/svg}text"))
+    derivative_prime = next(
+        (
+            prime
+            for before, prime, after in zip(texts, texts[1:], texts[2:])
+            if "".join(before.itertext()) == "f"
+            and "".join(after.itertext()) == "("
+        ),
+        None,
+    )
+    assert derivative_prime is not None, "Derivative prime node must be preserved"
+    character = "".join(derivative_prime.itertext())
+    if character == "\u2032":
+        return
+
+    assert len(character) == 1 and 0xE000 <= ord(character) <= 0xF8FF, (
+        "Derivative label must contain a prime or an embedded private-use glyph"
+    )
+    css = "\n".join("".join(style.itertext()) for style in root.iter("{http://www.w3.org/2000/svg}style"))
+    class_name = derivative_prime.attrib["class"]
+    rule = re.search(
+        rf"text\.{re.escape(class_name)}\s*\{{\s*font-family:\s*([^,;}}\s]+)",
+        css,
+    )
+    assert rule is not None, "Derivative prime must retain its font-family rule"
+    font_name = rule.group(1)
+    font_data = re.search(
+        rf"@font-face\s*\{{\s*font-family:\s*{re.escape(font_name)}\s*;"
+        r"\s*src:url\(data:[^;]+;base64,([^)]*)\)",
+        css,
+    )
+    assert font_data is not None, "Derivative prime requires its embedded font"
+    with TTFont(io.BytesIO(base64.b64decode(font_data.group(1)))) as font:
+        glyph_name = font.getBestCmap().get(ord(character))
+        assert glyph_name is not None, "Embedded font must contain the derivative prime glyph"
+        glyph = font["glyf"][glyph_name]
+        assert glyph.numberOfContours > 0, "Derivative prime glyph must not be empty"
+
+
+def test_tkz_tab_variation_table_compilation(monkeypatch, tmp_path: Path):
     """Verifies TikZ tkz-tab variation table document wrapping, label math-mode normalization, and rendering support."""
     from backend.services.tikz_renderer import wrap_tikz_in_standalone_document, render_tikz_to_svg, normalize_tikz_exam_standard
 
@@ -235,14 +282,65 @@ def test_tkz_tab_variation_table_compilation():
     assert r"\usepackage{tkz-tab}" in wrapped_doc
     assert r"\tkzTabInit" in wrapped_doc
 
-    # 3. Render to SVG (reads from cache or Kroki)
+    # 3. Exercise a fresh render and cache using an actual dvisvgm response.
+    # PUA codes are font-local and may change between dvisvgm versions.
+    import httpx
+    from backend.services import tikz_renderer
+
+    fixture = Path(__file__).parent / "fixtures" / "tkz_tab_dvisvgm_3_6.svg"
+    raw_svg = fixture.read_text(encoding="utf-8")
+    calls = []
+
+    def fake_post(self, url: str, *, content: str, headers: dict) -> httpx.Response:
+        assert url == tikz_renderer.KROKI_TIKZ_URL
+        assert content == wrapped_doc
+        assert headers["Content-Type"] == "text/plain; charset=utf-8"
+        calls.append(url)
+        return httpx.Response(200, text=raw_svg)
+
+    monkeypatch.setattr(tikz_renderer, "STORAGE_TIKZ_CACHE", tmp_path)
+    monkeypatch.setattr(httpx.Client, "post", fake_post)
     res = render_tikz_to_svg(normalized)
     assert res.get("success") is True
+    assert res["cached"] is False
     svg_out = res.get("svg", "")
     assert "<svg" in svg_out
-    assert "\ue030" not in svg_out, "PUA prime must be converted to standard Unicode prime"
-    assert "&#x2032;" in svg_out or "′" in svg_out, "Derivative prime must be preserved in SVG"
+    _assert_derivative_prime_is_renderable(svg_out)
     assert "font-style: italic" in svg_out, "Math italic font style must be applied to text.f2"
+    cached = render_tikz_to_svg(normalized)
+    assert cached["success"] is True
+    assert cached["cached"] is True
+    _assert_derivative_prime_is_renderable(cached["svg"])
+    assert len(calls) == 1, "Cached render must not contact Kroki again"
+
+
+@pytest.mark.parametrize("damage", ["missing_glyph", "missing_font", "missing_prime"])
+def test_variation_table_rejects_missing_prime(damage: str):
+    """The font-aware assertion must still reject a broken derivative label."""
+    fixture = Path(__file__).parent / "fixtures" / "tkz_tab_dvisvgm_3_6.svg"
+    svg = fixture.read_text(encoding="utf-8")
+    if damage == "missing_glyph":
+        svg = svg.replace("\ue010", "\ue011")
+    elif damage == "missing_font":
+        svg = re.sub(r"@font-face\{font-family:cmsy7;[^}]+\}", "", svg)
+    else:
+        svg = re.sub(r"<text[^>]*>\ue010</text>", "", svg)
+    with pytest.raises(AssertionError, match="[Dd]erivative|[Ee]mbedded font"):
+        _assert_derivative_prime_is_renderable(svg)
+
+
+def test_post_process_tikz_svg_legacy_prime():
+    """Keep legacy PUA normalization without depending on the live compiler."""
+    from backend.services.tikz_renderer import post_process_tikz_svg
+
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg"><style>'
+        'text.f1 {font-family:cmsy7;font-size:7px}'
+        '</style><text>f</text><text class="f1">\ue030</text><text>(</text></svg>'
+    )
+    processed = post_process_tikz_svg(svg)
+    assert "\ue030" not in processed
+    _assert_derivative_prime_is_renderable(processed)
 
 
 def test_convert_variation_array_to_tkz_tab():
