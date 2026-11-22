@@ -1,0 +1,56 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+hide circle
+hide empty methods
+skinparam classBackgroundColor #EDF4F9
+skinparam classBorderColor #365B76
+skinparam classAttributeFontSize 17
+skinparam classAttributeIconSize 0
+skinparam ArrowFontSize 14
+skinparam nodesep 66
+skinparam ranksep 57
+
+class User {
+  id : str
+  email : str
+  full_name : str
+  role : str
+  is_active : bool
+}
+class AIDigitizeJob {
+  id : str
+  file_path : str
+  status : str
+  subject_id : str
+  grade_id : str
+  extracted_json : JSON
+}
+class Grade {
+  id : str
+  code : str
+}
+class Classroom {
+  id : str
+  name : str
+  grade_id : str
+}
+class Student {
+  id : str
+  classroom_id : str
+  student_code : str
+  full_name : str
+}
+User -[hidden]right- AIDigitizeJob
+User -[hidden]down- Grade
+AIDigitizeJob -[hidden]down- Student
+Grade "0..1" -right- "0..*" Classroom
+Classroom "1" *-right- "0..*" Student
+@enduml

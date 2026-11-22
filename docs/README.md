@@ -8,6 +8,14 @@ Ba báo cáo Word đối chiếu với bản mã `557cb3f` trên `main`:
 - [Lược đồ Use Case Quesy](bao_cao_hien_trang/02_luoc_do_use_case_quesy.docx)
 - [Lược đồ lớp Quesy](bao_cao_hien_trang/03_luoc_do_lop_quesy.docx)
 
+Bản tài liệu 2.0 dùng 15 sơ đồ [PlantUML](https://plantuml.com/) và lưu [mã nguồn sơ đồ](bao_cao_hien_trang/plantuml/) để chỉnh sửa. Các tệp có tiền tố **arch** cho kiến trúc, **uc** cho Use Case, **class** cho lược đồ lớp. Báo cáo Use Case đặc tả 23 mục tiêu theo 13 trường và rà soát theo checklist C1–C20 của *use-case-writer* (Phúc NT, BA Zone).
+
+Khi đã có Java, PlantUML và Graphviz, có thể kết xuất lại các sơ đồ bằng lệnh sau từ thư mục gốc của dự án.
+
+~~~shell
+java -jar plantuml.jar -charset UTF-8 -failfast2 -tpng -o render docs/bao_cao_hien_trang/plantuml
+~~~
+
 ## Bộ phân tích nghiệp vụ 17/11/2026
 
 Bắt đầu tại [Bộ phân tích hệ thống từ PDF](phan_tich_he_thong/00_MUC_LUC_VA_CO_SO_PHAN_TICH.md).

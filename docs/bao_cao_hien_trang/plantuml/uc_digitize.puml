@@ -1,0 +1,30 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+skinparam usecaseBackgroundColor #EDF4F9
+skinparam usecaseBorderColor #365B76
+skinparam actorBorderColor #365B76
+skinparam rectangleBackgroundColor #F7FAFC
+skinparam rectangleBorderColor #365B76
+skinparam nodesep 14
+skinparam ranksep 37
+
+left to right direction
+actor "Giáo viên" as Teacher
+rectangle "Quesy · Số hóa và hậu kiểm" {
+  usecase "Trích câu hỏi từ tài liệu\n<size:13>UC-DIG-01</size>" as U1
+  usecase "Đưa câu đã hậu kiểm vào ngân hàng\n<size:13>UC-DIG-02</size>" as U2
+}
+actor "Dịch vụ AI" as AI
+Teacher -- U1
+U1 -- AI
+Teacher -- U2
+U2 -[hidden]right- U1
+@enduml

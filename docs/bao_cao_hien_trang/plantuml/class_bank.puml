@@ -1,0 +1,50 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+hide circle
+hide empty methods
+skinparam classBackgroundColor #EDF4F9
+skinparam classBorderColor #365B76
+skinparam classAttributeFontSize 17
+skinparam classAttributeIconSize 0
+skinparam ArrowFontSize 14
+skinparam nodesep 66
+skinparam ranksep 57
+
+class Question {
+  id : str
+  stem : text
+  question_type : str
+  cognitive_level : str
+  status : str
+  parent_id : str
+  short_answer_key : str
+  rubric : JSON
+}
+class QuestionOption {
+  id : str
+  question_id : str
+  label : str
+  content : text
+  is_correct : bool
+  is_fixed : bool
+}
+class SubStatement {
+  id : str
+  question_id : str
+  label : str
+  content : text
+  is_true : bool
+}
+Question "1" *-down- "0..*" QuestionOption
+Question "1" *-down- "0..*" SubStatement
+Question "0..1" -- "0..*" Question
+QuestionOption -[hidden]right- SubStatement
+@enduml

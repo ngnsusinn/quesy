@@ -1,0 +1,31 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+skinparam activityBackgroundColor #E8F1F8
+skinparam activityBorderColor #365B76
+skinparam activityDiamondBackgroundColor #F7FAFC
+skinparam activityDiamondBorderColor #365B76
+
+start
+:Nhận tệp và tạo tác vụ;
+if (Chế độ test_2pass?) then (Có)
+  :Tạo ảnh trang và cắt vùng;
+  :Pass 1 trích nội dung
+và vị trí hình;
+  :Pass 2 dựng hình hoặc bảng;
+  :Ghép LaTeX hoặc ảnh WebP;
+else (Standard)
+  :Trích câu qua AI hoặc\nbộ phân tích cục bộ;
+endif
+:Lưu dữ liệu trích xuất;
+:Hậu kiểm và chọn câu;
+:Lưu câu đã duyệt;
+stop
+@enduml

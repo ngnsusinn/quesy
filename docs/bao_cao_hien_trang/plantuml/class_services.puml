@@ -1,0 +1,51 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+hide circle
+hide empty methods
+skinparam classBackgroundColor #EDF4F9
+skinparam classBorderColor #365B76
+skinparam classAttributeFontSize 17
+skinparam classAttributeIconSize 0
+skinparam ArrowFontSize 14
+skinparam nodesep 66
+skinparam ranksep 57
+
+hide empty fields
+class AIExamParser {
+  +parse_document(...)
+}
+class ExamLayoutSegmenter {
+  +segment(...)
+}
+class AnswerKeyExtractor {
+  +extract_answers_and_solutions(...)
+}
+class AIProviderService {
+  +digitize_exam(...)
+  +digitize_exam_2pass(...)
+  +stitch_figures(...)
+}
+class CropService {
+  +extract_images_from_docx(...)
+  +extract_images_from_pdf(...)
+}
+class "ai_parser.py" as Worker <<module>> {
+  +process_digitize_job(...)
+  +process_digitize_job_2pass(...)
+}
+Worker ..> AIProviderService
+AIExamParser ..> CropService
+Worker -[hidden]down- AIExamParser
+AIExamParser ..> ExamLayoutSegmenter
+AIExamParser ..> AnswerKeyExtractor
+AIProviderService -[hidden]right- CropService
+ExamLayoutSegmenter -[hidden]right- AnswerKeyExtractor
+@enduml

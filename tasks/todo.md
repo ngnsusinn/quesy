@@ -721,3 +721,5 @@ Không thay bộ render, API, nội dung nghiệp vụ hay cấu hình chạy Gi
 - [x] Chạy 26 yêu cầu kiểm tra mẫu bằng FastAPI TestClient trên bản sao mã nguồn và SQLite tạm. Ghi phạm vi xác minh trong báo cáo kiến trúc.
 - [x] Soạn ba tệp DOCX, dựng 13 sơ đồ và kiểm tra 14 trang kết xuất bằng Microsoft Word.
 - [x] Cập nhật `docs/README.md` và `docs/SOURCE_MAP.md` với vị trí của các báo cáo.
+- [x] Cập nhật cả ba báo cáo lên bản 2.0, kết xuất 15 sơ đồ PlantUML và lưu mã nguồn sơ đồ.
+- [x] Đặc tả 23 Use Case theo 13 trường, đối chiếu mã Use Case giữa lược đồ và đặc tả, ghi kết quả C1–C20 và kiểm tra bộ tài liệu trong Microsoft Word.

@@ -1,0 +1,38 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+skinparam usecaseBackgroundColor #EDF4F9
+skinparam usecaseBorderColor #365B76
+skinparam actorBorderColor #365B76
+skinparam rectangleBackgroundColor #F7FAFC
+skinparam rectangleBorderColor #365B76
+skinparam nodesep 14
+skinparam ranksep 37
+
+left to right direction
+actor "Giáo viên" as Teacher
+rectangle "Quesy · Soạn đề LaTeX" {
+  usecase "Tạo bản PDF xem trước\n<size:13>UC-COMP-01</size>" as U1
+  usecase "Nhận đề xuất từ Copilot\n<size:13>UC-COMP-02</size>" as U2
+  usecase "Lưu câu từ bản soạn vào kho\n<size:13>UC-COMP-03</size>" as U3
+  usecase "Tải mã nguồn LaTeX\n<size:13>UC-COMP-04</size>" as U4
+}
+actor "Tectonic từ xa" as Compiler
+actor "Dịch vụ AI" as AI
+Teacher -- U1
+U1 -- Compiler
+Teacher -- U2
+U2 -- AI
+Teacher -- U3
+Teacher -- U4
+U2 -[hidden]right- U1
+U3 -[hidden]right- U2
+U4 -[hidden]right- U3
+@enduml

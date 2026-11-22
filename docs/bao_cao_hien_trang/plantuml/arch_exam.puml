@@ -1,0 +1,27 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+skinparam componentStyle uml2
+skinparam componentBackgroundColor #E8F1F8
+skinparam componentBorderColor #365B76
+skinparam databaseBackgroundColor #F0F5F8
+skinparam databaseBorderColor #365B76
+skinparam packageBackgroundColor #F7FAFC
+skinparam packageBorderColor #365B76
+
+left to right direction
+component "Ma trận\nChỉ tiêu và tồn kho" as MATRIX
+component "Bộ sinh đề\nCâu theo phần" as GEN
+component "Bộ trộn\nMã đề và khóa" as SHUFFLE
+component "Xuất bản\nPDF và ZIP" as PUB
+MATRIX --> GEN
+GEN --> SHUFFLE
+SHUFFLE --> PUB
+@enduml

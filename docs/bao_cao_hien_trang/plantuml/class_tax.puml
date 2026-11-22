@@ -1,0 +1,60 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+hide circle
+hide empty methods
+skinparam classBackgroundColor #EDF4F9
+skinparam classBorderColor #365B76
+skinparam classAttributeFontSize 17
+skinparam classAttributeIconSize 0
+skinparam ArrowFontSize 14
+skinparam nodesep 66
+skinparam ranksep 57
+
+class Subject {
+  id : str
+  code : str
+  name : str
+}
+class Grade {
+  id : str
+  code : str
+  level : int
+}
+class Strand {
+  id : str
+  subject_id : str
+  grade_id : str
+}
+class Topic {
+  id : str
+  strand_id : str
+}
+class Lesson {
+  id : str
+  topic_id : str
+}
+class LearningOutcome {
+  id : str
+  lesson_id : str
+  code : str
+}
+class ProblemArchetype {
+  id : str
+  learning_outcome_id : str
+  code : str
+}
+Subject "1" -down- "0..*" Strand
+Grade "1" -down- "0..*" Strand
+Strand "1" -right- "0..*" Topic
+Topic "1" -right- "0..*" Lesson
+Lesson "1" -down- "0..*" LearningOutcome
+LearningOutcome "1" -left- "0..*" ProblemArchetype
+@enduml

@@ -1,0 +1,31 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+skinparam usecaseBackgroundColor #EDF4F9
+skinparam usecaseBorderColor #365B76
+skinparam actorBorderColor #365B76
+skinparam rectangleBackgroundColor #F7FAFC
+skinparam rectangleBorderColor #365B76
+skinparam nodesep 14
+skinparam ranksep 37
+
+left to right direction
+actor "Giáo viên" as Teacher
+actor "Giáo viên qua máy khách API" as Client
+rectangle "Quesy · Xuất bản và phân tích" {
+  usecase "Tải ấn phẩm khảo thí\n<size:13>UC-EXAM-04</size>" as U1
+  usecase "Phân tích chất lượng câu hỏi\n<size:13>UC-EXAM-05</size>" as U2
+}
+actor "Tectonic từ xa" as Compiler
+Teacher -- U1
+U1 -- Compiler
+Client -- U2
+U2 -[hidden]right- U1
+@enduml

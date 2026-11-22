@@ -1,0 +1,37 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+skinparam componentStyle uml2
+skinparam componentBackgroundColor #E8F1F8
+skinparam componentBorderColor #365B76
+skinparam databaseBackgroundColor #F0F5F8
+skinparam databaseBorderColor #365B76
+skinparam packageBackgroundColor #F7FAFC
+skinparam packageBorderColor #365B76
+
+component "Web Studio\nHTML · CSS · JavaScript" as SPA
+package "Máy chủ Quesy" {
+  component "FastAPI\nRouter · schema Pydantic" as API
+  component "Dịch vụ nghiệp vụ\nSố hóa · ngân hàng · Composer\nMa trận · trộn đề · xuất bản" as APP
+  database "SQLite" as DB
+  component "Tệp nguồn, ảnh\nvà bộ đệm" as DISK
+}
+component "Dịch vụ AI" as AI
+component "Tectonic từ xa" as TEX
+SPA -down-> API : HTTP
+API -down-> APP
+
+APP -down-> DB : SQLAlchemy
+APP -down-> DISK
+APP .right.> AI
+APP .right.> TEX
+AI -[hidden]down- TEX
+DB -[hidden]right- DISK
+@enduml

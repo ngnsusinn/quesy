@@ -1,0 +1,41 @@
+@startuml
+skinparam backgroundColor white
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 17
+skinparam shadowing false
+skinparam ArrowColor #365B76
+skinparam defaultFontColor #172B3C
+skinparam nodesep 24
+skinparam ranksep 26
+scale 2
+skinparam usecaseBackgroundColor #EDF4F9
+skinparam usecaseBorderColor #365B76
+skinparam actorBorderColor #365B76
+skinparam rectangleBackgroundColor #F7FAFC
+skinparam rectangleBorderColor #365B76
+skinparam nodesep 14
+skinparam ranksep 37
+
+left to right direction
+actor "Giáo viên" as Teacher
+actor "Giáo viên qua máy khách API" as Client
+rectangle "Quesy · Ngân hàng câu hỏi" {
+  usecase "Tra cứu câu hỏi\n<size:13>UC-BANK-01</size>" as U1
+  usecase "Thêm câu hỏi vào ngân hàng\n<size:13>UC-BANK-02</size>" as U2
+  usecase "Sửa câu hỏi trong ngân hàng\n<size:13>UC-BANK-03</size>" as U3
+  usecase "Xóa câu hỏi khỏi ngân hàng\n<size:13>UC-BANK-04</size>" as U4
+  usecase "Nhập câu hỏi hàng loạt\n<size:13>UC-BANK-05</size>" as U5
+  usecase "Xuất câu hỏi từ ngân hàng\n<size:13>UC-BANK-06</size>" as U6
+}
+Teacher -- U1
+Teacher -- U2
+Teacher -- U3
+Teacher -- U4
+Client -- U5
+Client -- U6
+U2 -[hidden]right- U1
+U3 -[hidden]right- U2
+U4 -[hidden]right- U3
+U5 -[hidden]right- U4
+U6 -[hidden]right- U5
+@enduml
