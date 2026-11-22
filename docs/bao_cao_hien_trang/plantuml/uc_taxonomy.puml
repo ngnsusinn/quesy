@@ -1,0 +1,14 @@
+@startuml
+left to right direction
+actor "Giáo viên" as T
+rectangle "Quesy • Phân loại câu hỏi" {
+  usecase "T1  Tra cứu cây kiến thức" as T1
+  usecase "T2  Bổ sung mục phân loại" as T2
+  usecase "T3  Kiểm tra câu tương tự" as T3
+  usecase "T4  Nhận gợi ý phân loại" as T4
+}
+T -- T1
+T -- T2
+T -- T3
+T -- T4
+@enduml

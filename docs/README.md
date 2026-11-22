@@ -2,13 +2,13 @@
 
 ## Báo cáo hiện trạng 22/11/2026
 
-Ba báo cáo Word đối chiếu với bản mã `557cb3f` trên `main`:
+Ba báo cáo Word mô tả hệ thống tại bản mã `da27117`.
 
 - [Kiến trúc hệ thống Quesy](bao_cao_hien_trang/01_kien_truc_he_thong_quesy.docx)
 - [Lược đồ Use Case Quesy](bao_cao_hien_trang/02_luoc_do_use_case_quesy.docx)
 - [Lược đồ lớp Quesy](bao_cao_hien_trang/03_luoc_do_lop_quesy.docx)
 
-Bản tài liệu 2.0 dùng 15 sơ đồ [PlantUML](https://plantuml.com/) và lưu [mã nguồn sơ đồ](bao_cao_hien_trang/plantuml/) để chỉnh sửa. Các tệp có tiền tố **arch** cho kiến trúc, **uc** cho Use Case, **class** cho lược đồ lớp. Báo cáo Use Case đặc tả 23 mục tiêu theo 13 trường và rà soát theo checklist C1–C20 của *use-case-writer* (Phúc NT, BA Zone).
+Bộ báo cáo gồm 19 trang và 18 sơ đồ PlantUML dùng định dạng mặc định. Báo cáo ca sử dụng mô tả 28 mục tiêu. Báo cáo lớp trình bày 20 lớp ánh xạ bảng dữ liệu và các lớp dịch vụ số hóa. [Mã nguồn sơ đồ](bao_cao_hien_trang/plantuml/) dùng tiền tố `arch_` cho kiến trúc, `uc_` cho ca sử dụng và `class_` cho lớp.
 
 Khi đã có Java, PlantUML và Graphviz, có thể kết xuất lại các sơ đồ bằng lệnh sau từ thư mục gốc của dự án.
 

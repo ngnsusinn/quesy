@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+actor "Khách" as K
+actor "Giáo viên" as G
+rectangle "Quesy" {
+  usecase "Mở tài khoản" as A
+  usecase "Chuẩn bị ngân hàng câu hỏi" as B
+  usecase "Số hóa đề có sẵn" as D
+  usecase "Soạn đề LaTeX" as C
+  usecase "Tạo đề theo ma trận" as M
+  usecase "Xuất đề và phân tích kết quả" as E
+}
+actor "Nhà cung cấp AI" as AI
+actor "Dịch vụ biên dịch" as TEX
+K -- A
+G -- B
+G -- D
+G -- C
+G -- M
+G -- E
+D -- AI
+C -- AI
+C -- TEX
+@enduml

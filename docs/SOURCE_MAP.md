@@ -1,6 +1,6 @@
 # BẢN ĐỒ MÃ NGUỒN & KIẾN TRÚC HỆ THỐNG CHI TIẾT (QUESY SOURCE MAP)
 
-Xem [bộ báo cáo hiện trạng](README.md#báo-cáo-hiện-trạng-22112026) trong `docs/bao_cao_hien_trang/` để đối chiếu kiến trúc, 23 Use Case và 20 lớp ORM với bản mã `557cb3f`. Mã PlantUML nằm trong [thư mục plantuml](bao_cao_hien_trang/plantuml/).
+Xem [bộ báo cáo hiện trạng](README.md#báo-cáo-hiện-trạng-22112026) trong `docs/bao_cao_hien_trang/` để đối chiếu kiến trúc, 28 ca sử dụng và 20 lớp ORM với bản mã `da27117`. Mã PlantUML nằm trong [thư mục plantuml](bao_cao_hien_trang/plantuml/).
 
 > **Dự án:** Quesy - Nền tảng Quản trị Khảo thí, Soạn đề & Số hóa Đề thi Chuẩn Quốc gia  
 > **Chuẩn Khảo thí:** Thông tư 32/2018/TT-BGDĐT & Quyết định 764/QĐ-BGDĐT (Định dạng Đề thi 2025 - 2026)  

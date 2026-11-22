@@ -1,0 +1,11 @@
+@startuml
+class LearningOutcome
+class Question
+class ExamMatrixItem
+class MasterExamItem
+class ExamVariantItem
+LearningOutcome "0..1" -- "0..*" Question
+LearningOutcome "0..1" -- "0..*" ExamMatrixItem
+Question "1" -- "0..*" MasterExamItem
+Question "1" -- "0..*" ExamVariantItem
+@enduml

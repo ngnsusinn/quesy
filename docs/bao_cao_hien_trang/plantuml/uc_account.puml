@@ -1,35 +1,15 @@
 @startuml
-skinparam backgroundColor white
-skinparam defaultFontName Segoe UI
-skinparam defaultFontSize 17
-skinparam shadowing false
-skinparam ArrowColor #365B76
-skinparam defaultFontColor #172B3C
-skinparam nodesep 24
-skinparam ranksep 26
-scale 2
-skinparam usecaseBackgroundColor #EDF4F9
-skinparam usecaseBorderColor #365B76
-skinparam actorBorderColor #365B76
-skinparam rectangleBackgroundColor #F7FAFC
-skinparam rectangleBorderColor #365B76
-skinparam nodesep 14
-skinparam ranksep 37
-
 left to right direction
-actor "Khách truy cập" as Guest
-actor "Người dùng có phiên" as Member
-rectangle "Quesy · Tài khoản" {
-  usecase "Đăng ký tài khoản\n<size:13>UC-AUTH-01</size>" as U1
-  usecase "Đăng nhập bằng mật khẩu\n<size:13>UC-AUTH-02</size>" as U2
-  usecase "Xem thông tin tài khoản\n<size:13>UC-AUTH-03</size>" as U3
-  usecase "Kết thúc phiên trên trình duyệt\n<size:13>UC-AUTH-04</size>" as U4
+actor "Khách" as Guest
+actor "Người đã đăng nhập" as Member
+rectangle "Quesy • Tài khoản" {
+  usecase "A1  Đăng ký tài khoản" as A1
+  usecase "A2  Đăng nhập" as A2
+  usecase "A3  Xem hồ sơ" as A3
+  usecase "A4  Đăng xuất" as A4
 }
-Guest -- U1
-Guest -- U2
-Member -- U3
-Member -- U4
-U2 -[hidden]right- U1
-U3 -[hidden]right- U2
-U4 -[hidden]right- U3
+Guest -- A1
+Guest -- A2
+Member -- A3
+Member -- A4
 @enduml

@@ -723,3 +723,6 @@ Không thay bộ render, API, nội dung nghiệp vụ hay cấu hình chạy Gi
 - [x] Cập nhật `docs/README.md` và `docs/SOURCE_MAP.md` với vị trí của các báo cáo.
 - [x] Cập nhật cả ba báo cáo lên bản 2.0, kết xuất 15 sơ đồ PlantUML và lưu mã nguồn sơ đồ.
 - [x] Đặc tả 23 Use Case theo 13 trường, đối chiếu mã Use Case giữa lược đồ và đặc tả, ghi kết quả C1–C20 và kiểm tra bộ tài liệu trong Microsoft Word.
+
+- [x] Viết lại ba báo cáo theo mã nguồn `da27117`, kết xuất 18 sơ đồ PlantUML và kiểm tra 19 trang bằng Microsoft Word. Đối chiếu mã của 28 ca sử dụng và tên thuộc tính của các lớp với mã nguồn.
+- [x] Kiểm tra hợp đồng OpenAPI, chạy 11 yêu cầu đọc mẫu trên bản sao SQLite, 4 kiểm thử hiệu năng và kịch bản `scripts/verify_pipeline.py`.

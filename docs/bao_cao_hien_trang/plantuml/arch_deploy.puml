@@ -1,39 +1,19 @@
 @startuml
-skinparam backgroundColor white
-skinparam defaultFontName Segoe UI
-skinparam defaultFontSize 17
-skinparam shadowing false
-skinparam ArrowColor #365B76
-skinparam defaultFontColor #172B3C
-skinparam nodesep 24
-skinparam ranksep 26
-scale 2
-skinparam componentStyle uml2
-skinparam componentBackgroundColor #E8F1F8
-skinparam componentBorderColor #365B76
-skinparam databaseBackgroundColor #F0F5F8
-skinparam databaseBorderColor #365B76
-skinparam packageBackgroundColor #F7FAFC
-skinparam packageBorderColor #365B76
-skinparam nodeBackgroundColor #F7FAFC
-skinparam nodeBorderColor #365B76
-
-node "Máy người dùng" as C {
-  artifact "Trình duyệt\nWeb Studio" as WEB
+node "Máy người dùng" {
+  artifact "Trình duyệt" as Web
 }
-node "Máy chủ ứng dụng" as S {
-  node "Python cục bộ hoặc container" as PY {
-    component "Uvicorn / FastAPI" as APP
-  }
-  database "SQLite và storage/" as DB
-  component "Tiến trình hỗ trợ\nNode.js · Chromium · Tectonic" as WORKERS
+node "Máy chủ hoặc container" {
+  [Uvicorn và FastAPI] as App
+  folder "storage/" as Files
+  [Công cụ kết xuất cục bộ] as Local
 }
-cloud "Dịch vụ ngoài" as X {
-  component "AI hoặc Tectonic API" as REMOTE
+cloud "Dịch vụ bên ngoài" {
+  [API biên dịch Tectonic] as TeX
+  [Dịch vụ AI] as AI
 }
-WEB -down-> APP : HTTP :8000
-APP -down-> DB
-APP -down-> WORKERS : khi cần
-APP .right.> REMOTE : HTTP
-DB -[hidden]right- WORKERS
+Web --> App : HTTP
+App --> Files
+App ..> Local
+App ..> TeX
+App ..> AI
 @enduml

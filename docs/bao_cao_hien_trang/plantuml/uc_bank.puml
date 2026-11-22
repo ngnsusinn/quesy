@@ -1,41 +1,18 @@
 @startuml
-skinparam backgroundColor white
-skinparam defaultFontName Segoe UI
-skinparam defaultFontSize 17
-skinparam shadowing false
-skinparam ArrowColor #365B76
-skinparam defaultFontColor #172B3C
-skinparam nodesep 24
-skinparam ranksep 26
-scale 2
-skinparam usecaseBackgroundColor #EDF4F9
-skinparam usecaseBorderColor #365B76
-skinparam actorBorderColor #365B76
-skinparam rectangleBackgroundColor #F7FAFC
-skinparam rectangleBorderColor #365B76
-skinparam nodesep 14
-skinparam ranksep 37
-
 left to right direction
-actor "Giáo viên" as Teacher
-actor "Giáo viên qua máy khách API" as Client
-rectangle "Quesy · Ngân hàng câu hỏi" {
-  usecase "Tra cứu câu hỏi\n<size:13>UC-BANK-01</size>" as U1
-  usecase "Thêm câu hỏi vào ngân hàng\n<size:13>UC-BANK-02</size>" as U2
-  usecase "Sửa câu hỏi trong ngân hàng\n<size:13>UC-BANK-03</size>" as U3
-  usecase "Xóa câu hỏi khỏi ngân hàng\n<size:13>UC-BANK-04</size>" as U4
-  usecase "Nhập câu hỏi hàng loạt\n<size:13>UC-BANK-05</size>" as U5
-  usecase "Xuất câu hỏi từ ngân hàng\n<size:13>UC-BANK-06</size>" as U6
+actor "Giáo viên" as T
+rectangle "Quesy • Ngân hàng câu hỏi" {
+  usecase "B1  Tra cứu câu hỏi" as B1
+  usecase "B2  Thêm câu hỏi" as B2
+  usecase "B3  Sửa câu hỏi" as B3
+  usecase "B4  Xóa câu hỏi" as B4
+  usecase "B5  Nhập tập câu hỏi" as B5
+  usecase "B6  Xuất tập câu hỏi" as B6
 }
-Teacher -- U1
-Teacher -- U2
-Teacher -- U3
-Teacher -- U4
-Client -- U5
-Client -- U6
-U2 -[hidden]right- U1
-U3 -[hidden]right- U2
-U4 -[hidden]right- U3
-U5 -[hidden]right- U4
-U6 -[hidden]right- U5
+T -- B1
+T -- B2
+T -- B3
+T -- B4
+T -- B5
+T -- B6
 @enduml
