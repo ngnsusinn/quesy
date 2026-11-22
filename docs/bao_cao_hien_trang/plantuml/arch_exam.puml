@@ -1,0 +1,16 @@
+@startuml
+actor "Giáo viên" as GV
+participant "Ma trận" as M
+participant "Bộ sinh đề" as G
+database "Cơ sở\ndữ liệu" as B
+participant "Bộ trộn" as S
+GV -> M : Kiểm tra từng ô
+M -> B : Đếm câu đủ điều kiện
+M --> GV : Số cần, số có và số thiếu
+GV -> G : Sinh đề theo ma trận
+G -> B : Chọn câu, ghi đề gốc
+G --> GV : Đề gốc và các phần
+GV -> S : Chọn mã đề
+S -> B : Ghi thứ tự và khóa từng mã
+S --> GV : Bảng đáp án theo mã
+@enduml

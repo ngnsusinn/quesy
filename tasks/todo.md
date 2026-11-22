@@ -714,3 +714,15 @@ Kiểm tra chỉ áp dụng cho tài liệu. Không chạy lại pytest, perform
 - [x] Kiểm thử ba suite số hóa/AI/Cloud Vision: 23 passed; performance budget: 4 passed; `scripts/verify_pipeline.py` hoàn tất PASS; kiểm tra lại bộ tài liệu: 886/886 điều kiện đạt.
 
 Không thay bộ render, API, nội dung nghiệp vụ hay cấu hình chạy GitHub Actions. Kết quả CI sau cập nhật được theo dõi trên PR #14; kết quả chạy bổ sung được ghi trong báo cáo kiểm thử.
+
+## DOC-2026-11-22 — Báo cáo hiện trạng Quesy
+
+- [x] Rà soát cây thư mục, tài liệu và mã của `557cb3f`. Đối chiếu 91 thao tác trong OpenAPI và 20 lớp ORM.
+- [x] Chạy 26 yêu cầu kiểm tra mẫu bằng FastAPI TestClient trên bản sao mã nguồn và SQLite tạm. Ghi phạm vi xác minh trong báo cáo kiến trúc.
+- [x] Soạn ba tệp DOCX, dựng 13 sơ đồ và kiểm tra 14 trang kết xuất bằng Microsoft Word.
+- [x] Cập nhật `docs/README.md` và `docs/SOURCE_MAP.md` với vị trí của các báo cáo.
+- [x] Cập nhật cả ba báo cáo lên bản 2.0, kết xuất 15 sơ đồ PlantUML và lưu mã nguồn sơ đồ.
+- [x] Đặc tả 23 Use Case theo 13 trường, đối chiếu mã Use Case giữa lược đồ và đặc tả, ghi kết quả C1–C20 và kiểm tra bộ tài liệu trong Microsoft Word.
+
+- [x] Viết lại ba báo cáo theo mã nguồn `da27117`, kết xuất 18 sơ đồ PlantUML và kiểm tra 19 trang bằng Microsoft Word. Đối chiếu mã của 28 ca sử dụng và tên thuộc tính của các lớp với mã nguồn.
+- [x] Kiểm tra hợp đồng OpenAPI, chạy 11 yêu cầu đọc mẫu trên bản sao SQLite, 4 kiểm thử hiệu năng và kịch bản `scripts/verify_pipeline.py`.

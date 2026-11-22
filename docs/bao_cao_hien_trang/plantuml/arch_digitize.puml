@@ -1,0 +1,19 @@
+@startuml
+start
+:Tiếp nhận tài liệu và tạo tác vụ;
+if (Chọn chế độ hai lượt?) then (có)
+  :Chuẩn bị ảnh và vùng hình;
+  if (Đã cấu hình AI?) then (có)
+  :Lượt một đọc nội dung,\nxác định vị trí hình;
+  :Lượt hai dựng lại hình hoặc bảng,\nghép kết quả vào câu;
+  else (chưa)
+    :Trích câu bằng bộ phân tích cục bộ;
+  endif
+else (không)
+  :Trích câu theo chế độ chuẩn;
+endif
+:Lưu bản trích xuất;
+:Giáo viên kiểm tra và chọn câu;
+:Ghi câu đã chọn vào ngân hàng;
+stop
+@enduml

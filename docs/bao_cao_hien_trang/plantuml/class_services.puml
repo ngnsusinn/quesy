@@ -1,0 +1,29 @@
+@startuml
+class AIExamParser {
+  +parse_document(...)
+}
+class ExamLayoutSegmenter {
+  +segment(...)
+}
+class AnswerKeyExtractor {
+  +extract_answers_and_solutions(...)
+}
+class AIProviderService {
+  +digitize_exam(...)
+  +digitize_exam_2pass(...)
+  +stitch_figures(...)
+}
+class CropService {
+  +extract_images_from_docx(...)
+  +extract_images_from_pdf(...)
+}
+class "ai_parser.py" as Worker <<module>> {
+  +process_digitize_job(...)
+  +process_digitize_job_2pass(...)
+}
+Worker ..> AIProviderService
+Worker ..> AIExamParser
+AIExamParser ..> CropService
+AIExamParser ..> ExamLayoutSegmenter
+AIExamParser ..> AnswerKeyExtractor
+@enduml

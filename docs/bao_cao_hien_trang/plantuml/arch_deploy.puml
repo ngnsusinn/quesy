@@ -1,0 +1,19 @@
+@startuml
+node "Máy người dùng" {
+  artifact "Trình duyệt" as Web
+}
+node "Máy chủ hoặc container" {
+  [Uvicorn và FastAPI] as App
+  folder "storage/" as Files
+  [Công cụ kết xuất cục bộ] as Local
+}
+cloud "Dịch vụ bên ngoài" {
+  [API biên dịch Tectonic] as TeX
+  [Dịch vụ AI] as AI
+}
+Web --> App : HTTP
+App --> Files
+App ..> Local
+App ..> TeX
+App ..> AI
+@enduml

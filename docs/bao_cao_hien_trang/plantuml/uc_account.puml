@@ -1,0 +1,15 @@
+@startuml
+left to right direction
+actor "Khách" as Guest
+actor "Người đã đăng nhập" as Member
+rectangle "Quesy • Tài khoản" {
+  usecase "A1  Đăng ký tài khoản" as A1
+  usecase "A2  Đăng nhập" as A2
+  usecase "A3  Xem hồ sơ" as A3
+  usecase "A4  Đăng xuất" as A4
+}
+Guest -- A1
+Guest -- A2
+Member -- A3
+Member -- A4
+@enduml

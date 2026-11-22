@@ -1,0 +1,52 @@
+@startuml
+class ExamMatrix {
+  id : str
+  subject_id : str
+  grade_id : str
+}
+class MasterExam {
+  id : str
+  matrix_id : str
+  status : str
+}
+class ExamVariant {
+  id : str
+  master_exam_id : str
+  variant_code : str
+}
+class ExamMatrixItem {
+  id : str
+  matrix_id : str
+  learning_outcome_id : str
+  problem_archetype_id : str
+  quantity : int
+  points_per_item : float
+}
+class MasterExamItem {
+  id : str
+  master_exam_id : str
+  question_id : str
+  section_number : int
+  question_number : int
+}
+class ExamVariantItem {
+  id : str
+  variant_id : str
+  question_id : str
+  section_number : int
+  question_number : int
+  original_question_number : int
+  option_mapping : JSON
+  answer_key : str
+}
+class Question {
+  id : str
+}
+ExamMatrix "0..1" -right- "0..*" MasterExam
+MasterExam "1" *-right- "0..*" ExamVariant
+ExamMatrix "1" *-down- "0..*" ExamMatrixItem
+MasterExam "1" *-down- "0..*" MasterExamItem
+ExamVariant "1" *-down- "0..*" ExamVariantItem
+MasterExamItem "0..*" -down- "1" Question
+ExamVariantItem "0..*" -down- "1" Question
+@enduml

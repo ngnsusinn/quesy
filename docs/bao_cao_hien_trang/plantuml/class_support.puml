@@ -1,0 +1,34 @@
+@startuml
+class User {
+  id : str
+  email : str
+  full_name : str
+  role : str
+  is_active : bool
+}
+class AIDigitizeJob {
+  id : str
+  file_path : str
+  status : str
+  subject_id : str
+  grade_id : str
+  extracted_json : JSON
+}
+class Grade {
+  id : str
+  code : str
+}
+class Classroom {
+  id : str
+  name : str
+  grade_id : str
+}
+class Student {
+  id : str
+  classroom_id : str
+  student_code : str
+  full_name : str
+}
+Grade "0..1" -right- "0..*" Classroom
+Classroom "1" *-right- "0..*" Student
+@enduml

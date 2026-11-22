@@ -1,0 +1,41 @@
+@startuml
+class Subject {
+  id : str
+  code : str
+  name : str
+}
+class Grade {
+  id : str
+  code : str
+  level : int
+}
+class Strand {
+  id : str
+  subject_id : str
+  grade_id : str
+}
+class Topic {
+  id : str
+  strand_id : str
+}
+class Lesson {
+  id : str
+  topic_id : str
+}
+class LearningOutcome {
+  id : str
+  lesson_id : str
+  code : str
+}
+class ProblemArchetype {
+  id : str
+  learning_outcome_id : str
+  code : str
+}
+Subject "1" -down- "0..*" Strand
+Grade "1" -down- "0..*" Strand
+Strand "1" -right- "0..*" Topic
+Topic "1" -right- "0..*" Lesson
+Lesson "1" -down- "0..*" LearningOutcome
+LearningOutcome "1" -left- "0..*" ProblemArchetype
+@enduml

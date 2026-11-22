@@ -1,0 +1,16 @@
+@startuml
+[Trình duyệt\nWeb Studio] as Web
+package "Ứng dụng Quesy" {
+  [Giao diện API\nFastAPI] as API
+  [Dịch vụ nghiệp vụ] as Logic
+  database "Dữ liệu khảo thí\nSQLite mặc định" as DB
+  folder "Tệp đề, hình và bản xuất" as Files
+}
+[Nhà cung cấp AI] as AI
+Web --> API : HTTP
+API --> Logic
+API --> DB : SQLAlchemy
+Logic --> DB
+Logic --> Files
+Logic ..> AI : khi có cấu hình
+@enduml

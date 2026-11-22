@@ -1,0 +1,12 @@
+@startuml
+left to right direction
+actor "Giáo viên" as T
+rectangle "Quesy • Số hóa và hậu kiểm" {
+  usecase "D1  Trích câu từ tài liệu" as D1
+  usecase "D2  Duyệt và lưu câu đã chọn" as D2
+}
+T -- D1
+T -- D2
+actor "Dịch vụ AI" as AI
+D1 -- AI
+@enduml

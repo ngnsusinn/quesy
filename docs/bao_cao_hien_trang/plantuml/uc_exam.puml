@@ -1,0 +1,16 @@
+@startuml
+left to right direction
+actor "Giáo viên" as T
+rectangle "Quesy • Lập ma trận và tạo mã đề" {
+  usecase "M1  Lập ma trận đặc tả" as M1
+  usecase "M2  Kiểm tra số câu khả dụng" as M2
+  usecase "E1  Sinh đề gốc" as E1
+  usecase "E2  Thay câu trong đề gốc" as E2
+  usecase "E3  Tạo các mã đề" as E3
+}
+T -- M1
+T -- M2
+T -- E1
+T -- E2
+T -- E3
+@enduml

@@ -150,3 +150,11 @@ Kiểm tra chỉ áp dụng cho tài liệu. Không chạy lại pytest, perform
 - [x] Kiểm thử ba suite số hóa/AI/Cloud Vision: 23 passed; performance budget: 4 passed; `scripts/verify_pipeline.py` hoàn tất PASS; kiểm tra lại bộ tài liệu: 886/886 điều kiện đạt.
 
 Không thay bộ render, API, nội dung nghiệp vụ hay cấu hình chạy GitHub Actions. Kết quả CI sau cập nhật được theo dõi trên PR #14; kết quả chạy bổ sung được ghi trong báo cáo kiểm thử.
+
+## DOC-2026-11-22 — Báo cáo hiện trạng Quesy
+
+Đối chiếu bản mã `557cb3f` với bản đồ nguồn, bản đồ tính năng và bộ đặc tả ngày 17/11. Hoàn thành ba báo cáo Word về kiến trúc, Use Case và lớp tại `docs/bao_cao_hien_trang/`. Báo cáo mô tả giao diện, API và mô hình dữ liệu hiện hành, kèm giới hạn xác minh trên môi trường cục bộ.
+
+Bản tài liệu 2.0 chuyển toàn bộ sơ đồ sang PlantUML và bổ sung đặc tả 23 Use Case theo khung 13 trường của *use-case-writer*. Tần suất định lượng và yêu cầu phi chức năng riêng vẫn chờ căn cứ nghiệp vụ.
+
+Bản viết lại theo luồng từ câu hỏi đến mã đề phục vụ giảng viên chấm đồ án. Ba báo cáo tại cùng đường dẫn trình bày kiến trúc, 28 ca sử dụng và 20 lớp ORM. Cả 18 hình đều dùng ký pháp và định dạng mặc định của PlantUML.

@@ -1,0 +1,10 @@
+@startuml
+left to right direction
+actor "Giáo viên" as T
+rectangle "Quesy • Xuất bản và phân tích" {
+  usecase "E4  Tải đề và bảng đáp án" as E4
+  usecase "E5  Phân tích kết quả làm bài" as E5
+}
+T -- E4
+T -- E5
+@enduml

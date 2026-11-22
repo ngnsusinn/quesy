@@ -1,0 +1,31 @@
+@startuml
+class Question {
+  id : str
+  stem : text
+  question_type : str
+  cognitive_level : str
+  status : str
+  parent_id : str
+  passage_id : str
+  short_answer_key : str
+  rubric : JSON
+}
+class QuestionOption {
+  id : str
+  question_id : str
+  label : str
+  content : text
+  is_correct : bool
+  is_fixed : bool
+}
+class SubStatement {
+  id : str
+  question_id : str
+  label : str
+  content : text
+  is_true : bool
+}
+Question "1" *-down- "0..*" QuestionOption
+Question "1" *-down- "0..*" SubStatement
+Question "0..1" -- "0..*" Question
+@enduml

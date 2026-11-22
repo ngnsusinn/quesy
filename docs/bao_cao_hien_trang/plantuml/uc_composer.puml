@@ -1,0 +1,20 @@
+@startuml
+left to right direction
+actor "Giáo viên" as T
+rectangle "Quesy • Soạn đề LaTeX" {
+  usecase "C1  Xem trước bản PDF" as C1
+  usecase "C2  Nhận gợi ý soạn đề" as C2
+  usecase "C3  Lưu câu vào ngân hàng" as C3
+  usecase "C4  Tải mã nguồn LaTeX" as C4
+  usecase "C5  Duyệt thay đổi do AI đề xuất" as C5
+}
+T -- C1
+T -- C2
+T -- C3
+T -- C4
+T -- C5
+actor "Dịch vụ AI" as AI
+C2 -- AI
+actor "Dịch vụ biên dịch" as TeX
+C1 -- TeX
+@enduml
